@@ -79,23 +79,25 @@ if exist frontend\package.json (
     echo [WARN] Frontend directory not found
 )
 
-echo.
-echo Choose startup option:
-echo 1. Start Full Stack (Docker with PostgreSQL - Recommended)
-echo 2. Start Development Mode (Docker database + local servers)
-echo 3. Backend Only (API server only - requires database)
-echo 4. Run Full Diagnostics (Advanced testing)
-echo 5. Exit
-echo.
-
-set /p choice="Enter your choice (1-5): "
-
-if "%choice%"=="1" goto docker_start
-if "%choice%"=="2" goto local_start
-if "%choice%"=="3" goto backend_only
-if "%choice%"=="4" goto full_diagnostics
-if "%choice%"=="5" goto exit
-echo Invalid choice. Defaulting to local development.
+REM echo.
+REM echo Choose startup option:
+REM echo 1. Start Full Stack (Docker with PostgreSQL - Recommended)
+REM echo 2. Start Development Mode (Docker database + local servers)
+REM echo 3. Backend Only (API server only - requires database)
+REM echo 4. Run Full Diagnostics (Advanced testing)
+REM echo 5. Exit
+REM echo.
+REM
+REM set /p choice="Enter your choice (1-5): "
+REM
+REM if "%choice%"=="1" goto docker_start
+REM if "%choice%"=="2" goto local_start
+REM if "%choice%"=="3" goto backend_only
+REM if "%choice%"=="4" goto full_diagnostics
+REM if "%choice%"=="5" goto exit
+REM echo Invalid choice. Defaulting to local development.
+REM
+goto docker_start
 
 :local_start
 echo.
