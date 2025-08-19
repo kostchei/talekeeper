@@ -153,9 +153,9 @@ class CharacterService:
                                 abilities["constitution"] += 2
                                 abilities["wisdom"] += 1
         
-        # Ensure no ability goes above 20 or below 8
+        # Ensure ability scores do not exceed 20
         for ability in abilities:
-            abilities[ability] = max(8, min(20, abilities[ability]))
+            abilities[ability] = min(20, abilities[ability])
         
         return abilities
     

@@ -9,7 +9,7 @@
  *   - Players allocate 15, 14, 13 to class primary stats + one choice
  *   - Fighter: (STR or DEX choice) + CON + one choice, minimums: WIS 6, CHA 6, INT 3
  *   - Rogue: DEX + (INT or CHA choice) + one choice, minimums: CON 6, STR 6, WIS 3
- *   - Unallocated stats default to 8
+ *   - Unallocated stats start at 0 and respect class minimums
  * 
  * Phase 2 - Enhancement Rolls:
  *   - Roll 4d6 drop lowest, six times in order (STR→DEX→CON→INT→WIS→CHA)
@@ -40,7 +40,7 @@ const CharacterSheet = () => {
   
   // Allocation state
   const [allocations, setAllocations] = useState({
-    str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8
+    str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0
   });
   const [availableValues] = useState([15, 14, 13]);
   const [usedValues, setUsedValues] = useState([]);
@@ -78,7 +78,7 @@ const CharacterSheet = () => {
 
   const initializeAllocations = () => {
     const config = classConfigs[character.character_class] || classConfigs.Fighter;
-    const newAllocations = { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 };
+    const newAllocations = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
     
     // Apply class minimums
     Object.entries(config.minimums).forEach(([ability, value]) => {
