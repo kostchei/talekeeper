@@ -1,0 +1,40 @@
+# FastAPI and server
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Data validation and serialization
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# CORS support
+python-jose[cryptography]==3.3.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Dice rolling and game mechanics
+numpy==1.26.3
+
+# JSON handling
+orjson==3.9.10
+
+# Testing (optional, for development)
+pytest==7.4.4
+pytest-asyncio==0.23.3
+httpx==0.26.0
+
+# Documentation
+pyyaml==6.0.1
+
+# Async support
+aiofiles==23.2.1
+
+# Logging
+loguru==0.7.2

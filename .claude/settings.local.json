@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose up:*)",
+      "Bash(docker compose:*)",
+      "Bash(python:*)",
+      "Bash(dir)",
+      "Bash(docker:*)",
+      "Bash(psql:*)",
+      "Bash(where docker)",
+      "Bash(powershell:*)",
+      "Bash(rm:*)",
+      "Bash(start:*)",
+      "Bash(call venv\\Scripts\\activate.bat)",
+      "Bash(.\\venv\\Scripts\\activate)",
+      "Bash(curl:*)",
+      "Bash(sqlite3:*)",
+      "Bash(git restore:*)",
+      "Bash(wsl:*)",
+      "Bash(msiexec:*)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" --version)",
+      "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" ps)",
+      "Bash(timeout:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,235 @@
+/**
+ * File: frontend/src/styles/loot.css
+ * Path: /frontend/src/styles/loot.css
+ * 
+ * Loot Screen Styles
+ * Simple text-based loot interface
+ */
+
+.loot-screen {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  color: #f4f4f4;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loot-container {
+  background: rgba(20, 20, 40, 0.9);
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+}
+
+.loot-container h1 {
+  color: #d4af37;
+  text-align: center;
+  margin: 0 0 1rem 0;
+  font-family: 'Cinzel', serif;
+}
+
+.loot-container p {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #ccc;
+}
+
+.loot-list h3,
+.selected-items h3 {
+  color: #d4af37;
+  margin: 0 0 1rem 0;
+  border-bottom: 1px solid #444;
+  padding-bottom: 0.5rem;
+}
+
+.loot-items {
+  margin-bottom: 2rem;
+}
+
+.loot-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(40, 40, 60, 0.5);
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.loot-item:hover {
+  background: rgba(40, 40, 60, 0.8);
+}
+
+.loot-item.all-items {
+  border: 2px solid #d4af37;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.loot-number-btn {
+  min-width: 40px;
+  height: 40px;
+  background: #d4af37;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 50%;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loot-number-btn:hover:not(:disabled) {
+  background: #f4e071;
+  transform: scale(1.05);
+}
+
+.loot-number-btn:disabled {
+  background: #666;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loot-number-btn.all-btn {
+  background: #4ade80;
+}
+
+.loot-number-btn.all-btn:hover:not(:disabled) {
+  background: #6ee7b7;
+}
+
+.loot-name {
+  flex: 1;
+  font-weight: bold;
+}
+
+.loot-type {
+  color: #999;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Selected Items */
+.selected-items {
+  margin: 2rem 0;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid #4ade80;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.selected-list {
+  margin-bottom: 1rem;
+}
+
+.selected-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(74, 222, 128, 0.2);
+  border-radius: 4px;
+}
+
+.remove-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.remove-btn:hover {
+  background: #dc2626;
+}
+
+/* Actions */
+.loot-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.take-loot-btn,
+.skip-loot-btn {
+  padding: 0.8rem 1.5rem;
+  border: 2px solid;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.take-loot-btn {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.take-loot-btn:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.4);
+  transform: translateY(-2px);
+}
+
+.take-loot-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.skip-loot-btn {
+  background: rgba(156, 163, 175, 0.2);
+  border-color: #9ca3af;
+  color: #9ca3af;
+}
+
+.skip-loot-btn:hover:not(:disabled) {
+  background: rgba(156, 163, 175, 0.4);
+  transform: translateY(-2px);
+}
+
+.skip-loot-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Instructions */
+.loot-instructions {
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  font-style: italic;
+  border-top: 1px solid #444;
+  padding-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .loot-screen {
+    padding: 1rem;
+  }
+  
+  .loot-container {
+    padding: 1.5rem;
+  }
+  
+  .loot-actions {
+    flex-direction: column;
+  }
+  
+  .take-loot-btn,
+  .skip-loot-btn {
+    width: 100%;
+  }
+}
