@@ -175,10 +175,23 @@ CREATE TABLE items (
     armor_class INTEGER, -- Base AC for armor
     armor_type VARCHAR(20), -- "light", "medium", "heavy"
     properties JSONB, -- ["versatile", "finesse", "two-handed"]
+    -- Equipment properties
+    equipment_slot VARCHAR(20), -- Primary slot when equipped ("main_hand", "armor", etc.)
+    max_dex_bonus INTEGER, -- Maximum DEX bonus for armor
+    stealth_disadvantage BOOLEAN DEFAULT FALSE, -- Armor causes stealth disadvantage
+    -- Weapon range properties
+    range_normal INTEGER, -- Normal range in feet
+    range_long INTEGER, -- Long range in feet
     -- Magic properties
+    is_magical BOOLEAN DEFAULT FALSE,
+    attunement_required BOOLEAN DEFAULT FALSE,
+    charges_max INTEGER, -- Maximum charges for items with limited uses
     magic_bonus INTEGER DEFAULT 0, -- +1, +2, etc.
-    magic_properties JSONB, -- Special magic effects
-    charges INTEGER, -- For items with limited uses
+    magic_properties JSONB, -- Special magic effects (legacy field)
+    charges INTEGER, -- For items with limited uses (legacy field)
+    -- Flexible properties
+    requirements JSONB DEFAULT '{}', -- Class, race, level requirements
+    effects JSONB DEFAULT '{}', -- Stat bonuses, special effects
     -- Requirements
     strength_requirement INTEGER, -- Min strength for heavy armor
     attunement BOOLEAN DEFAULT FALSE,
@@ -273,15 +286,18 @@ COMMENT ON TABLE characters IS 'Player characters with full D&D stats. AI agents
 
 -- Character Inventory
 CREATE TABLE character_inventory (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     character_id UUID REFERENCES characters(id) ON DELETE CASCADE,
     item_id UUID REFERENCES items(id),
     quantity INTEGER DEFAULT 1,
     equipped BOOLEAN DEFAULT FALSE,
-    equipped_slot VARCHAR(50), -- "main_hand", "off_hand", "armor", "ring_1", etc.
+    equipped_slot VARCHAR(20), -- "main_hand", "off_hand", "armor", "ring_1", etc.
     identified BOOLEAN DEFAULT TRUE, -- For magic items
-    charges_remaining INTEGER, -- For items with charges
-    notes TEXT, -- Player notes about item
+    attuned BOOLEAN DEFAULT FALSE, -- For magic items requiring attunement
+    charges_current INTEGER, -- Current charges if applicable
+    condition VARCHAR(20) DEFAULT 'normal', -- normal, damaged, broken
+    acquired_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT DEFAULT '', -- Player notes about item
     UNIQUE(character_id, item_id, equipped_slot)
 );
 COMMENT ON TABLE character_inventory IS 'Items owned by characters. AI agents: Use equipped_slot for worn/wielded items';
@@ -294,18 +310,67 @@ COMMENT ON TABLE character_inventory IS 'Items owned by characters. AI agents: U
 CREATE TABLE game_states (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     character_id UUID REFERENCES characters(id) ON DELETE CASCADE,
-    current_location VARCHAR(50) DEFAULT 'town', -- "town", "dungeon", "combat", "rest"
-    dungeon_level INTEGER DEFAULT 0,
-    rooms_cleared INTEGER DEFAULT 0,
-    current_encounter_id INTEGER,
-    -- Rest tracking
-    short_rests_used INTEGER DEFAULT 0,
-    last_long_rest TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- Expansion fields:
-    quest_flags JSONB, -- {"found_artifact": true, "talked_to_innkeeper": false}
-    map_explored JSONB, -- Revealed map sections
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Game progress
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    total_playtime_minutes INTEGER DEFAULT 0,
+    last_played TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Location and exploration
+    current_location VARCHAR(100) DEFAULT 'Starting Town',
+    location_type VARCHAR(20) DEFAULT 'TOWN',
+    discovered_locations JSONB DEFAULT '[]',
+    
+    -- Resources
+    inventory_gold INTEGER DEFAULT 50,
+    inventory_weight INTEGER DEFAULT 0,
+    
+    -- Rest and recovery
+    last_short_rest TIMESTAMP WITH TIME ZONE,
+    last_long_rest TIMESTAMP WITH TIME ZONE,
+    short_rests_today INTEGER DEFAULT 0,
+    hit_dice_remaining JSONB DEFAULT '{}',
+    
+    -- Spell casting
+    spell_slots_remaining JSONB DEFAULT '{}',
+    spell_slots_max JSONB DEFAULT '{}',
+    
+    -- Experience and progression
+    experience_gained_session INTEGER DEFAULT 0,
+    levels_gained_session INTEGER DEFAULT 0,
+    milestone_progress JSONB DEFAULT '{}',
+    
+    -- Quests and story
+    active_quests JSONB DEFAULT '[]',
+    completed_quests JSONB DEFAULT '[]',
+    story_flags JSONB DEFAULT '{}',
+    
+    -- Exploration and encounters
+    encounters_faced INTEGER DEFAULT 0,
+    monsters_defeated JSONB DEFAULT '{}',
+    dungeons_completed JSONB DEFAULT '[]',
+    
+    -- Achievements and statistics
+    total_damage_dealt INTEGER DEFAULT 0,
+    total_damage_taken INTEGER DEFAULT 0,
+    total_healing_done INTEGER DEFAULT 0,
+    critical_hits_landed INTEGER DEFAULT 0,
+    deaths INTEGER DEFAULT 0,
+    
+    -- Social interactions
+    npc_relationships JSONB DEFAULT '{}',
+    faction_standings JSONB DEFAULT '{}',
+    
+    -- Settings and preferences
+    difficulty_level VARCHAR(20) DEFAULT 'normal',
+    auto_rest BOOLEAN DEFAULT FALSE,
+    combat_speed VARCHAR(20) DEFAULT 'normal',
+    
+    -- Metadata
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT DEFAULT '',
+    
     UNIQUE(character_id)
 );
 COMMENT ON TABLE game_states IS 'Current game progress. AI agents: Add quest_flags for story progression';

@@ -462,6 +462,27 @@ UPDATE items SET armor_class = 2 WHERE name = 'Shield'; -- Shield adds +2 AC
 UPDATE items SET strength_requirement = 13 WHERE name = 'Chain Mail';
 UPDATE items SET strength_requirement = 15 WHERE name IN ('Splint Armor', 'Plate Armor');
 
+-- Set equipment slots for items
+UPDATE items SET equipment_slot = 'main_hand' WHERE type = 'weapon' AND subtype LIKE '%melee%';
+UPDATE items SET equipment_slot = 'main_hand' WHERE type = 'weapon' AND subtype LIKE '%ranged%';
+UPDATE items SET equipment_slot = 'armor' WHERE type = 'armor' AND subtype IN ('light_armor', 'medium_armor', 'heavy_armor');
+UPDATE items SET equipment_slot = 'off_hand' WHERE name = 'Shield';
+
+-- Set armor properties
+UPDATE items SET max_dex_bonus = NULL WHERE subtype = 'light_armor'; -- No limit for light armor
+UPDATE items SET max_dex_bonus = 2 WHERE subtype = 'medium_armor'; -- Max +2 for medium armor  
+UPDATE items SET max_dex_bonus = 0 WHERE subtype = 'heavy_armor'; -- No DEX bonus for heavy armor
+UPDATE items SET stealth_disadvantage = TRUE WHERE name IN ('Chain Mail', 'Splint Armor', 'Plate Armor', 'Scale Mail');
+
+-- Set weapon range properties
+UPDATE items SET range_normal = 150, range_long = 600 WHERE name = 'Longbow';
+UPDATE items SET range_normal = 80, range_long = 320 WHERE name = 'Light Crossbow';
+UPDATE items SET range_normal = 100, range_long = 400 WHERE name = 'Heavy Crossbow';
+
+-- Set magic item properties
+UPDATE items SET is_magical = TRUE, attunement_required = FALSE WHERE name LIKE '%+1%';
+UPDATE items SET is_magical = FALSE, attunement_required = FALSE WHERE is_magical IS NULL;
+
 -- Consumables
 INSERT INTO items (name, type, subtype, rarity, weight, cost_gp, description, consumable, stackable, max_stack) VALUES
 ('Potion of Healing', 'potion', 'healing', 'common', 0.5, 50, 'Regain 2d4+2 hit points when consumed.', TRUE, TRUE, 10),
@@ -547,8 +568,8 @@ INSERT INTO character_inventory (character_id, item_id, equipped, equipped_slot)
  (SELECT id FROM items WHERE name = 'Potion of Healing'), FALSE, NULL);
 
 -- Create a game state for the test character
-INSERT INTO game_states (character_id, current_location, dungeon_level, rooms_cleared) VALUES
-((SELECT id FROM characters WHERE name = 'Test Fighter'), 'town', 0, 0);
+INSERT INTO game_states (character_id, current_location, inventory_gold) VALUES
+((SELECT id FROM characters WHERE name = 'Test Fighter'), 'Starting Town', 50);
 
 -- =====================================================
 -- D&D 2024 WEAPON MASTERY PROPERTIES

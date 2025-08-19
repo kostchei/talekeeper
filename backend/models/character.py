@@ -117,7 +117,7 @@ class Character(Base):
             "level": self.level,
             "experience_points": self.experience_points,
             "race": self.race.name if self.race else None,
-            "class": self.character_class.name if self.character_class else None,
+            "character_class": self.character_class.name if self.character_class else None,
             "subclass": self.subclass.name if self.subclass else None,
             "background": self.background.name if self.background else None,
             "ability_scores": {
@@ -168,6 +168,7 @@ class CharacterCreate(BaseModel):
     
     # Character creation choices
     ability_scores: Optional[Dict[str, int]] = None  # Override individual scores if provided
+    background_ability_increases: Optional[Dict[str, int]] = None  # Background ability score allocation
     skill_choices: Optional[List[str]] = None  # Chosen skills from class/background
     equipment_choices: Optional[Dict[str, Any]] = None  # Starting equipment selections
     save_slot: Optional[int] = Field(default=1, ge=1, le=10)  # Save slot number

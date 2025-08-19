@@ -93,8 +93,17 @@ const CharacterCreator = () => {
       console.error('Character creation failed:', error);
       
       // Fallback to mock character if API fails
+      // Generate a proper UUID format for compatibility
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : ((r & 0x3) | 0x8);
+          return v.toString(16);
+        });
+      };
+      
       const mockCharacter = {
-        id: Date.now().toString(),
+        id: generateUUID(),
         name: characterData.name || 'Test Character',
         race: characterData.race?.name || 'Human',
         character_class: characterData.characterClass?.name || 'Fighter',
@@ -247,7 +256,7 @@ const CharacterCreator = () => {
                       {characterData.characterClass.description}
                     </p>
                     <div className="class-details">
-                      <p><strong>Hit Die:</strong> d{characterData.characterClass.hit_die}</p>
+                      <p><strong>Hit Die:</strong> {characterData.characterClass.hit_die}</p>
                       <p><strong>Primary Ability:</strong> {Array.isArray(characterData.characterClass.primary_ability) ? 
                         characterData.characterClass.primary_ability.join(' or ') : 
                         characterData.characterClass.primary_ability}</p>

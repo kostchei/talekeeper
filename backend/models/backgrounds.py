@@ -26,6 +26,7 @@ class Background(Base):
     description = Column(Text, nullable=False)
     
     # Core background elements
+    ability_score_increases = Column(JSON, nullable=False)  # D&D 2024: {"strength": 2, "constitution": 1} or {"choice": 2, "any": 1}
     skill_proficiencies = Column(JSON, nullable=False)  # ["insight", "medicine"] or choice structure
     tool_proficiencies = Column(JSON, default=list)  # Specific tools gained
     language_proficiencies = Column(JSON, default=list)  # Languages gained
@@ -79,6 +80,9 @@ class BackgroundCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     description: str = Field(..., min_length=1)
     
+    # D&D 2024 ability score increases
+    ability_score_increases: Dict[str, Any] = Field(..., description="Ability score increases from background")
+    
     # Proficiencies
     skill_proficiencies: List[str] = Field(..., min_items=1, max_items=4)
     tool_proficiencies: List[str] = Field(default_factory=list)
@@ -113,6 +117,9 @@ class BackgroundResponse(BaseModel):
     id: str
     name: str
     description: str
+    
+    # D&D 2024 ability score increases
+    ability_score_increases: Dict[str, Any]
     
     # Proficiencies
     skill_proficiencies: List[str]

@@ -173,11 +173,7 @@ async def get_character(
         if not character:
             raise HTTPException(status_code=404, detail="Character not found")
         
-        # Load related data
-        service = CharacterService(db)
-        character_data = service.get_character_full(character_id)
-        
-        return character_data
+        return character.to_dict()
         
     except HTTPException:
         raise
@@ -214,7 +210,7 @@ async def update_character(
         db.commit()
         db.refresh(character)
         
-        return CharacterResponse.from_orm(character)
+        return CharacterResponse(**character.to_dict())
         
     except HTTPException:
         raise

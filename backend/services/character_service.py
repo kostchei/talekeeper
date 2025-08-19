@@ -59,9 +59,9 @@ class CharacterService:
                     "message": "Invalid race, class, or background ID"
                 }
             
-            # Apply racial ability score bonuses
-            final_abilities = self._apply_racial_bonuses(
-                char_data, race
+            # Apply background ability score bonuses (D&D 2024 rules)
+            final_abilities = self._apply_background_bonuses(
+                char_data, background
             )
             
             # Calculate derived stats
@@ -120,8 +120,8 @@ class CharacterService:
                 "message": f"Failed to create character: {str(e)}"
             }
     
-    def _apply_racial_bonuses(self, char_data: CharacterCreate, race: Race) -> Dict[str, int]:
-        """Apply racial ability score increases to base scores."""
+    def _apply_background_bonuses(self, char_data: CharacterCreate, background: Background) -> Dict[str, int]:
+        """Apply background ability score increases to base scores (D&D 2024 rules)."""
         
         abilities = {
             "strength": char_data.strength,
@@ -132,11 +132,26 @@ class CharacterService:
             "charisma": char_data.charisma
         }
         
-        # Apply racial bonuses
-        if race.ability_score_increase:
-            for ability, bonus in race.ability_score_increase.items():
-                if ability in abilities:
-                    abilities[ability] += bonus
+        # Apply background ability score increases
+        if background.ability_score_increases:
+            # Handle different background bonus formats
+            if isinstance(background.ability_score_increases, dict):
+                for ability, bonus in background.ability_score_increases.items():
+                    if ability in abilities:
+                        # Fixed background bonuses (like Soldier: +2 STR, +1 CON)
+                        abilities[ability] += bonus
+                    elif ability == "choice":
+                        # Handle choice-based increases from frontend
+                        if char_data.background_ability_increases:
+                            for chosen_ability, chosen_bonus in char_data.background_ability_increases.items():
+                                if chosen_ability in abilities:
+                                    abilities[chosen_ability] += chosen_bonus
+                        else:
+                            # Default allocation if no choices provided
+                            if background.name == "Farmer":
+                                # Default: +2 CON, +1 WIS for choice-based background
+                                abilities["constitution"] += 2
+                                abilities["wisdom"] += 1
         
         # Ensure no ability goes above 20 or below 8
         for ability in abilities:
@@ -606,3 +621,43 @@ class CharacterService:
                 "success": False,
                 "message": f"Failed to heal character: {str(e)}"
             }
+    
+    def recalculate_stats(self, character: Character) -> None:
+        """
+        Recalculate derived stats when ability scores change.
+        
+        Args:
+            character: Character whose stats need recalculation
+        """
+        try:
+            # Recalculate AC (10 + DEX modifier + armor bonuses)
+            base_ac = 10 + character.dexterity_modifier
+            
+            # TODO: Add armor bonuses from equipped items
+            # For now, use base AC
+            character.armor_class = base_ac
+            
+            # Recalculate max HP (level * hit_die_average + (CON mod * level))
+            hit_die_size = int(character.character_class.hit_die.replace("d", ""))
+            
+            # For level 1, use max hit die + CON mod
+            if character.level == 1:
+                character.hit_points_max = hit_die_size + character.constitution_modifier
+            else:
+                # For higher levels, use average + CON mod per level
+                hit_die_average = (hit_die_size // 2) + 1
+                character.hit_points_max = (hit_die_size + character.constitution_modifier +
+                                          (character.level - 1) * (hit_die_average + character.constitution_modifier))
+            
+            # Ensure minimum 1 HP per level
+            character.hit_points_max = max(character.level, character.hit_points_max)
+            
+            # Adjust current HP proportionally if max HP changed
+            if character.hit_points_current > character.hit_points_max:
+                character.hit_points_current = character.hit_points_max
+            
+            logger.debug(f"Recalculated stats for {character.name}: AC={character.armor_class}, MaxHP={character.hit_points_max}")
+            
+        except Exception as e:
+            logger.error(f"Error recalculating character stats: {e}")
+            # Don't re-raise the exception to avoid aborting the transaction
