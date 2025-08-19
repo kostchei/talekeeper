@@ -44,7 +44,7 @@ class Character(Base):
     level = Column(Integer, default=1, nullable=False)
     experience_points = Column(Integer, default=0, nullable=False)
     
-    # Ability Scores (8-20 range, with racial bonuses)
+    # Ability Scores (1-20 range, with racial bonuses)
     strength = Column(Integer, nullable=False, default=10)
     dexterity = Column(Integer, nullable=False, default=10)
     constitution = Column(Integer, nullable=False, default=10)
@@ -159,12 +159,12 @@ class CharacterCreate(BaseModel):
     subclass_id: Optional[str] = None  # Optional - chosen at level 3 for most classes
     
     # Starting ability scores (before racial bonuses)
-    strength: int = Field(default=10, ge=8, le=15)
-    dexterity: int = Field(default=10, ge=8, le=15)
-    constitution: int = Field(default=10, ge=8, le=15)
-    intelligence: int = Field(default=10, ge=8, le=15)
-    wisdom: int = Field(default=10, ge=8, le=15)
-    charisma: int = Field(default=10, ge=8, le=15)
+    strength: int = Field(default=10, ge=1, le=15)
+    dexterity: int = Field(default=10, ge=1, le=15)
+    constitution: int = Field(default=10, ge=1, le=15)
+    intelligence: int = Field(default=10, ge=1, le=15)
+    wisdom: int = Field(default=10, ge=1, le=15)
+    charisma: int = Field(default=10, ge=1, le=15)
     
     # Character creation choices
     ability_scores: Optional[Dict[str, int]] = None  # Override individual scores if provided
