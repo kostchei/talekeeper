@@ -442,98 +442,77 @@ async def enter_dungeon(
 @router.post("/random-encounter", response_model=Dict[str, Any])
 async def generate_random_encounter(
     character_id: UUID,
-    encounter_type: str = "dungeon",
+    location_type: str = "dungeon",
     db: Session = Depends(get_db)
 ):
     """
-    Generate a random encounter based on character level and location.
+    Generate a balanced encounter using D&D 2024 guidelines and random bag system.
     
-    AI Agents: Extend for:
-    - Weighted encounter tables
-    - Environmental encounters
-    - Social encounters with NPCs
+    Uses XP budgets (50% easy, 40% medium, 10% hard) and CR constraints (max CR = levels/4).
+    Ensures variety with random bag monster selection per location type.
+    
+    AI Agents: This replaces the old simple encounter system with proper D&D balance.
     """
     try:
+        from services.encounter_service import get_encounter_service
+        
         character = db.get(Character, character_id)
         if not character:
             raise HTTPException(status_code=404, detail="Character not found")
         
-        # Get appropriate monsters for character level
-        min_cr = max(0.25, character.level * 0.25)
-        max_cr = character.level * 0.75
+        # Use the encounter service for balanced generation
+        encounter_service = get_encounter_service(db)
+        encounter = encounter_service.generate_encounter(str(character_id), location_type)
         
-        suitable_monsters = db.execute(
-            select(Monster).where(
-                and_(Monster.challenge_rating >= min_cr, Monster.challenge_rating <= max_cr)
-            )
-        ).scalars().all()
+        if encounter.get("error"):
+            # Fallback to simple treasure/event if no monsters available
+            encounter_roll = dice.roll("1d100")
+            
+            if encounter_roll <= 60:  # 60% chance of treasure
+                treasure_roll = dice.roll("2d6") * character.level * 10
+                
+                return {
+                    "type": "treasure",
+                    "success": True,
+                    "message": "You discover a hidden cache!",
+                    "gold_found": treasure_roll,
+                    "items_found": [],
+                    "environment": location_type
+                }
+            else:  # 40% chance of special event
+                events = [
+                    "You find a mysterious inscription on the wall.",
+                    "A gentle breeze carries the sound of distant music.",
+                    "Strange symbols glow faintly on an ancient door.",
+                    "You hear echoing footsteps from somewhere ahead.",
+                    "A shaft of light illuminates a forgotten shrine."
+                ]
+                
+                return {
+                    "type": "event",
+                    "success": True,
+                    "message": dice.choice(events),
+                    "requires_action": False,
+                    "options": ["Continue exploring", "Investigate further", "Rest here"],
+                    "environment": location_type
+                }
         
-        if not suitable_monsters:
-            # Fallback to any monster
-            suitable_monsters = db.execute(select(Monster)).scalars().all()
+        # Return the balanced encounter
+        monsters_text = f"{encounter['monster_count']} monster{'s' if encounter['monster_count'] > 1 else ''}"
+        difficulty_text = encounter['difficulty'].title()
         
-        if not suitable_monsters:
-            raise HTTPException(status_code=404, detail="No monsters available for encounters")
-        
-        # Random encounter generation
-        encounter_roll = dice.roll("1d100")
-        
-        if encounter_roll <= 60:  # 60% chance of combat
-            # Select random monster(s)
-            num_monsters = 1
-            if character.level >= 2:
-                group_roll = dice.roll("1d6")
-                if group_roll <= 2:  # 33% chance of multiple monsters
-                    num_monsters = dice.roll("1d3")
-            
-            selected_monsters = []
-            for _ in range(num_monsters):
-                monster = dice.choice(suitable_monsters)
-                selected_monsters.append({
-                    "id": str(monster.id),
-                    "name": monster.name,
-                    "challenge_rating": monster.challenge_rating,
-                    "armor_class": monster.armor_class,
-                    "hit_points": monster.hit_points
-                })
-            
-            return {
-                "type": "combat",
-                "success": True,
-                "message": f"You encounter {len(selected_monsters)} {'monsters' if len(selected_monsters) > 1 else 'monster'}!",
-                "monsters": selected_monsters,
-                "environment": encounter_type,
-                "surprise": dice.roll("1d6") == 1  # 16% chance of surprise
-            }
-            
-        elif encounter_roll <= 80:  # 20% chance of treasure
-            # Generate treasure
-            treasure_roll = dice.roll("2d6") * character.level * 10
-            
-            return {
-                "type": "treasure",
-                "success": True,
-                "message": "You discover a hidden cache!",
-                "gold_found": treasure_roll,
-                "items_found": []  # AI Agents: Add random items here
-            }
-            
-        else:  # 20% chance of special event
-            events = [
-                "You find a mysterious inscription on the wall.",
-                "A gentle breeze carries the sound of distant music.",
-                "Strange symbols glow faintly on an ancient door.",
-                "You hear echoing footsteps from somewhere ahead.",
-                "A shaft of light illuminates a forgotten shrine."
-            ]
-            
-            return {
-                "type": "event",
-                "success": True,
-                "message": dice.choice(events),
-                "requires_action": False,
-                "options": ["Continue exploring", "Investigate further", "Rest here"]
-            }
+        return {
+            "type": "combat",
+            "success": True,
+            "message": f"You encounter {monsters_text}! ({difficulty_text} encounter)",
+            "monsters": encounter["monsters"],
+            "difficulty": encounter["difficulty"],
+            "total_xp": encounter["total_xp"],
+            "xp_budget": encounter["xp_budget"],
+            "environment": location_type,
+            "surprise": dice.roll("1d6") == 1,  # 16% chance of surprise
+            "encounter_system": "balanced"  # Mark as using new system
+        }
         
     except HTTPException:
         raise

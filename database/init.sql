@@ -350,6 +350,10 @@ CREATE TABLE game_states (
     monsters_defeated JSONB DEFAULT '{}',
     dungeons_completed JSONB DEFAULT '[]',
     
+    -- Random bag system for encounter variety
+    encounter_bag_remaining JSONB DEFAULT '{}', -- {"location_type": [monster_ids]}
+    encounter_bag_history JSONB DEFAULT '{}',   -- {"location_type": [used_monster_ids]}
+    
     -- Achievements and statistics
     total_damage_dealt INTEGER DEFAULT 0,
     total_damage_taken INTEGER DEFAULT 0,
@@ -417,6 +421,38 @@ CREATE INDEX idx_encounter_history_character ON encounter_history(character_id);
 CREATE INDEX idx_active_effects_character ON active_effects(character_id);
 CREATE INDEX idx_monsters_cr ON monsters(challenge_rating);
 CREATE INDEX idx_items_type ON items(type, subtype);
+
+-- Encounter XP Budget Table (based on D&D 2024 guidelines)
+CREATE TABLE encounter_xp_budgets (
+    party_level INTEGER PRIMARY KEY,
+    easy_xp INTEGER NOT NULL,
+    medium_xp INTEGER NOT NULL,
+    hard_xp INTEGER NOT NULL
+);
+COMMENT ON TABLE encounter_xp_budgets IS 'XP budgets for encounter generation by party level and difficulty';
+
+-- Insert XP budget data for levels 1-20
+INSERT INTO encounter_xp_budgets (party_level, easy_xp, medium_xp, hard_xp) VALUES
+(1, 50, 75, 100),
+(2, 100, 150, 200),
+(3, 150, 225, 400),
+(4, 250, 375, 500),
+(5, 500, 750, 1100),
+(6, 600, 1000, 1400),
+(7, 750, 1300, 1700),
+(8, 1000, 1700, 2100),
+(9, 1300, 2000, 2600),
+(10, 1600, 2300, 3100),
+(11, 1900, 2900, 4100),
+(12, 2200, 3700, 4700),
+(13, 2600, 4200, 5400),
+(14, 2900, 4900, 6200),
+(15, 3300, 5400, 7800),
+(16, 3800, 6100, 9800),
+(17, 4500, 7200, 11700),
+(18, 5000, 8700, 14200),
+(19, 5500, 10700, 17200),
+(20, 6400, 13200, 22000);
 
 -- =====================================================
 -- HELPER FUNCTIONS
