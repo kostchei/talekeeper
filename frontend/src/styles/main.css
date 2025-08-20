@@ -1655,46 +1655,171 @@ textarea:disabled {
   color: #000;
 }
 
-/* Character Sheet View Mode */
+/* Character View Component */
+.character-view {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.view-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+.character-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.character-header h1 {
+  color: var(--color-primary);
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.character-basics {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.character-basics span {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+}
+
+.abilities-section, .derived-section, .progression-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.abilities-section h2, .derived-section h2, .progression-section h2 {
+  color: var(--color-primary);
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-md);
+  text-align: center;
+}
+
+/* Ability Scores Grid */
 .ability-scores-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--spacing-md);
-  margin: var(--spacing-lg) 0;
+  margin-bottom: var(--spacing-lg);
 }
 
 .ability-score-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: var(--spacing-md);
   text-align: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .ability-score-card:hover {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .ability-score-card .ability-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .ability-score-card .ability-score {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: bold;
   color: var(--color-primary);
   line-height: 1;
+  margin-bottom: var(--spacing-xs);
 }
 
 .ability-score-card .ability-modifier {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--text-secondary);
-  margin-top: var(--spacing-xs);
+  font-weight: 500;
+}
+
+/* Derived Stats Grid */
+.derived-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: var(--spacing-md);
+  text-align: center;
+}
+
+.stat-card:hover {
+  border-color: var(--color-info);
+}
+
+.stat-card .stat-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-card .stat-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+/* Progression Stats */
+.progression-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Character Actions */
+.character-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .character-basics {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .ability-scores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .derived-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .primary-btn {

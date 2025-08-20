@@ -24,6 +24,7 @@ import './styles/main.css';
 import MainMenu from './components/MainMenu';
 import CharacterCreator from './components/CharacterCreator';
 import CharacterSheet from './components/CharacterSheet';
+import CharacterView from './components/CharacterView';
 import CombatScreen from './components/CombatScreen';
 import RestScreen from './components/RestScreen';
 import TownScreen from './components/TownScreen';
@@ -145,9 +146,14 @@ function App() {
             character ? <TownScreen /> : <Navigate to="/" />
           } />
           
-          {/* Character Sheet - View/Edit character */}
+          {/* Character Sheet - Creation/Stat allocation for new characters */}
           <Route path="/character" element={
             character ? <CharacterSheet /> : <Navigate to="/" />
+          } />
+          
+          {/* Character View - Read-only view for completed characters */}
+          <Route path="/character-view" element={
+            character ? <CharacterView /> : <Navigate to="/" />
           } />
           
           {/* Loot Screen - Post-combat loot pickup */}

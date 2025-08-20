@@ -51,7 +51,7 @@ const TownScreen = () => {
         {character && (
           <button 
             className="character-btn"
-            onClick={() => navigate('/character')}
+            onClick={() => navigate('/character-view')}
             title="View Character Sheet"
           >
             📋 {character.name}

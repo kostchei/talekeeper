@@ -72,26 +72,8 @@ const CharacterSheet = () => {
       return;
     }
     
-    // Check if character already has finalized stats (all abilities > 0)
-    const hasStats = character.strength > 0 && character.dexterity > 0 && 
-                     character.constitution > 0 && character.intelligence > 0 && 
-                     character.wisdom > 0 && character.charisma > 0;
-    
-    if (hasStats) {
-      // Character is already complete - show in view mode
-      setPhase(3);
-      setFinalStats({
-        str: character.strength,
-        dex: character.dexterity,
-        con: character.constitution,
-        int: character.intelligence,
-        wis: character.wisdom,
-        cha: character.charisma
-      });
-    } else {
-      // Set up initial allocations for new character
-      initializeAllocations();
-    }
+    // Set up initial allocations based on class
+    initializeAllocations();
   }, [character]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeAllocations = () => {
@@ -333,66 +315,39 @@ const CharacterSheet = () => {
           </div>
         )}
 
-        {(phase === 2 || phase === 3) && finalStats && (
+        {phase === 2 && finalStats && (
           <div className="final-stats">
-            <h2>{phase === 3 ? 'Character Ability Scores' : 'Final Ability Scores'}</h2>
-            
-            {phase === 2 && (
-              <div className="stats-comparison">
-                {['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ability, index) => (
-                  <div key={ability} className="stat-comparison">
-                    <div className="ability-name">{ability.toUpperCase()}</div>
-                    <div className="comparison">
-                      <span className="allocated">Allocated: {allocations[ability]}</span>
-                      <span className="rolled">Rolled: {rolls[index]}</span>
-                      <span className={`final ${finalStats[ability] > allocations[ability] ? 'improved' : ''}`}>
-                        Final: {finalStats[ability]} 
-                        ({calculateModifier(finalStats[ability]) >= 0 ? '+' : ''}{calculateModifier(finalStats[ability])})
-                        {finalStats[ability] > allocations[ability] && ' ✓'}
-                      </span>
-                    </div>
+            <h2>Final Ability Scores</h2>
+            <div className="stats-comparison">
+              {['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ability, index) => (
+                <div key={ability} className="stat-comparison">
+                  <div className="ability-name">{ability.toUpperCase()}</div>
+                  <div className="comparison">
+                    <span className="allocated">Allocated: {allocations[ability]}</span>
+                    <span className="rolled">Rolled: {rolls[index]}</span>
+                    <span className={`final ${finalStats[ability] > allocations[ability] ? 'improved' : ''}`}>
+                      Final: {finalStats[ability]} 
+                      ({calculateModifier(finalStats[ability]) >= 0 ? '+' : ''}{calculateModifier(finalStats[ability])})
+                      {finalStats[ability] > allocations[ability] && ' ✓'}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {phase === 3 && (
-              <div className="ability-scores-grid">
-                {['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ability) => (
-                  <div key={ability} className="ability-score-card">
-                    <div className="ability-name">{ability.toUpperCase()}</div>
-                    <div className="ability-score">{finalStats[ability]}</div>
-                    <div className="ability-modifier">
-                      {calculateModifier(finalStats[ability]) >= 0 ? '+' : ''}{calculateModifier(finalStats[ability])}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
 
             <div className="derived-stats">
               <h3>Derived Statistics</h3>
               <div className="derived-grid">
-                <div>Hit Points: {character.hit_points_max || character.max_hit_points || (10 + calculateModifier(finalStats.con))}</div>
-                <div>Armor Class: {character.armor_class || (10 + calculateModifier(finalStats.dex))}</div>
+                <div>Hit Points: {10 + calculateModifier(finalStats.con)}</div>
+                <div>Armor Class: {10 + calculateModifier(finalStats.dex)}</div>
                 <div>Initiative: {calculateModifier(finalStats.dex) >= 0 ? '+' : ''}{calculateModifier(finalStats.dex)}</div>
-                <div>Proficiency Bonus: +{character.proficiency_bonus || 2}</div>
+                <div>Proficiency Bonus: +2</div>
               </div>
             </div>
 
-            {phase === 2 && (
-              <button className="finalize-btn" onClick={finalizCharacter}>
-                Complete Character Creation
-              </button>
-            )}
-
-            {phase === 3 && (
-              <div className="character-actions">
-                <button className="secondary-btn" onClick={() => navigate('/game')}>
-                  Return to Game
-                </button>
-              </div>
-            )}
+            <button className="finalize-btn" onClick={finalizCharacter}>
+              Complete Character Creation
+            </button>
           </div>
         )}
       </div>

@@ -195,7 +195,7 @@ const GameScreen = () => {
           </button>
           <button 
             className="btn-secondary character-sheet-btn"
-            onClick={() => navigate('/character')}
+            onClick={() => navigate('/character-view')}
             title="View Character Sheet"
           >
             📋 Character
