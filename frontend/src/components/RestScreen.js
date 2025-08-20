@@ -43,11 +43,33 @@ const RestScreen = () => {
 
   return (
     <div className="rest-screen">
-      <h1>Rest and Recovery</h1>
+      {/* Navigation Header */}
+      <div className="screen-header">
+        <button 
+          className="back-btn"
+          onClick={() => navigate('/')}
+          title="Return to Main Menu"
+        >
+          ← Main Menu
+        </button>
+        
+        <h1>Rest and Recovery</h1>
+        
+        {character && (
+          <button 
+            className="character-btn"
+            onClick={() => navigate('/character')}
+            title="View Character Sheet"
+          >
+            📋 {character.name}
+          </button>
+        )}
+      </div>
       
       {character && (
         <div className="character-status">
-          <p>Current HP: {character.hp}/{character.maxHp}</p>
+          <p>Current HP: {character.hit_points_current || character.current_hit_points || 0}/{character.hit_points_max || character.max_hit_points || 0}</p>
+          <p>Level: {character.level} | Gold: {character.gold || 0}</p>
         </div>
       )}
       
@@ -69,9 +91,11 @@ const RestScreen = () => {
         </div>
       </div>
       
-      <button className="back-btn" onClick={() => navigate('/game')}>
-        Cancel
-      </button>
+      <div className="rest-actions">
+        <button className="secondary-btn" onClick={() => navigate('/game')}>
+          ← Return to Game
+        </button>
+      </div>
       
       <div className="placeholder">
         <p>Advanced rest mechanics coming soon: Hit dice, spell slots, abilities</p>

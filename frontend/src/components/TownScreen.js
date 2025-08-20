@@ -36,11 +36,37 @@ const TownScreen = () => {
 
   return (
     <div className="town-screen">
-      <h1>Welcome to Starter Town</h1>
+      {/* Navigation Header */}
+      <div className="screen-header">
+        <button 
+          className="back-btn"
+          onClick={() => navigate('/')}
+          title="Return to Main Menu"
+        >
+          ← Main Menu
+        </button>
+        
+        <h1>Welcome to Starter Town</h1>
+        
+        {character && (
+          <button 
+            className="character-btn"
+            onClick={() => navigate('/character')}
+            title="View Character Sheet"
+          >
+            📋 {character.name}
+          </button>
+        )}
+      </div>
       
       {character && (
         <div className="character-info">
           <p>Welcome, {character.name}!</p>
+          <div className="quick-stats">
+            <span>HP: {character.hit_points_current || character.current_hit_points || 0}/{character.hit_points_max || character.max_hit_points || 0}</span>
+            <span>Level: {character.level}</span>
+            <span>Gold: {character.gold || 0}</span>
+          </div>
         </div>
       )}
       
@@ -70,9 +96,11 @@ const TownScreen = () => {
         </div>
       </div>
       
-      <button className="back-btn" onClick={() => navigate('/game')}>
-        Leave Town
-      </button>
+      <div className="town-actions">
+        <button className="primary-btn" onClick={() => navigate('/game')}>
+          🏃 Leave Town
+        </button>
+      </div>
       
       <div className="placeholder">
         <p>Advanced town features coming soon: Shopping, quests, NPCs</p>

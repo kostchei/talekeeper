@@ -201,6 +201,27 @@ const CharacterSheet = () => {
 
   return (
     <div className="character-sheet">
+      {/* Navigation Header */}
+      <div className="screen-header">
+        <button 
+          className="back-btn"
+          onClick={() => navigate('/')}
+          title="Return to Main Menu"
+        >
+          ← Main Menu
+        </button>
+        
+        <h1>Character Sheet</h1>
+        
+        <button 
+          className="game-btn"
+          onClick={() => navigate('/game')}
+          title="Return to Game"
+        >
+          🎮 Game
+        </button>
+      </div>
+      
       <div className="sheet-container">
         <div className="character-header">
           <h1>{character.name}</h1>
