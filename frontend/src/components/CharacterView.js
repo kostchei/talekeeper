@@ -80,7 +80,6 @@ const CharacterView = () => {
             <span className="race">{character.race}</span>
             <span className="class">{character.character_class}</span>
             <span className="background">{character.background}</span>
-            <span className="level">Level {character.level}</span>
           </div>
         </div>
 

@@ -127,13 +127,21 @@ async def health_check():
 @app.exception_handler(404)
 async def not_found(request, exc):
     """Custom 404 handler"""
-    return {"error": "Endpoint not found", "path": request.url.path}
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=404,
+        content={"error": "Endpoint not found", "path": request.url.path}
+    )
 
 @app.exception_handler(500)
 async def server_error(request, exc):
     """Custom 500 handler"""
+    from fastapi.responses import JSONResponse
     logger.error(f"Server error on {request.url.path}: {str(exc)}")
-    return {"error": "Internal server error", "message": "Check server logs for details"}
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "message": "Check server logs for details"}
+    )
 
 if __name__ == "__main__":
     # For local development without Docker

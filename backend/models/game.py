@@ -57,6 +57,7 @@ class GameState(Base):
     # Location and exploration
     current_location = Column(String(100), default="Starting Town")
     location_type = Column(String(20), default="TOWN")
+    room_number = Column(Integer, default=0)  # Current room number in dungeon
     discovered_locations = Column(JSON, default=list)  # List of discovered location names
     
     # Resources
@@ -197,6 +198,7 @@ class GameStateResponse(BaseModel):
     # Location
     current_location: str
     location_type: LocationType
+    room_number: int
     discovered_locations: List[str]
     
     # Resources

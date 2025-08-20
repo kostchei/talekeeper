@@ -174,14 +174,6 @@ const GameScreen = () => {
         {character && (
           <div className="character-status-summary">
             <div className="character-name">{character.name}</div>
-            <div className="character-stats">
-              <span className="hp">
-                HP: {character.hit_points_current || character.current_hit_points || 0}/
-                {character.hit_points_max || character.max_hit_points || 0}
-              </span>
-              <span className="level">Level {character.level}</span>
-              <span className="gold">💰 {gameState?.inventory_gold || 0}</span>
-            </div>
           </div>
         )}
 
@@ -262,6 +254,10 @@ const GameScreen = () => {
                     {character.hit_dice_current || character.level}/
                     {character.hit_dice_max || character.level}
                   </span>
+                </div>
+                <div className="status-item">
+                  <span className="label">Gold</span>
+                  <span className="value">{gameState?.inventory_gold || character.gold || 0} gp</span>
                 </div>
               </>
             )}
