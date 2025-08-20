@@ -187,11 +187,18 @@ const GameScreen = () => {
 
         <div className="header-actions">
           <button 
-            className="btn-secondary"
-            onClick={() => navigate('/character')}
-            title="Character Sheet"
+            className="btn-secondary menu-btn"
+            onClick={() => navigate('/')}
+            title="Return to Main Menu"
           >
-            📋
+            ← Menu
+          </button>
+          <button 
+            className="btn-secondary character-sheet-btn"
+            onClick={() => navigate('/character')}
+            title="View Character Sheet"
+          >
+            📋 Character
           </button>
           <button 
             className="btn-primary"

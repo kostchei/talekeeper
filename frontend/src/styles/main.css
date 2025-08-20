@@ -13,7 +13,7 @@
 /* Local font import */
 @font-face {
   font-family: 'Caslon Antique';
-  src: url('../../../public/fonts/CaslonAntique.ttf') format('truetype');
+  src: url('../assets/fonts/CaslonAntique.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -1627,6 +1627,32 @@ textarea:disabled {
   border-color: var(--color-primary);
   color: white;
   transform: translateY(-1px);
+}
+
+/* Character Sheet Button Enhancement */
+.character-sheet-btn {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  min-width: auto;
+  font-weight: 600;
+}
+
+.character-sheet-btn:hover {
+  background: var(--color-info);
+  border-color: var(--color-info);
+}
+
+/* Menu/Exit Button Enhancement */
+.menu-btn {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.menu-btn:hover {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+  color: #000;
 }
 
 .primary-btn {
