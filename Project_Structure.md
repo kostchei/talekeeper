@@ -60,39 +60,6 @@ dnd-game/
     └── seed_data.sql
 ```
 
-## Setup Instructions
-
-### 1. Prerequisites
-- Docker and Docker Compose installed
-- Git for version control
-- VSCode with Python and JavaScript extensions
-
-### 2. Initial Setup Commands
-```bash
-# Create project directory
-mkdir dnd-game && cd dnd-game
-
-# Create all subdirectories
-mkdir -p backend/{models,routers,services,data}
-mkdir -p frontend/{public,src/{components,services,styles}}
-mkdir -p database
-
-# Initialize git
-git init
-echo "*.pyc\n__pycache__/\nnode_modules/\n.env\n*.log" > .gitignore
-```
-
-### 3. Environment Configuration
-Create `.env` file in root:
-```env
-POSTGRES_DB=dnd_game
-POSTGRES_USER=dnd_admin
-POSTGRES_PASSWORD=your_secure_password_here
-DATABASE_URL=postgresql://dnd_admin:your_secure_password_here@db:5432/dnd_game
-REACT_APP_API_URL=http://localhost:8000
-```
-
-## Expansion Guide for AI Agents
 
 ### Adding New Features
 
@@ -297,7 +264,26 @@ App
 │   ├── RaceSelector (Dwarf/Human)
 │   ├── ClassSelector (Fighter/Rogue)
 │   └── BackgroundSelector (Farmer/Soldier)
-├── GameScreen
+├── GameScreen (Enhanced Hub)
+│   ├── GameHeader
+│   │   ├── CharacterStatusSummary (HP, Level, Location)
+│   │   └── GameActions (Save, Load, Settings)
+│   ├── GameContent (CSS Grid Layout)
+│   │   ├── LeftPanel
+│   │   │   ├── MiniCharacterSheet (Compact stats)
+│   │   │   └── LocationInfo (Current area details)
+│   │   ├── CenterPanel (Primary Focus)
+│   │   │   ├── EnvironmentDisplay (Location art/description)
+│   │   │   ├── EncounterArea (When encounters happen)
+│   │   │   └── ExplorationInterface (Movement/actions)
+│   │   └── RightPanel
+│   │       ├── ActionQueue (Planned actions)
+│   │       ├── GameLog (Recent events)
+│   │       └── QuickActions (Common buttons)
+│   └── GameFooter
+│       ├── TurnIndicator (If in structured time)
+│       └── SystemStatus (Connection, saves, etc.)
+├── CombatScreen (Existing)
 │   ├── CharacterSheet (top-left)
 │   ├── EncounterArea (center)
 │   │   ├── MonsterCards
@@ -387,6 +373,188 @@ This system ensures:
 - Class viability (good scores in key abilities)
 - Character uniqueness (rolls can create unexpected strengths)
 - No stat degradation (rolls only improve, never worsen)
+
+## 🎮 GameScreen Implementation Blueprint
+
+### Component Architecture
+```javascript
+// GameScreen State Structure
+const gameState = {
+  // Character & Progress
+  character: { /* from gameStore */ },
+  gameProgress: {
+    currentLocation: "Starting Town",
+    locationType: "town", // town, dungeon, wilderness
+    discoveredLocations: [],
+    questFlags: {},
+    randomBagState: {}
+  },
+  
+  // Current Activity
+  currentActivity: {
+    type: "exploration", // exploration, encounter, event, dialogue
+    data: null, // Activity-specific data
+    options: [] // Available actions
+  },
+  
+  // UI State
+  ui: {
+    selectedAction: null,
+    showEncounter: false,
+    showDialogue: false,
+    isLoading: false,
+    notifications: []
+  },
+  
+  // Encounter State (when active)
+  encounter: {
+    type: "combat", // combat, treasure, event
+    difficulty: "medium",
+    monsters: [],
+    environment: "dungeon"
+  }
+}
+```
+
+### Core Components Specifications
+
+#### 1. EnvironmentDisplay Component
+```javascript
+// Shows current location with dynamic visuals
+<EnvironmentDisplay 
+  location="Ancient Ruins"
+  locationType="dungeon"
+  description="Crumbling stone corridors echo with distant sounds..."
+  ambientEffects={["torch_flicker", "stone_drip"]}
+  discoveryLevel={2} // 0=unexplored, 1=basic, 2=detailed
+/>
+```
+
+#### 2. ExplorationInterface Component
+```javascript
+// Main interaction hub
+<ExplorationInterface
+  availableActions={["Explore", "Search", "Rest", "Leave"]}
+  onActionSelect={handleAction}
+  character={character}
+  canPerformAction={checkActionRequirements}
+  cooldowns={actionCooldowns}
+/>
+```
+
+#### 3. EncounterPreview Component
+```javascript
+// Shows encounter before it starts
+<EncounterPreview
+  encounterType="combat"
+  difficulty="medium" 
+  monsters={encounterData.monsters}
+  expectedXP={75}
+  onAccept={() => navigate('/combat')}
+  onDecline={handleDeclineEncounter}
+/>
+```
+
+### Location System
+```javascript
+// Exploration Actions by Location
+const explorationActions = {
+  town: ["Visit Shop", "Rest at Inn", "Gather Information", "Enter Dungeon"],
+  dungeon: ["Explore Room", "Search for Treasure", "Listen at Door", "Rest"],
+  wilderness: ["Travel", "Make Camp", "Forage", "Random Encounter"]
+}
+```
+
+### API Integration Patterns
+```javascript
+// Get current game state
+const gameState = await gameAPI.getGameState(characterId);
+
+// Update location
+await gameAPI.updateLocation(characterId, newLocation);
+
+// Generate encounter using balanced encounter service
+const encounter = await gameAPI.generateEncounter(characterId, locationType);
+
+// Process encounter outcome
+const result = await gameAPI.processEncounterChoice(encounterId, choice);
+
+// Save game progress  
+await gameAPI.saveGame(characterId, saveData);
+```
+
+### Responsive Layout System
+```css
+.game-screen {
+  display: grid;
+  grid-template: 
+    "header header header" 80px
+    "left center right" 1fr
+    "footer footer footer" 60px
+    / 300px 1fr 300px;
+  height: 100vh;
+  gap: var(--spacing-md);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .game-screen {
+    grid-template: 
+      "header" 80px
+      "center" 1fr
+      "left" auto
+      "right" auto
+      "footer" 60px
+      / 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-screen {
+    grid-template: 
+      "header" 60px
+      "center" 1fr
+      "actions" auto
+      / 1fr;
+  }
+}
+```
+
+### Navigation Flow
+```
+GameScreen → Action Selected → Transition
+├── Explore → EncounterPreview → CombatScreen/EventScreen
+├── Rest → RestScreen → GameScreen
+├── Travel → LocationSelection → GameScreen (new location)
+└── Character → CharacterSheet → GameScreen
+```
+
+### Implementation Phases
+
+#### Phase 1: Core Structure
+1. Enhanced GameScreen layout with CSS grid system
+2. Basic location system with 3 location types (town/dungeon/wilderness)
+3. Simple exploration interface with context-sensitive actions
+4. Integration with existing balanced encounter API
+
+#### Phase 2: Rich Interactions  
+1. Dynamic environment display with location descriptions
+2. Encounter preview system before combat
+3. Game state persistence and auto-save functionality
+4. Responsive design implementation for mobile/tablet
+
+#### Phase 3: Polish & Features
+1. Advanced UI animations and smooth transitions
+2. Rich tooltips and integrated help system
+3. Achievement/progress tracking display
+4. Settings and UI customization options
+
+### Key Design Decisions
+- **Modular Architecture**: Each panel is a separate component for maintainability
+- **State-Driven UI**: All UI changes driven by state updates, not direct DOM manipulation  
+- **API-First**: All game logic on backend, frontend is presentation layer
+- **Progressive Enhancement**: Works on mobile, enhanced on desktop
+- **Consistent Theme**: Follows existing dark fantasy aesthetic with established CSS variables
 
 **Ready to build?**
 

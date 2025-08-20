@@ -33,6 +33,7 @@ class Character(Base):
     __tablename__ = "characters"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    save_slot_id = Column(UUID(as_uuid=True), ForeignKey("save_slots.id"), nullable=True)
     name = Column(String(100), nullable=False)
     
     # Core D&D Stats
@@ -157,6 +158,9 @@ class CharacterCreate(BaseModel):
     class_id: str
     background_id: str
     subclass_id: Optional[str] = None  # Optional - chosen at level 3 for most classes
+    
+    # Save slot assignment
+    save_slot: Optional[int] = Field(default=None, ge=1, le=10, description="Preferred save slot (1-10)")
     
     # Starting ability scores (before racial bonuses)
     strength: int = Field(default=10, ge=1, le=15)

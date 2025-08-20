@@ -264,6 +264,48 @@ export const gameAPI = {
   },
 
   /**
+   * Generate random encounter
+   * @param {string} characterId - Character UUID  
+   * @param {string} locationType - Location type (town, dungeon, wilderness)
+   */
+  generateRandomEncounter: async (characterId, locationType = 'dungeon') => {
+    const response = await api.post('/api/game/random-encounter', { 
+      character_id: characterId,
+      location_type: locationType 
+    });
+    return response.data;
+  },
+
+  /**
+   * Get current game state
+   * @param {string} characterId - Character UUID
+   */
+  getGameState: async (characterId) => {
+    const response = await api.get(`/api/game/game-state/${characterId}`);
+    return response.data;
+  },
+
+  /**
+   * Update character location
+   * @param {string} characterId - Character UUID
+   * @param {Object} locationData - Location update data
+   */
+  updateLocation: async (characterId, locationData) => {
+    const response = await api.patch(`/api/game/game-state/${characterId}`, locationData);
+    return response.data;
+  },
+
+  /**
+   * Auto-save game state
+   * @param {string} characterId - Character UUID
+   * @param {Object} saveData - Data to auto-save
+   */
+  autoSave: async (characterId, saveData) => {
+    const response = await api.post(`/api/game/auto-save/${characterId}`, saveData);
+    return response.data;
+  },
+
+  /**
    * Rest (short or long)
    * @param {string} characterId - Character UUID
    * @param {string} restType - 'short' or 'long'

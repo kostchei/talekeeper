@@ -15,7 +15,7 @@ Pseudo Code:
 """
 
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from typing import Dict, Any, List, Optional, Tuple
 from uuid import UUID, uuid4
 from loguru import logger
@@ -73,12 +73,16 @@ class CharacterService:
                 final_abilities["dexterity"]
             )
             
+            # Create or assign save slot
+            save_slot = self._create_or_assign_save_slot(char_data.name, char_data.save_slot)
+            
             # Create character
             character = Character(
                 name=char_data.name,
                 race_id=UUID(char_data.race_id),
                 class_id=UUID(char_data.class_id),
                 background_id=UUID(char_data.background_id),
+                save_slot_id=save_slot.id,  # Link to save slot
                 level=1,
                 experience_points=0,
                 **final_abilities,
@@ -232,6 +236,84 @@ class CharacterService:
         
         return features
     
+    def _create_or_assign_save_slot(self, character_name: str, preferred_slot: Optional[int] = None):
+        """Create or assign a save slot for the character."""
+        from sqlalchemy import text
+        
+        # If a preferred slot is specified, try to use it
+        if preferred_slot and 1 <= preferred_slot <= 10:
+            # Check if slot exists
+            result = self.db.execute(
+                text("SELECT id FROM save_slots WHERE slot_number = :slot_num"),
+                {"slot_num": preferred_slot}
+            ).first()
+            
+            if result:
+                # Update existing slot
+                slot_id = result[0]
+                self.db.execute(
+                    text("UPDATE save_slots SET character_name = :name, last_played = CURRENT_TIMESTAMP WHERE id = :slot_id"),
+                    {"name": character_name, "slot_id": slot_id}
+                )
+                return type('SaveSlot', (), {'id': slot_id})()
+            else:
+                # Create new slot with preferred number
+                slot_id = self.db.execute(
+                    text("INSERT INTO save_slots (slot_number, character_name) VALUES (:slot_num, :name) RETURNING id"),
+                    {"slot_num": preferred_slot, "name": character_name}
+                ).scalar()
+                return type('SaveSlot', (), {'id': slot_id})()
+        
+        # Find first available slot (1-10)
+        for slot_num in range(1, 11):
+            result = self.db.execute(
+                text("SELECT id FROM save_slots WHERE slot_number = :slot_num"),
+                {"slot_num": slot_num}
+            ).first()
+            
+            if not result:
+                # Create new slot
+                slot_id = self.db.execute(
+                    text("INSERT INTO save_slots (slot_number, character_name) VALUES (:slot_num, :name) RETURNING id"),
+                    {"slot_num": slot_num, "name": character_name}
+                ).scalar()
+                return type('SaveSlot', (), {'id': slot_id})()
+            else:
+                slot_id = result[0]
+                # Check if slot has no active character
+                char_exists = self.db.execute(
+                    text("SELECT id FROM characters WHERE save_slot_id = :slot_id"),
+                    {"slot_id": slot_id}
+                ).first()
+                
+                if not char_exists:
+                    # Reuse this slot
+                    self.db.execute(
+                        text("UPDATE save_slots SET character_name = :name, last_played = CURRENT_TIMESTAMP WHERE id = :slot_id"),
+                        {"name": character_name, "slot_id": slot_id}
+                    )
+                    return type('SaveSlot', (), {'id': slot_id})()
+        
+        # If all slots are full, overwrite slot 1
+        result = self.db.execute(
+            text("SELECT id FROM save_slots WHERE slot_number = 1")
+        ).first()
+        
+        if result:
+            slot_id = result[0]
+            self.db.execute(
+                text("UPDATE save_slots SET character_name = :name, last_played = CURRENT_TIMESTAMP WHERE id = :slot_id"),
+                {"name": character_name, "slot_id": slot_id}
+            )
+            return type('SaveSlot', (), {'id': slot_id})()
+        else:
+            # Create slot 1
+            slot_id = self.db.execute(
+                text("INSERT INTO save_slots (slot_number, character_name) VALUES (1, :name) RETURNING id"),
+                {"name": character_name}
+            ).scalar()
+            return type('SaveSlot', (), {'id': slot_id})()
+
     def _create_initial_game_state(self, character: Character) -> GameState:
         """Create initial game state for new character."""
         

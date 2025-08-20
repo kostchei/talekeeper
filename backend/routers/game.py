@@ -314,44 +314,81 @@ async def get_save_slots(
     AI Agents: Use for save selection UI.
     """
     try:
-        saves = db.execute(
-            select(GameSave).where(GameSave.is_active == True).order_by(GameSave.slot_number)
-        ).scalars().all()
+        from sqlalchemy import text
         
+        # Query save slots with linked characters
         save_slots = []
         
-        # Show all slots 1-10, mark empty ones
+        # Show all slots 1-10, check if they have characters
         for slot_num in range(1, 11):
-            save = next((s for s in saves if s.slot_number == slot_num), None)
+            # Get save slot and character info
+            result = db.execute(text("""
+                SELECT 
+                    s.id as slot_id,
+                    s.character_name as slot_character_name,
+                    s.last_played,
+                    s.created_at as slot_created_at,
+                    s.play_time,
+                    c.id as character_id,
+                    c.name as character_name,
+                    c.level,
+                    gs.current_location,
+                    gs.inventory_gold
+                FROM save_slots s
+                LEFT JOIN characters c ON c.save_slot_id = s.id
+                LEFT JOIN game_states gs ON gs.character_id = c.id
+                WHERE s.slot_number = :slot_num
+            """), {"slot_num": slot_num}).first()
             
-            if save:
+            if result and result.character_id:
+                # Slot has a character
                 save_slots.append({
                     "slot_number": slot_num,
                     "is_empty": False,
-                    "save_id": str(save.id),
-                    "save_name": save.save_name,
-                    "character_name": save.character.name if save.character else "Unknown",
-                    "character_level": save.character_level,
-                    "location_description": save.location_description,
-                    "playtime_minutes": save.playtime_minutes,
-                    "playtime_display": f"{save.playtime_minutes // 60}h {save.playtime_minutes % 60}m",
-                    "created_at": save.created_at,
-                    "updated_at": save.updated_at,
-                    "last_played": save.updated_at
+                    "save_id": str(result.slot_id),
+                    "character_id": str(result.character_id),
+                    "save_name": f"{result.character_name} - {result.current_location or 'Unknown Location'}",
+                    "character_name": result.character_name,
+                    "character_level": result.level,
+                    "location_description": result.current_location or "Unknown Location",
+                    "gold": result.inventory_gold or 0,
+                    "playtime_minutes": result.play_time or 0,
+                    "playtime_display": f"{(result.play_time or 0) // 60}h {(result.play_time or 0) % 60}m",
+                    "created_at": result.slot_created_at,
+                    "last_played": result.last_played
                 })
-            else:
+            elif result:
+                # Slot exists but no character (orphaned slot)
                 save_slots.append({
                     "slot_number": slot_num,
                     "is_empty": True,
-                    "save_id": None,
+                    "save_id": str(result.slot_id),
+                    "character_id": None,
                     "save_name": f"Empty Slot {slot_num}",
                     "character_name": None,
                     "character_level": None,
                     "location_description": "Empty",
+                    "gold": 0,
+                    "playtime_minutes": 0,
+                    "playtime_display": "0h 0m",
+                    "created_at": result.slot_created_at,
+                    "last_played": result.last_played
+                })
+            else:
+                # No slot exists
+                save_slots.append({
+                    "slot_number": slot_num,
+                    "is_empty": True,
+                    "save_id": None,
+                    "character_id": None,
+                    "save_name": f"Empty Slot {slot_num}",
+                    "character_name": None,
+                    "character_level": None,
+                    "location_description": "Empty",
+                    "gold": 0,
                     "playtime_minutes": 0,
                     "playtime_display": "0h 0m",
                     "created_at": None,
-                    "updated_at": None,
                     "last_played": None
                 })
         

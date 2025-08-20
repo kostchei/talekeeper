@@ -74,7 +74,7 @@ const CharacterSheet = () => {
     
     // Set up initial allocations based on class
     initializeAllocations();
-  }, [character]);
+  }, [character]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initializeAllocations = () => {
     const config = classConfigs[character.character_class] || classConfigs.Fighter;
@@ -100,7 +100,6 @@ const CharacterSheet = () => {
   const handleStatAllocation = (ability, value) => {
     if (!canAllocateValue(ability, value)) return;
     
-    const oldValue = allocations[ability];
     const newAllocations = { ...allocations, [ability]: value };
     
     // Update used values tracking
