@@ -1,6 +1,6 @@
 /**
  * Main CSS for D&D 2024 Game
- * 
+ *
  * AI Agents: This provides the dark fantasy theme.
  * Color scheme:
  * - Background: Dark grays (#1a1a1a, #2a2a2a)
@@ -9,6 +9,8 @@
  * - Warning: Yellow (#fbbf24)
  * - Info: Blue (#3b82f6)
  */
+
+@import url('https://fonts.cdnfonts.com/css/caslon-antique');
 
 /* ========================================
    Reset and Base Styles
@@ -62,7 +64,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Caslon Antique', serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -485,6 +487,80 @@ textarea:disabled {
     flex-direction: column;
     gap: var(--spacing-sm);
   }
+}
+
+/* ========================================
+   Main Menu Styles
+   ======================================== */
+
+.main-menu {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+}
+
+.menu-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.game-title {
+  font-size: 3rem;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.game-subtitle {
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+
+.menu-btn {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+}
+
+.menu-btn.primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.menu-btn.primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.menu-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.menu-btn.secondary:hover {
+  background: var(--bg-tertiary);
+}
+
+.version-info {
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 /* ========================================
