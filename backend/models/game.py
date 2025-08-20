@@ -87,6 +87,7 @@ class GameState(Base):
     encounters_faced = Column(Integer, default=0)
     monsters_defeated = Column(JSON, default=dict)  # monster_name -> count
     dungeons_completed = Column(JSON, default=list)  # List of dungeon names
+    dungeon_level = Column(Integer, default=0)  # Current dungeon depth/level
     
     # Achievements and statistics
     total_damage_dealt = Column(Integer, default=0)
@@ -222,6 +223,7 @@ class GameStateResponse(BaseModel):
     encounters_faced: int
     monsters_defeated: Dict[str, int]
     dungeons_completed: List[str]
+    dungeon_level: int
     total_damage_dealt: int
     total_damage_taken: int
     critical_hits_landed: int
