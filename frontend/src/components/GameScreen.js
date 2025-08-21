@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import { useGameStore } from '../services/gameStore';
 import { gameAPI } from '../services/api';
 import CharacterSummary from './CharacterSummary';
-import ActivityPanel from './ActivityPanel';
 import ActionLog from './ActionLog';
 import MainGameView from './MainGameView';
 
@@ -69,25 +68,6 @@ const GameScreen = () => {
 
   const addLogEntry = (message) => {
     setActionLog(prev => [...prev, { message, timestamp: Date.now() }]);
-  };
-
-  const handleActivity = (action) => {
-    switch (action) {
-      case 'rest_town':
-        navigate('/rest');
-        addLogEntry('Rested in town.');
-        break;
-      case 'rest_wilderness':
-        navigate('/rest', { state: { wilderness: true } });
-        addLogEntry('Rested in the wilderness.');
-        break;
-      case 'shop':
-        navigate('/town');
-        addLogEntry('Visited the town shop.');
-        break;
-      default:
-        break;
-    }
   };
 
   return (

@@ -2301,11 +2301,6 @@ textarea:disabled {
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
 }
-  padding: 0.3rem;
-  border-radius: 4px;
-  background: rgba(212, 175, 55, 0.1);
-  border-left: 3px solid var(--border-color);
-}
 
 .action-log .timestamp {
   color: var(--text-muted);
