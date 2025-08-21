@@ -39,7 +39,8 @@ from models.character import Character
 from models.game import (
     GameSave, GameState, DungeonRoom, GameEvent,
     GameSaveRequest, GameSaveResponse, GameStateResponse,
-    DungeonEnterRequest, EncounterResult, TownActionRequest
+    DungeonEnterRequest, EncounterResult, TownActionRequest,
+    GameStatus, LocationType as ModelLocationType
 )
 from models.monsters import Monster
 from services.dice import DiceRoller
@@ -581,7 +582,7 @@ async def get_game_state(
             game_state = GameState(
                 character_id=character_id,
                 current_location="town",
-                location_type=LocationType.TOWN,
+                location_type="town",
                 dungeon_level=0,
                 room_number=0,
                 short_rests_used=0,
@@ -595,18 +596,67 @@ async def get_game_state(
             db.refresh(game_state)
         
         return GameStateResponse(
-            character_id=character_id,
+            id=str(game_state.id),
+            character_id=str(character_id),
+            status=GameStatus(game_state.status),
+            total_playtime_minutes=game_state.total_playtime_minutes or game_state.playtime_minutes or 0,
+            last_played=game_state.last_played or game_state.created_at,
+            
+            # Location
             current_location=game_state.current_location,
-            location_type=game_state.location_type,
-            dungeon_level=game_state.dungeon_level,
+            location_type=ModelLocationType(game_state.location_type),
             room_number=game_state.room_number,
-            short_rests_used=game_state.short_rests_used,
+            discovered_locations=game_state.discovered_locations or [],
+            
+            # Resources
             inventory_gold=game_state.inventory_gold,
-            playtime_minutes=game_state.playtime_minutes,
+            inventory_weight=game_state.inventory_weight or 0,
+            
+            # Rest state
+            last_short_rest=game_state.last_short_rest,
             last_long_rest=game_state.last_long_rest,
+            short_rests_today=game_state.short_rests_today or 0,
+            short_rests_used=game_state.short_rests_used,
+            hit_dice_remaining=game_state.hit_dice_remaining or {},
+            
+            # Spells
+            spell_slots_remaining=game_state.spell_slots_remaining or {},
+            spell_slots_max=game_state.spell_slots_max or {},
+            
+            # Progress
+            experience_gained_session=game_state.experience_gained_session or 0,
+            levels_gained_session=game_state.levels_gained_session or 0,
+            active_quests=game_state.active_quests or [],
+            completed_quests=game_state.completed_quests or [],
+            
+            # Statistics
+            encounters_faced=game_state.encounters_faced or 0,
+            monsters_defeated=game_state.monsters_defeated or {},
+            dungeons_completed=game_state.dungeons_completed or [],
+            dungeon_level=game_state.dungeon_level,
+            total_damage_dealt=game_state.total_damage_dealt or 0,
+            total_damage_taken=game_state.total_damage_taken or 0,
+            critical_hits_landed=game_state.critical_hits_landed or 0,
+            deaths=game_state.deaths or 0,
+            
+            # Social
+            npc_relationships=game_state.npc_relationships or {},
+            faction_standings=game_state.faction_standings or {},
+            
+            # Settings
+            difficulty_level=game_state.difficulty_level or "normal",
+            auto_rest=game_state.auto_rest or False,
+            combat_speed=game_state.combat_speed or "normal",
+            
+            notes=game_state.notes or "",
+            created_at=game_state.created_at,
+            updated_at=game_state.updated_at,
+            
+            # Additional fields used by router
+            playtime_minutes=game_state.playtime_minutes or 0,
             flags=game_state.flags or {},
             can_short_rest=game_state.short_rests_used < 2,  # Max 2 short rests per long rest
-            can_long_rest=game_state.location_type in [LocationType.TOWN, LocationType.WILDERNESS],
+            can_long_rest=game_state.location_type in ["town", "wilderness"],
             available_actions=_get_available_actions(game_state, character)
         )
         

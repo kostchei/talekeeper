@@ -50,14 +50,14 @@ class GameState(Base):
     character_id = Column(UUID(as_uuid=True), ForeignKey("characters.id", ondelete="CASCADE"), nullable=False)
     
     # Game progress
-    status = Column(String(20), nullable=False, default="ACTIVE")
+    status = Column(String(20), nullable=False, default="active")
     total_playtime_minutes = Column(Integer, default=0)
     playtime_minutes = Column(Integer, default=0)  # Alternative field name used by router
     last_played = Column(DateTime(timezone=True), server_default=func.now())
     
     # Location and exploration
     current_location = Column(String(100), default="Starting Town")
-    location_type = Column(String(20), default="TOWN")
+    location_type = Column(String(20), default="town")
     room_number = Column(Integer, default=0)  # Current room number in dungeon
     discovered_locations = Column(JSON, default=list)  # List of discovered location names
     
