@@ -1,3 +1,19 @@
+/**
+ * File: frontend/src/components/CharacterSummary.js
+ * Path: /frontend/src/components/CharacterSummary.js
+ * 
+ * Character Summary Component - Displays condensed character info for game screen.
+ * 
+ * Pseudo Code:
+ * 1. Check if character exists, show fallback if not
+ * 2. Extract character stats from multiple possible data sources
+ * 3. Calculate current/max HP, AC, XP, and gold values
+ * 4. Display character name prominently
+ * 5. Show key combat and progression stats in labeled format
+ * 
+ * AI Agents: Compact character display for game UI sidebar.
+ */
+
 import React from 'react';
 
 const CharacterSummary = ({ character, gameState }) => {

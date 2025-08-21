@@ -1,3 +1,19 @@
+/**
+ * File: frontend/src/components/ActionLog.js
+ * Path: /frontend/src/components/ActionLog.js
+ * 
+ * Action Log Component - Displays timestamped action/combat log entries with auto-scroll.
+ * 
+ * Pseudo Code:
+ * 1. Initialize with entries array prop and create scroll reference
+ * 2. Auto-scroll to bottom when new entries are added via useEffect
+ * 3. Display placeholder text when no entries exist
+ * 4. Render each entry with timestamp and message formatting
+ * 5. Handle various entry formats (objects with message/text or plain strings)
+ * 
+ * AI Agents: Simple display component for game action logging.
+ */
+
 import React, { useEffect, useRef } from 'react';
 
 const ActionLog = ({ entries = [] }) => {
