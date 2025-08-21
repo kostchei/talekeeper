@@ -598,3 +598,779 @@ UPDATE items SET properties = properties || '["mastery_sap"]' WHERE name = 'Spea
 -- mastery_slow: Reduce target's speed by 10 feet until start of your next turn
 -- mastery_topple: Knock target prone if you hit with advantage  
 -- mastery_vex: Give yourself advantage on next attack against same target
+
+-- =====================================================
+-- NEW MONSTERS - CR 1/2 (XP 100)
+-- =====================================================
+
+-- Cockatrice (CR 1/2)
+INSERT INTO monsters (name, challenge_rating, size, type, alignment, armor_class, hit_points, hit_dice, speed,
+                     strength, dexterity, constitution, intelligence, wisdom, charisma,
+                     saving_throws, skills, senses, languages, actions, ai_script, loot_table, xp_value) VALUES
+('Cockatrice', 0.5, 'Small', 'monstrosity', 'unaligned', 11, 27, '6d6+6',
+ '{"walk": 20, "fly": 40}',
+ 6, 12, 12, 2, 13, 5,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 11}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "1d4+1",
+   "damage_type": "piercing",
+   "special": "Target must succeed on DC 11 Constitution save or be restrained for 24 hours unless petrification is ended"
+ }]',
+ 'basic_melee',
+ '{"gold": "1d4", "items": [], "chance": 0.1}',
+ 100),
+
+-- Darkmantle (CR 1/2)
+('Darkmantle', 0.5, 'Small', 'monstrosity', 'unaligned', 11, 22, '5d6+5',
+ '{"walk": 10, "fly": 30}',
+ 16, 12, 13, 2, 10, 5,
+ '{}', '{"stealth": 3}',
+ '{"blindsight": 60, "passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Crush",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d6+3",
+   "damage_type": "bludgeoning",
+   "special": "Target is grappled (escape DC 13) and blinded while grappled"
+ }]',
+ 'ambush_predator',
+ '{"gold": "0", "items": [], "chance": 0.05}',
+ 100),
+
+-- Giant Wasp (CR 1/2)
+('Giant Wasp', 0.5, 'Medium', 'beast', 'unaligned', 12, 13, '3d8+3',
+ '{"walk": 10, "fly": 50}',
+ 10, 14, 13, 1, 10, 3,
+ '{}', '{}',
+ '{"passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Sting",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "piercing",
+   "special": "Target must make DC 11 Constitution save or take 3d6 poison damage and be poisoned for 1 hour"
+ }]',
+ 'flying_aggressor',
+ '{"gold": "0", "items": [], "chance": 0.1}',
+ 100),
+
+-- Rust Monster (CR 1/2)
+('Rust Monster', 0.5, 'Medium', 'monstrosity', 'unaligned', 14, 27, '5d8+5',
+ '{"walk": 40}',
+ 13, 12, 13, 2, 13, 6,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 11}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "1d8+1",
+   "damage_type": "piercing"
+ }, {
+   "name": "Antennae",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "0",
+   "damage_type": "special",
+   "special": "Corrodes nonmagical metal objects, armor AC reduced by 1"
+ }]',
+ 'equipment_destroyer',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 100),
+
+-- Satyr (CR 1/2)
+('Satyr', 0.5, 'Medium', 'fey', 'chaotic neutral', 14, 31, '7d8+7',
+ '{"walk": 40}',
+ 12, 16, 13, 12, 10, 14,
+ '{}', '{"perception": 2, "performance": 6, "stealth": 5}',
+ '{"passive_perception": 12}', ARRAY['Common', 'Elvish', 'Sylvan'],
+ '[{
+   "name": "Ram",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "2d4+1",
+   "damage_type": "bludgeoning"
+ }, {
+   "name": "Shortsword",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d6+3",
+   "damage_type": "piercing"
+ }]',
+ 'forest_trickster',
+ '{"gold": "2d6", "items": ["shortsword"], "chance": 0.3}',
+ 100),
+
+-- Shadow (CR 1/2)
+('Shadow', 0.5, 'Medium', 'undead', 'chaotic evil', 12, 16, '3d8+3',
+ '{"walk": 40}',
+ 6, 14, 13, 6, 10, 8,
+ '{}', '{"stealth": 4}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Strength Drain",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "2d6+2",
+   "damage_type": "necrotic",
+   "special": "Target Strength reduced by 1d4, dies if reduced to 0"
+ }]',
+ 'strength_drainer',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 100),
+
+-- Skulk (CR 1/2)
+('Skulk', 0.5, 'Medium', 'humanoid', 'chaotic evil', 14, 18, '4d8+4',
+ '{"walk": 30}',
+ 6, 16, 12, 10, 7, 1,
+ '{}', '{"stealth": 7}',
+ '{"darkvision": 120, "passive_perception": 8}', ARRAY['Common'],
+ '[{
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d6+3",
+   "damage_type": "slashing"
+ }]',
+ 'stealth_ambusher',
+ '{"gold": "1d4", "items": [], "chance": 0.2}',
+ 100),
+
+-- Vine Blight (CR 1/2)
+('Vine Blight', 0.5, 'Medium', 'plant', 'neutral evil', 12, 26, '4d8+8',
+ '{"walk": 10}',
+ 15, 8, 14, 5, 10, 3,
+ '{}', '{"stealth": 1}',
+ '{"blindsight": 60, "passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Constrict",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 10,
+   "damage": "2d6+2",
+   "damage_type": "bludgeoning",
+   "special": "Target is grappled (escape DC 12) and restrained while grappled"
+ }]',
+ 'grappling_plant',
+ '{"gold": "0", "items": [], "chance": 0.1}',
+ 100),
+
+-- Warg (CR 1/2)
+('Warg', 0.5, 'Large', 'monstrosity', 'neutral evil', 13, 26, '4d10+4',
+ '{"walk": 50}',
+ 16, 13, 13, 7, 11, 8,
+ '{}', '{"perception": 4}',
+ '{"darkvision": 60, "passive_perception": 14}', ARRAY['Goblin', 'Orcish'],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "2d6+3",
+   "damage_type": "piercing",
+   "special": "Target must succeed on DC 13 Strength save or be knocked prone"
+ }]',
+ 'pack_hunter',
+ '{"gold": "1d6", "items": [], "chance": 0.15}',
+ 100),
+
+-- =====================================================
+-- NEW MONSTERS - CR 1 (XP 200)
+-- =====================================================
+
+-- Animated Armor (CR 1)
+('Animated Armor', 1, 'Medium', 'construct', 'unaligned', 18, 33, '6d8+6',
+ '{"walk": 25}',
+ 14, 11, 13, 1, 3, 1,
+ '{}', '{}',
+ '{"blindsight": 60, "passive_perception": 6}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two slam attacks"
+ }, {
+   "name": "Slam",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "bludgeoning"
+ }]',
+ 'construct_guardian',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 200),
+
+-- Choker (CR 1)
+('Choker', 1, 'Small', 'aberration', 'chaotic evil', 16, 13, '3d6+3',
+ '{"walk": 30}',
+ 16, 14, 13, 4, 12, 7,
+ '{}', '{"stealth": 6}',
+ '{"darkvision": 60, "passive_perception": 11}', ARRAY['Deep Speech'],
+ '[{
+   "name": "Tentacle",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 10,
+   "damage": "1d4+3",
+   "damage_type": "bludgeoning",
+   "special": "Target is grappled (escape DC 13) and cannot breathe while grappled"
+ }]',
+ 'grappling_strangler',
+ '{"gold": "1d4", "items": [], "chance": 0.1}',
+ 200),
+
+-- Death Dog (CR 1)
+('Death Dog', 1, 'Medium', 'monstrosity', 'neutral evil', 12, 39, '6d8+12',
+ '{"walk": 40}',
+ 15, 14, 14, 3, 13, 6,
+ '{}', '{"perception": 5, "stealth": 4}',
+ '{"darkvision": 120, "passive_perception": 15}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two bite attacks"
+ }, {
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "piercing",
+   "special": "Target must succeed on DC 12 Constitution save or be poisoned for 1 minute"
+ }]',
+ 'pack_hunter',
+ '{"gold": "1d6", "items": [], "chance": 0.1}',
+ 200),
+
+-- Ghoul (CR 1)
+('Ghoul', 1, 'Medium', 'undead', 'chaotic evil', 12, 22, '5d8+5',
+ '{"walk": 30}',
+ 13, 15, 12, 6, 10, 6,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 2,
+   "reach": 5,
+   "damage": "2d6+2",
+   "damage_type": "piercing"
+ }, {
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "2d4+2",
+   "damage_type": "slashing",
+   "special": "Target must succeed on DC 10 Constitution save or be paralyzed for 1 minute"
+ }]',
+ 'undead_paralyzer',
+ '{"gold": "1d4", "items": [], "chance": 0.1}',
+ 200),
+
+-- Harpy (CR 1)
+('Harpy', 1, 'Medium', 'monstrosity', 'chaotic evil', 11, 38, '7d8+7',
+ '{"walk": 20, "fly": 40}',
+ 12, 13, 12, 7, 10, 13,
+ '{}', '{}',
+ '{"passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "2d4+1",
+   "damage_type": "slashing"
+ }, {
+   "name": "Luring Song",
+   "type": "special",
+   "description": "Target must succeed on DC 11 Wisdom save or be charmed and move toward harpy"
+ }]',
+ 'flying_charmer',
+ '{"gold": "2d6", "items": [], "chance": 0.2}',
+ 200),
+
+-- Hippogriff (CR 1)
+('Hippogriff', 1, 'Large', 'monstrosity', 'unaligned', 11, 19, '3d10+3',
+ '{"walk": 40, "fly": 60}',
+ 17, 13, 13, 2, 12, 8,
+ '{}', '{"perception": 5}',
+ '{"passive_perception": 15}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two attacks: one with beak and one with claws"
+ }, {
+   "name": "Beak",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d10+3",
+   "damage_type": "piercing"
+ }, {
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "2d6+3",
+   "damage_type": "slashing"
+ }]',
+ 'flying_mount',
+ '{"gold": "1d6", "items": [], "chance": 0.1}',
+ 200),
+
+-- Specter (CR 1)
+('Specter', 1, 'Medium', 'undead', 'chaotic evil', 12, 22, '5d8',
+ '{"walk": 0, "fly": 50}',
+ 1, 14, 11, 10, 10, 11,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Life Drain",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "3d6",
+   "damage_type": "necrotic",
+   "special": "Target must succeed on DC 10 Constitution save or maximum hit points reduced by damage taken"
+ }]',
+ 'incorporeal_drainer',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 200),
+
+-- Bugbear Warrior (CR 1)
+('Bugbear Warrior', 1, 'Medium', 'humanoid', 'chaotic evil', 16, 27, '5d8+5',
+ '{"walk": 30}',
+ 15, 14, 13, 8, 11, 9,
+ '{}', '{"stealth": 6, "survival": 2}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY['Common', 'Goblin'],
+ '[{
+   "name": "Morningstar",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "2d8+2",
+   "damage_type": "piercing"
+ }, {
+   "name": "Javelin",
+   "type": "ranged",
+   "bonus": 4,
+   "range": "30/120",
+   "damage": "1d6+2",
+   "damage_type": "piercing"
+ }]',
+ 'brutal_ambusher',
+ '{"gold": "2d6", "items": ["morningstar", "javelin"], "chance": 0.3}',
+ 200),
+
+-- Scarecrow (CR 1)
+('Scarecrow', 1, 'Medium', 'construct', 'chaotic neutral', 11, 36, '8d8+8',
+ '{"walk": 30}',
+ 11, 13, 12, 10, 10, 13,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two claw attacks"
+ }, {
+   "name": "Claw",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "1d4+1",
+   "damage_type": "slashing"
+ }, {
+   "name": "Terrifying Glare",
+   "type": "special",
+   "description": "Target must succeed on DC 11 Wisdom save or be frightened until end of scarecrow''s next turn"
+ }]',
+ 'fear_inducer',
+ '{"gold": "1d4", "items": [], "chance": 0.1}',
+ 200),
+
+-- Giant Spider (CR 1)
+('Giant Spider', 1, 'Large', 'beast', 'unaligned', 14, 26, '4d10+4',
+ '{"walk": 30, "climb": 30}',
+ 14, 16, 12, 2, 11, 4,
+ '{}', '{"stealth": 7}',
+ '{"blindsight": 10, "darkvision": 60, "passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d8+3",
+   "damage_type": "piercing",
+   "special": "Target must succeed on DC 11 Constitution save or take 2d8 poison damage and be poisoned for 1 hour"
+ }, {
+   "name": "Web",
+   "type": "ranged",
+   "bonus": 5,
+   "range": "30/60",
+   "damage": "0",
+   "damage_type": "special",
+   "special": "Target is restrained by webbing (escape DC 12)"
+ }]',
+ 'web_trapper',
+ '{"gold": "0", "items": [], "chance": 0.05}',
+ 200),
+
+-- Giant Hyena (CR 1)
+('Giant Hyena', 1, 'Large', 'beast', 'unaligned', 12, 45, '6d10+12',
+ '{"walk": 50}',
+ 16, 14, 14, 2, 12, 7,
+ '{}', '{"perception": 3}',
+ '{"passive_perception": 13}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d10+3",
+   "damage_type": "piercing"
+ }, {
+   "name": "Rampage",
+   "type": "special",
+   "description": "When hyena reduces creature to 0 hit points, it can move up to half speed and make bite attack"
+ }]',
+ 'pack_hunter',
+ '{"gold": "0", "items": [], "chance": 0.05}',
+ 200),
+
+-- Myconid Spore Servant (CR 1)
+('Myconid Spore Servant', 1, 'Medium', 'plant', 'unaligned', 10, 22, '4d8+4',
+ '{"walk": 20}',
+ 10, 10, 12, 2, 3, 1,
+ '{}', '{}',
+ '{"blindsight": 30, "passive_perception": 6}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Fist",
+   "type": "melee",
+   "bonus": 2,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "bludgeoning"
+ }]',
+ 'mindless_servant',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 200),
+
+-- =====================================================
+-- NEW MONSTERS - CR 2 (XP 450)
+-- =====================================================
+
+-- Will-o'-Wisp (CR 2)
+('Will-o''-Wisp', 2, 'Tiny', 'undead', 'chaotic evil', 19, 22, '9d4',
+ '{"walk": 0, "fly": 50}',
+ 1, 28, 10, 13, 14, 11,
+ '{}', '{}',
+ '{"darkvision": 120, "passive_perception": 12}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Shock",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "2d8+4",
+   "damage_type": "lightning"
+ }, {
+   "name": "Invisibility",
+   "type": "special",
+   "description": "Wisp becomes invisible until it attacks or until concentration ends"
+ }]',
+ 'incorporeal_shock',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 450),
+
+-- Ghast (CR 2)
+('Ghast', 2, 'Medium', 'undead', 'chaotic evil', 13, 36, '8d8+8',
+ '{"walk": 30}',
+ 16, 17, 12, 11, 10, 8,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "2d8+3",
+   "damage_type": "piercing"
+ }, {
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 10,
+   "damage": "2d6+3",
+   "damage_type": "slashing",
+   "special": "Target must succeed on DC 10 Constitution save or be paralyzed for 1 minute"
+ }]',
+ 'undead_paralyzer',
+ '{"gold": "2d6", "items": [], "chance": 0.15}',
+ 450),
+
+-- Awakened Tree (CR 2)
+('Awakened Tree', 2, 'Huge', 'plant', 'unaligned', 13, 59, '7d12+14',
+ '{"walk": 20}',
+ 19, 6, 15, 10, 10, 7,
+ '{}', '{}',
+ '{"passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Slam",
+   "type": "melee",
+   "bonus": 6,
+   "reach": 10,
+   "damage": "3d6+4",
+   "damage_type": "bludgeoning"
+ }, {
+   "name": "Animate Trees",
+   "type": "special",
+   "description": "Animates 1-2 trees within 60 feet to fight for 1 day"
+ }]',
+ 'forest_guardian',
+ '{"gold": "0", "items": [], "chance": 0.05}',
+ 450),
+
+-- Gelatinous Cube (CR 2)
+('Gelatinous Cube', 2, 'Large', 'ooze', 'unaligned', 6, 84, '12d10+24',
+ '{"walk": 15}',
+ 14, 3, 14, 1, 6, 1,
+ '{}', '{}',
+ '{"blindsight": 60, "passive_perception": 8}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Pseudopod",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "3d6+2",
+   "damage_type": "acid"
+ }, {
+   "name": "Engulf",
+   "type": "special",
+   "description": "Creatures in cube''s space take acid damage and are restrained"
+ }]',
+ 'dungeon_cleaner',
+ '{"gold": "3d6", "items": [], "chance": 0.4}',
+ 450),
+
+-- Mimic (CR 2)
+('Mimic', 2, 'Medium', 'monstrosity', 'neutral', 12, 58, '9d8+18',
+ '{"walk": 15}',
+ 17, 12, 15, 5, 13, 8,
+ '{}', '{"stealth": 5}',
+ '{"darkvision": 60, "passive_perception": 11}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Pseudopod",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d8+3",
+   "damage_type": "bludgeoning",
+   "special": "Target is grappled (escape DC 13) and restrained while grappled"
+ }, {
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d8+3",
+   "damage_type": "piercing",
+   "special": "Plus 1d8 acid damage"
+ }]',
+ 'treasure_mimic',
+ '{"gold": "5d6", "items": [], "chance": 0.6}',
+ 450),
+
+-- Carrion Crawler (CR 2)
+('Carrion Crawler', 2, 'Large', 'monstrosity', 'unaligned', 13, 51, '6d12+12',
+ '{"walk": 30, "climb": 30}',
+ 14, 13, 15, 1, 12, 5,
+ '{}', '{"perception": 3}',
+ '{"darkvision": 60, "passive_perception": 13}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two attacks: one with tentacles and one with bite"
+ }, {
+   "name": "Tentacles",
+   "type": "melee",
+   "bonus": 8,
+   "reach": 10,
+   "damage": "1d4+2",
+   "damage_type": "poison",
+   "special": "Target must succeed on DC 13 Constitution save or be poisoned for 1 minute and paralyzed while poisoned"
+ }, {
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "2d4+2",
+   "damage_type": "piercing"
+ }]',
+ 'paralyzing_scavenger',
+ '{"gold": "1d6", "items": [], "chance": 0.1}',
+ 450),
+
+-- Quaggoth (CR 2)
+('Quaggoth', 2, 'Medium', 'humanoid', 'chaotic neutral', 13, 45, '6d8+18',
+ '{"walk": 30, "climb": 30}',
+ 17, 12, 16, 6, 12, 7,
+ '{}', '{"athletics": 5}',
+ '{"darkvision": 120, "passive_perception": 11}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two claw attacks"
+ }, {
+   "name": "Claw",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d6+3",
+   "damage_type": "slashing"
+ }]',
+ 'berserker_climber',
+ '{"gold": "2d6", "items": [], "chance": 0.2}',
+ 450),
+
+-- Berserker (CR 2)
+('Berserker', 2, 'Medium', 'humanoid', 'any chaotic', 13, 67, '9d8+27',
+ '{"walk": 30}',
+ 16, 12, 17, 9, 11, 9,
+ '{}', '{}',
+ '{"passive_perception": 10}', ARRAY['Common'],
+ '[{
+   "name": "Greataxe",
+   "type": "melee",
+   "bonus": 5,
+   "reach": 5,
+   "damage": "1d12+3",
+   "damage_type": "slashing"
+ }, {
+   "name": "Reckless",
+   "type": "special",
+   "description": "Advantage on melee attacks, but attack rolls against berserker have advantage until next turn"
+ }]',
+ 'reckless_warrior',
+ '{"gold": "3d6", "items": ["greataxe"], "chance": 0.4}',
+ 450),
+
+-- Gargoyle (CR 2)
+('Gargoyle', 2, 'Medium', 'elemental', 'chaotic evil', 15, 52, '7d8+21',
+ '{"walk": 30, "fly": 60}',
+ 15, 11, 16, 6, 11, 7,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY['Terran'],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two attacks: one with bite and one with claws"
+ }, {
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "piercing"
+ }, {
+   "name": "Claws",
+   "type": "melee",
+   "bonus": 4,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "slashing"
+ }]',
+ 'stone_guardian',
+ '{"gold": "1d6", "items": [], "chance": 0.1}',
+ 450),
+
+-- Glasswork Golem (CR 2)
+('Glasswork Golem', 2, 'Medium', 'construct', 'unaligned', 13, 36, '8d8+8',
+ '{"walk": 25}',
+ 10, 14, 12, 3, 8, 1,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 9}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes two slam attacks"
+ }, {
+   "name": "Slam",
+   "type": "melee",
+   "bonus": 3,
+   "reach": 5,
+   "damage": "1d8+2",
+   "damage_type": "bludgeoning"
+ }, {
+   "name": "Shatter",
+   "type": "special",
+   "description": "When destroyed, shards deal 2d6 slashing damage to creatures within 5 feet"
+ }]',
+ 'fragile_construct',
+ '{"gold": "0", "items": [], "chance": 0.0}',
+ 450),
+
+-- Giant Constrictor Snake (CR 2)
+('Giant Constrictor Snake', 2, 'Huge', 'beast', 'unaligned', 12, 60, '8d12+16',
+ '{"walk": 30, "swim": 30}',
+ 19, 14, 15, 1, 10, 3,
+ '{}', '{"perception": 2}',
+ '{"blindsight": 10, "passive_perception": 12}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 6,
+   "reach": 10,
+   "damage": "2d6+4",
+   "damage_type": "piercing"
+ }, {
+   "name": "Constrict",
+   "type": "melee",
+   "bonus": 6,
+   "reach": 5,
+   "damage": "2d8+4",
+   "damage_type": "bludgeoning",
+   "special": "Target is grappled (escape DC 16) and restrained while grappled"
+ }]',
+ 'constrictor_predator',
+ '{"gold": "0", "items": [], "chance": 0.05}',
+ 450),
+
+-- Gibbering Mouther (CR 2)
+('Gibbering Mouther', 2, 'Medium', 'aberration', 'neutral', 9, 67, '9d8+27',
+ '{"walk": 10, "swim": 10}',
+ 10, 8, 16, 3, 10, 6,
+ '{}', '{}',
+ '{"darkvision": 60, "passive_perception": 10}', ARRAY[]::VARCHAR[],
+ '[{
+   "name": "Multiattack",
+   "type": "special",
+   "description": "Makes one bite attack against each creature within 5 feet"
+ }, {
+   "name": "Bite",
+   "type": "melee",
+   "bonus": 2,
+   "reach": 5,
+   "damage": "1d6+2",
+   "damage_type": "piercing"
+ }, {
+   "name": "Gibbering",
+   "type": "special",
+   "description": "Creatures within 20 feet must succeed on DC 10 Wisdom save or cannot take reactions and movement is halved"
+ }]',
+ 'madness_inducer',
+ '{"gold": "1d4", "items": [], "chance": 0.05}',
+ 450);
