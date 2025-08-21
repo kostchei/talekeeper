@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useGameStore } from '../services/gameStore';
@@ -16,20 +16,7 @@ const GameScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [actionLog, setActionLog] = useState([]);
 
-  useEffect(() => {
-    if (character && character.id) {
-      loadGameState();
-    }
-  }, [character]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setGameTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const loadGameState = async () => {
+  const loadGameState = useCallback(async () => {
     try {
       setIsLoading(true);
       const state = await gameAPI.getGameState(character.id);
@@ -46,7 +33,19 @@ const GameScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [character?.id, updateGameState]);
+
+  useEffect(() => {
+    if (character && character.id) {
+      loadGameState();
+    }
+  }, [character, loadGameState]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setGameTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleManualSave = async () => {
     if (!character?.id) return;
