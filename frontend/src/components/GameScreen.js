@@ -6,6 +6,7 @@ import { gameAPI } from '../services/api';
 import CharacterSummary from './CharacterSummary';
 import ActivityPanel from './ActivityPanel';
 import ActionLog from './ActionLog';
+import MainGameView from './MainGameView';
 
 const GameScreen = () => {
   const navigate = useNavigate();
@@ -108,14 +109,12 @@ const GameScreen = () => {
       <main className="game-content">
         <CharacterSummary character={character} gameState={gameState} />
         <div className="main-panel">
-          {gameState?.currentEncounter ? (
-            <div className="encounter-panel">
-              <h3>Encounter</h3>
-              <p>An encounter is in progress...</p>
-            </div>
-          ) : (
-            <ActivityPanel locationType={locationType} onAction={handleActivity} />
-          )}
+          <MainGameView 
+            locationType={locationType}
+            character={character}
+            gameState={gameState}
+            onActionLog={addLogEntry}
+          />
         </div>
         <ActionLog entries={actionLog} />
       </main>
