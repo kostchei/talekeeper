@@ -52,6 +52,7 @@ class GameState(Base):
     # Game progress
     status = Column(String(20), nullable=False, default="ACTIVE")
     total_playtime_minutes = Column(Integer, default=0)
+    playtime_minutes = Column(Integer, default=0)  # Alternative field name used by router
     last_played = Column(DateTime(timezone=True), server_default=func.now())
     
     # Location and exploration
@@ -68,6 +69,7 @@ class GameState(Base):
     last_short_rest = Column(DateTime(timezone=True), nullable=True)
     last_long_rest = Column(DateTime(timezone=True), nullable=True)
     short_rests_today = Column(Integer, default=0)
+    short_rests_used = Column(Integer, default=0)  # Track short rests per long rest cycle
     hit_dice_remaining = Column(JSON, default=dict)  # class -> remaining dice
     
     # Spell casting (if applicable)
@@ -83,6 +85,7 @@ class GameState(Base):
     active_quests = Column(JSON, default=list)  # List of active quest data
     completed_quests = Column(JSON, default=list)  # List of completed quest data
     story_flags = Column(JSON, default=dict)  # Custom story progression flags
+    flags = Column(JSON, default=dict)  # Alternative field name used by router
     
     # Exploration and encounters
     encounters_faced = Column(Integer, default=0)
@@ -209,6 +212,7 @@ class GameStateResponse(BaseModel):
     last_short_rest: Optional[datetime]
     last_long_rest: Optional[datetime]
     short_rests_today: int
+    short_rests_used: int
     hit_dice_remaining: Dict[str, int]
     
     # Spells
@@ -243,6 +247,13 @@ class GameStateResponse(BaseModel):
     notes: str
     created_at: datetime
     updated_at: Optional[datetime]
+    
+    # Additional fields used by router
+    playtime_minutes: int = 0
+    flags: Dict[str, Any] = Field(default_factory=dict)
+    can_short_rest: bool = True
+    can_long_rest: bool = True
+    available_actions: List[str] = Field(default_factory=list)
     
     class Config:
         from_attributes = True
@@ -326,6 +337,7 @@ class GameSave(Base):
     # Save data
     game_data = Column(JSON, nullable=False)  # Complete game state
     character_data = Column(JSON, nullable=False)  # Character snapshot
+    save_data = Column(JSON, nullable=False)  # Alternative field name used by router
     
     # Metadata
     is_active = Column(Boolean, default=True)
@@ -334,6 +346,7 @@ class GameSave(Base):
     # Game state at time of save
     character_level = Column(Integer, nullable=False)
     location = Column(String(100), nullable=False)
+    location_description = Column(String(200), default="")  # Alternative field name used by router
     playtime_minutes = Column(Integer, default=0)
 
 class DungeonRoom(Base):

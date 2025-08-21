@@ -263,7 +263,7 @@ CREATE TABLE characters (
     inspiration BOOLEAN DEFAULT FALSE,
     death_saves_successes INTEGER DEFAULT 0,
     death_saves_failures INTEGER DEFAULT 0,
-    conditions VARCHAR[], -- ["poisoned", "frightened"]
+    conditions JSONB DEFAULT '[]', -- ["poisoned", "frightened"]
     -- Currency
     copper INTEGER DEFAULT 0,
     silver INTEGER DEFAULT 0,
@@ -314,6 +314,7 @@ CREATE TABLE game_states (
     -- Game progress
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     total_playtime_minutes INTEGER DEFAULT 0,
+    playtime_minutes INTEGER DEFAULT 0,
     last_played TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     -- Location and exploration
@@ -329,6 +330,7 @@ CREATE TABLE game_states (
     last_short_rest TIMESTAMP WITH TIME ZONE,
     last_long_rest TIMESTAMP WITH TIME ZONE,
     short_rests_today INTEGER DEFAULT 0,
+    short_rests_used INTEGER DEFAULT 0,
     hit_dice_remaining JSONB DEFAULT '{}',
     
     -- Spell casting
@@ -344,6 +346,7 @@ CREATE TABLE game_states (
     active_quests JSONB DEFAULT '[]',
     completed_quests JSONB DEFAULT '[]',
     story_flags JSONB DEFAULT '{}',
+    flags JSONB DEFAULT '{}',
     
     -- Exploration and encounters
     encounters_faced INTEGER DEFAULT 0,

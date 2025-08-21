@@ -165,23 +165,6 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
 
-        {/* Global UI Elements */}
-        {character && (
-          <div className="global-hud">
-            {/* Quick stats display */}
-            <div className="quick-stats">
-              <span className="stat-hp">
-                HP: {character.currentHp}/{character.maxHp}
-              </span>
-              <span className="stat-level">
-                Level {character.level}
-              </span>
-              <span className="stat-xp">
-                XP: {character.experience}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </Router>
   );

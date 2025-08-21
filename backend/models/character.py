@@ -59,6 +59,15 @@ class Character(Base):
     hit_points_current = Column(Integer, nullable=False, default=8)
     hit_points_temporary = Column(Integer, default=0)
     
+    # Alternative field names used by router
+    max_hit_points = Column(Integer, nullable=False, default=8)
+    current_hit_points = Column(Integer, nullable=False, default=8)
+    hit_dice_max = Column(Integer, nullable=False, default=1)
+    hit_dice_current = Column(Integer, nullable=False, default=1)
+    death_saves_successes = Column(Integer, default=0)
+    death_saves_failures = Column(Integer, default=0)
+    conditions = Column(JSON, default=list)
+    
     # Proficiencies and Features
     proficiencies = Column(JSON, default=list)  # Skills, tools, languages
     features = Column(JSON, default=dict)  # Class and racial features
