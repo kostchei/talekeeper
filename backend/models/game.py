@@ -93,6 +93,10 @@ class GameState(Base):
     dungeons_completed = Column(JSON, default=list)  # List of dungeon names
     dungeon_level = Column(Integer, default=0)  # Current dungeon depth/level
     
+    # Random bag system for encounter variety
+    encounter_bag_remaining = Column(JSON, default=dict)  # location_type -> [monster_ids]
+    encounter_bag_history = Column(JSON, default=dict)    # location_type -> [used_monster_ids]
+    
     # Achievements and statistics
     total_damage_dealt = Column(Integer, default=0)
     total_damage_taken = Column(Integer, default=0)

@@ -19,11 +19,13 @@ import random
 import json
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from loguru import logger
 
-from backend.database import get_db
-from backend.models.game import GameState
-from backend.models.monsters import Monster
+from database import get_db
+from models.game import GameState
+from models.monsters import Monster
+from models.character import Character
 
 
 class EncounterService:
@@ -110,7 +112,7 @@ class EncounterService:
         
         # Query the XP budget table
         result = self.db.execute(
-            f"SELECT {column} FROM encounter_xp_budgets WHERE party_level = :level",
+            text(f"SELECT {column} FROM encounter_xp_budgets WHERE party_level = :level"),
             {"level": party_level}
         ).first()
         
@@ -180,36 +182,54 @@ class EncounterService:
             monster = random.choice(bag_monsters)
             
             # Check if adding this monster would exceed budget
-            if current_xp + monster.experience_value <= xp_budget:
+            if current_xp + monster.xp_value <= xp_budget:
                 selected_monsters.append(monster)
-                current_xp += monster.experience_value
+                current_xp += monster.xp_value
                 
                 # Remove monster from available bag monsters for this encounter
                 # but don't remove from bag state yet - we'll do that after encounter is built
                 bag_monsters.remove(monster)
             else:
                 # Try smaller monsters only
-                bag_monsters = [m for m in bag_monsters if m.experience_value <= (xp_budget - current_xp)]
+                bag_monsters = [m for m in bag_monsters if m.xp_value <= (xp_budget - current_xp)]
         
         return selected_monsters
     
     def _build_encounter_details(self, monsters: List[Monster], difficulty: str, xp_budget: int) -> Dict[str, Any]:
         """Build the complete encounter details dictionary."""
-        total_xp = sum(m.experience_value for m in monsters)
+        total_xp = sum(m.xp_value for m in monsters)
         
         return {
             "monsters": [
                 {
                     "id": m.id,
                     "name": m.name,
-                    "challenge_rating": float(m.challenge_rating),
-                    "xp_value": m.experience_value,
-                    "armor_class": m.armor_class,
-                    "hit_points": m.hit_points_max,
-                    "size": m.size,
-                    "type": m.type,
-                    "actions": m.actions,
-                    "ai_script": m.ai_script
+                    "challenge_rating": float(m.challenge_rating) if m.challenge_rating else 0.25,
+                    "xp_value": m.xp_value or 50,
+                    "armor_class": m.armor_class or 10,
+                    "hit_points": m.hit_points or 1,
+                    "size": m.size or "medium",
+                    "type": m.type or "humanoid",
+                    "alignment": m.alignment or "neutral",
+                    "speed": m.speed or {"walk": 30},
+                    "strength": m.strength or 10,
+                    "dexterity": m.dexterity or 10,
+                    "constitution": m.constitution or 10,
+                    "intelligence": m.intelligence or 10,
+                    "wisdom": m.wisdom or 10,
+                    "charisma": m.charisma or 10,
+                    "saving_throws": m.saving_throws or {},
+                    "skills": m.skills or {},
+                    "damage_resistances": m.damage_resistances or [],
+                    "damage_immunities": m.damage_immunities or [],
+                    "condition_immunities": m.condition_immunities or [],
+                    "senses": m.senses or {},
+                    "languages": m.languages or [],
+                    "actions": m.actions or [],
+                    "reactions": m.reactions or [],
+                    "legendary_actions": m.legendary_actions or [],
+                    "ai_script": m.ai_script or "basic_melee",
+                    "special_abilities": []  # For frontend display
                 }
                 for m in monsters
             ],

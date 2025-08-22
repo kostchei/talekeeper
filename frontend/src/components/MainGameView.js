@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import AdventureEncounterView from './AdventureEncounterView';
 
 const MainGameView = ({ 
   locationType, 
@@ -151,39 +152,13 @@ const MainGameView = ({
         );
 
       case 'encounter':
-        return (
-          <div className="activity-view encounter-view">
-            <div className="activity-header">
-              <button className="back-btn" onClick={handleBackToTiles}>← Back</button>
-              <h2>⚔️ Adventure Awaits</h2>
-            </div>
-            <div className="activity-content">
-              <p>You search for adventure and danger...</p>
-              <div className="encounter-options">
-                <button className="encounter-btn" onClick={() => {
-                  onActionLog('Started random encounter');
-                }}>
-                  🎲 Random Encounter
-                </button>
-                <button className="encounter-btn" onClick={() => {
-                  onActionLog('Explored safely');
-                  handleBackToTiles();
-                }}>
-                  🔍 Explore Safely
-                </button>
-              </div>
-              <div className="encounter-info">
-                <h3>Combat System (Coming Soon):</h3>
-                <ul>
-                  <li>Turn-based tactical combat</li>
-                  <li>Initiative order</li>
-                  <li>Action cards (Action/Bonus/Reaction)</li>
-                  <li>Positioning zones (Melee/Ranged)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
+        return <AdventureEncounterView 
+          character={character}
+          gameState={gameState}
+          locationType={locationType}
+          onActionLog={onActionLog}
+          onBackToTiles={handleBackToTiles}
+        />;
 
       default:
         return null;

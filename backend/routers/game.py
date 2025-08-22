@@ -24,7 +24,7 @@ AI Agents: Key endpoints:
 - POST /town-action - Handle town activities
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, desc, func
 from typing import List, Optional, Dict, Any, Union
@@ -33,6 +33,7 @@ import json
 from loguru import logger
 from datetime import datetime, timedelta
 from enum import Enum
+from services import dice
 
 from database import get_db, GameQueries
 from models.character import Character
@@ -479,8 +480,8 @@ async def enter_dungeon(
 
 @router.post("/random-encounter", response_model=Dict[str, Any])
 async def generate_random_encounter(
-    character_id: UUID,
-    location_type: str = "dungeon",
+    character_id: UUID = Query(..., description="Character UUID"),
+    location_type: str = Query("dungeon", description="Location type (dungeon, wilderness, town)"),
     db: Session = Depends(get_db)
 ):
     """
@@ -555,8 +556,10 @@ async def generate_random_encounter(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
         logger.error(f"Error generating encounter: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate encounter")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate encounter: {str(e)}")
 
 @router.get("/game-state/{character_id}", response_model=GameStateResponse)
 async def get_game_state(

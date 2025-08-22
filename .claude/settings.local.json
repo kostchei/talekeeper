@@ -21,7 +21,9 @@
       "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" --version)",
       "Bash(\"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\" ps)",
       "Bash(timeout:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm start)",
+      "Bash(npm update:*)"
     ],
     "deny": []
   }

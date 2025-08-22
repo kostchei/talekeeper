@@ -570,6 +570,78 @@ textarea:disabled {
   font-size: 0.9rem;
 }
 
+/* Save Slots Styles */
+.save-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  max-width: 800px;
+}
+
+.save-slot {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.save-slot:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-tertiary);
+}
+
+.save-slot.empty {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-slot.empty:hover {
+  border-color: var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.slot-number {
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.slot-info {
+  text-align: left;
+}
+
+.character-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.character-details {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.character-gold {
+  color: var(--color-warning);
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+}
+
+.last-played {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.slot-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
 /* ========================================
    Character Creator Styles
    ======================================== */

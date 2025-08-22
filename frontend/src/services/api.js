@@ -269,10 +269,7 @@ export const gameAPI = {
    * @param {string} locationType - Location type (town, dungeon, wilderness)
    */
   generateRandomEncounter: async (characterId, locationType = 'dungeon') => {
-    const response = await api.post('/api/game/random-encounter', { 
-      character_id: characterId,
-      location_type: locationType 
-    });
+    const response = await api.post(`/api/game/random-encounter?character_id=${characterId}&location_type=${locationType}`);
     return response.data;
   },
 

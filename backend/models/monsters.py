@@ -53,74 +53,41 @@ class MonsterSize(str, Enum):
 
 class Monster(Base):
     """
-    D&D Monster with complete stat block.
-    AI Agents: Extend with tactical AI behaviors and environmental effects.
+    D&D Monster with complete stat block - matches database schema exactly.
     """
     __tablename__ = "monsters"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    # Only columns that exist in the database
+    id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    description = Column(Text, default="")
-    
-    # Basic properties
-    size = Column(String(20), nullable=False, default=MonsterSize.MEDIUM)
-    type = Column(String(20), nullable=False, default=MonsterType.HUMANOID)
-    subtype = Column(String(50), nullable=True)  # e.g., "goblinoid", "shapechanger"
-    alignment = Column(String(50), default="neutral")
-    
-    # Challenge and XP
-    challenge_rating = Column(Numeric(4, 2), nullable=False, default=0.25)
-    experience_value = Column(Integer, nullable=False, default=50)
-    
-    # Ability Scores
-    strength = Column(Integer, nullable=False, default=10)
-    dexterity = Column(Integer, nullable=False, default=10)
-    constitution = Column(Integer, nullable=False, default=10)
-    intelligence = Column(Integer, nullable=False, default=10)
-    wisdom = Column(Integer, nullable=False, default=10)
-    charisma = Column(Integer, nullable=False, default=10)
-    
-    # Combat Stats
-    armor_class = Column(Integer, nullable=False, default=10)
-    hit_points_max = Column(Integer, nullable=False, default=1)
-    hit_dice = Column(String(20), nullable=False, default="1d4")  # e.g., "2d8+2"
-    speed = Column(JSON, default=dict)  # {"walk": 30, "fly": 60, "swim": 30}
-    
-    # Defenses
-    damage_resistances = Column(JSON, default=list)  # ["fire", "cold"]
-    damage_immunities = Column(JSON, default=list)
-    condition_immunities = Column(JSON, default=list)
-    damage_vulnerabilities = Column(JSON, default=list)
-    
-    # Senses and Languages
-    senses = Column(JSON, default=dict)  # {"darkvision": 60, "passive_perception": 12}
-    languages = Column(JSON, default=list)  # ["Common", "Goblin"]
-    
-    # Skills and Saves
-    saving_throws = Column(JSON, default=dict)  # {"dexterity": 4, "wisdom": 2}
-    skills = Column(JSON, default=dict)  # {"stealth": 6, "perception": 3}
-    
-    # Abilities
-    special_abilities = Column(JSON, default=list)  # Passive abilities
-    actions = Column(JSON, default=list)  # Standard actions
-    bonus_actions = Column(JSON, default=list)  # Bonus actions
-    reactions = Column(JSON, default=list)  # Reaction abilities
-    legendary_actions = Column(JSON, default=list)  # Legendary actions (if any)
-    lair_actions = Column(JSON, default=list)  # Lair actions (if any)
-    
-    # Loot and Environment
-    loot_table_id = Column(UUID(as_uuid=True), ForeignKey("loot_tables.id"), nullable=True)
-    environment_tags = Column(JSON, default=list)  # ["dungeon", "forest", "urban"]
-    
-    # AI Behavior
-    ai_behavior = Column(JSON, default=dict)  # Combat tactics and preferences
-    
-    # Metadata
-    source_book = Column(String(100), default="Custom")
+    challenge_rating = Column(Numeric(3, 2), nullable=True)
+    size = Column(String(20), nullable=True)
+    type = Column(String(50), nullable=True)
+    alignment = Column(String(50), nullable=True)
+    armor_class = Column(Integer, nullable=True)
+    hit_points = Column(Integer, nullable=True)
+    hit_dice = Column(String(20), nullable=True)
+    speed = Column(JSON, nullable=True)
+    strength = Column(Integer, nullable=True)
+    dexterity = Column(Integer, nullable=True)
+    constitution = Column(Integer, nullable=True)
+    intelligence = Column(Integer, nullable=True)
+    wisdom = Column(Integer, nullable=True)
+    charisma = Column(Integer, nullable=True)
+    saving_throws = Column(JSON, nullable=True)
+    skills = Column(JSON, nullable=True)
+    damage_resistances = Column(JSON, nullable=True)
+    damage_immunities = Column(JSON, nullable=True)
+    condition_immunities = Column(JSON, nullable=True)
+    senses = Column(JSON, nullable=True)
+    languages = Column(JSON, nullable=True)
+    actions = Column(JSON, nullable=True)
+    reactions = Column(JSON, nullable=True)
+    legendary_actions = Column(JSON, nullable=True)
+    ai_script = Column(String(50), nullable=True)
+    loot_table = Column(JSON, nullable=True)
+    xp_value = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    loot_table = relationship("LootTable", backref="monsters")
     
     @property
     def strength_modifier(self) -> int:
