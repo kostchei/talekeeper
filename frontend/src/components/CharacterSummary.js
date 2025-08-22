@@ -25,9 +25,9 @@ const CharacterSummary = ({ character, gameState }) => {
     );
   }
 
-  const currentHP = character.hit_points_current || character.current_hit_points || 0;
-  const maxHP = character.hit_points_max || character.max_hit_points || 0;
-  const ac = character.armor_class || 10;
+  const currentHP = character.hit_points_current || character.current_hit_points || character.combat_stats?.hit_points_current || 0;
+  const maxHP = character.hit_points_max || character.max_hit_points || character.combat_stats?.hit_points_max || 0;
+  const ac = character.armor_class || character.combat_stats?.armor_class || 10;
   const xp = character.experience_points || 0;
   const gold = gameState?.inventory_gold || character.gold || 0;
 

@@ -37,6 +37,16 @@ const CombatScreen = () => {
   const navigate = useNavigate();
   const { character, updateCharacter, gameState, updateGameState } = useGameStore();
   
+  // Helper function to get ability scores from different character data structures
+  const getAbilityScore = (ability) => {
+    if (character.ability_scores && character.ability_scores[ability]) {
+      return character.ability_scores[ability];
+    }
+    return character[ability] || 0;
+  };
+
+  const calculateModifier = (score) => Math.floor((score - 10) / 2);
+
   // Combat state
   const [combatState, setCombatState] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
@@ -290,16 +300,16 @@ const CombatScreen = () => {
         {/* Quick Stats */}
         <div className="quick-stats-combat">
           <div className="stat-row">
-            <span>STR: {character.strength} ({character.strMod >= 0 ? '+' : ''}{character.strMod})</span>
-            <span>DEX: {character.dexterity} ({character.dexMod >= 0 ? '+' : ''}{character.dexMod})</span>
+            <span>STR: {getAbilityScore('strength')} ({calculateModifier(getAbilityScore('strength')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('strength'))})</span>
+            <span>DEX: {getAbilityScore('dexterity')} ({calculateModifier(getAbilityScore('dexterity')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('dexterity'))})</span>
           </div>
           <div className="stat-row">
-            <span>CON: {character.constitution} ({character.conMod >= 0 ? '+' : ''}{character.conMod})</span>
-            <span>INT: {character.intelligence} ({character.intMod >= 0 ? '+' : ''}{character.intMod})</span>
+            <span>CON: {getAbilityScore('constitution')} ({calculateModifier(getAbilityScore('constitution')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('constitution'))})</span>
+            <span>INT: {getAbilityScore('intelligence')} ({calculateModifier(getAbilityScore('intelligence')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('intelligence'))})</span>
           </div>
           <div className="stat-row">
-            <span>WIS: {character.wisdom} ({character.wisMod >= 0 ? '+' : ''}{character.wisMod})</span>
-            <span>CHA: {character.charisma} ({character.chaMod >= 0 ? '+' : ''}{character.chaMod})</span>
+            <span>WIS: {getAbilityScore('wisdom')} ({calculateModifier(getAbilityScore('wisdom')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('wisdom'))})</span>
+            <span>CHA: {getAbilityScore('charisma')} ({calculateModifier(getAbilityScore('charisma')) >= 0 ? '+' : ''}{calculateModifier(getAbilityScore('charisma'))})</span>
           </div>
         </div>
 

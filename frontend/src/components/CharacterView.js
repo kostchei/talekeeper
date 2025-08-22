@@ -29,25 +29,33 @@ const CharacterView = () => {
     return null;
   }
 
+  // Handle both data structures - new characters have direct properties, loaded characters have ability_scores object
+  const getAbilityScore = (ability) => {
+    if (character.ability_scores && character.ability_scores[ability]) {
+      return character.ability_scores[ability];
+    }
+    return character[ability] || 0;
+  };
+
+  const finalStats = {
+    str: getAbilityScore('strength'),
+    dex: getAbilityScore('dexterity'),
+    con: getAbilityScore('constitution'),
+    int: getAbilityScore('intelligence'),
+    wis: getAbilityScore('wisdom'),
+    cha: getAbilityScore('charisma')
+  };
+
   // Check if character has finalized stats
-  const hasStats = character.strength > 0 && character.dexterity > 0 && 
-                   character.constitution > 0 && character.intelligence > 0 && 
-                   character.wisdom > 0 && character.charisma > 0;
+  const hasStats = finalStats.str > 0 && finalStats.dex > 0 && 
+                   finalStats.con > 0 && finalStats.int > 0 && 
+                   finalStats.wis > 0 && finalStats.cha > 0;
 
   if (!hasStats) {
     // Redirect incomplete characters to the generation sheet
     navigate('/character');
     return null;
   }
-
-  const finalStats = {
-    str: character.strength,
-    dex: character.dexterity,
-    con: character.constitution,
-    int: character.intelligence,
-    wis: character.wisdom,
-    cha: character.charisma
-  };
 
   return (
     <div className="character-view">
@@ -77,8 +85,8 @@ const CharacterView = () => {
         <div className="character-header">
           <h1>{character.name}</h1>
           <div className="character-basics">
-            <span className="race">{character.race}</span>
-            <span className="class">{character.character_class}</span>
+            <span className="race">{character.race || character.race_name}</span>
+            <span className="class">{character.character_class || character.class_name}</span>
             <span className="background">{character.background}</span>
           </div>
         </div>
@@ -106,12 +114,12 @@ const CharacterView = () => {
             <div className="stat-card">
               <div className="stat-label">Hit Points</div>
               <div className="stat-value">
-                {character.hit_points_current || character.current_hit_points || 0} / {character.hit_points_max || character.max_hit_points || 0}
+                {character.hit_points_current || character.current_hit_points || character.combat_stats?.hit_points_current || 0} / {character.hit_points_max || character.max_hit_points || character.combat_stats?.hit_points_max || 0}
               </div>
             </div>
             <div className="stat-card">
               <div className="stat-label">Armor Class</div>
-              <div className="stat-value">{character.armor_class || (10 + calculateModifier(finalStats.dex))}</div>
+              <div className="stat-value">{character.armor_class || character.combat_stats?.armor_class || (10 + calculateModifier(finalStats.dex))}</div>
             </div>
             <div className="stat-card">
               <div className="stat-label">Initiative</div>
@@ -121,7 +129,7 @@ const CharacterView = () => {
             </div>
             <div className="stat-card">
               <div className="stat-label">Proficiency Bonus</div>
-              <div className="stat-value">+{character.proficiency_bonus || 2}</div>
+              <div className="stat-value">+{character.proficiency_bonus || character.combat_stats?.proficiency_bonus || 2}</div>
             </div>
             <div className="stat-card">
               <div className="stat-label">Speed</div>
