@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 cls
 echo =========================================
 echo        D^&D 2024 TaleKeeper
@@ -207,6 +208,26 @@ echo Frontend: http://localhost:3000
 echo.
 echo Both servers are starting in separate windows...
 echo The game will open in your browser shortly...
+
+REM Wait for frontend to start then open browser
+echo [INFO] Waiting for frontend to start...
+timeout /t 8 /nobreak >nul
+
+REM Check if frontend is responding before opening browser
+echo [INFO] Checking if frontend is ready...
+for /L %%i in (1,1,10) do (
+    curl -s http://localhost:3000 >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo [OK] Frontend is ready!
+        goto open_browser_local
+    )
+    echo [INFO] Waiting for frontend... (attempt %%i/10)
+    timeout /t 2 /nobreak >nul
+)
+
+:open_browser_local
+echo [INFO] Opening browser...
+start http://localhost:3000
 echo.
 echo To stop:
 echo - Press Ctrl+C in server windows to stop backend/frontend
@@ -244,7 +265,8 @@ echo [INFO] Starting Docker containers...
 echo This may take a few minutes on first run...
 echo.
 
-docker-compose up --build
+REM Start Docker containers in background
+docker-compose up --build -d
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Docker startup failed!
@@ -253,7 +275,44 @@ if %errorlevel% neq 0 (
     echo Or select option 2 for Local Development mode
     echo.
     pause
+    goto end
 )
+
+echo [OK] Docker containers started successfully!
+echo.
+echo =========================================
+echo      Docker Mode Started!
+echo =========================================
+echo.
+echo Database: PostgreSQL in Docker (port 5432)
+echo Backend API: http://localhost:8000
+echo API Documentation: http://localhost:8000/docs  
+echo Frontend: http://localhost:3000
+echo.
+echo [INFO] Waiting for services to start...
+timeout /t 15 /nobreak >nul
+
+REM Check if frontend is responding before opening browser
+echo [INFO] Checking if frontend is ready...
+for /L %%i in (1,1,15) do (
+    curl -s http://localhost:3000 >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo [OK] Frontend is ready!
+        goto open_browser_docker
+    )
+    echo [INFO] Waiting for frontend... (attempt %%i/15)
+    timeout /t 2 /nobreak >nul
+)
+
+:open_browser_docker
+echo [INFO] Opening browser...
+start http://localhost:3000
+echo.
+echo Services are running in Docker containers.
+echo To view logs: docker-compose logs -f
+echo To stop: docker-compose down
+echo.
+echo Press any key to view live logs, or close this window to continue running...
 
 goto end
 

@@ -162,6 +162,52 @@ async def create_character(
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create character")
 
+@router.get("/", response_model=List[Dict[str, Any]])
+async def list_characters(
+    db: Session = Depends(get_db)
+):
+    """Get all characters with basic info for load game screen."""
+    try:
+        from sqlalchemy import text
+        
+        # Get characters with race and class names
+        result = db.execute(text("""
+            SELECT 
+                c.id,
+                c.name,
+                c.level,
+                c.current_hit_points,
+                c.max_hit_points,
+                c.gold,
+                c.created_at,
+                r.name as race_name,
+                cl.name as class_name
+            FROM characters c
+            LEFT JOIN races r ON c.race_id = r.id
+            LEFT JOIN classes cl ON c.class_id = cl.id
+            ORDER BY c.created_at DESC
+        """)).fetchall()
+        
+        characters = []
+        for row in result:
+            characters.append({
+                "id": str(row.id),
+                "name": row.name,
+                "level": row.level,
+                "current_hit_points": row.current_hit_points,
+                "max_hit_points": row.max_hit_points,
+                "gold": row.gold,
+                "created_at": row.created_at,
+                "race_name": row.race_name,
+                "class_name": row.class_name
+            })
+        
+        return characters
+        
+    except Exception as e:
+        logger.error(f"Error listing characters: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list characters")
+
 @router.get("/{character_id}", response_model=CharacterResponse)
 async def get_character(
     character_id: UUID,

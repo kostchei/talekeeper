@@ -2383,3 +2383,73 @@ textarea:disabled {
 .action-log .message {
   color: var(--text-primary);
 }
+
+/* ========================================
+   Character List Load Game Styles
+   ======================================== */
+
+/* Character list styles */
+.character-list {
+  max-width: 800px;
+  width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-bottom: 30px;
+}
+
+.character-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.character-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #d4a574;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 165, 116, 0.3);
+}
+
+.character-info {
+  text-align: left;
+}
+
+.character-card .character-name {
+  font-size: 1.4em;
+  font-weight: bold;
+  color: #d4a574;
+  margin-bottom: 8px;
+}
+
+.character-card .character-details {
+  font-size: 1.1em;
+  color: #e0e0e0;
+  margin-bottom: 6px;
+}
+
+.character-card .character-stats {
+  font-size: 0.95em;
+  color: #b0b0b0;
+  margin-bottom: 6px;
+}
+
+.character-card .character-created {
+  font-size: 0.85em;
+  color: #888;
+}
+
+.no-characters {
+  text-align: center;
+  padding: 40px;
+  color: #b0b0b0;
+}
+
+.no-characters p {
+  font-size: 1.2em;
+  margin: 0;
+}

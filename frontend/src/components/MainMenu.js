@@ -22,19 +22,19 @@ import { gameAPI, characterAPI } from '../services/api';
 const MainMenu = () => {
   const navigate = useNavigate();
   const { setCurrentScreen, setCharacter, setGameState, setLoading } = useGameStore();
-  const [saveSlots, setSaveSlots] = useState([]);
+  const [characters, setCharacters] = useState([]);
   const [showLoadMenu, setShowLoadMenu] = useState(false);
 
   useEffect(() => {
-    loadSaveSlots();
+    loadCharacters();
   }, []);
 
-  const loadSaveSlots = async () => {
+  const loadCharacters = async () => {
     try {
-      const slots = await gameAPI.getSaveSlots();
-      setSaveSlots(slots);
+      const allCharacters = await characterAPI.list();
+      setCharacters(allCharacters);
     } catch (error) {
-      console.error('Failed to load save slots:', error);
+      console.error('Failed to load characters:', error);
     }
   };
 
@@ -47,17 +47,15 @@ const MainMenu = () => {
     setShowLoadMenu(true);
   };
 
-  const handleLoadSlot = async (slot) => {
-    if (slot.is_empty) return;
-    
+  const handleLoadCharacter = async (character) => {
     try {
       setLoading(true);
       
-      // Load character directly using the character_id from the slot
-      const character = await characterAPI.get(slot.character_id);
-      const gameState = await gameAPI.getGameState(slot.character_id);
+      // Load character and game state
+      const fullCharacter = await characterAPI.get(character.id);
+      const gameState = await gameAPI.getGameState(character.id);
       
-      setCharacter(character);
+      setCharacter(fullCharacter);
       setGameState(gameState);
       navigate('/game');
     } catch (error) {
@@ -72,30 +70,36 @@ const MainMenu = () => {
     return (
       <div className="main-menu">
         <div className="menu-container">
-          <h1 className="game-title">Load Game</h1>
+          <h1 className="game-title">Load Character</h1>
           
-          <div className="save-slots">
-            {saveSlots.map((slot) => (
-              <div 
-                key={slot.slot_number}
-                className={`save-slot ${slot.is_empty ? 'empty' : 'occupied'}`}
-                onClick={() => handleLoadSlot(slot)}
-              >
-                <div className="slot-number">Slot {slot.slot_number}</div>
-                {!slot.is_empty ? (
-                  <div className="slot-info">
-                    <div className="character-name">{slot.character_name}</div>
-                    <div className="character-details">
-                      Level {slot.character_level} • {slot.location_description}
-                    </div>
-                    <div className="character-gold">{slot.gold} gold</div>
-                    <div className="last-played">{new Date(slot.last_played).toLocaleDateString()}</div>
-                  </div>
-                ) : (
-                  <div className="slot-empty">Empty Slot</div>
-                )}
+          <div className="character-list">
+            {characters.length === 0 ? (
+              <div className="no-characters">
+                <p>No characters found. Create a new character to get started!</p>
               </div>
-            ))}
+            ) : (
+              characters.map((character) => (
+                <div 
+                  key={character.id}
+                  className="character-card"
+                  onClick={() => handleLoadCharacter(character)}
+                >
+                  <div className="character-info">
+                    <div className="character-name">{character.name}</div>
+                    <div className="character-details">
+                      Level {character.level} {character.race_name} {character.class_name}
+                    </div>
+                    <div className="character-stats">
+                      HP: {character.current_hit_points}/{character.max_hit_points} • 
+                      Gold: {character.gold}
+                    </div>
+                    <div className="character-created">
+                      Created: {new Date(character.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
           
           <button className="menu-btn secondary" onClick={() => setShowLoadMenu(false)}>

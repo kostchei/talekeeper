@@ -65,6 +65,14 @@ api.interceptors.response.use(
 // Character API
 export const characterAPI = {
   /**
+   * List all characters
+   */
+  list: async () => {
+    const response = await api.get('/api/character/');
+    return response.data;
+  },
+
+  /**
    * Create a new character
    * @param {Object} characterData - Character creation data
    */
