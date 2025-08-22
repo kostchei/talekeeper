@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { gameAPI } from '../services/api';
+import '../styles/adventure.css';
 
-const AdventureEncounterView = ({ character, gameState, locationType, onActionLog, onBackToTiles }) => {
+const AdventureEncounterView = ({ character, gameState, locationType, onActionLog, onBackToTiles, onNavigateToCombat }) => {
   const [currentEncounter, setCurrentEncounter] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -31,11 +32,29 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
   };
 
   const acceptCombat = () => {
-    if (currentEncounter && currentEncounter.type === 'combat') {
+    if (currentEncounter && currentEncounter.type === 'combat' && onNavigateToCombat) {
       onActionLog(`Accepted combat with ${currentEncounter.monsters.length} monster(s)!`);
-      // TODO: Navigate to CombatScreen with encounter data
-      console.log('Combat started with encounter:', currentEncounter);
-      onBackToTiles();
+      
+      // Convert encounter data to combat format
+      const combatEncounter = {
+        monsters: currentEncounter.monsters.map(monster => ({
+          id: monster.id,
+          name: monster.name,
+          challenge_rating: monster.challenge_rating,
+          hit_points: monster.hit_points,
+          armor_class: monster.armor_class,
+          xp_value: monster.xp_value,
+          special_abilities: monster.special_abilities,
+          actions: monster.actions
+        })),
+        difficulty: currentEncounter.difficulty,
+        total_xp: currentEncounter.total_xp,
+        xp_budget: currentEncounter.xp_budget,
+        environment: locationType || 'wilderness'
+      };
+      
+      // Navigate to combat with encounter data
+      onNavigateToCombat(combatEncounter);
     }
   };
 
@@ -196,265 +215,6 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
         <button onClick={onBackToTiles}>← Back to Activities</button>
       </div>
 
-      <style jsx>{`
-        .adventure-encounter-view {
-          padding: 20px;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        .encounter-header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-
-        .encounter-header h2 {
-          color: #d4a574;
-          margin-bottom: 10px;
-        }
-
-        .encounter-generation {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-          margin-bottom: 30px;
-        }
-
-        .generate-encounter-btn, .safe-explore-btn {
-          padding: 12px 24px;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .generate-encounter-btn {
-          background: linear-gradient(135deg, #dc3545, #b02a37);
-          color: white;
-        }
-
-        .generate-encounter-btn:hover {
-          background: linear-gradient(135deg, #c82333, #9e2530);
-          transform: translateY(-2px);
-        }
-
-        .safe-explore-btn {
-          background: linear-gradient(135deg, #28a745, #218838);
-          color: white;
-        }
-
-        .safe-explore-btn:hover {
-          background: linear-gradient(135deg, #218838, #1e7e34);
-          transform: translateY(-2px);
-        }
-
-        .encounter-loading {
-          text-align: center;
-          padding: 40px;
-          color: #6c757d;
-          font-style: italic;
-        }
-
-        .encounter-error {
-          text-align: center;
-          padding: 20px;
-          background: #f8d7da;
-          border: 1px solid #f5c6cb;
-          border-radius: 8px;
-          margin-bottom: 20px;
-        }
-
-        .encounter-display {
-          background: #f8f9fa;
-          border: 2px solid #d4a574;
-          border-radius: 12px;
-          padding: 25px;
-          margin-bottom: 20px;
-        }
-
-        .encounter-summary {
-          text-align: center;
-          margin-bottom: 25px;
-        }
-
-        .encounter-stats {
-          display: flex;
-          justify-content: center;
-          gap: 20px;
-          margin-top: 10px;
-          flex-wrap: wrap;
-        }
-
-        .encounter-stats span {
-          background: white;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-weight: bold;
-          border: 1px solid #dee2e6;
-        }
-
-        .encounter-difficulty {
-          font-weight: bold !important;
-        }
-
-        .monsters-display {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 15px;
-          margin-bottom: 25px;
-        }
-
-        .monster-card {
-          background: white;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          padding: 15px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .monster-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-
-        .monster-header h4 {
-          margin: 0;
-          color: #343a40;
-        }
-
-        .monster-cr {
-          background: #6f42c1;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .monster-stats {
-          display: flex;
-          gap: 15px;
-          margin-bottom: 10px;
-          font-size: 14px;
-        }
-
-        .monster-stats span {
-          background: #e9ecef;
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-
-        .monster-abilities {
-          font-size: 12px;
-          color: #6c757d;
-          font-style: italic;
-        }
-
-        .encounter-actions {
-          display: flex;
-          gap: 15px;
-          justify-content: center;
-        }
-
-        .combat-btn, .retreat-btn {
-          padding: 12px 24px;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .combat-btn {
-          background: linear-gradient(135deg, #dc3545, #b02a37);
-          color: white;
-        }
-
-        .combat-btn:hover {
-          background: linear-gradient(135deg, #c82333, #9e2530);
-          transform: translateY(-2px);
-        }
-
-        .retreat-btn {
-          background: linear-gradient(135deg, #6c757d, #545b62);
-          color: white;
-        }
-
-        .retreat-btn:hover {
-          background: linear-gradient(135deg, #5a6268, #495057);
-          transform: translateY(-2px);
-        }
-
-        .back-button {
-          text-align: center;
-          margin-top: 20px;
-        }
-
-        .back-button button {
-          padding: 8px 16px;
-          background: #6c757d;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .back-button button:hover {
-          background: #5a6268;
-        }
-
-        .encounter-message {
-          font-style: italic;
-          color: #6c757d;
-          margin: 10px 0;
-          text-align: center;
-        }
-
-        .treasure-display, .event-display {
-          padding: 20px;
-          background: white;
-          border-radius: 8px;
-          margin: 20px 0;
-          text-align: center;
-        }
-
-        .treasure-item {
-          font-size: 18px;
-          color: #ffc107;
-          font-weight: bold;
-          margin: 10px 0;
-        }
-
-        .treasure-items {
-          margin: 15px 0;
-          color: #495057;
-        }
-
-        .event-options {
-          display: flex;
-          gap: 10px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .event-option-btn, .accept-btn {
-          padding: 10px 20px;
-          background: linear-gradient(135deg, #28a745, #218838);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .event-option-btn:hover, .accept-btn:hover {
-          background: linear-gradient(135deg, #218838, #1e7e34);
-          transform: translateY(-2px);
-        }
-      `}</style>
     </div>
   );
 };

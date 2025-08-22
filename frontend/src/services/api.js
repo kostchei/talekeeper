@@ -274,6 +274,15 @@ export const gameAPI = {
   },
 
   /**
+   * Get monster details
+   * @param {number} monsterId - Monster ID
+   */
+  getMonsterDetails: async (monsterId) => {
+    const response = await api.get(`/api/game/monsters/${monsterId}`);
+    return response.data;
+  },
+
+  /**
    * Get current game state
    * @param {string} characterId - Character UUID
    */

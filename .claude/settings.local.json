@@ -23,7 +23,9 @@
       "Bash(timeout:*)",
       "Bash(grep:*)",
       "Bash(npm start)",
-      "Bash(npm update:*)"
+      "Bash(npm update:*)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

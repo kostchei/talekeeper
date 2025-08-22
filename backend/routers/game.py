@@ -561,6 +561,60 @@ async def generate_random_encounter(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Failed to generate encounter: {str(e)}")
 
+@router.get("/monsters/{monster_id}")
+async def get_monster_details(
+    monster_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed information about a specific monster.
+    
+    AI Agents: Returns full monster stat block for UI display.
+    """
+    try:
+        monster = db.get(Monster, monster_id)
+        if not monster:
+            raise HTTPException(status_code=404, detail="Monster not found")
+        
+        return {
+            "success": True,
+            "monster": {
+                "id": monster.id,
+                "name": monster.name,
+                "size": monster.size,
+                "type": monster.type,
+                "alignment": monster.alignment,
+                "armor_class": monster.armor_class,
+                "hit_points": monster.hit_points,
+                "speed": monster.speed,
+                "strength": monster.strength,
+                "dexterity": monster.dexterity,
+                "constitution": monster.constitution,
+                "intelligence": monster.intelligence,
+                "wisdom": monster.wisdom,
+                "charisma": monster.charisma,
+                "saving_throws": monster.saving_throws,
+                "skills": monster.skills,
+                "damage_resistances": monster.damage_resistances,
+                "damage_immunities": monster.damage_immunities,
+                "condition_immunities": monster.condition_immunities,
+                "senses": monster.senses,
+                "languages": monster.languages,
+                "challenge_rating": monster.challenge_rating,
+                "xp_value": monster.xp_value,
+                "special_abilities": monster.special_abilities,
+                "actions": monster.actions,
+                "legendary_actions": monster.legendary_actions,
+                "description": monster.description
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching monster {monster_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch monster details: {str(e)}")
+
 @router.get("/game-state/{character_id}", response_model=GameStateResponse)
 async def get_game_state(
     character_id: UUID,

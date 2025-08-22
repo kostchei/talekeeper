@@ -21,7 +21,8 @@ const MainGameView = ({
   locationType, 
   character, 
   gameState, 
-  onActionLog 
+  onActionLog,
+  onNavigateToCombat 
 }) => {
   const [activeView, setActiveView] = useState(null);
 
@@ -158,6 +159,7 @@ const MainGameView = ({
           locationType={locationType}
           onActionLog={onActionLog}
           onBackToTiles={handleBackToTiles}
+          onNavigateToCombat={onNavigateToCombat}
         />;
 
       default:

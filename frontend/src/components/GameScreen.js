@@ -47,6 +47,18 @@ const GameScreen = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const handleNavigateToCombat = useCallback((encounterData) => {
+    // Store encounter data in game state
+    updateGameState(prev => ({
+      ...prev,
+      currentEncounter: encounterData,
+      inCombat: false  // Will be set to true when combat initializes
+    }));
+    
+    // Navigate to combat screen
+    navigate('/combat');
+  }, [updateGameState, navigate]);
+
   const handleManualSave = async () => {
     if (!character?.id) return;
     try {
@@ -94,6 +106,7 @@ const GameScreen = () => {
             character={character}
             gameState={gameState}
             onActionLog={addLogEntry}
+            onNavigateToCombat={handleNavigateToCombat}
           />
         </div>
         <ActionLog entries={actionLog} />
