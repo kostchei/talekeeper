@@ -25,6 +25,14 @@ from loguru import logger
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# Enable DPI awareness on Windows
+if sys.platform.startswith('win'):
+    try:
+        from ctypes import windll
+        windll.shcore.SetProcessDpiAwareness(1)
+    except:
+        pass  # Ignore if not available
+
 from core.database import init_database
 from core.game_engine import GameEngine
 from ui.main_window import MainWindow

@@ -151,8 +151,8 @@ class GameScreen:
     def _update_display(self):
         """Update all display elements."""
         # Character info
-        race_name = self.character.race.name if self.character.race else "Unknown"
-        class_name = self.character.character_class.name if self.character.character_class else "Unknown"
+        race_name = self.character.race_name if self.character.race_name else "Unknown"
+        class_name = self.character.class_name if self.character.class_name else "Unknown"
         
         self.char_name_label.config(text=self.character.name)
         self.char_class_label.config(text=f"Level {self.character.level} {race_name} {class_name}")

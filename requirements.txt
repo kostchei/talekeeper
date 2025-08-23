@@ -14,7 +14,8 @@ black>=23.0.0
 flake8>=6.0.0
 
 # GUI (Tkinter is built into Python)
-# No additional GUI dependencies needed
+# Font loading for custom TTF fonts
+pyglet>=2.1.0
 
 # Build tool for creating executable
 pyinstaller>=5.13.0

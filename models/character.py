@@ -88,7 +88,7 @@ class Character(Base):
     subclass = relationship("Subclass", back_populates="characters")
     background = relationship("Background", back_populates="characters")
     save_slot = relationship("SaveSlot", back_populates="characters")
-    inventory = relationship("CharacterInventory", back_populates="character", cascade="all, delete-orphan")
+    # inventory = relationship("CharacterInventory", back_populates="character", cascade="all, delete-orphan")  # TODO: Implement CharacterInventory model
     game_states = relationship("GameState", back_populates="character", cascade="all, delete-orphan")
     
     @property

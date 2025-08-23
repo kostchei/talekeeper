@@ -101,5 +101,5 @@ class CharacterInventory(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    character = relationship("Character", back_populates="inventory")
+    character = relationship("Character")  # Removed back_populates since Character.inventory is commented out
     item = relationship("Item")

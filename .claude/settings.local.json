@@ -35,7 +35,8 @@
       "Bash(ren:*)",
       "Bash(move \"SETUP_GUIDE.md\" \"_SETUP_GUIDE.md\")",
       "Bash(move \"build.bat\" \"_build.bat\")",
-      "Bash(move \"build.spec\" \"_build.spec\")"
+      "Bash(move \"build.spec\" \"_build.spec\")",
+      "Bash(pip install:*)"
     ],
     "deny": []
   }

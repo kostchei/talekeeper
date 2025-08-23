@@ -21,6 +21,7 @@ from typing import Optional, Dict, Any
 from loguru import logger
 
 from core.game_engine import GameEngine
+from core.dtos import SaveSlotDTO
 from ui.character_creator import CharacterCreatorWindow
 from ui.game_screen import GameScreen
 from ui.combat_screen import CombatScreen
@@ -166,19 +167,19 @@ class MainWindow:
         save_slots = self.game_engine.get_save_slots()
         
         for i in range(1, 11):  # 10 save slots
-            slot_data = next((slot for slot in save_slots if slot['slot_number'] == i), None)
+            slot_data = next((slot for slot in save_slots if slot.slot_number == i), None)
             self._create_save_slot_button(slots_frame, i, slot_data)
     
-    def _create_save_slot_button(self, parent: ttk.Frame, slot_number: int, slot_data: Optional[Dict]):
+    def _create_save_slot_button(self, parent: ttk.Frame, slot_number: int, slot_data: Optional[SaveSlotDTO]):
         """Create a save slot button."""
         slot_frame = ttk.Frame(parent)
         slot_frame.pack(fill=tk.X, padx=20, pady=2)
         
-        if slot_data and slot_data['is_occupied']:
+        if slot_data and slot_data.is_occupied:
             # Occupied slot
-            text = f"Slot {slot_number}: {slot_data['character_name']} (Level {slot_data['character_level']})"
-            if slot_data['last_played']:
-                text += f" - Last played: {slot_data['last_played'][:10]}"
+            text = f"Slot {slot_number}: {slot_data.character_name} (Level {slot_data.character_level})"
+            if slot_data.last_played:
+                text += f" - Last played: {str(slot_data.last_played)[:10]}"
             
             button = ttk.Button(
                 slot_frame, 
@@ -271,7 +272,7 @@ class MainWindow:
         
         # Update status bar
         self.character_info.config(
-            text=f"{character.name} - Level {character.level} {character.race.name if character.race else ''} {character.character_class.name if character.character_class else ''}"
+            text=f"{character.name} - Level {character.level} {character.race_name if character.race_name else ''} {character.class_name if character.class_name else ''}"
         )
         
         # Select the game tab
