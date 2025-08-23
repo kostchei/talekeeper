@@ -1,0 +1,73 @@
+[
+  {
+    "name": "Longsword",
+    "description": "A versatile martial weapon favored by many warriors.",
+    "item_type": "weapon",
+    "rarity": "common",
+    "cost_gp": 15,
+    "weight_lb": 3.0,
+    "damage_dice": "1d8",
+    "damage_type": "slashing",
+    "weapon_properties": ["versatile"]
+  },
+  {
+    "name": "Shortsword",
+    "description": "A light, finesse weapon ideal for quick strikes.",
+    "item_type": "weapon",
+    "rarity": "common",
+    "cost_gp": 10,
+    "weight_lb": 2.0,
+    "damage_dice": "1d6",
+    "damage_type": "piercing",
+    "weapon_properties": ["finesse", "light"]
+  },
+  {
+    "name": "Rapier",
+    "description": "A slender, precise thrusting weapon.",
+    "item_type": "weapon",
+    "rarity": "common",
+    "cost_gp": 25,
+    "weight_lb": 2.0,
+    "damage_dice": "1d8",
+    "damage_type": "piercing",
+    "weapon_properties": ["finesse"]
+  },
+  {
+    "name": "Shortbow",
+    "description": "A simple ranged weapon for hunting and combat.",
+    "item_type": "weapon",
+    "rarity": "common",
+    "cost_gp": 25,
+    "weight_lb": 2.0,
+    "damage_dice": "1d6",
+    "damage_type": "piercing",
+    "weapon_properties": ["ammunition", "range", "two-handed"]
+  },
+  {
+    "name": "Leather Armor",
+    "description": "Light armor made from supple and thin leather.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 10,
+    "weight_lb": 10.0,
+    "armor_class": 11
+  },
+  {
+    "name": "Chain Mail",
+    "description": "Heavy armor made of interlocking metal rings.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 75,
+    "weight_lb": 55.0,
+    "armor_class": 16
+  },
+  {
+    "name": "Shield",
+    "description": "A shield made from wood or metal, increases AC by 2.",
+    "item_type": "shield",
+    "rarity": "common",
+    "cost_gp": 10,
+    "weight_lb": 6.0,
+    "armor_class": 2
+  }
+]

@@ -1,0 +1,97 @@
+[
+  {
+    "name": "Fighter",
+    "description": "A master of martial combat, skilled with a variety of weapons and armor.",
+    "hit_die": 10,
+    "primary_ability": "Strength or Dexterity",
+    "saving_throw_proficiencies": ["strength", "constitution"],
+    "armor_proficiencies": ["light", "medium", "heavy", "shields"],
+    "weapon_proficiencies": ["simple", "martial"],
+    "skill_proficiencies": [
+      "Acrobatics", "Animal Handling", "Athletics", "History", 
+      "Insight", "Intimidation", "Perception", "Survival"
+    ],
+    "skill_choices": 2,
+    "starting_equipment": {
+      "armor": "chain_mail",
+      "weapons": ["longsword", "shield"],
+      "equipment": ["dungeoneer_pack", "javelin_2"]
+    },
+    "class_features": {
+      "1": ["Fighting Style", "Second Wind"],
+      "2": ["Action Surge"],
+      "3": ["Martial Archetype"]
+    },
+    "subclasses": [
+      {
+        "name": "Champion",
+        "description": "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.",
+        "features": {
+          "3": ["Improved Critical"],
+          "7": ["Remarkable Athlete"],
+          "10": ["Additional Fighting Style"],
+          "15": ["Superior Critical"],
+          "18": ["Survivor"]
+        }
+      },
+      {
+        "name": "Battle Master",
+        "description": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
+        "features": {
+          "3": ["Combat Superiority", "Maneuvers"],
+          "7": ["Know Your Enemy"],
+          "10": ["Additional Maneuvers"],
+          "15": ["Relentless"],
+          "18": ["Additional Maneuvers"]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Rogue",
+    "description": "A scoundrel who uses stealth and trickery to overcome obstacles.",
+    "hit_die": 8,
+    "primary_ability": "Dexterity",
+    "saving_throw_proficiencies": ["dexterity", "intelligence"],
+    "armor_proficiencies": ["light"],
+    "weapon_proficiencies": ["simple", "hand_crossbow", "longsword", "rapier", "shortsword"],
+    "skill_proficiencies": [
+      "Acrobatics", "Athletics", "Deception", "Insight", "Intimidation",
+      "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand",
+      "Stealth", "Survival"
+    ],
+    "skill_choices": 4,
+    "starting_equipment": {
+      "armor": "leather_armor",
+      "weapons": ["rapier", "shortbow"],
+      "equipment": ["burglar_pack", "thieves_tools"]
+    },
+    "class_features": {
+      "1": ["Expertise", "Sneak Attack", "Thieves' Cant"],
+      "2": ["Cunning Action"],
+      "3": ["Roguish Archetype"]
+    },
+    "subclasses": [
+      {
+        "name": "Thief",
+        "description": "You hone your skills in the larcenous arts.",
+        "features": {
+          "3": ["Fast Hands", "Second-Story Work"],
+          "9": ["Supreme Sneak"],
+          "13": ["Use Magic Device"],
+          "17": ["Thief's Reflexes"]
+        }
+      },
+      {
+        "name": "Assassin",
+        "description": "You focus your training on the grim art of death.",
+        "features": {
+          "3": ["Bonus Proficiencies", "Assassinate"],
+          "9": ["Infiltration Expertise"],
+          "13": ["Impostor"],
+          "17": ["Death Strike"]
+        }
+      }
+    ]
+  }
+]

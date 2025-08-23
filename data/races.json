@@ -1,0 +1,39 @@
+[
+  {
+    "name": "Human",
+    "description": "Versatile and ambitious, humans are the most common race in most D&D worlds.",
+    "size": "Medium",
+    "speed": 30,
+    "ability_score_increases": {
+      "strength": 1,
+      "dexterity": 1,
+      "constitution": 1,
+      "intelligence": 1,
+      "wisdom": 1,
+      "charisma": 1
+    },
+    "languages": ["Common"],
+    "proficiencies": [],
+    "traits": {
+      "versatile": "Gain proficiency in one skill of your choice.",
+      "extra_feat": "Gain an additional feat at 1st level."
+    }
+  },
+  {
+    "name": "Dwarf",
+    "description": "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.",
+    "size": "Medium",
+    "speed": 25,
+    "ability_score_increases": {
+      "constitution": 2,
+      "strength": 1
+    },
+    "languages": ["Common", "Dwarvish"],
+    "proficiencies": ["battleaxe", "handaxe", "light_hammer", "warhammer"],
+    "traits": {
+      "darkvision": "You can see in dim light within 60 feet as if it were bright light.",
+      "dwarven_resilience": "Advantage against poison saves and resistance to poison damage.",
+      "stonecunning": "Double proficiency bonus on Intelligence (History) checks related to stonework."
+    }
+  }
+]

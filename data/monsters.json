@@ -1,0 +1,128 @@
+[
+  {
+    "name": "Goblin",
+    "challenge_rating": 0.25,
+    "size": "Small",
+    "type": "humanoid",
+    "alignment": "neutral evil",
+    "armor_class": 15,
+    "hit_points": 7,
+    "hit_dice": "2d6",
+    "speed": {"walk": 30},
+    "strength": 8,
+    "dexterity": 14,
+    "constitution": 10,
+    "intelligence": 10,
+    "wisdom": 8,
+    "charisma": 8,
+    "skills": {"stealth": 6},
+    "senses": {"darkvision": 60},
+    "languages": ["Common", "Goblin"],
+    "actions": [
+      {
+        "name": "Scimitar",
+        "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage."
+      },
+      {
+        "name": "Shortbow",
+        "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      }
+    ],
+    "ai_script": "basic_melee",
+    "xp_value": 50
+  },
+  {
+    "name": "Orc",
+    "challenge_rating": 0.5,
+    "size": "Medium",
+    "type": "humanoid",
+    "alignment": "chaotic evil",
+    "armor_class": 13,
+    "hit_points": 15,
+    "hit_dice": "2d8+2",
+    "speed": {"walk": 30},
+    "strength": 16,
+    "dexterity": 12,
+    "constitution": 13,
+    "intelligence": 7,
+    "wisdom": 11,
+    "charisma": 10,
+    "skills": {"intimidation": 2},
+    "senses": {"darkvision": 60},
+    "languages": ["Common", "Orc"],
+    "actions": [
+      {
+        "name": "Greataxe",
+        "description": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 9 (1d12 + 3) slashing damage."
+      },
+      {
+        "name": "Javelin",
+        "description": "Melee or Ranged Weapon Attack: +5 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 6 (1d6 + 3) piercing damage."
+      }
+    ],
+    "ai_script": "aggressive_melee",
+    "xp_value": 100
+  },
+  {
+    "name": "Wolf",
+    "challenge_rating": 0.25,
+    "size": "Medium",
+    "type": "beast",
+    "alignment": "unaligned",
+    "armor_class": 13,
+    "hit_points": 11,
+    "hit_dice": "2d8+2",
+    "speed": {"walk": 40},
+    "strength": 12,
+    "dexterity": 15,
+    "constitution": 12,
+    "intelligence": 3,
+    "wisdom": 12,
+    "charisma": 6,
+    "skills": {"perception": 3, "stealth": 4},
+    "senses": {},
+    "languages": [],
+    "actions": [
+      {
+        "name": "Bite",
+        "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."
+      }
+    ],
+    "ai_script": "pack_hunter",
+    "xp_value": 50
+  },
+  {
+    "name": "Skeleton",
+    "challenge_rating": 0.25,
+    "size": "Medium",
+    "type": "undead",
+    "alignment": "lawful evil",
+    "armor_class": 13,
+    "hit_points": 13,
+    "hit_dice": "2d8+2",
+    "speed": {"walk": 30},
+    "strength": 10,
+    "dexterity": 14,
+    "constitution": 15,
+    "intelligence": 6,
+    "wisdom": 8,
+    "charisma": 5,
+    "damage_vulnerabilities": ["bludgeoning"],
+    "damage_immunities": ["poison"],
+    "condition_immunities": ["exhaustion", "poisoned"],
+    "senses": {"darkvision": 60},
+    "languages": [],
+    "actions": [
+      {
+        "name": "Shortsword",
+        "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      },
+      {
+        "name": "Shortbow",
+        "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      }
+    ],
+    "ai_script": "undead_basic",
+    "xp_value": 50
+  }
+]

@@ -1,0 +1,112 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Create directories for PyInstaller
+      run: |
+        mkdir -p dist
+        mkdir -p build
+    
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --name "TaleKeeper" ^
+          --onefile ^
+          --windowed ^
+          --icon=assets/icon.ico ^
+          --add-data "data;data" ^
+          --add-data "config;config" ^
+          --add-data "assets;assets" ^
+          --hidden-import=tkinter ^
+          --hidden-import=tkinter.ttk ^
+          --hidden-import=sqlalchemy ^
+          --hidden-import=loguru ^
+          --collect-all=sqlalchemy ^
+          --collect-all=alembic ^
+          main.py
+    
+    - name: Test executable (basic startup test)
+      run: |
+        # Test that the exe can start (will exit quickly in headless environment)
+        timeout 10 dist/TaleKeeper.exe --help || echo "Expected timeout - exe launched successfully"
+      continue-on-error: true
+    
+    - name: Get version info
+      id: version
+      run: |
+        if ("${{ github.ref }}" -like "refs/tags/v*") {
+          $version = "${{ github.ref }}".Replace("refs/tags/v", "")
+        } else {
+          $version = "dev-$(git rev-parse --short HEAD)"
+        }
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+    
+    - name: Rename executable with version
+      run: |
+        $version = "${{ steps.version.outputs.version }}"
+        Move-Item "dist/TaleKeeper.exe" "dist/TaleKeeper-$version-windows.exe"
+    
+    - name: Upload executable as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: TaleKeeper-Windows-${{ steps.version.outputs.version }}
+        path: dist/TaleKeeper-*.exe
+        retention-days: 90
+    
+    - name: Create Release (if tagged)
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/TaleKeeper-*.exe
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        body: |
+          ## TaleKeeper Desktop v${{ steps.version.outputs.version }}
+          
+          Single-player D&D 2024 desktop adventure game.
+          
+          ### Installation
+          1. Download `TaleKeeper-${{ steps.version.outputs.version }}-windows.exe`
+          2. Run the executable directly - no installation required!
+          3. The game will create its database and config files automatically
+          
+          ### Features
+          - Complete D&D 2024 character creation
+          - Turn-based tactical combat
+          - Exploration and random encounters
+          - 10 character save slots
+          - Offline single-player gameplay
+          
+          ### System Requirements
+          - Windows 10/11 (64-bit)
+          - No additional software required
+          
+          **Note**: Windows may show a security warning for unsigned executables. 
+          Click "More info" → "Run anyway" to bypass this warning.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Folk Hero",
+    "description": "You come from a humble social rank, but you are destined for so much more.",
+    "skill_proficiencies": ["Animal Handling", "Survival"],
+    "language_proficiencies": [],
+    "tool_proficiencies": ["Artisan's Tools", "Vehicles (land)"],
+    "starting_equipment": {
+      "equipment": ["artisan_tools", "shovel", "set_of_artisan_clothes", "belt_pouch"],
+      "gold": 10
+    },
+    "feature_name": "Rustic Hospitality",
+    "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners."
+  },
+  {
+    "name": "Soldier",
+    "description": "War has been your life for as long as you care to remember.",
+    "skill_proficiencies": ["Athletics", "Intimidation"],
+    "language_proficiencies": [],
+    "tool_proficiencies": ["Gaming Set", "Vehicles (land)"],
+    "starting_equipment": {
+      "equipment": ["rank_insignia", "trophy", "deck_of_cards", "common_clothes", "belt_pouch"],
+      "gold": 10
+    },
+    "feature_name": "Military Rank",
+    "feature_description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence."
+  }
+]
