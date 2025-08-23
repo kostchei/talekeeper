@@ -1,16 +1,16 @@
 [
   {
-    "name": "Folk Hero",
-    "description": "You come from a humble social rank, but you are destined for so much more.",
-    "skill_proficiencies": ["Animal Handling", "Survival"],
+    "name": "Farmer",
+    "description": "You know the hard work of the farm and field. You understand the cycle of seasons and the patience required to nurture crops and livestock.",
+    "skill_proficiencies": ["Animal Handling", "Nature"],
     "language_proficiencies": [],
-    "tool_proficiencies": ["Artisan's Tools", "Vehicles (land)"],
+    "tool_proficiencies": ["Carpenter's Tools", "Vehicles (land)"],
     "starting_equipment": {
-      "equipment": ["artisan_tools", "shovel", "set_of_artisan_clothes", "belt_pouch"],
+      "equipment": ["carpenter_tools", "shovel", "common_clothes", "belt_pouch"],
       "gold": 10
     },
     "feature_name": "Rustic Hospitality",
-    "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners."
+    "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners, especially in rural areas."
   },
   {
     "name": "Soldier",

@@ -78,6 +78,7 @@ class Monster(Base):
     charisma = Column(Integer, nullable=True)
     saving_throws = Column(JSON, nullable=True)
     skills = Column(JSON, nullable=True)
+    damage_vulnerabilities = Column(JSON, nullable=True)
     damage_resistances = Column(JSON, nullable=True)
     damage_immunities = Column(JSON, nullable=True)
     condition_immunities = Column(JSON, nullable=True)
@@ -163,6 +164,7 @@ class Monster(Base):
             },
             "saving_throws": self.saving_throws or {},
             "skills": self.skills or {},
+            "damage_vulnerabilities": self.damage_vulnerabilities or [],
             "damage_resistances": self.damage_resistances or [],
             "damage_immunities": self.damage_immunities or [],
             "condition_immunities": self.condition_immunities or [],

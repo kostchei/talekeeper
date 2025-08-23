@@ -79,7 +79,9 @@ class CombatScreen:
         # Sort by initiative (highest first)
         self.initiative_order.sort(key=lambda x: x["initiative"], reverse=True)
         
-        logger.info(f"Initiative order: {[f'{c[\"name\"]}({c[\"initiative\"]})' for c in self.initiative_order]}")
+        # Format initiative order for logging
+        init_list = [f"{c['name']}({c['initiative']})" for c in self.initiative_order]
+        logger.info(f"Initiative order: {init_list}")
     
     def _create_interface(self):
         """Create the combat interface."""

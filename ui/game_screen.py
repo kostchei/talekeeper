@@ -214,9 +214,17 @@ class GameScreen:
     def _random_encounter(self):
         """Generate a random encounter."""
         try:
-            # Get monsters appropriate for character level
-            max_cr = max(0.25, self.character.level * 0.5)  # Simple CR scaling
-            monsters = self.game_engine.get_monsters_by_cr(0, max_cr)
+            # Get fresh character data from database to avoid detached session issues
+            from core.database import DatabaseSession
+            with DatabaseSession() as db:
+                character = db.query(Character).filter(Character.id == self.character.id).first()
+                if not character:
+                    self._add_log_entry("Error: Character data not found!")
+                    return
+                
+                # Get monsters appropriate for character level
+                max_cr = max(0.25, character.level * 0.5)  # Simple CR scaling
+                monsters = self.game_engine.get_monsters_by_cr(0, max_cr)
             
             if not monsters:
                 self._add_log_entry("The area seems strangely quiet...")

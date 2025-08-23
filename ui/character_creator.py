@@ -325,6 +325,9 @@ class CharacterCreatorWindow:
     
     def _update_character_summary(self):
         """Update the character summary display."""
+        # Check if UI is fully initialized
+        if not hasattr(self, 'summary_text'):
+            return
         if not all([self.selected_race, self.selected_class, self.selected_background]):
             return
         
@@ -532,9 +535,10 @@ class CharacterCreatorWindow:
                 self.character_data[ability] = int(self.ability_vars[ability].get())
             
             # Create character
+            character_name = self.character_data['name']  # Store name before creation
             character = self.game_engine.create_new_character(self.character_data, self.save_slot or 1)
             
-            messagebox.showinfo("Success", f"Character '{character.name}' created successfully!")
+            messagebox.showinfo("Success", f"Character '{character_name}' created successfully!")
             
             # Call callback and close
             if self.callback:

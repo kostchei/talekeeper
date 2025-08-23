@@ -87,6 +87,7 @@ class Character(Base):
     character_class = relationship("Class", back_populates="characters")
     subclass = relationship("Subclass", back_populates="characters")
     background = relationship("Background", back_populates="characters")
+    save_slot = relationship("SaveSlot", back_populates="characters")
     inventory = relationship("CharacterInventory", back_populates="character", cascade="all, delete-orphan")
     game_states = relationship("GameState", back_populates="character", cascade="all, delete-orphan")
     

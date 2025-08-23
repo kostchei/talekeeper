@@ -25,7 +25,17 @@
       "Bash(npm start)",
       "Bash(npm update:*)",
       "Bash(npm test)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(del talekeeper.db)",
+      "Bash(build.bat)",
+      "Bash(cmd /c:*)",
+      "Bash(conda remove:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(.build.bat)",
+      "Bash(ren:*)",
+      "Bash(move \"SETUP_GUIDE.md\" \"_SETUP_GUIDE.md\")",
+      "Bash(move \"build.bat\" \"_build.bat\")",
+      "Bash(move \"build.spec\" \"_build.spec\")"
     ],
     "deny": []
   }
