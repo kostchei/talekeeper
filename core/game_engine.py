@@ -181,7 +181,13 @@ class GameEngine:
             if not slot or not slot.is_occupied:
                 return None
             
-            character = db.query(Character).filter_by(save_slot_id=slot.id).first()
+            from sqlalchemy.orm import selectinload
+            character = db.query(Character).options(
+                selectinload(Character.race),
+                selectinload(Character.character_class),
+                selectinload(Character.subclass),
+                selectinload(Character.background)
+            ).filter_by(save_slot_id=slot.id).first()
             if character:
                 # Load game state
                 game_state = db.query(GameState).filter_by(character_id=character.id).first()
