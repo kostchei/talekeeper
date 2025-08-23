@@ -34,7 +34,7 @@ from models.character import Character
 from models.combat import (
     CombatEncounter, CombatAction, CombatState, CombatParticipant,
     CombatActionRequest, CombatActionResponse, CombatStateResponse,
-    EncounterStartRequest, EncounterEndResponse
+    EncounterStartRequest, EncounterEndResponse, EncounterStatus
 )
 from models.monsters import Monster
 from services.combat_engine import CombatEngine
@@ -59,7 +59,7 @@ async def start_combat(
     - Multiple monster groups
     """
     try:
-        engine = CombatEngine(db)
+        engine = CombatEngine()
         
         # Validate character exists
         character = db.get(Character, encounter_data.character_id)
@@ -76,105 +76,91 @@ async def start_combat(
         
         # Create combat encounter
         encounter = CombatEncounter(
-            id=uuid4(),
-            character_id=encounter_data.character_id,
-            location=encounter_data.location or "Unknown",
-            environment_effects=encounter_data.environment_effects or {},
-            is_active=True,
-            started_at=datetime.utcnow()
+            name=f"Combat vs {len(monsters)} monsters",
+            description=f"Combat encounter in {encounter_data.location}",
+            environment_type=encounter_data.location or "wilderness",
+            environmental_effects=encounter_data.environment_effects or []
         )
         
         db.add(encounter)
         db.flush()  # Get encounter ID
         
         # Roll initiative for all participants
-        participants = []
+        participants = {}
+        initiative_order = []
         
         # Character initiative
         char_init_bonus = GameQueries.ability_modifier(character.dexterity)
         char_initiative = dice.roll("1d20") + char_init_bonus
         
-        char_participant = CombatParticipant(
-            encounter_id=encounter.id,
-            character_id=character.id,
-            monster_id=None,
-            initiative=char_initiative,
-            current_hp=character.current_hit_points,
-            max_hp=character.max_hit_points,
-            armor_class=character.armor_class,
-            conditions=[],
-            position=encounter_data.character_position or "melee",
-            is_active=True
-        )
-        participants.append(char_participant)
+        char_id = f"character_{character.id}"
+        char_participant = {
+            "participant_id": char_id,
+            "name": character.name,
+            "participant_type": "character",
+            "character_id": str(character.id),
+            "initiative_total": char_initiative,
+            "hit_points_current": character.current_hit_points,
+            "hit_points_max": character.max_hit_points,
+            "armor_class": character.armor_class,
+            "actions_remaining": {"action": 1, "bonus_action": 1, "reaction": 1},
+            "conditions": [],
+            "position": encounter_data.character_position or "melee"
+        }
+        participants[char_id] = char_participant
+        initiative_order.append({"participant_id": char_id, "initiative": char_initiative})
         
         # Monster initiatives
         for i, monster in enumerate(monsters):
             monster_init_bonus = GameQueries.ability_modifier(monster.dexterity)
             monster_initiative = dice.roll("1d20") + monster_init_bonus
             
-            monster_participant = CombatParticipant(
-                encounter_id=encounter.id,
-                character_id=None,
-                monster_id=monster.id,
-                initiative=monster_initiative,
-                current_hp=monster.hit_points,
-                max_hp=monster.hit_points,
-                armor_class=monster.armor_class,
-                conditions=[],
-                position=encounter_data.monster_positions[i] if i < len(encounter_data.monster_positions) else "melee",
-                is_active=True
-            )
-            participants.append(monster_participant)
+            monster_id = f"monster_{monster.id}_{i}"
+            monster_participant = {
+                "participant_id": monster_id,
+                "name": monster.name,
+                "participant_type": "monster",
+                "monster_id": monster.id,
+                "initiative_total": monster_initiative,
+                "hit_points_current": monster.hit_points,
+                "hit_points_max": monster.hit_points,
+                "armor_class": monster.armor_class,
+                "actions_remaining": {"action": 1, "bonus_action": 1, "reaction": 1},
+                "conditions": [],
+                "position": encounter_data.monster_positions[i] if i < len(encounter_data.monster_positions) else "melee"
+            }
+            participants[monster_id] = monster_participant
+            initiative_order.append({"participant_id": monster_id, "initiative": monster_initiative})
         
-        # Sort by initiative (highest first, then dexterity modifier)
-        participants.sort(key=lambda p: (p.initiative, 
-                                       GameQueries.ability_modifier(character.dexterity) if p.character_id else 
-                                       GameQueries.ability_modifier(monsters[0].dexterity)), reverse=True)
+        # Sort initiative order by initiative (highest first)
+        initiative_order.sort(key=lambda x: x["initiative"], reverse=True)
         
-        # Add participants to database
-        for participant in participants:
-            db.add(participant)
+        # Update encounter with participant data and start combat
+        encounter.participants = participants
+        encounter.initiative_order = initiative_order
+        encounter.current_round = 1
+        encounter.current_turn = 0
+        encounter.status = EncounterStatus.ACTIVE
         
-        # Create initial combat state
-        combat_state = CombatState(
-            encounter_id=encounter.id,
-            current_round=1,
-            current_turn=0,
-            turn_order=[p.id for p in participants],
-            actions_taken=[],
-            combat_log=[f"Combat started! Initiative order determined."]
-        )
-        
-        db.add(combat_state)
         db.commit()
         
-        # Get turn order with participant details
+        # Create response with combat state
+        combat_log = [f"Combat started! Initiative order determined."]
+        
+        # Build turn order for frontend
         turn_order = []
-        for participant in participants:
-            if participant.character_id:
-                turn_order.append({
-                    "type": "character",
-                    "id": str(participant.character_id),
-                    "name": character.name,
-                    "initiative": participant.initiative,
-                    "hp": participant.current_hp,
-                    "max_hp": participant.max_hp,
-                    "ac": participant.armor_class,
-                    "position": participant.position
-                })
-            else:
-                monster = next(m for m in monsters if m.id == participant.monster_id)
-                turn_order.append({
-                    "type": "monster",
-                    "id": str(participant.monster_id),
-                    "name": monster.name,
-                    "initiative": participant.initiative,
-                    "hp": participant.current_hp,
-                    "max_hp": participant.max_hp,
-                    "ac": participant.armor_class,
-                    "position": participant.position
-                })
+        for init_entry in initiative_order:
+            participant = participants[init_entry["participant_id"]]
+            turn_order.append({
+                "participant_id": participant["participant_id"],
+                "name": participant["name"],
+                "type": participant["participant_type"],
+                "initiative": participant["initiative_total"],
+                "hp": participant["hit_points_current"],
+                "max_hp": participant["hit_points_max"],
+                "ac": participant["armor_class"],
+                "position": participant["position"]
+            })
         
         return {
             "encounter_id": str(encounter.id),
@@ -210,7 +196,7 @@ async def process_combat_action(
     - Environmental interactions
     """
     try:
-        engine = CombatEngine(db)
+        engine = CombatEngine()
         
         # Get combat state
         encounter = db.get(CombatEncounter, action_data.encounter_id)

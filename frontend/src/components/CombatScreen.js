@@ -66,13 +66,23 @@ const CombatScreen = () => {
       const encounter = gameState?.currentEncounter || { monsters: ['zombie'] };
       
       const response = await combatAPI.startCombat(character.id, encounter);
-      setCombatState(response.combatState);
-      setCombatLog(response.combatState.log || []);
       
-      // Update character with any combat-related changes
-      if (response.updatedCharacter) {
-        updateCharacter(response.updatedCharacter);
-      }
+      // Handle the new response format
+      const combatState = {
+        encounter_id: response.encounter_id,
+        round: response.round,
+        turn: response.turn,
+        current_actor: response.current_actor,
+        turn_order: response.turn_order,
+        participants: response.turn_order.reduce((acc, p) => {
+          acc[p.participant_id] = p;
+          return acc;
+        }, {}),
+        is_active: true
+      };
+      
+      setCombatState(combatState);
+      setCombatLog(response.combat_log || []);
       
       // Update game state with combat status
       updateGameState({ 

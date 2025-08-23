@@ -352,21 +352,12 @@ class CombatActionResponse(BaseModel):
 
 class EncounterStartRequest(BaseModel):
     """Request to start a combat encounter."""
-    name: str = Field(default="Combat Encounter")
-    description: str = ""
-    
-    # Participants
-    character_ids: List[str] = Field(default_factory=list)
-    monster_encounters: List[Dict[str, Any]] = Field(default_factory=list)
-    
-    # Environment
-    battlefield_size: str = "medium"
-    environment_type: str = "dungeon"
-    environmental_effects: List[Dict[str, Any]] = Field(default_factory=list)
-    
-    # Options
-    surprise_round: bool = False
-    auto_roll_initiative: bool = True
+    character_id: str
+    monster_ids: List[int]
+    location: str = Field(default="wilderness")
+    environment_effects: Dict[str, Any] = Field(default_factory=dict)
+    character_position: str = Field(default="melee")
+    monster_positions: List[str] = Field(default_factory=list)
 
 class EncounterEndResponse(BaseModel):
     """Response when encounter ends."""

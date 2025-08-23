@@ -152,10 +152,17 @@ export const combatAPI = {
    * @param {Object} encounter - Encounter data with monsters
    */
   startCombat: async (characterId, encounter) => {
-    const response = await api.post('/api/combat/start', {
+    // Transform encounter data to match backend expectations
+    const combatData = {
       character_id: characterId,
-      encounter: encounter
-    });
+      monster_ids: encounter.monsters ? encounter.monsters.map(m => m.id) : [],
+      location: encounter.environment || 'wilderness',
+      environment_effects: encounter.environment_effects || {},
+      character_position: 'melee',
+      monster_positions: encounter.monsters ? encounter.monsters.map(() => 'melee') : []
+    };
+    
+    const response = await api.post('/api/combat/start', combatData);
     return response.data;
   },
 
