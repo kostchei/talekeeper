@@ -79,7 +79,7 @@ class Subclass(Base):
     class_id = Column(UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
     
     # Subclass features by level
-    features_by_level = Column(JSON, nullable=False)  # Additional features beyond base class
+    features = Column(JSON, nullable=False)  # Additional features beyond base class
     
     # Spellcasting modifications (for subclasses that add spellcasting)
     bonus_spells = Column(JSON, default=dict)  # {1: ["spell_name"], 3: ["spell_name"]} - always prepared
@@ -139,7 +139,7 @@ class ClassCreate(BaseModel):
     spellcasting_focus: Optional[str] = None
     
     # Features and progression
-    features_by_level: Dict[int, List[ClassFeature]] = Field(..., min_items=1)
+    features: Dict[int, List[ClassFeature]] = Field(..., min_items=1)
     spell_slots_by_level: Dict[int, Dict[int, int]] = Field(default_factory=dict)
     
     # Subclass
@@ -178,7 +178,7 @@ class ClassResponse(BaseModel):
     spellcasting_focus: Optional[str]
     
     # Progression
-    features_by_level: Dict[int, List[Dict[str, Any]]]
+    features: Dict[int, List[Dict[str, Any]]]
     spell_slots_by_level: Dict[int, Dict[int, int]]
     
     # Subclass
@@ -202,7 +202,7 @@ class SubclassCreate(BaseModel):
     class_id: str
     
     # Features
-    features_by_level: Dict[int, List[ClassFeature]] = Field(..., min_items=1)
+    features: Dict[int, List[ClassFeature]] = Field(..., min_items=1)
     
     # Spellcasting additions
     bonus_spells: Dict[int, List[str]] = Field(default_factory=dict)
@@ -221,7 +221,7 @@ class SubclassResponse(BaseModel):
     class_id: str
     class_name: str
     
-    features_by_level: Dict[int, List[Dict[str, Any]]]
+    features: Dict[int, List[Dict[str, Any]]]
     bonus_spells: Dict[int, List[str]]
     spell_list_expansion: List[str]
     special_resources: Dict[str, Any]

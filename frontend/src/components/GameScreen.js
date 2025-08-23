@@ -11,10 +11,23 @@ const GameScreen = () => {
   const navigate = useNavigate();
   const { character, gameState, updateGameState } = useGameStore();
 
+  console.log('=== GAMESCREEN RENDER ===');
+  console.log('Character:', character?.name);
+  console.log('GameState inCombat:', gameState?.inCombat);
+  console.log('Current location:', window.location.pathname);
+
   const [gameTime, setGameTime] = useState(new Date());
   const [locationType, setLocationType] = useState('town');
   const [isLoading, setIsLoading] = useState(false);
   const [actionLog, setActionLog] = useState([]);
+
+  // Debug component lifecycle
+  useEffect(() => {
+    console.log('=== GAMESCREEN MOUNTED ===');
+    return () => {
+      console.log('=== GAMESCREEN UNMOUNTED ===');
+    };
+  }, []);
 
   const loadGameState = useCallback(async () => {
     try {
@@ -48,13 +61,21 @@ const GameScreen = () => {
   }, []);
 
   const handleNavigateToCombat = useCallback((encounterData) => {
-    // Store encounter data in game state
-    updateGameState(prev => ({
-      ...prev,
-      currentEncounter: encounterData,
-      inCombat: false  // Will be set to true when combat initializes
-    }));
+    console.log('=== NAVIGATE TO COMBAT CALLED ===');
+    console.log('Encounter data:', encounterData);
     
+    // Store encounter data in game state
+    updateGameState(prev => {
+      const newState = {
+        ...prev,
+        currentEncounter: encounterData,
+        inCombat: true  // Set to true so combat route is accessible
+      };
+      console.log('Updating game state to:', newState);
+      return newState;
+    });
+    
+    console.log('Navigating to /combat');
     // Navigate to combat screen
     navigate('/combat');
   }, [updateGameState, navigate]);
@@ -79,7 +100,13 @@ const GameScreen = () => {
   };
 
   const addLogEntry = (message) => {
-    setActionLog(prev => [...prev, { message, timestamp: Date.now() }]);
+    console.log('=== ADDING LOG ENTRY ===', message);
+    console.log('Current actionLog length:', actionLog.length);
+    setActionLog(prev => {
+      const newLog = [...prev, { message, timestamp: Date.now() }];
+      console.log('New actionLog length:', newLog.length);
+      return newLog;
+    });
   };
 
   return (

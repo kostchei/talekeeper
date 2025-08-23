@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { gameAPI } from '../services/api';
 import AdventureEncounterView from './AdventureEncounterView';
 
 const MainGameView = ({ 
@@ -61,9 +62,31 @@ const MainGameView = ({
     }
   ];
 
-  const handleTileClick = (tileId) => {
-    setActiveView(tileId);
-    onActionLog(`Started ${activityTiles.find(t => t.id === tileId)?.title}`);
+  const handleTileClick = async (tileId) => {
+    if (tileId === 'encounter') {
+      // Skip the intermediate step - directly generate encounter and start combat
+      onActionLog('Seeking adventure...');
+      try {
+        console.log('Generating encounter directly from tile click');
+        const response = await gameAPI.generateRandomEncounter(character.id, locationType || 'wilderness');
+        if (response.success && response.type === 'combat') {
+          onActionLog(`Generated encounter: ${response.monsters.length} monster(s), ${response.total_xp} XP`);
+          onActionLog('Starting combat...');
+          console.log('Calling onNavigateToCombat from MainGameView');
+          onNavigateToCombat(response);
+        } else {
+          // For non-combat encounters, show the encounter view
+          setActiveView(tileId);
+        }
+      } catch (error) {
+        console.error('Failed to generate encounter:', error);
+        onActionLog('Failed to find adventure...');
+        setActiveView(tileId); // Fall back to encounter view
+      }
+    } else {
+      setActiveView(tileId);
+      onActionLog(`Started ${activityTiles.find(t => t.id === tileId)?.title}`);
+    }
   };
 
   const handleBackToTiles = () => {

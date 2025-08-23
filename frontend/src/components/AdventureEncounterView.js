@@ -7,6 +7,9 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Debug: Check if the prop exists on mount
+  console.log('AdventureEncounterView mounted. onNavigateToCombat exists:', !!onNavigateToCombat);
+
   const generateEncounter = async () => {
     setIsLoading(true);
     setError(null);
@@ -17,6 +20,12 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
         setCurrentEncounter(response);
         if (response.type === 'combat') {
           onActionLog(`Generated encounter: ${response.monsters.length} monster(s), ${response.total_xp} XP`);
+          // Automatically start combat for combat encounters
+          onActionLog('Starting combat...');
+          console.log('ABOUT TO CALL onNavigateToCombat with response:', response);
+          console.log('onNavigateToCombat function reference:', onNavigateToCombat);
+          onNavigateToCombat(response);
+          console.log('onNavigateToCombat call completed');
         } else {
           onActionLog(`Encounter generated: ${response.message}`);
         }
@@ -31,32 +40,32 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
     }
   };
 
-  const acceptCombat = () => {
-    if (currentEncounter && currentEncounter.type === 'combat' && onNavigateToCombat) {
-      onActionLog(`Accepted combat with ${currentEncounter.monsters.length} monster(s)!`);
+  const acceptCombat = async () => {
+    try {
+      if (!currentEncounter || currentEncounter.type !== 'combat') {
+        console.log('No combat encounter to accept');
+        return;
+      }
       
-      // Convert encounter data to combat format
-      const combatEncounter = {
-        monsters: currentEncounter.monsters.map(monster => ({
-          id: monster.id,
-          name: monster.name,
-          challenge_rating: monster.challenge_rating,
-          hit_points: monster.hit_points,
-          armor_class: monster.armor_class,
-          xp_value: monster.xp_value,
-          special_abilities: monster.special_abilities,
-          actions: monster.actions
-        })),
-        difficulty: currentEncounter.difficulty,
-        total_xp: currentEncounter.total_xp,
-        xp_budget: currentEncounter.xp_budget,
-        environment: locationType || 'wilderness'
-      };
+      if (!character || !character.id) {
+        console.log('No character found');
+        return;
+      }
       
-      // Navigate to combat with encounter data
-      onNavigateToCombat(combatEncounter);
+      console.log('Starting combat with encounter:', currentEncounter);
+      onNavigateToCombat(currentEncounter);
+      
+    } catch (error) {
+      console.error('Accept combat error:', error);
     }
   };
+
+  // const retreatFromCombat = () => {
+  //   if (currentEncounter && currentEncounter.type === 'combat') {
+  //     onActionLog(`Retreated from combat encounter`);
+  //     setCurrentEncounter(null);
+  //   }
+  // };
 
   const handleEncounterAction = (action) => {
     if (currentEncounter) {
@@ -68,10 +77,6 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
     }
   };
 
-  const retreat = () => {
-    onActionLog('Retreated from encounter');
-    setCurrentEncounter(null);
-  };
 
   const getDifficultyColor = (difficulty) => {
     const colors = {
@@ -164,11 +169,11 @@ const AdventureEncounterView = ({ character, gameState, locationType, onActionLo
               </div>
 
               <div className="encounter-actions">
-                <button className="combat-btn" onClick={acceptCombat}>
+                <button 
+                  className="combat-btn" 
+                  onClick={acceptCombat}
+                >
                   ⚔️ Accept Combat
-                </button>
-                <button className="retreat-btn" onClick={retreat}>
-                  🏃 Retreat
                 </button>
               </div>
             </>

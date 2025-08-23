@@ -131,9 +131,18 @@ function App() {
           
           {/* Combat Screen */}
           <Route path="/combat" element={
-            character && gameState?.inCombat ? 
-              <CombatScreen /> : 
-              <Navigate to="/game" />
+            (() => {
+              console.log('=== COMBAT ROUTE CHECK ===');
+              console.log('Character exists:', !!character);
+              console.log('GameState exists:', !!gameState);
+              console.log('GameState inCombat:', gameState?.inCombat);
+              console.log('Full gameState:', gameState);
+              
+              const shouldShowCombat = character && gameState?.inCombat;
+              console.log('Should show combat:', shouldShowCombat);
+              
+              return shouldShowCombat ? <CombatScreen /> : <Navigate to="/game" />;
+            })()
           } />
           
           {/* Rest Screen */}

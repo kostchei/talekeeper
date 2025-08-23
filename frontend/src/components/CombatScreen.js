@@ -60,24 +60,44 @@ const CombatScreen = () => {
 
   // Define callback functions first
   const initializeCombat = useCallback(async () => {
+    console.log('=== INITIALIZING COMBAT ===');
+    console.log('Game state:', gameState);
+    console.log('Current encounter:', gameState?.currentEncounter);
+    console.log('Character:', character?.id);
+    
     try {
       setIsProcessing(true);
       // Get current encounter from game state
       const encounter = gameState?.currentEncounter || { monsters: ['zombie'] };
       
+      console.log('Starting combat with encounter:', encounter);
       const response = await combatAPI.startCombat(character.id, encounter);
+      console.log('Combat API response:', response);
       
-      // Handle the new response format
+      // Handle the new response format and transform to expected structure
+      const combatants = {};
+      response.turn_order.forEach(p => {
+        combatants[p.participant_id] = {
+          id: p.participant_id,
+          name: p.name,
+          type: p.type,
+          hp: p.hp,
+          max_hp: p.max_hp,
+          ac: p.ac,
+          initiative: p.initiative,
+          is_alive: p.hp > 0,
+          conditions: []
+        };
+      });
+      
       const combatState = {
         encounter_id: response.encounter_id,
         round: response.round,
         turn: response.turn,
         current_actor: response.current_actor,
-        turn_order: response.turn_order,
-        participants: response.turn_order.reduce((acc, p) => {
-          acc[p.participant_id] = p;
-          return acc;
-        }, {}),
+        currentTurn: response.current_actor?.participant_id,
+        turn_order: response.turn_order.map(p => p.participant_id),
+        combatants: combatants,
         is_active: true
       };
       
@@ -271,9 +291,30 @@ const CombatScreen = () => {
     return <div className="loading">Loading combat...</div>;
   }
 
-  const playerCombatant = combatState.combatants[character.id];
+  // Debug logging
+  console.log('Combat state:', combatState);
+  console.log('Character ID:', character?.id);
+
+  // Find player combatant (participant_id is "character_" + character.id)
+  const playerParticipantId = `character_${character.id}`;
+  const playerCombatant = combatState.combatants[playerParticipantId];
+  
+  console.log('Looking for participant:', playerParticipantId);
+  console.log('Available combatants:', Object.keys(combatState.combatants));
+  console.log('Player combatant found:', !!playerCombatant);
+
+  if (!playerCombatant) {
+    return (
+      <div className="combat-error">
+        <h3>Combat Error</h3>
+        <p>Could not find player in combat. Returning to game...</p>
+        <button onClick={() => navigate('/game')}>Return to Game</button>
+      </div>
+    );
+  }
+
   const monsters = Object.values(combatState.combatants).filter(c => c.type === 'monster');
-  const isPlayerTurn = combatState.currentTurn === character.id;
+  const isPlayerTurn = combatState.currentTurn === playerParticipantId;
 
   return (
     <div className="combat-screen">
