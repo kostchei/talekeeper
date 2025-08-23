@@ -87,6 +87,7 @@ class Monster(Base):
     actions = Column(JSON, nullable=True)
     reactions = Column(JSON, nullable=True)
     legendary_actions = Column(JSON, nullable=True)
+    special_abilities = Column(JSON, nullable=True)
     ai_script = Column(String(50), nullable=True)
     loot_table = Column(JSON, nullable=True)
     xp_value = Column(Integer, nullable=True)
@@ -173,6 +174,7 @@ class Monster(Base):
             "actions": self.actions or [],
             "reactions": self.reactions or [],
             "legendary_actions": self.legendary_actions or [],
+            "special_abilities": self.special_abilities or [],
             "ai_script": self.ai_script,
             "loot_table": self.loot_table or {},
             "xp_value": self.xp_value,
