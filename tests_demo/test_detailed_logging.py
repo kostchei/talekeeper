@@ -8,7 +8,7 @@ import os
 # Add parent directory to path so we can import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import from current directory
-from .combat_demo import create_sample_character, create_sample_monster
+from combat_demo import create_sample_character, create_sample_monster
 from services.combat import CombatService, CombatState
 
 
