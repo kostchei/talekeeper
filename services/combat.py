@@ -24,6 +24,8 @@ from loguru import logger
 from services.dice import dice, attack_roll
 from models.character import Character
 from models.monsters import Monster
+from models.items import Item
+from core.database import DatabaseSession
 
 
 class CombatState(str, Enum):
@@ -491,7 +493,7 @@ class CombatService:
     
     def get_available_weapons(self, character_id: str) -> List[Dict[str, Any]]:
         """
-        Get available weapons for a character.
+        Get available weapons for a character from the database.
         
         Args:
             character_id: ID of the character
@@ -502,72 +504,44 @@ class CombatService:
         combatant = self._get_combatant_by_id(character_id)
         if not combatant or combatant.type != "character":
             return []
-        
-        # TODO: Get weapons from character equipment/inventory
-        # For now, return basic weapon options
+
+        entity = combatant.entity
         weapons = [
             {
                 "name": "Unarmed Strike",
-                "attack_bonus": combatant.entity.proficiency_bonus + combatant.entity.strength_modifier,
+                "attack_bonus": entity.proficiency_bonus + entity.strength_modifier,
                 "damage_dice": "1",
                 "damage_type": "bludgeoning",
                 "description": "Basic unarmed attack"
-            },
-            {
-                "name": "Improvised Weapon", 
-                "attack_bonus": combatant.entity.proficiency_bonus + combatant.entity.strength_modifier,
-                "damage_dice": "1d4",
-                "damage_type": "bludgeoning",
-                "description": "Chair leg, rock, or other improvised weapon"
             }
         ]
-        
-        # Add equipped weapons if available
-        entity = combatant.entity
-        if hasattr(entity, 'equipment_main_hand') and entity.equipment_main_hand:
-            # Sample weapon stats based on equipment
-            weapon_stats = {
-                "longsword": {
-                    "name": "Longsword",
-                    "damage_dice": "1d8",
-                    "damage_type": "slashing",
-                    "description": "A versatile martial weapon"
-                },
-                "shortsword": {
-                    "name": "Shortsword", 
-                    "damage_dice": "1d6",
-                    "damage_type": "piercing",
-                    "description": "A light, finesse weapon"
-                },
-                "rapier": {
-                    "name": "Rapier",
-                    "damage_dice": "1d8", 
-                    "damage_type": "piercing",
-                    "description": "A precise thrusting weapon"
-                }
-            }
-            
-            weapon_key = entity.equipment_main_hand
-            if weapon_key in weapon_stats:
-                weapon_data = weapon_stats[weapon_key]
-                weapons.append({
-                    "name": weapon_data["name"],
-                    "attack_bonus": combatant.entity.proficiency_bonus + combatant.entity.strength_modifier,
-                    "damage_dice": weapon_data["damage_dice"],
-                    "damage_type": weapon_data["damage_type"],
-                    "description": weapon_data["description"]
-                })
-            
-            # Add versatile option for longsword (two-handed)
-            if weapon_key == "longsword":
-                weapons.append({
-                    "name": "Longsword (Two-Handed)",
-                    "attack_bonus": combatant.entity.proficiency_bonus + combatant.entity.strength_modifier,
-                    "damage_dice": "1d10",
-                    "damage_type": "slashing", 
-                    "description": "Longsword wielded with both hands for extra damage"
-                })
-        
+
+        with DatabaseSession() as db:
+            # Main hand weapon
+            if entity.equipment_main_hand:
+                item = db.query(Item).filter_by(id=entity.equipment_main_hand).first()
+                if item and item.item_type == 'weapon':
+                    # TODO: Handle finesse weapons (dex vs str)
+                    attack_bonus = entity.proficiency_bonus + entity.strength_modifier
+
+                    weapons.append({
+                        "name": item.name,
+                        "attack_bonus": attack_bonus,
+                        "damage_dice": f"{item.damage_dice}+{entity.strength_modifier}",
+                        "damage_type": item.damage_type,
+                        "description": item.description or ""
+                    })
+
+                    # Add versatile option
+                    if item.weapon_properties and "versatile" in item.weapon_properties:
+                         weapons.append({
+                            "name": f"{item.name} (Two-Handed)",
+                            "attack_bonus": attack_bonus,
+                            "damage_dice": f"1d10+{entity.strength_modifier}", # Example for versatile
+                            "damage_type": item.damage_type,
+                            "description": f"{item.description} (Versatile)"
+                        })
+
         return weapons
 
 
