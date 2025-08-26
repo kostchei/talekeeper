@@ -36,7 +36,13 @@
       "Bash(move \"SETUP_GUIDE.md\" \"_SETUP_GUIDE.md\")",
       "Bash(move \"build.bat\" \"_build.bat\")",
       "Bash(move \"build.spec\" \"_build.spec\")",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:green-mud-0d844ea00.1.azurestaticapps.net)",
+      "WebFetch(domain:green-mud-0d844ea00.azurestaticapps.net)",
+      "Bash(git clone:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
