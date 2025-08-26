@@ -64,8 +64,8 @@ class EquipmentPanel(QWidget):
         self.equipped_items = {}  # slot -> item mapping
         self.inventory_items = []  # list of inventory items
         
-        # Set initial size
-        self.setFixedSize(432, 486)
+        # Set initial size (extends to bottom above action cards)
+        self.setFixedSize(432, 772)
         self._setup_ui()
         self._apply_styles()
     
@@ -73,7 +73,7 @@ class EquipmentPanel(QWidget):
         """Initialize the equipment panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(3)
         
         # === HEADER SECTION ===
@@ -522,8 +522,10 @@ class EquipmentPanel(QWidget):
                           for item in self.inventory_items)
         max_weight = 100  # This would come from character strength
         
-        self.weight_bar.setValue(min(total_weight, max_weight))
-        self.weight_label.setText(f"{total_weight}/{max_weight}")
+        # Convert to int for progress bar
+        weight_value = int(min(total_weight, max_weight))
+        self.weight_bar.setValue(weight_value)
+        self.weight_label.setText(f"{int(total_weight)}/{max_weight}")
     
     def _update_stats_display(self):
         """Update the stats display based on equipped items."""

@@ -42,8 +42,8 @@ class EncounterPanel(QWidget):
         self.current_encounter = None
         self.encounter_mode = "exploration"  # exploration, encounter, combat
         
-        # Set fixed size
-        self.setFixedSize(648, 972)
+        # Set fixed size (fits above action cards)
+        self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
         self._setup_ui()
         self._apply_styles()
     
@@ -51,8 +51,8 @@ class EncounterPanel(QWidget):
         """Initialize the encounter panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
         
         # === HEADER SECTION ===
         self.header_frame = QFrame()
@@ -89,7 +89,8 @@ class EncounterPanel(QWidget):
         self.scene_text = QTextEdit()
         self.scene_text.setObjectName("sceneText")
         self.scene_text.setReadOnly(True)
-        self.scene_text.setPlainText("You find yourself in a dimly lit chamber. The air is thick with mystery and adventure awaits...")\n        main_content_layout.addWidget(self.scene_text, 2)
+        self.scene_text.setPlainText("You find yourself in a dimly lit chamber. The air is thick with mystery and adventure awaits...")
+        main_content_layout.addWidget(self.scene_text, 2)
         
         # Action buttons frame
         self.action_buttons_frame = QFrame()
@@ -202,8 +203,6 @@ class EncounterPanel(QWidget):
         style_sheet = """
         EncounterPanel {
             background-color: #101010;
-            border: 2px solid #333333;
-            border-radius: 8px;
         }
         
         QFrame#headerFrame {

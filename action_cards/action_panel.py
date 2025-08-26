@@ -70,8 +70,9 @@ class ActionPanel(QWidget):
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
         
-        # Set fixed size
-        self.setFixedSize(1728, 300)
+        # Set fixed size (center + right columns only)
+        self.setFixedSize(1080, 300)
+        self.setAutoFillBackground(True)  # Ensure background is filled
         self._setup_ui()
         self._apply_styles()
         self._create_action_cards()
@@ -85,8 +86,9 @@ class ActionPanel(QWidget):
         """Initialize the action panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 5, 10, 5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(3)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # === HEADER SECTION ===
         self.header_frame = QFrame()
@@ -118,20 +120,11 @@ class ActionPanel(QWidget):
         self.category_buttons.buttons()[0].setChecked(True)
         
         # === ACTION CARDS AREA ===
-        # Scroll area for action cards
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setObjectName("scrollArea")
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlways)
-        self.scroll_area.setWidgetResizable(True)
-        
-        # Container for action cards
+        # Direct container for action cards (no scrolling)
         self.cards_container = QWidget()
         self.cards_layout = QHBoxLayout(self.cards_container)
-        self.cards_layout.setContentsMargins(5, 5, 5, 5)
+        self.cards_layout.setContentsMargins(0, 0, 0, 0)
         self.cards_layout.setSpacing(8)
-        
-        self.scroll_area.setWidget(self.cards_container)
         
         # === STATUS BAR ===
         self.status_frame = QFrame()
@@ -155,7 +148,7 @@ class ActionPanel(QWidget):
         
         # Add sections to main layout
         self.main_layout.addWidget(self.header_frame)
-        self.main_layout.addWidget(self.scroll_area, 1)
+        self.main_layout.addWidget(self.cards_container, 1)
         self.main_layout.addWidget(self.status_frame)
     
     def _create_action_cards(self):
@@ -197,9 +190,7 @@ class ActionPanel(QWidget):
         """Apply dark theme styling to action panel components."""
         style_sheet = """
         ActionPanel {
-            background-color: #2a2a2a;
-            border: 2px solid #444444;
-            border-radius: 8px;
+            background-color: #1a1a1a;
         }
         
         QFrame#headerFrame {

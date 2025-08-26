@@ -41,21 +41,28 @@ class GamePage(QMainWindow):
         self.main_layout = QVBoxLayout(central_widget)
 
         # === TOP MENU ===
+        # Menu Frame: 648x160 (reduced height for better button fit)
         self.menu_frame = QFrame()
-        self.menu_frame.setFixedSize(648, 200)
+        self.menu_frame.setFixedSize(648, 160)  
         self.menu_frame.setStyleSheet("background-color: #2d2d2d; border: 2px solid #666;")
-        menu_label = QLabel("Menu", self.menu_frame)
-        menu_label.setStyleSheet("color: white; font-weight: bold; padding: 8px;")
+        
+        # Always visible buttons (consistent style):
+        # - Create Character
+        # - Load Game  
+        # - Save & Exit
+        # - "Playing: [name]" info display
+        # - "▼ More Options" expand button (same button style)
 
-        # Dropdown (hidden by default)
+        # Dropdown Frame: 648x120 (for 3 additional buttons)
         self.menu_dropdown = QFrame()
-        self.menu_dropdown.setFixedSize(648, 600)
+        self.menu_dropdown.setFixedSize(648, 120)
         self.menu_dropdown.setStyleSheet("background-color: #3d3d3d; border: 2px solid #666;")
         self.menu_dropdown.hide()
-
-        # Toggle dropdown
-        toggle_menu_btn = QPushButton("Toggle Menu")
-        toggle_menu_btn.clicked.connect(self.toggle_menu_dropdown)
+        
+        # Expanded buttons (same style as always visible):
+        # - Archive Character
+        # - Settings
+        # - Campaign Frame
 
         # === MAIN SPLITTER ===
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)

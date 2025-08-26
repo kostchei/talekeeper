@@ -30,7 +30,7 @@ class FullUITestWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         self.main_layout = QVBoxLayout(central_widget)
-        self.main_layout.setContentsMargins(96, 54, 96, 54)  # 5% margins
+        self.main_layout.setContentsMargins(0, 0, 0, 0)  # No margins - fill full height
         
         self._setup_ui()
         self._apply_dark_theme()
@@ -40,47 +40,44 @@ class FullUITestWindow(QMainWindow):
         QTimer.singleShot(3000, self.load_test_data)
     
     def _setup_ui(self):
-        """Setup the complete UI layout"""
+        """Setup fixed position UI layout - no splitters, no animations"""
         
-        # === TOP MENU ===
-        self.menu = GameMenu()
-        self.main_layout.addWidget(self.menu)
+        # 5% margins: 96px on each side, 54px top/bottom
+        # Usable area: 1728x972
         
-        # === MAIN SPLITTER ===
-        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        # === FIXED POSITION WIDGETS ===
         
-        # --- CHARACTER SHEET (left) ---
-        self.character_sheet = CharacterPanel()
-        self.main_splitter.addWidget(self.character_sheet)
+        # Menu (top left)
+        self.menu = GameMenu(self)
+        self.menu.move(96, 54)  # Top left with 5% margin
+        self.menu.show()
+        self.menu.raise_()
         
-        # --- ENCOUNTER PANE (center) ---
-        self.encounter_pane = EncounterPanel()
-        self.main_splitter.addWidget(self.encounter_pane)
+        # Character sheet (below menu, left column)  
+        self.character_sheet = CharacterPanel(self)
+        self.character_sheet.move(96, 54 + 160)  # Below menu
+        self.character_sheet.show()
         
-        # --- RIGHT COLUMN: LOG + EQUIPMENT ---
-        self.right_splitter = QSplitter(Qt.Orientation.Vertical)
+        # Encounter pane (center, full height)
+        self.encounter_pane = EncounterPanel(self) 
+        self.encounter_pane.move(96 + 648, 54)  # Center column
+        self.encounter_pane.show()
         
         # Log panel (top right)
-        self.log_panel = LogPanel()
-        self.right_splitter.addWidget(self.log_panel)
+        self.log_panel = LogPanel(self)
+        self.log_panel.move(96 + 648 + 648, 54)  # Right column
+        self.log_panel.show()
         
         # Equipment panel (bottom right)
-        self.equipment_panel = EquipmentPanel()
-        self.right_splitter.addWidget(self.equipment_panel)
+        self.equipment_panel = EquipmentPanel(self)
+        self.equipment_panel.move(96 + 648 + 648, 54 + 200)  # Below log
+        self.equipment_panel.show()
         
-        # Set right splitter proportions
-        self.right_splitter.setSizes([486, 486])
-        
-        self.main_splitter.addWidget(self.right_splitter)
-        
-        # Set main splitter proportions (648, 648, 432)
-        self.main_splitter.setSizes([648, 648, 432])
-        
-        self.main_layout.addWidget(self.main_splitter)
-        
-        # === ACTION CARDS (bottom) ===
-        self.action_panel = ActionPanel()
-        self.main_layout.addWidget(self.action_panel)
+        # Action cards (bottom left)
+        self.action_panel = ActionPanel(self)
+        self.action_panel.move(96, 1080 - 54 - 300)  # Bottom left
+        self.action_panel.show()
+        self.action_panel.raise_()
     
     def _apply_dark_theme(self):
         """Apply dark theme to main window"""

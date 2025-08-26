@@ -13,7 +13,7 @@ Designed to match ui_plan.md specifications:
 - Dark theme styling
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QFrame, QSizePolicy
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional
 
@@ -42,150 +42,102 @@ class GameMenu(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.dropdown_visible = False
+        self.setAutoFillBackground(True)  # Ensure background is filled
+        self.setFixedSize(648, 200)  # Fixed size for the menu widget
         self._setup_ui()
         self._apply_styles()
     
     def _setup_ui(self):
         """Initialize the menu UI components."""
-        # Main layout
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
+        # Main layout - simple grid of buttons
+        self.main_layout = QGridLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(5)
         
-        # === MENU FRAME ===
-        self.menu_frame = QFrame()
-        self.menu_frame.setFixedSize(648, 200)
-        self.menu_frame.setObjectName("menuFrame")
+        # === 2 COLUMNS x 3 ROWS OF BUTTONS ===
         
-        # Menu frame layout
-        menu_layout = QVBoxLayout(self.menu_frame)
-        menu_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Title and toggle button container
-        title_container = QHBoxLayout()
-        
-        # Menu title
-        self.menu_title = QLabel("Game Menu")
-        self.menu_title.setObjectName("menuTitle")
-        self.menu_title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        title_container.addWidget(self.menu_title)
-        
-        # Toggle button
-        self.toggle_btn = QPushButton("☰ Menu")
-        self.toggle_btn.setObjectName("toggleButton")
-        self.toggle_btn.clicked.connect(self._toggle_dropdown)
-        title_container.addWidget(self.toggle_btn)
-        
-        menu_layout.addLayout(title_container)
-        
-        # Current game info area (placeholder)
-        self.game_info_label = QLabel("No game loaded")
-        self.game_info_label.setObjectName("gameInfoLabel")
-        self.game_info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        menu_layout.addWidget(self.game_info_label)
-        
-        # === DROPDOWN MENU ===
-        self.dropdown_frame = QFrame()
-        self.dropdown_frame.setFixedSize(648, 300)
-        self.dropdown_frame.setObjectName("dropdownFrame")
-        self.dropdown_frame.hide()  # Hidden by default
-        
-        # Dropdown layout
-        dropdown_layout = QVBoxLayout(self.dropdown_frame)
-        dropdown_layout.setContentsMargins(15, 15, 15, 15)
-        dropdown_layout.setSpacing(10)
-        
-        # Menu buttons
+        # Row 1
         self.create_character_btn = QPushButton("Create Character")
         self.create_character_btn.clicked.connect(self.create_character_requested.emit)
-        dropdown_layout.addWidget(self.create_character_btn)
+        self.create_character_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.create_character_btn, 0, 0)
         
         self.load_game_btn = QPushButton("Load Game")
         self.load_game_btn.clicked.connect(self.load_game_requested.emit)
-        dropdown_layout.addWidget(self.load_game_btn)
+        self.load_game_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.load_game_btn, 0, 1)
         
+        # Row 2
         self.save_and_exit_btn = QPushButton("Save & Exit")
         self.save_and_exit_btn.clicked.connect(self.save_and_exit_requested.emit)
-        dropdown_layout.addWidget(self.save_and_exit_btn)
-        
-        # Separator line
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setObjectName("separator")
-        dropdown_layout.addWidget(separator)
+        self.save_and_exit_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.save_and_exit_btn, 1, 0)
         
         self.archive_character_btn = QPushButton("Archive Character")
         self.archive_character_btn.clicked.connect(self.archive_character_requested.emit)
-        dropdown_layout.addWidget(self.archive_character_btn)
+        self.archive_character_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.archive_character_btn, 1, 1)
         
+        # Row 3
         self.settings_btn = QPushButton("Settings")
         self.settings_btn.clicked.connect(self.settings_requested.emit)
-        dropdown_layout.addWidget(self.settings_btn)
+        self.settings_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.settings_btn, 2, 0)
         
         self.campaign_frame_btn = QPushButton("Campaign Frame")
         self.campaign_frame_btn.clicked.connect(self.campaign_frame_requested.emit)
-        dropdown_layout.addWidget(self.campaign_frame_btn)
-        
-        # Add frames to main layout
-        self.main_layout.addWidget(self.menu_frame)
-        self.main_layout.addWidget(self.dropdown_frame)
+        self.campaign_frame_btn.setObjectName("menuButton")
+        self.main_layout.addWidget(self.campaign_frame_btn, 2, 1)
     
     def _apply_styles(self):
         """Apply dark theme styling to menu components."""
         style_sheet = """
+        GameMenu {
+            background-color: #2d2d2d;
+        }
+        
         QFrame#menuFrame {
             background-color: #2d2d2d;
-            border: 2px solid #666666;
-            border-radius: 8px;
         }
         
         QFrame#dropdownFrame {
             background-color: #3d3d3d;
-            border: 2px solid #666666;
-            border-radius: 8px;
-            border-top: none;
-            border-top-left-radius: 0px;
-            border-top-right-radius: 0px;
-        }
-        
-        QLabel#menuTitle {
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-            padding: 5px;
         }
         
         QLabel#gameInfoLabel {
             color: #cccccc;
             font-size: 12px;
-            padding: 10px;
         }
         
-        QPushButton#toggleButton {
+        QPushButton#menuButton {
             background-color: #404040;
             color: #ffffff;
-            border: 1px solid #666666;
-            border-radius: 4px;
-            padding: 8px 16px;
             font-weight: bold;
-            max-width: 100px;
+            text-align: left;
+            font-size: 12px;
         }
         
-        QPushButton#toggleButton:hover {
+        QPushButton#menuButton:hover {
             background-color: #505050;
         }
         
-        QPushButton#toggleButton:pressed {
+        QPushButton#menuButton:pressed {
             background-color: #303030;
+        }
+        
+        QPushButton#expandButton {
+            background-color: #404040;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        
+        QPushButton#expandButton:hover {
+            background-color: #505050;
         }
         
         QPushButton {
             background-color: #404040;
             color: #ffffff;
-            border: 1px solid #666666;
-            border-radius: 4px;
-            padding: 10px;
             font-weight: bold;
             text-align: left;
         }
@@ -204,26 +156,6 @@ class GameMenu(QWidget):
         """
         self.setStyleSheet(style_sheet)
     
-    def _toggle_dropdown(self):
-        """Toggle the dropdown menu visibility."""
-        self.dropdown_visible = not self.dropdown_visible
-        self.dropdown_frame.setVisible(self.dropdown_visible)
-        
-        # Update toggle button text
-        if self.dropdown_visible:
-            self.toggle_btn.setText("✕ Close")
-        else:
-            self.toggle_btn.setText("☰ Menu")
-    
-    def update_game_info(self, character_name: Optional[str] = None, 
-                        save_slot: Optional[int] = None):
-        """Update the game info display."""
-        if character_name and save_slot:
-            self.game_info_label.setText(f"Playing: {character_name} (Slot {save_slot})")
-        elif character_name:
-            self.game_info_label.setText(f"Playing: {character_name}")
-        else:
-            self.game_info_label.setText("No game loaded")
     
     def set_save_enabled(self, enabled: bool):
         """Enable/disable the save & exit button based on game state."""
@@ -234,7 +166,6 @@ class GameMenu(QWidget):
         self.save_and_exit_btn.setEnabled(loaded)
         self.archive_character_btn.setEnabled(loaded)
     
-    def close_dropdown(self):
-        """Close the dropdown menu."""
-        if self.dropdown_visible:
-            self._toggle_dropdown()
+    def update_game_info(self, character_name: str, level: int):
+        """Update the game information display with character name and level."""
+        pass

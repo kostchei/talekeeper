@@ -39,8 +39,8 @@ class CharacterPanel(QWidget):
         self.animation = None
         self.character_data = None
         
-        # Set initial size
-        self.setFixedSize(648, 972)
+        # Set initial size (fits between menu and action cards)
+        self.setFixedSize(648, 512)  # 726 - 214 = 512px available space
         self._setup_ui()
         self._apply_styles()
     
@@ -48,8 +48,8 @@ class CharacterPanel(QWidget):
         """Initialize the character panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
         
         # === HEADER SECTION ===
         self.header_frame = QFrame()
@@ -182,20 +182,14 @@ class CharacterPanel(QWidget):
         style_sheet = """
         CharacterPanel {
             background-color: #202020;
-            border: 2px solid #444444;
-            border-radius: 8px;
         }
         
         QFrame#headerFrame {
             background-color: #2a2a2a;
-            border: 1px solid #555555;
-            border-radius: 6px;
         }
         
         QFrame#infoFrame, QFrame#statsFrame, QFrame#actionsFrame {
             background-color: #252525;
-            border: 1px solid #444444;
-            border-radius: 4px;
         }
         
         QFrame#abilitiesFrame {

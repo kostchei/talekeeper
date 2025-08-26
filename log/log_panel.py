@@ -70,7 +70,7 @@ class LogPanel(QWidget):
         """Initialize the log panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(3)
         
         # === HEADER SECTION ===
