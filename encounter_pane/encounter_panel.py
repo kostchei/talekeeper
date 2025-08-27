@@ -443,6 +443,29 @@ class EncounterPanel(QWidget):
             padding: 10px 0px;
         }
         
+        QLabel#classStatsInfo {
+            color: #4a90e2;
+            font-weight: bold;
+            padding: 5px 0px;
+            background-color: #1e1e1e;
+            border: 1px solid #4a90e2;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        
+        QLabel#rolledScore {
+            color: #ff9500;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        QLabel#abilityAbbrev {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 4px;
+        }
+        
         QPushButton#createCharacterBtn {
             background-color: #50c878;
             color: #ffffff;
@@ -730,22 +753,26 @@ class EncounterPanel(QWidget):
         abilities_layout = QGridLayout()
         
         abilities = ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+        ability_abbrevs = ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
         self.ability_spinboxes = {}
         self.racial_bonus_labels = {}
         self.final_score_labels = {}
         self.rolled_score_labels = {}  # For 4d6 results
         
         # Add column headers
-        abilities_layout.addWidget(QLabel("Ability"), 0, 0)
-        abilities_layout.addWidget(QLabel("Base"), 0, 1)
+        abilities_layout.addWidget(QLabel("Stat"), 0, 0)
+        abilities_layout.addWidget(QLabel("Point Buy"), 0, 1)
         abilities_layout.addWidget(QLabel("Racial"), 0, 2) 
-        abilities_layout.addWidget(QLabel("Rolled"), 0, 3)  # New column
-        abilities_layout.addWidget(QLabel("Final"), 0, 4)   # Moved to column 4
+        abilities_layout.addWidget(QLabel("Rolled"), 0, 3)
+        abilities_layout.addWidget(QLabel("Final"), 0, 4)
         
         for i, ability in enumerate(abilities):
             row = i + 1  # Account for header row
+            ability_lower = ability.lower()
             
-            label = QLabel(ability)
+            # Use abbreviation instead of full name
+            label = QLabel(ability_abbrevs[i])
+            label.setObjectName("abilityAbbrev")
             abilities_layout.addWidget(label, row, 0)
             
             spinbox = QSpinBox()
@@ -753,25 +780,25 @@ class EncounterPanel(QWidget):
             spinbox.setMaximum(15)
             spinbox.setValue(8)
             spinbox.valueChanged.connect(self._update_point_buy)
-            self.ability_spinboxes[ability.lower()] = spinbox
+            self.ability_spinboxes[ability_lower] = spinbox
             abilities_layout.addWidget(spinbox, row, 1)
             
             # Show racial bonus
             bonus_label = QLabel("+0")
             bonus_label.setObjectName("racialBonus")
-            self.racial_bonus_labels[ability.lower()] = bonus_label
+            self.racial_bonus_labels[ability_lower] = bonus_label
             abilities_layout.addWidget(bonus_label, row, 2)
             
             # Show rolled score (4d6 drop lowest)
             rolled_label = QLabel("-")
             rolled_label.setObjectName("rolledScore")
-            self.rolled_score_labels[ability.lower()] = rolled_label
+            self.rolled_score_labels[ability_lower] = rolled_label
             abilities_layout.addWidget(rolled_label, row, 3)
             
-            # Final score
+            # Final score (higher of point buy or rolled + racial)
             final_label = QLabel("8")
             final_label.setObjectName("finalScore")
-            self.final_score_labels[ability.lower()] = final_label
+            self.final_score_labels[ability_lower] = final_label
             abilities_layout.addWidget(final_label, row, 4)
         
         layout.addLayout(abilities_layout)
@@ -785,16 +812,12 @@ class EncounterPanel(QWidget):
         self.set_class_defaults_btn.setEnabled(False)
         controls_layout.addWidget(self.set_class_defaults_btn)
         
+        controls_layout.addStretch()
+        
         # Roll 4d6 button
-        self.roll_4d6_btn = QPushButton("Roll 4d6 Drop Lowest")
+        self.roll_4d6_btn = QPushButton("Roll 4d6 Drop Lowest (Auto-Applied)")
         self.roll_4d6_btn.clicked.connect(self._roll_4d6_overlay)
         controls_layout.addWidget(self.roll_4d6_btn)
-        
-        # Use rolled scores button
-        self.use_rolled_btn = QPushButton("Use Rolled Scores")
-        self.use_rolled_btn.clicked.connect(self._use_rolled_scores)
-        self.use_rolled_btn.setEnabled(False)
-        controls_layout.addWidget(self.use_rolled_btn)
         
         layout.addLayout(controls_layout)
         
@@ -981,22 +1004,40 @@ class EncounterPanel(QWidget):
     def _update_point_buy(self):
         """Update point buy calculations."""
         total_points = 0
-        point_costs = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
+        # Extended point costs to handle low values
+        point_costs = {
+            3: -4,  # Dump stat gets negative points
+            4: -2,  # Very low stats give points back
+            5: -1, 
+            6: 0,   # 6 costs nothing
+            7: 0,   # 7 costs nothing
+            8: 0,   # Standard starting point
+            9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
+            16: 12, 17: 15, 18: 17  # Handle high rolled values
+        }
         
         for ability, spinbox in self.ability_spinboxes.items():
-            total_points += point_costs.get(spinbox.value(), 0)
+            cost = point_costs.get(spinbox.value(), 0)
+            total_points += cost
         
-        remaining = 27 - total_points
-        self.points_remaining_label.setText(f"Points remaining: {remaining}")
+        # Start with 27 base points, but account for class defaults giving some back
+        base_points = 27
+        remaining = base_points - total_points
+        
+        if remaining >= 0:
+            self.points_remaining_label.setText(f"Points remaining: {remaining}")
+        else:
+            self.points_remaining_label.setText(f"Points over budget: {abs(remaining)} (reduce some stats)")
         
         # Enable/disable next button based on valid point allocation
-        self.creation_next_btn.setEnabled(remaining >= 0)
+        if hasattr(self, 'creation_next_btn'):
+            self.creation_next_btn.setEnabled(remaining >= 0)
         
         # Update final scores with current racial bonuses
         self._update_final_scores()
     
     def _update_final_scores(self):
-        """Update final ability scores including racial bonuses."""
+        """Update final ability scores using higher of point buy or rolled + racial bonuses."""
         if not hasattr(self, 'racial_bonus_labels'):
             return
             
@@ -1004,10 +1045,21 @@ class EncounterPanel(QWidget):
         if 'species' in self.character_creation_data:
             bonuses = self.character_creation_data['species'].get('ability_score_increases', {})
         
+        rolled_scores = self.character_creation_data.get('rolled_scores', {})
+        
         for ability in self.ability_spinboxes:
-            bonus = bonuses.get(ability, 0)
-            base_score = self.ability_spinboxes[ability].value()
-            final_score = base_score + bonus
+            racial_bonus = bonuses.get(ability, 0)
+            point_buy_score = self.ability_spinboxes[ability].value()
+            
+            # Get rolled score if available
+            rolled_score = 0
+            if ability in rolled_scores:
+                rolled_score = rolled_scores[ability]['total']
+            
+            # Take higher of point buy or rolled, then add racial bonus
+            base_score = max(point_buy_score, rolled_score)
+            final_score = base_score + racial_bonus
+            
             self.final_score_labels[ability].setText(str(final_score))
     
     def _creation_next_step(self):
@@ -1038,13 +1090,25 @@ class EncounterPanel(QWidget):
     
     def _finish_character_creation(self):
         """Complete character creation and emit the character data."""
+        # Calculate final ability scores using "take higher" logic
+        final_ability_scores = {}
+        rolled_scores = self.character_creation_data.get('rolled_scores', {})
+        
+        for ability, spinbox in self.ability_spinboxes.items():
+            point_buy_score = spinbox.value()
+            rolled_score = rolled_scores.get(ability, {}).get('total', 0)
+            # Take higher of the two
+            final_ability_scores[ability] = max(point_buy_score, rolled_score)
+        
         # Compile final character data
         final_character = {
             'name': self.character_name_input.currentText(),
             'class_data': self.character_creation_data.get('class'),
             'background_data': self.character_creation_data.get('background'),
             'species_data': self.character_creation_data.get('species'),
-            'ability_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
+            'ability_scores': final_ability_scores,
+            'point_buy_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
+            'rolled_scores': rolled_scores,
             'level': 1,
             'experience_points': 0
         }
@@ -1054,3 +1118,100 @@ class EncounterPanel(QWidget):
         
         # Return to exploration mode
         self.exit_character_creation()
+    
+    def _get_class_dump_stats(self, class_name: str) -> Dict[str, str]:
+        """Get dump stat and random low stat for a class."""
+        dump_stats = {
+            'fighter': 'intelligence',
+            'rogue': 'wisdom',
+            # Add more classes as needed
+        }
+        
+        # Default to intelligence for unknown classes
+        dump_stat = dump_stats.get(class_name, 'intelligence')
+        
+        # Choose a random stat that's not the dump stat for the 6-value
+        all_stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']
+        available_for_six = [stat for stat in all_stats if stat != dump_stat]
+        random_six_stat = random.choice(available_for_six)
+        
+        return {
+            'dump_stat': dump_stat,
+            'six_stat': random_six_stat
+        }
+    
+    def _apply_class_defaults(self):
+        """Apply class-specific default ability scores."""
+        if 'class' not in self.character_creation_data:
+            return
+        
+        class_name = self.character_creation_data['class']['name'].lower()
+        dump_stats = self._get_class_dump_stats(class_name)
+        
+        # Reset all stats to 8 first
+        for ability in self.ability_spinboxes:
+            self.ability_spinboxes[ability].setValue(8)
+        
+        # Set dump stat to 3
+        self.ability_spinboxes[dump_stats['dump_stat']].setValue(3)
+        
+        # Set random stat to 6
+        self.ability_spinboxes[dump_stats['six_stat']].setValue(6)
+        
+        # Update display
+        self._update_point_buy()
+        
+        # Update info text
+        class_data = self.character_creation_data['class']
+        info_text = f"{class_data['name']} defaults applied: {dump_stats['dump_stat'].title()} = 3, {dump_stats['six_stat'].title()} = 6"
+        self.class_stats_info.setText(info_text)
+    
+    def _roll_4d6_overlay(self):
+        """Roll 4d6 drop lowest for each ability score and auto-apply higher values."""
+        rolled_scores = {}
+        
+        for ability in self.ability_spinboxes:
+            # Roll 4d6, drop lowest
+            rolls = [random.randint(1, 6) for _ in range(4)]
+            rolls.sort(reverse=True)  # Sort descending
+            total = sum(rolls[:3])  # Take highest 3
+            
+            rolled_scores[ability] = {
+                'total': total,
+                'rolls': rolls
+            }
+            
+            # Update the rolled score display - show if it beats point buy
+            point_buy_value = self.ability_spinboxes[ability].value()
+            if total > point_buy_value:
+                roll_text = f"{total}* ({','.join(map(str, rolls[:3]))})"  # * indicates it's being used
+                self.rolled_score_labels[ability].setStyleSheet("color: #50c878; font-weight: bold;")  # Green for winning
+            else:
+                roll_text = f"{total} ({','.join(map(str, rolls[:3]))})"
+                self.rolled_score_labels[ability].setStyleSheet("color: #ff9500; font-weight: bold;")  # Orange for not used
+            
+            self.rolled_score_labels[ability].setText(roll_text)
+        
+        # Store rolled scores
+        self.character_creation_data['rolled_scores'] = rolled_scores
+        
+        # Auto-update final scores to use higher values
+        self._update_final_scores()
+        
+        # Update info text
+        self.class_stats_info.setText("4d6 rolled! Final scores use higher of point buy or rolled (* = rolled used)")
+        
+        # Log the rolls - try to find log panel in parent hierarchy
+        log_panel = None
+        parent = self.parent()
+        while parent and not log_panel:
+            if hasattr(parent, 'log_panel'):
+                log_panel = parent.log_panel
+                break
+            parent = parent.parent()
+        
+        if log_panel:
+            for ability, data in rolled_scores.items():
+                point_buy = self.ability_spinboxes[ability].value()
+                used = "USED" if data['total'] > point_buy else "not used"
+                log_panel.log_dice(f"{ability.title()}: 4d6 drop lowest = {data['total']} {data['rolls']} ({used})")
