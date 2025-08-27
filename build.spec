@@ -8,6 +8,12 @@ To build manually:
 pyinstaller build.spec
 
 Output will be in dist/TaleKeeper.exe
+
+INTEGRATION STATUS:
+- PyQt6 UI widgets are complete and functional (character_sheet/, equipment_layout/, etc.)
+- Main integration with GameEngine is in progress
+- See PYQT6_INTEGRATION_PLAN.md for full implementation plan
+- Once integration is complete, remove Tkinter imports and dependencies
 """
 
 import os
@@ -39,16 +45,25 @@ if ASSETS_DIR.exists():
 
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
+    # PyQt6 UI Framework (replacing Tkinter)
+    'PyQt6',
+    'PyQt6.QtWidgets',
+    'PyQt6.QtCore',
+    'PyQt6.QtGui',
+    'PyQt6.sip',
+    # Legacy Tkinter (remove after PyQt6 migration complete)
     'tkinter',
     'tkinter.ttk',
     'tkinter.messagebox',
     'tkinter.filedialog',
+    # Database
     'sqlalchemy',
     'sqlalchemy.engine',
     'sqlalchemy.sql',
     'sqlalchemy.orm',
     'sqlalchemy.ext.declarative',
     'sqlalchemy.dialects.sqlite',
+    # Core modules
     'loguru',
     'uuid',
     'json',
@@ -85,8 +100,7 @@ a = Analysis(
         'numpy',
         'pandas',
         'PIL',
-        'PyQt5',
-        'PyQt6',
+        'PyQt5',  # Exclude old PyQt5
         'PySide2',
         'PySide6',
         'wx',
@@ -96,6 +110,7 @@ a = Analysis(
         'requests',
         'urllib3',
         'certifi',
+        # NOTE: PyQt6 is now included (removed from excludes)
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

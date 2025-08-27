@@ -79,19 +79,19 @@ class CharacterPanel(QWidget):
         self._setup_detail_panel()
     
     def _setup_basic_panel(self):
-        """Setup the basic character panel (always visible)."""
+        """Setup the basic character panel (always visible) with D&D layout."""
         # === HEADER SECTION ===
         self.header_frame = QFrame()
         self.header_frame.setObjectName("headerFrame")
-        self.header_frame.setFixedHeight(80)
+        self.header_frame.setFixedHeight(40)
         
         header_layout = QHBoxLayout(self.header_frame)
         header_layout.setContentsMargins(10, 5, 10, 5)
         
-        # Character title and expand button
-        self.char_title = QLabel("Character Sheet")
-        self.char_title.setObjectName("charTitle")
-        header_layout.addWidget(self.char_title)
+        # Character name as title (will be updated with actual character name)
+        self.char_name_title = QLabel("Character Name")
+        self.char_name_title.setObjectName("charTitle")
+        header_layout.addWidget(self.char_name_title)
         
         header_layout.addStretch()
         
@@ -100,111 +100,65 @@ class CharacterPanel(QWidget):
         self.expand_btn.clicked.connect(self._toggle_expansion)
         header_layout.addWidget(self.expand_btn)
         
-        # === CHARACTER INFO SECTION ===
-        self.info_frame = QFrame()
-        self.info_frame.setObjectName("infoFrame")
+        # === D&D CHARACTER SHEET LAYOUT ===
+        # Main scrollable area for the character sheet
+        sheet_scroll = QScrollArea()
+        sheet_scroll.setWidgetResizable(True)
+        sheet_scroll.setObjectName("sheetScroll")
         
-        info_layout = QVBoxLayout(self.info_frame)
-        info_layout.setContentsMargins(10, 10, 10, 10)
+        sheet_widget = QWidget()
+        sheet_layout = QVBoxLayout(sheet_widget)
+        sheet_layout.setContentsMargins(5, 5, 5, 5)
+        sheet_layout.setSpacing(8)
         
-        # Basic character info
-        self.char_name_label = QLabel("No Character Loaded")
-        self.char_name_label.setObjectName("charNameLabel")
-        self.char_name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.char_name_label)
+        # Storage for widgets
+        self.ability_widgets = {}
+        self.skill_widgets = {}
+        self.saving_throw_widgets = {}
         
-        self.char_details_label = QLabel("Level 1 | Unknown Race | Unknown Class")
-        self.char_details_label.setObjectName("charDetailsLabel")
-        self.char_details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.char_details_label)
+        # === ABILITY SCORE ROWS ===
+        # Each row: [ABILITY BOX] [SAVING THROW] [SKILLS...]
         
-        # === STATS SECTION ===
-        self.stats_frame = QFrame()
-        self.stats_frame.setObjectName("statsFrame")
+        # STRENGTH ROW
+        str_row = self._create_ability_row('STR', 'Strength', [('Athletics', 'STR')])
+        sheet_layout.addWidget(str_row)
         
-        stats_layout = QVBoxLayout(self.stats_frame)
-        stats_layout.setContentsMargins(5, 5, 5, 5)
+        # DEXTERITY ROW  
+        dex_row = self._create_ability_row('DEX', 'Dexterity', [
+            ('Acrobatics', 'DEX'), ('Sleight of Hand', 'DEX'), ('Stealth', 'DEX')
+        ])
+        sheet_layout.addWidget(dex_row)
         
-        # Health bar
-        hp_layout = QHBoxLayout()
-        hp_layout.addWidget(QLabel("HP:"))
-        self.hp_bar = QProgressBar()
-        self.hp_bar.setObjectName("hpBar")
-        self.hp_bar.setMaximum(100)
-        self.hp_bar.setValue(100)
-        hp_layout.addWidget(self.hp_bar)
-        self.hp_label = QLabel("100/100")
-        self.hp_label.setObjectName("hpLabel")
-        hp_layout.addWidget(self.hp_label)
-        stats_layout.addLayout(hp_layout)
+        # CONSTITUTION ROW (no skills, add secondary stats here)
+        con_row = self._create_ability_row_with_stats('CON', 'Constitution')
+        sheet_layout.addWidget(con_row)
         
-        # Ability scores grid
-        self.abilities_frame = QFrame()
-        self.abilities_frame.setObjectName("abilitiesFrame")
-        abilities_layout = QGridLayout(self.abilities_frame)
+        # INTELLIGENCE ROW
+        int_row = self._create_ability_row('INT', 'Intelligence', [
+            ('Arcana', 'INT'), ('History', 'INT'), ('Investigation', 'INT'), 
+            ('Nature', 'INT'), ('Religion', 'INT')
+        ])
+        sheet_layout.addWidget(int_row)
         
-        # Create ability score displays
-        self.ability_labels = {}
-        abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
+        # WISDOM ROW
+        wis_row = self._create_ability_row('WIS', 'Wisdom', [
+            ('Animal Handling', 'WIS'), ('Insight', 'WIS'), ('Medicine', 'WIS'), 
+            ('Perception', 'WIS'), ('Survival', 'WIS')
+        ])
+        sheet_layout.addWidget(wis_row)
         
-        for i, ability in enumerate(abilities):
-            row = i // 2
-            col = (i % 2) * 2
-            
-            # Ability name
-            name_label = QLabel(ability)
-            name_label.setObjectName("abilityName")
-            abilities_layout.addWidget(name_label, row, col)
-            
-            # Ability value
-            value_label = QLabel("10 (+0)")
-            value_label.setObjectName("abilityValue")
-            self.ability_labels[ability] = value_label
-            abilities_layout.addWidget(value_label, row, col + 1)
+        # CHARISMA ROW
+        cha_row = self._create_ability_row('CHA', 'Charisma', [
+            ('Deception', 'CHA'), ('Intimidation', 'CHA'), ('Performance', 'CHA'), 
+            ('Persuasion', 'CHA')
+        ])
+        sheet_layout.addWidget(cha_row)
         
-        stats_layout.addWidget(self.abilities_frame)
+        sheet_scroll.setWidget(sheet_widget)
         
-        # === SCROLLABLE CONTENT AREA ===
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setObjectName("scrollArea")
-        
-        # Content widget for scrollable area
-        self.content_widget = QWidget()
-        content_layout = QVBoxLayout(self.content_widget)
-        
-        # Detailed character information (expandable content)
-        self.details_text = QTextEdit()
-        self.details_text.setObjectName("detailsText")
-        self.details_text.setReadOnly(True)
-        self.details_text.setPlainText("Character details will appear here...")
-        content_layout.addWidget(self.details_text)
-        
-        # Action buttons section
-        self.actions_frame = QFrame()
-        self.actions_frame.setObjectName("actionsFrame")
-        actions_layout = QVBoxLayout(self.actions_frame)
-        
-        # Quick action buttons
-        self.rest_btn = QPushButton("Take Rest")
-        self.rest_btn.clicked.connect(lambda: self.character_action_requested.emit("rest"))
-        actions_layout.addWidget(self.rest_btn)
-        
-        self.level_up_btn = QPushButton("Level Up")
-        self.level_up_btn.clicked.connect(lambda: self.character_action_requested.emit("level_up"))
-        self.level_up_btn.setEnabled(False)  # Disabled until XP threshold met
-        actions_layout.addWidget(self.level_up_btn)
-        
-        content_layout.addWidget(self.actions_frame)
-        content_layout.addStretch()
-        
-        self.scroll_area.setWidget(self.content_widget)
-        
-        # Add sections to basic panel layout
+        # Add to basic panel layout
         self.basic_layout.addWidget(self.header_frame)
-        self.basic_layout.addWidget(self.info_frame)
-        self.basic_layout.addWidget(self.stats_frame)
-        self.basic_layout.addWidget(self.scroll_area, 1)  # Take remaining space
+        self.basic_layout.addWidget(sheet_scroll, 1)  # Take all remaining space
     
     def _setup_detail_panel(self):
         """Setup the detailed character panel (shown when expanded)."""
@@ -309,6 +263,223 @@ class CharacterPanel(QWidget):
         self.detail_layout.addWidget(self.features_frame, 1)
         self.detail_layout.addWidget(self.spells_frame, 1)
     
+    def _create_ability_widget(self, short_name: str, full_name: str) -> QWidget:
+        """Create an ability score widget like in D&D character sheet."""
+        widget = QFrame()
+        widget.setObjectName("abilityWidget")
+        widget.setFixedSize(80, 90)
+        
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(2)
+        
+        # Ability name label
+        name_label = QLabel(short_name)
+        name_label.setObjectName("abilityName")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(name_label)
+        
+        # Modifier (bonus) - displayed prominently
+        modifier_label = QLabel("+0")
+        modifier_label.setObjectName("abilityModifier")
+        modifier_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(modifier_label)
+        
+        # Score - displayed below modifier
+        score_label = QLabel("10")
+        score_label.setObjectName("abilityScore")
+        score_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(score_label)
+        
+        # Store references for updating
+        widget.modifier_label = modifier_label
+        widget.score_label = score_label
+        widget.ability_name = short_name
+        
+        return widget
+    
+    def _create_stat_widget(self, name: str, value: str) -> QWidget:
+        """Create a secondary stat widget (AC, Init, HP, Speed)."""
+        widget = QFrame()
+        widget.setObjectName("statWidget")
+        widget.setFixedSize(80, 60)
+        
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(2)
+        
+        # Stat name
+        name_label = QLabel(name)
+        name_label.setObjectName("statName")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(name_label)
+        
+        # Stat value
+        value_label = QLabel(value)
+        value_label.setObjectName("statValue")
+        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(value_label)
+        
+        # Store reference for updating
+        widget.value_label = value_label
+        widget.stat_name = name
+        
+        return widget
+    
+    def _create_skill_widget(self, skill_name: str, ability: str) -> QWidget:
+        """Create a skill widget with proficiency indicator and bonus."""
+        widget = QFrame()
+        widget.setObjectName("skillWidget")
+        widget.setFixedHeight(25)
+        
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(5)
+        
+        # Proficiency indicator (circle or diamond)
+        prof_label = QLabel("○")
+        prof_label.setObjectName("proficiencyIndicator")
+        prof_label.setFixedWidth(15)
+        layout.addWidget(prof_label)
+        
+        # Skill name
+        name_label = QLabel(skill_name)
+        name_label.setObjectName("skillName")
+        layout.addWidget(name_label)
+        
+        layout.addStretch()
+        
+        # Skill bonus
+        bonus_label = QLabel("+0")
+        bonus_label.setObjectName("skillBonus")
+        bonus_label.setFixedWidth(25)
+        bonus_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(bonus_label)
+        
+        # Store references for updating
+        widget.prof_label = prof_label
+        widget.bonus_label = bonus_label
+        widget.skill_name = skill_name
+        widget.ability = ability
+        widget.is_proficient = False
+        
+        return widget
+    
+    def _create_ability_row(self, short_name: str, full_name: str, skills: list) -> QWidget:
+        """Create a complete ability row: [ABILITY BOX] [SAVING THROW] [SKILLS...]"""
+        row_frame = QFrame()
+        row_frame.setObjectName("abilityRow")
+        
+        row_layout = QHBoxLayout(row_frame)
+        row_layout.setContentsMargins(5, 5, 5, 5)
+        row_layout.setSpacing(10)
+        
+        # === ABILITY SCORE BOX ===
+        ability_widget = self._create_ability_widget(short_name, full_name)
+        self.ability_widgets[short_name] = ability_widget
+        row_layout.addWidget(ability_widget)
+        
+        # === SAVING THROW ===
+        saving_throw_widget = self._create_saving_throw_widget(short_name)
+        self.saving_throw_widgets[short_name] = saving_throw_widget
+        row_layout.addWidget(saving_throw_widget)
+        
+        # === SKILLS SECTION ===
+        skills_container = QWidget()
+        skills_layout = QVBoxLayout(skills_container)
+        skills_layout.setContentsMargins(0, 0, 0, 0)
+        skills_layout.setSpacing(2)
+        
+        for skill_name, ability in skills:
+            skill_widget = self._create_skill_widget(skill_name, ability)
+            self.skill_widgets[skill_name] = skill_widget
+            skills_layout.addWidget(skill_widget)
+        
+        row_layout.addWidget(skills_container)
+        row_layout.addStretch()  # Push everything to the left
+        
+        return row_frame
+    
+    def _create_ability_row_with_stats(self, short_name: str, full_name: str) -> QWidget:
+        """Create Constitution row with secondary stats instead of skills."""
+        row_frame = QFrame()
+        row_frame.setObjectName("abilityRow")
+        
+        row_layout = QHBoxLayout(row_frame)
+        row_layout.setContentsMargins(5, 5, 5, 5)
+        row_layout.setSpacing(10)
+        
+        # === ABILITY SCORE BOX ===
+        ability_widget = self._create_ability_widget(short_name, full_name)
+        self.ability_widgets[short_name] = ability_widget
+        row_layout.addWidget(ability_widget)
+        
+        # === SAVING THROW ===
+        saving_throw_widget = self._create_saving_throw_widget(short_name)
+        self.saving_throw_widgets[short_name] = saving_throw_widget
+        row_layout.addWidget(saving_throw_widget)
+        
+        # === SECONDARY STATS (AC, INIT, HP, SPEED) ===
+        stats_container = QWidget()
+        stats_layout = QGridLayout(stats_container)
+        stats_layout.setContentsMargins(0, 0, 0, 0)
+        stats_layout.setSpacing(8)
+        
+        # Create secondary stats
+        self.ac_widget = self._create_stat_widget("AC", "10")
+        self.init_widget = self._create_stat_widget("INIT", "+0")
+        self.hp_widget = self._create_stat_widget("HP", "8/8")
+        self.speed_widget = self._create_stat_widget("SPEED", "30 ft")
+        
+        stats_layout.addWidget(self.ac_widget, 0, 0)
+        stats_layout.addWidget(self.init_widget, 0, 1)
+        stats_layout.addWidget(self.hp_widget, 1, 0)
+        stats_layout.addWidget(self.speed_widget, 1, 1)
+        
+        row_layout.addWidget(stats_container)
+        row_layout.addStretch()
+        
+        return row_frame
+    
+    def _create_saving_throw_widget(self, ability_name: str) -> QWidget:
+        """Create a saving throw widget with diamond indicator."""
+        widget = QFrame()
+        widget.setObjectName("savingThrowWidget")
+        widget.setFixedHeight(25)
+        widget.setMinimumWidth(120)
+        
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(5)
+        
+        # Diamond proficiency indicator
+        prof_label = QLabel("◆")
+        prof_label.setObjectName("savingThrowIndicator")
+        prof_label.setFixedWidth(15)
+        layout.addWidget(prof_label)
+        
+        # Saving throw label
+        save_label = QLabel("SAVING THROWS")
+        save_label.setObjectName("savingThrowLabel")
+        layout.addWidget(save_label)
+        
+        layout.addStretch()
+        
+        # Saving throw bonus
+        bonus_label = QLabel("+0")
+        bonus_label.setObjectName("savingThrowBonus")
+        bonus_label.setFixedWidth(25)
+        bonus_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(bonus_label)
+        
+        # Store references
+        widget.prof_label = prof_label
+        widget.bonus_label = bonus_label
+        widget.ability_name = ability_name
+        widget.is_proficient = False
+        
+        return widget
+    
     def _apply_styles(self):
         """Apply dark theme styling to character panel components."""
         style_sheet = """
@@ -320,9 +491,107 @@ class CharacterPanel(QWidget):
             background-color: #2a2a2a;
         }
         
-        QFrame#infoFrame, QFrame#statsFrame, QFrame#actionsFrame,
-        QFrame#skillsFrame, QFrame#featuresFrame, QFrame#spellsFrame {
+        QFrame#abilitiesFrame, QFrame#secondaryFrame, QFrame#skillsFrame,
+        QFrame#featuresFrame, QFrame#spellsFrame {
             background-color: #252525;
+            border: 1px solid #404040;
+            border-radius: 4px;
+        }
+        
+        QFrame#abilityWidget {
+            background-color: #2a2a2a;
+            border: 2px solid #404040;
+            border-radius: 6px;
+        }
+        
+        QLabel#abilityName {
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        QLabel#abilityModifier {
+            color: #4a90e2;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        QLabel#abilityScore {
+            color: #cccccc;
+            font-size: 14px;
+        }
+        
+        QFrame#statWidget {
+            background-color: #2a2a2a;
+            border: 2px solid #404040;
+            border-radius: 6px;
+        }
+        
+        QLabel#statName {
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        QLabel#statValue {
+            color: #4a90e2;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        QFrame#skillWidget {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 3px;
+            margin: 1px;
+        }
+        
+        QLabel#proficiencyIndicator {
+            color: #888888;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        QLabel#skillName {
+            color: #cccccc;
+            font-size: 11px;
+        }
+        
+        QLabel#skillBonus {
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        QFrame#abilityRow {
+            background-color: transparent;
+            border-bottom: 1px solid #333333;
+            margin: 2px 0px;
+        }
+        
+        QFrame#savingThrowWidget {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 3px;
+            margin: 1px;
+        }
+        
+        QLabel#savingThrowIndicator {
+            color: #888888;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        QLabel#savingThrowLabel {
+            color: #cccccc;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        QLabel#savingThrowBonus {
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: bold;
         }
         
         QFrame#detailHeader {
@@ -524,42 +793,78 @@ class CharacterPanel(QWidget):
         """Load character data into the panel display."""
         self.character_data = character_data
         
-        # Update basic info
+        # Update character name in title
         name = character_data.get('name', 'Unknown Character')
         level = character_data.get('level', 1)
         race = character_data.get('race_name', 'Unknown Race')
         char_class = character_data.get('class_name', 'Unknown Class')
         
-        self.char_name_label.setText(name)
-        self.char_details_label.setText(f"Level {level} {race} {char_class}")
+        self.char_name_title.setText(f"{name} - Level {level} {race} {char_class}")
         
-        # Update HP
-        current_hp = character_data.get('current_hit_points', 100)
-        max_hp = character_data.get('hit_points', 100)
-        self.hp_bar.setMaximum(max_hp)
-        self.hp_bar.setValue(current_hp)
-        self.hp_label.setText(f"{current_hp}/{max_hp}")
+        # Update ability scores with D&D layout (modifier prominent, score below)
+        abilities = {
+            'STR': character_data.get('strength', 10),
+            'DEX': character_data.get('dexterity', 10), 
+            'CON': character_data.get('constitution', 10),
+            'INT': character_data.get('intelligence', 10),
+            'WIS': character_data.get('wisdom', 10),
+            'CHA': character_data.get('charisma', 10)
+        }
         
-        # Update ability scores
-        abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']
-        ability_names = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
+        for ability_name, score in abilities.items():
+            if ability_name in self.ability_widgets:
+                widget = self.ability_widgets[ability_name]
+                modifier = (score - 10) // 2
+                modifier_text = f"+{modifier}" if modifier >= 0 else str(modifier)
+                
+                widget.modifier_label.setText(modifier_text)
+                widget.score_label.setText(str(score))
         
-        for ability, display_name in zip(abilities, ability_names):
-            score = character_data.get(ability, 10)
-            modifier = (score - 10) // 2
-            modifier_text = f"+{modifier}" if modifier >= 0 else str(modifier)
-            self.ability_labels[display_name].setText(f"{score} ({modifier_text})")
+        # Update secondary stats
+        ac = character_data.get('armor_class', 10)
+        self.ac_widget.value_label.setText(str(ac))
         
-        # Update detailed text
-        self._update_details_text()
+        # Initiative = DEX modifier
+        dex_mod = (abilities['DEX'] - 10) // 2
+        init_text = f"+{dex_mod}" if dex_mod >= 0 else str(dex_mod)
+        self.init_widget.value_label.setText(init_text)
         
-        # Update detailed panel with character data
+        # Hit Points
+        current_hp = character_data.get('current_hit_points', 0)
+        max_hp = character_data.get('hit_points', 0)
+        self.hp_widget.value_label.setText(f"{current_hp}/{max_hp}")
+        
+        # Speed
+        speed = character_data.get('speed', 30)
+        self.speed_widget.value_label.setText(f"{speed} ft")
+        
+        # Update skills
+        proficiency_bonus = 2 + ((level - 1) // 4)  # D&D 5e proficiency scaling
+        
+        for skill_name, skill_widget in self.skill_widgets.items():
+            ability = skill_widget.ability
+            ability_score = abilities.get(ability, 10)
+            ability_mod = (ability_score - 10) // 2
+            
+            # For now, assume no proficiencies (could be enhanced later)
+            skill_bonus = ability_mod
+            bonus_text = f"+{skill_bonus}" if skill_bonus >= 0 else str(skill_bonus)
+            skill_widget.bonus_label.setText(bonus_text)
+        
+        # Update saving throws
+        for ability_name, saving_throw_widget in self.saving_throw_widgets.items():
+            ability_score = abilities.get(ability_name, 10)
+            ability_mod = (ability_score - 10) // 2
+            
+            # For now, assume no saving throw proficiencies
+            save_bonus = ability_mod
+            bonus_text = f"+{save_bonus}" if save_bonus >= 0 else str(save_bonus)
+            saving_throw_widget.bonus_label.setText(bonus_text)
+        
+        # Update detailed panel data
         self._update_detail_panel()
         
-        # Check level up eligibility
-        experience = character_data.get('experience_points', 0)
-        next_level_xp = self._calculate_next_level_xp(level)
-        self.level_up_btn.setEnabled(experience >= next_level_xp)
+        # Character data loaded successfully
     
     def _update_detail_panel(self):
         """Update the detailed panel with character-specific information."""
@@ -636,70 +941,33 @@ class CharacterPanel(QWidget):
         
         self.spells_text.setPlainText(spells_text)
     
-    def _update_details_text(self):
-        """Update the detailed character information text."""
-        if not self.character_data:
-            self.details_text.setPlainText("No character data available.")
-            return
-        
-        details = []
-        details.append(f"Character: {self.character_data.get('name', 'Unknown')}")
-        details.append(f"Level: {self.character_data.get('level', 1)}")
-        details.append(f"Race: {self.character_data.get('race_name', 'Unknown')}")
-        details.append(f"Class: {self.character_data.get('class_name', 'Unknown')}")
-        details.append("")
-        
-        # Combat stats
-        details.append("=== Combat Stats ===")
-        details.append(f"Armor Class: {self.character_data.get('armor_class', 10)}")
-        details.append(f"Hit Points: {self.character_data.get('current_hit_points', 0)}/{self.character_data.get('hit_points', 0)}")
-        details.append(f"Speed: {self.character_data.get('speed', 30)} ft")
-        details.append("")
-        
-        # Experience
-        details.append("=== Progression ===")
-        details.append(f"Experience: {self.character_data.get('experience_points', 0)} XP")
-        
-        level = self.character_data.get('level', 1)
-        next_level_xp = self._calculate_next_level_xp(level)
-        details.append(f"Next Level: {next_level_xp} XP")
-        details.append("")
-        
-        # Background and other details can be added here
-        if self.character_data.get('background_name'):
-            details.append(f"Background: {self.character_data.get('background_name')}")
-        
-        self.details_text.setPlainText("\n".join(details))
-    
-    def _calculate_next_level_xp(self, current_level: int) -> int:
-        """Calculate XP needed for next level (D&D 5e progression)."""
-        xp_table = {
-            1: 300, 2: 900, 3: 2700, 4: 6500, 5: 14000,
-            6: 23000, 7: 34000, 8: 48000, 9: 64000, 10: 85000,
-            11: 100000, 12: 120000, 13: 140000, 14: 165000, 15: 195000,
-            16: 225000, 17: 265000, 18: 305000, 19: 355000, 20: 355000
-        }
-        return xp_table.get(current_level, 355000)
-    
     def clear_character_data(self):
         """Clear the character display."""
         self.character_data = None
-        self.char_name_label.setText("No Character Loaded")
-        self.char_details_label.setText("Level 1 | Unknown Race | Unknown Class")
-        self.hp_bar.setValue(100)
-        self.hp_label.setText("100/100")
+        self.char_name_title.setText("Character Name")
         
-        for ability in self.ability_labels.values():
-            ability.setText("10 (+0)")
+        # Reset ability scores to defaults
+        for ability_widget in self.ability_widgets.values():
+            ability_widget.modifier_label.setText("+0")
+            ability_widget.score_label.setText("10")
         
-        self.details_text.setPlainText("Character details will appear here...")
-        self.level_up_btn.setEnabled(False)
+        # Reset secondary stats
+        self.ac_widget.value_label.setText("10")
+        self.init_widget.value_label.setText("+0")
+        self.hp_widget.value_label.setText("8/8")
+        self.speed_widget.value_label.setText("30 ft")
+        
+        # Reset skills
+        for skill_widget in self.skill_widgets.values():
+            skill_widget.bonus_label.setText("+0")
+        
+        # Reset saving throws
+        for saving_throw_widget in self.saving_throw_widgets.values():
+            saving_throw_widget.bonus_label.setText("+0")
     
     def update_hp(self, current_hp: int, max_hp: int):
         """Update HP display."""
-        self.hp_bar.setMaximum(max_hp)
-        self.hp_bar.setValue(current_hp)
-        self.hp_label.setText(f"{current_hp}/{max_hp}")
+        self.hp_widget.value_label.setText(f"{current_hp}/{max_hp}")
         
         if self.character_data:
             self.character_data['current_hit_points'] = current_hp
