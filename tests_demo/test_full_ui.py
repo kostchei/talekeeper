@@ -101,7 +101,7 @@ class FullUITestWindow(QMainWindow):
         """Connect all widget signals"""
         
         # Menu signals
-        self.menu.create_character_requested.connect(lambda: self.log_panel.log_info("Create Character requested"))
+        self.menu.create_character_requested.connect(self._start_character_creation)
         self.menu.load_game_requested.connect(lambda: self.log_panel.log_info("Load Game requested"))
         self.menu.save_and_exit_requested.connect(lambda: self.log_panel.log_info("Save & Exit requested"))
         self.menu.archive_character_requested.connect(lambda: self.log_panel.log_info("Archive Character requested"))
@@ -136,6 +136,9 @@ class FullUITestWindow(QMainWindow):
         self.action_panel.action_triggered.connect(
             lambda action, context: self.log_panel.log_combat(f"Action: {action.value} - {context.get('name', '')}")
         )
+        
+        # Encounter pane character creation signal
+        self.encounter_pane.character_created.connect(self._on_character_created)
     
     def load_test_data(self):
         """Load test data into all widgets"""
@@ -196,6 +199,67 @@ class FullUITestWindow(QMainWindow):
         
         self.log_panel.log_info("Welcome to the Lonely Mountain adventure!")
         self.log_panel.log_dice("Rolled 1d20+3 for initiative: 17")
+    
+    def _start_character_creation(self):
+        """Start the character creation process."""
+        self.log_panel.log_system("Starting character creation...")
+        self.encounter_pane.set_character_creation_mode()
+    
+    def _on_character_created(self, character_data):
+        """Handle completed character creation."""
+        name = character_data.get('name', 'Unknown')
+        class_name = character_data.get('class_data', {}).get('name', 'Unknown')
+        species_name = character_data.get('species_data', {}).get('name', 'Unknown')
+        
+        self.log_panel.log_system(f"Character created: {name} ({species_name} {class_name})")
+        
+        # Load the new character into the character sheet
+        formatted_character = self._format_character_for_display(character_data)
+        self.character_sheet.load_character_data(formatted_character)
+        
+        # Update menu
+        self.menu.update_game_info(name, 1)
+        self.menu.set_character_loaded(True)
+        
+        self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
+    
+    def _format_character_for_display(self, character_data):
+        """Convert character creation data to display format."""
+        ability_scores = character_data.get('ability_scores', {})
+        species_data = character_data.get('species_data', {})
+        class_data = character_data.get('class_data', {})
+        
+        # Apply racial bonuses
+        racial_bonuses = species_data.get('ability_score_increases', {})
+        final_scores = {}
+        for ability, base_score in ability_scores.items():
+            bonus = racial_bonuses.get(ability, 0)
+            final_scores[ability] = base_score + bonus
+        
+        # Calculate derived stats
+        con_mod = (final_scores.get('constitution', 10) - 10) // 2
+        dex_mod = (final_scores.get('dexterity', 10) - 10) // 2
+        hit_die = class_data.get('hit_die', 8)
+        max_hp = hit_die + con_mod
+        
+        return {
+            'name': character_data.get('name', 'Adventurer'),
+            'level': 1,
+            'race_name': species_data.get('name', 'Human'),
+            'class_name': class_data.get('name', 'Fighter'),
+            'background_name': character_data.get('background_data', {}).get('name', 'Folk Hero'),
+            'current_hit_points': max_hp,
+            'hit_points': max_hp,
+            'armor_class': 10 + dex_mod,  # Base AC + Dex modifier
+            'strength': final_scores.get('strength', 10),
+            'dexterity': final_scores.get('dexterity', 10),
+            'constitution': final_scores.get('constitution', 10),
+            'intelligence': final_scores.get('intelligence', 10),
+            'wisdom': final_scores.get('wisdom', 10),
+            'charisma': final_scores.get('charisma', 10),
+            'experience_points': 0,
+            'speed': species_data.get('speed', 30)
+        }
 
 
 if __name__ == "__main__":

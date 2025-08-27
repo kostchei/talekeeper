@@ -18,9 +18,13 @@ Designed to match ui_plan.md specifications:
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QTabWidget, QListWidget, QListWidgetItem,
-                            QSplitter, QGroupBox)
+                            QSplitter, QGroupBox, QGridLayout, QComboBox,
+                            QSpinBox, QCheckBox, QStackedWidget)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
+import json
+import os
+import random
 
 
 class EncounterPanel(QWidget):
@@ -36,11 +40,14 @@ class EncounterPanel(QWidget):
     encounter_action_requested = pyqtSignal(str)
     combat_initiated = pyqtSignal(dict)
     exploration_action = pyqtSignal(str)
+    character_created = pyqtSignal(dict)  # Emitted when character creation is complete
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.current_encounter = None
-        self.encounter_mode = "exploration"  # exploration, encounter, combat
+        self.encounter_mode = "exploration"  # exploration, encounter, combat, character_creation
+        self.character_creation_data = {}  # Store character creation progress
+        self.creation_step = 0  # Track current creation step
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -173,6 +180,41 @@ class EncounterPanel(QWidget):
         env_actions_layout.addWidget(self.hide_btn)
         
         env_layout.addWidget(self.env_actions_frame)
+        
+        # --- CHARACTER CREATION TAB ---
+        self.character_creation_tab = QWidget()
+        self.content_tabs.addTab(self.character_creation_tab, "Create Character")
+        self.content_tabs.setTabVisible(3, False)  # Hidden initially
+        
+        creation_layout = QVBoxLayout(self.character_creation_tab)
+        creation_layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Character creation stacked widget for different steps
+        self.creation_stack = QStackedWidget()
+        creation_layout.addWidget(self.creation_stack, 1)
+        
+        # Navigation buttons
+        self.creation_nav_frame = QFrame()
+        creation_nav_layout = QHBoxLayout(self.creation_nav_frame)
+        
+        self.creation_back_btn = QPushButton("Back")
+        self.creation_back_btn.clicked.connect(self._creation_previous_step)
+        creation_nav_layout.addWidget(self.creation_back_btn)
+        
+        creation_nav_layout.addStretch()
+        
+        self.creation_step_label = QLabel("Step 1 of 5")
+        creation_nav_layout.addWidget(self.creation_step_label)
+        
+        creation_nav_layout.addStretch()
+        
+        self.creation_next_btn = QPushButton("Next")
+        self.creation_next_btn.clicked.connect(self._creation_next_step)
+        creation_nav_layout.addWidget(self.creation_next_btn)
+        
+        creation_layout.addWidget(self.creation_nav_frame)
+        
+        self._setup_character_creation_steps()
         
         # === STATUS BAR ===
         self.status_frame = QFrame()
@@ -348,6 +390,76 @@ class EncounterPanel(QWidget):
             background-color: #2a2a2a;
             color: #666666;
         }
+        
+        /* Character Creation Styles */
+        QLabel#creationStepTitle {
+            color: #50c878;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 0px;
+        }
+        
+        QListWidget#classSelectionList, QListWidget#backgroundList, QListWidget#speciesList, QListWidget#equipmentList {
+            background-color: #151515;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            alternate-background-color: #1a1a1a;
+        }
+        
+        QListWidget#classSelectionList::item, QListWidget#backgroundList::item, QListWidget#speciesList::item {
+            padding: 8px;
+            border-bottom: 1px solid #333333;
+        }
+        
+        QListWidget#classSelectionList::item:selected, QListWidget#backgroundList::item:selected, QListWidget#speciesList::item:selected {
+            background-color: #50c878;
+            color: #ffffff;
+        }
+        
+        QTextEdit#classDescription, QTextEdit#bgSpeciesDescription, QTextEdit#reviewSummary {
+            background-color: #151515;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        QLabel#racialBonus {
+            color: #50c878;
+            font-weight: bold;
+        }
+        
+        QLabel#finalScore {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        QLabel#pointsRemaining {
+            color: #ff9500;
+            font-weight: bold;
+            padding: 10px 0px;
+        }
+        
+        QPushButton#createCharacterBtn {
+            background-color: #50c878;
+            color: #ffffff;
+            border: 1px solid #50c878;
+            border-radius: 6px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        QPushButton#createCharacterBtn:hover {
+            background-color: #45b567;
+        }
+        
+        QPushButton#createCharacterBtn:pressed {
+            background-color: #3a9954;
+        }
         """
         self.setStyleSheet(style_sheet)
     
@@ -465,3 +577,480 @@ class EncounterPanel(QWidget):
         if current_item:
             return current_item.data(Qt.ItemDataRole.UserRole)
         return None
+    
+    # === CHARACTER CREATION METHODS ===
+    
+    def set_character_creation_mode(self):
+        """Switch to character creation mode."""
+        self.encounter_mode = "character_creation"
+        self.title_label.setText("Create Character")
+        self.mode_label.setText("Character Creation")
+        self.mode_label.setStyleSheet("color: #50c878; border-color: #50c878;")
+        self.content_tabs.setTabVisible(3, True)  # Show character creation tab
+        self.content_tabs.setCurrentIndex(3)  # Switch to character creation tab
+        self.creation_step = 0
+        self.character_creation_data = {}
+        self._update_creation_step()
+    
+    def exit_character_creation(self):
+        """Exit character creation and return to exploration."""
+        self.content_tabs.setTabVisible(3, False)  # Hide character creation tab
+        self.set_exploration_mode()
+        self.creation_step = 0
+        self.character_creation_data = {}
+    
+    def _setup_character_creation_steps(self):
+        """Setup the character creation step widgets."""
+        # Step 1: Class Selection
+        self.class_step = self._create_class_selection_step()
+        self.creation_stack.addWidget(self.class_step)
+        
+        # Step 2: Background & Species
+        self.bg_species_step = self._create_background_species_step()
+        self.creation_stack.addWidget(self.bg_species_step)
+        
+        # Step 3: Ability Scores
+        self.abilities_step = self._create_abilities_step()
+        self.creation_stack.addWidget(self.abilities_step)
+        
+        # Step 4: Equipment
+        self.equipment_step = self._create_equipment_step()
+        self.creation_stack.addWidget(self.equipment_step)
+        
+        # Step 5: Final Review
+        self.review_step = self._create_review_step()
+        self.creation_stack.addWidget(self.review_step)
+    
+    def _create_class_selection_step(self) -> QWidget:
+        """Create the class selection step widget."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Title
+        title = QLabel("Choose Your Class")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Class selection list
+        self.class_list = QListWidget()
+        self.class_list.setObjectName("classSelectionList")
+        
+        # Load class data and populate list
+        self._load_class_data()
+        
+        layout.addWidget(self.class_list)
+        
+        # Class description
+        self.class_description = QTextEdit()
+        self.class_description.setObjectName("classDescription")
+        self.class_description.setMaximumHeight(120)
+        self.class_description.setReadOnly(True)
+        layout.addWidget(self.class_description)
+        
+        # Connect selection change
+        self.class_list.currentItemChanged.connect(self._on_class_selected)
+        
+        return widget
+    
+    def _create_background_species_step(self) -> QWidget:
+        """Create background and species selection step."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        title = QLabel("Choose Background & Species")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Horizontal split for background and species
+        content_layout = QHBoxLayout()
+        
+        # Background section
+        bg_frame = QFrame()
+        bg_layout = QVBoxLayout(bg_frame)
+        
+        bg_label = QLabel("Background")
+        bg_label.setObjectName("sectionLabel")
+        bg_layout.addWidget(bg_label)
+        
+        self.background_list = QListWidget()
+        self.background_list.setObjectName("backgroundList")
+        bg_layout.addWidget(self.background_list)
+        
+        # Species section
+        species_frame = QFrame()
+        species_layout = QVBoxLayout(species_frame)
+        
+        species_label = QLabel("Species (Race)")
+        species_label.setObjectName("sectionLabel")
+        species_layout.addWidget(species_label)
+        
+        self.species_list = QListWidget()
+        self.species_list.setObjectName("speciesList")
+        species_layout.addWidget(self.species_list)
+        
+        content_layout.addWidget(bg_frame)
+        content_layout.addWidget(species_frame)
+        layout.addLayout(content_layout)
+        
+        # Description area
+        self.bg_species_description = QTextEdit()
+        self.bg_species_description.setObjectName("bgSpeciesDescription")
+        self.bg_species_description.setMaximumHeight(100)
+        self.bg_species_description.setReadOnly(True)
+        layout.addWidget(self.bg_species_description)
+        
+        # Load data
+        self._load_background_species_data()
+        
+        # Connect signals
+        self.background_list.currentItemChanged.connect(self._on_background_selected)
+        self.species_list.currentItemChanged.connect(self._on_species_selected)
+        
+        return widget
+    
+    def _create_abilities_step(self) -> QWidget:
+        """Create ability score assignment step."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        title = QLabel("Assign Ability Scores")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Instructions
+        info_label = QLabel("Point buy system with class-based starting values")
+        layout.addWidget(info_label)
+        
+        # Class info label
+        self.class_stats_info = QLabel("Select a class first to see starting ability scores")
+        self.class_stats_info.setObjectName("classStatsInfo")
+        layout.addWidget(self.class_stats_info)
+        
+        # Ability score controls
+        abilities_layout = QGridLayout()
+        
+        abilities = ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+        self.ability_spinboxes = {}
+        self.racial_bonus_labels = {}
+        self.final_score_labels = {}
+        self.rolled_score_labels = {}  # For 4d6 results
+        
+        # Add column headers
+        abilities_layout.addWidget(QLabel("Ability"), 0, 0)
+        abilities_layout.addWidget(QLabel("Base"), 0, 1)
+        abilities_layout.addWidget(QLabel("Racial"), 0, 2) 
+        abilities_layout.addWidget(QLabel("Rolled"), 0, 3)  # New column
+        abilities_layout.addWidget(QLabel("Final"), 0, 4)   # Moved to column 4
+        
+        for i, ability in enumerate(abilities):
+            row = i + 1  # Account for header row
+            
+            label = QLabel(ability)
+            abilities_layout.addWidget(label, row, 0)
+            
+            spinbox = QSpinBox()
+            spinbox.setMinimum(3)  # Allow down to 3 for dump stats
+            spinbox.setMaximum(15)
+            spinbox.setValue(8)
+            spinbox.valueChanged.connect(self._update_point_buy)
+            self.ability_spinboxes[ability.lower()] = spinbox
+            abilities_layout.addWidget(spinbox, row, 1)
+            
+            # Show racial bonus
+            bonus_label = QLabel("+0")
+            bonus_label.setObjectName("racialBonus")
+            self.racial_bonus_labels[ability.lower()] = bonus_label
+            abilities_layout.addWidget(bonus_label, row, 2)
+            
+            # Show rolled score (4d6 drop lowest)
+            rolled_label = QLabel("-")
+            rolled_label.setObjectName("rolledScore")
+            self.rolled_score_labels[ability.lower()] = rolled_label
+            abilities_layout.addWidget(rolled_label, row, 3)
+            
+            # Final score
+            final_label = QLabel("8")
+            final_label.setObjectName("finalScore")
+            self.final_score_labels[ability.lower()] = final_label
+            abilities_layout.addWidget(final_label, row, 4)
+        
+        layout.addLayout(abilities_layout)
+        
+        # Control buttons
+        controls_layout = QHBoxLayout()
+        
+        # Set class defaults button
+        self.set_class_defaults_btn = QPushButton("Apply Class Defaults")
+        self.set_class_defaults_btn.clicked.connect(self._apply_class_defaults)
+        self.set_class_defaults_btn.setEnabled(False)
+        controls_layout.addWidget(self.set_class_defaults_btn)
+        
+        # Roll 4d6 button
+        self.roll_4d6_btn = QPushButton("Roll 4d6 Drop Lowest")
+        self.roll_4d6_btn.clicked.connect(self._roll_4d6_overlay)
+        controls_layout.addWidget(self.roll_4d6_btn)
+        
+        # Use rolled scores button
+        self.use_rolled_btn = QPushButton("Use Rolled Scores")
+        self.use_rolled_btn.clicked.connect(self._use_rolled_scores)
+        self.use_rolled_btn.setEnabled(False)
+        controls_layout.addWidget(self.use_rolled_btn)
+        
+        layout.addLayout(controls_layout)
+        
+        # Points remaining
+        self.points_remaining_label = QLabel("Points available: Calculate after setting defaults")
+        self.points_remaining_label.setObjectName("pointsRemaining")
+        layout.addWidget(self.points_remaining_label)
+        
+        layout.addStretch()
+        
+        return widget
+    
+    def _create_equipment_step(self) -> QWidget:
+        """Create equipment selection step."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        title = QLabel("Starting Equipment")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Equipment will be populated based on class/background choices
+        self.equipment_list = QListWidget()
+        self.equipment_list.setObjectName("equipmentList")
+        layout.addWidget(self.equipment_list)
+        
+        return widget
+    
+    def _create_review_step(self) -> QWidget:
+        """Create final review and confirmation step."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        title = QLabel("Review Character")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Character name input
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(QLabel("Character Name:"))
+        self.character_name_input = QComboBox()
+        self.character_name_input.setEditable(True)
+        self.character_name_input.setCurrentText("Adventurer")
+        name_layout.addWidget(self.character_name_input)
+        layout.addLayout(name_layout)
+        
+        # Review summary
+        self.review_summary = QTextEdit()
+        self.review_summary.setObjectName("reviewSummary")
+        self.review_summary.setReadOnly(True)
+        layout.addWidget(self.review_summary)
+        
+        # Create character button
+        self.create_character_btn = QPushButton("Create Character")
+        self.create_character_btn.clicked.connect(self._finish_character_creation)
+        self.create_character_btn.setObjectName("createCharacterBtn")
+        layout.addWidget(self.create_character_btn)
+        
+        return widget
+    
+    def _load_class_data(self):
+        """Load class data from JSON file."""
+        try:
+            # Get the absolute path to the data directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            classes_file = os.path.join(project_root, "data", "classes.json")
+            
+            with open(classes_file, 'r') as f:
+                classes_data = json.load(f)
+            
+            for class_data in classes_data:
+                item = QListWidgetItem(class_data['name'])
+                item.setData(Qt.ItemDataRole.UserRole, class_data)
+                self.class_list.addItem(item)
+        except Exception as e:
+            print(f"Error loading class data: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _load_background_species_data(self):
+        """Load background and species data from JSON files."""
+        try:
+            # Get the absolute path to the data directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            
+            # Load backgrounds
+            bg_file = os.path.join(project_root, "data", "backgrounds.json")
+            with open(bg_file, 'r') as f:
+                backgrounds_data = json.load(f)
+            
+            for bg_data in backgrounds_data:
+                item = QListWidgetItem(bg_data['name'])
+                item.setData(Qt.ItemDataRole.UserRole, bg_data)
+                self.background_list.addItem(item)
+            
+            # Load species/races
+            races_file = os.path.join(project_root, "data", "races.json")
+            with open(races_file, 'r') as f:
+                races_data = json.load(f)
+            
+            for race_data in races_data:
+                item = QListWidgetItem(race_data['name'])
+                item.setData(Qt.ItemDataRole.UserRole, race_data)
+                self.species_list.addItem(item)
+                
+        except Exception as e:
+            print(f"Error loading background/species data: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _on_class_selected(self, current, previous):
+        """Handle class selection change."""
+        if current:
+            class_data = current.data(Qt.ItemDataRole.UserRole)
+            self.character_creation_data['class'] = class_data
+            
+            description = f"**{class_data['name']}**\n\n"
+            description += f"{class_data['description']}\n\n"
+            description += f"Hit Die: d{class_data['hit_die']}\n"
+            description += f"Primary Ability: {class_data['primary_ability']}\n"
+            description += f"Saving Throws: {', '.join(class_data['saving_throw_proficiencies'])}"
+            
+            self.class_description.setPlainText(description)
+            
+            # Enable class defaults button if we have ability controls
+            if hasattr(self, 'set_class_defaults_btn'):
+                self.set_class_defaults_btn.setEnabled(True)
+                
+                # Update class info
+                class_name = class_data['name'].lower()
+                dump_stats = self._get_class_dump_stats(class_name)
+                info_text = f"{class_data['name']} dump stat: {dump_stats['dump_stat'].title()} = 3, Random stat = 6"
+                self.class_stats_info.setText(info_text)
+    
+    def _on_background_selected(self, current, previous):
+        """Handle background selection change."""
+        if current:
+            bg_data = current.data(Qt.ItemDataRole.UserRole)
+            self.character_creation_data['background'] = bg_data
+            self._update_bg_species_description()
+    
+    def _on_species_selected(self, current, previous):
+        """Handle species selection change."""
+        if current:
+            species_data = current.data(Qt.ItemDataRole.UserRole)
+            self.character_creation_data['species'] = species_data
+            self._update_bg_species_description()
+            self._update_racial_bonuses()
+    
+    def _update_bg_species_description(self):
+        """Update the combined background/species description."""
+        description = ""
+        
+        if 'background' in self.character_creation_data:
+            bg = self.character_creation_data['background']
+            description += f"**Background: {bg['name']}**\n{bg.get('description', '')}\n\n"
+        
+        if 'species' in self.character_creation_data:
+            species = self.character_creation_data['species']
+            description += f"**Species: {species['name']}**\n{species.get('description', '')}"
+        
+        self.bg_species_description.setPlainText(description)
+    
+    def _update_racial_bonuses(self):
+        """Update racial bonuses display in abilities step."""
+        if 'species' not in self.character_creation_data:
+            return
+        
+        bonuses = self.character_creation_data['species'].get('ability_score_increases', {})
+        
+        # Update bonus and final score labels
+        for ability in self.ability_spinboxes:
+            bonus = bonuses.get(ability, 0)
+            base_score = self.ability_spinboxes[ability].value()
+            final_score = base_score + bonus
+            
+            # Update displays
+            bonus_text = f"+{bonus}" if bonus > 0 else f"{bonus}" if bonus < 0 else "+0"
+            self.racial_bonus_labels[ability].setText(bonus_text)
+            self.final_score_labels[ability].setText(str(final_score))
+    
+    def _update_point_buy(self):
+        """Update point buy calculations."""
+        total_points = 0
+        point_costs = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
+        
+        for ability, spinbox in self.ability_spinboxes.items():
+            total_points += point_costs.get(spinbox.value(), 0)
+        
+        remaining = 27 - total_points
+        self.points_remaining_label.setText(f"Points remaining: {remaining}")
+        
+        # Enable/disable next button based on valid point allocation
+        self.creation_next_btn.setEnabled(remaining >= 0)
+        
+        # Update final scores with current racial bonuses
+        self._update_final_scores()
+    
+    def _update_final_scores(self):
+        """Update final ability scores including racial bonuses."""
+        if not hasattr(self, 'racial_bonus_labels'):
+            return
+            
+        bonuses = {}
+        if 'species' in self.character_creation_data:
+            bonuses = self.character_creation_data['species'].get('ability_score_increases', {})
+        
+        for ability in self.ability_spinboxes:
+            bonus = bonuses.get(ability, 0)
+            base_score = self.ability_spinboxes[ability].value()
+            final_score = base_score + bonus
+            self.final_score_labels[ability].setText(str(final_score))
+    
+    def _creation_next_step(self):
+        """Move to next character creation step."""
+        if self.creation_step < 4:  # 5 steps total (0-4)
+            self.creation_step += 1
+            self._update_creation_step()
+    
+    def _creation_previous_step(self):
+        """Move to previous character creation step."""
+        if self.creation_step > 0:
+            self.creation_step -= 1
+            self._update_creation_step()
+    
+    def _update_creation_step(self):
+        """Update the current creation step display and navigation."""
+        self.creation_stack.setCurrentIndex(self.creation_step)
+        self.creation_step_label.setText(f"Step {self.creation_step + 1} of 5")
+        
+        # Update button states
+        self.creation_back_btn.setEnabled(self.creation_step > 0)
+        
+        # Check if current step is valid for next button
+        if self.creation_step == 4:  # Final step
+            self.creation_next_btn.setText("Complete")
+        else:
+            self.creation_next_btn.setText("Next")
+    
+    def _finish_character_creation(self):
+        """Complete character creation and emit the character data."""
+        # Compile final character data
+        final_character = {
+            'name': self.character_name_input.currentText(),
+            'class_data': self.character_creation_data.get('class'),
+            'background_data': self.character_creation_data.get('background'),
+            'species_data': self.character_creation_data.get('species'),
+            'ability_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
+            'level': 1,
+            'experience_points': 0
+        }
+        
+        # Emit the completed character
+        self.character_created.emit(final_character)
+        
+        # Return to exploration mode
+        self.exit_character_creation()
