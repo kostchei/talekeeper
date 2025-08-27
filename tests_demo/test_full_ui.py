@@ -55,7 +55,7 @@ class FullUITestWindow(QMainWindow):
         
         # Character sheet (below menu, left column)  
         self.character_sheet = CharacterPanel(self)
-        self.character_sheet.move(96, 54 + 160)  # Below menu
+        self.character_sheet.move(96, 54 + 90)  # Below menu, moved up more to reduce gap
         self.character_sheet.show()
         
         # Encounter pane (center, full height)

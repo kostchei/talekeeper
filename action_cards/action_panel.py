@@ -71,7 +71,7 @@ class ActionPanel(QWidget):
         self.character_context = {}  # Current character state
         
         # Set fixed size (center + right columns only)
-        self.setFixedSize(1080, 300)
+        self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
         self.setAutoFillBackground(True)  # Ensure background is filled
         self._setup_ui()
         self._apply_styles()

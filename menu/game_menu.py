@@ -43,7 +43,7 @@ class GameMenu(QWidget):
         super().__init__(parent)
         self.dropdown_visible = False
         self.setAutoFillBackground(True)  # Ensure background is filled
-        self.setFixedSize(648, 200)  # Fixed size for the menu widget
+        self.setFixedSize(648, 140)  # Slightly taller for better button fit
         self._setup_ui()
         self._apply_styles()
     
@@ -51,8 +51,9 @@ class GameMenu(QWidget):
         """Initialize the menu UI components."""
         # Main layout - simple grid of buttons
         self.main_layout = QGridLayout(self)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(5)
+        self.main_layout.setContentsMargins(10, 2, 10, 10)  # Reduced top margin from 10 to 2
+        self.main_layout.setSpacing(1)  # Further reduced spacing to 1px
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)  # Align content to top, don't stretch
         
         # === 2 COLUMNS x 3 ROWS OF BUTTONS ===
         
@@ -115,6 +116,8 @@ class GameMenu(QWidget):
             font-weight: bold;
             text-align: left;
             font-size: 12px;
+            padding: 2px 8px;
+            margin: 1px;
         }
         
         QPushButton#menuButton:hover {

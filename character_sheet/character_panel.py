@@ -40,7 +40,7 @@ class CharacterPanel(QWidget):
         self.character_data = None
         
         # Set initial size (fits between menu and action cards)
-        self.setFixedSize(648, 512)  # 726 - 214 = 512px available space
+        self.setFixedSize(648, 570)  # Increased height to better use available space
         self._setup_ui()
         self._apply_styles()
     
