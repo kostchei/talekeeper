@@ -65,7 +65,9 @@ class EquipmentPanel(QWidget):
         self.inventory_items = []  # list of inventory items
         
         # Set initial size (extends to bottom above action cards)
-        self.setFixedSize(432, 772)
+        self.setMinimumSize(432, 772)  # Use minimum size instead of fixed
+        self.setMaximumSize(1080, 772)  # Allow expansion to wider size
+        self.resize(432, 772)  # Set initial size
         self._setup_ui()
         self._apply_styles()
     
@@ -386,41 +388,41 @@ class EquipmentPanel(QWidget):
         self.setStyleSheet(style_sheet)
     
     def _toggle_expansion(self):
-        """Toggle the panel expansion with animation."""
-        # Determine target width
-        start_width = self.width()
-        end_width = 1080 if not self.expanded else 432
-        
-        # Create animation
-        self.animation = QPropertyAnimation(self, b"geometry")
-        self.animation.setDuration(400)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        # Set animation values
-        current_geometry = self.geometry()
-        self.animation.setStartValue(current_geometry)
-        self.animation.setEndValue(QRect(
-            current_geometry.x(),
-            current_geometry.y(),
-            end_width,
-            current_geometry.height()
-        ))
-        
-        # Start animation
-        self.animation.start()
-        
-        # Update state
+        """Toggle the panel expansion - expands leftward to cover encounter pane."""
+        # Toggle expansion state
         self.expanded = not self.expanded
         
-        # Update button text
         if self.expanded:
+            # EXPAND: Move left and resize to cover encounter pane
+            current_pos = self.pos()
+            # Move left by the difference in width (1080 - 432 = 648)
+            new_x = current_pos.x() - (1080 - 432)
+            self.move(new_x, current_pos.y())
+            
+            self.setMinimumSize(1080, 772)
+            self.setMaximumSize(1080, 772)
             self.expand_btn.setText("▲ Collapse")
+            self.raise_()  # Bring to front to cover encounter pane
+            
             # Switch to expanded layout
             self._switch_to_expanded_layout()
         else:
+            # COLLAPSE: Move right and resize back to normal position
+            current_pos = self.pos()
+            # Move right by the difference in width (1080 - 432 = 648)
+            new_x = current_pos.x() + (1080 - 432)
+            self.move(new_x, current_pos.y())
+            
+            self.setMinimumSize(432, 772)
+            self.setMaximumSize(1080, 772)  # Allow future expansion
             self.expand_btn.setText("▼ Expand")
+            
             # Switch to compact layout
             self._switch_to_compact_layout()
+        
+        # Force immediate layout update
+        self.updateGeometry()
+        self.adjustSize()
         
         # Emit signal
         self.expansion_changed.emit(self.expanded)
