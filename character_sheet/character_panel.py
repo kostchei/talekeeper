@@ -17,7 +17,7 @@ Designed to match ui_plan.md specifications:
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QGridLayout, QProgressBar)
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QParallelAnimationGroup
 from typing import Optional, Dict, Any
 
 
@@ -40,17 +40,46 @@ class CharacterPanel(QWidget):
         self.character_data = None
         
         # Set initial size (fits between menu and action cards)
-        self.setFixedSize(648, 570)  # Increased height to better use available space
+        self.setMinimumSize(648, 570)  # Use minimum size instead of fixed
+        self.setMaximumSize(1296, 570)  # Allow expansion to double width
+        self.resize(648, 570)  # Set initial size
         self._setup_ui()
         self._apply_styles()
     
     def _setup_ui(self):
         """Initialize the character panel UI components."""
-        # Main layout
-        self.main_layout = QVBoxLayout(self)
+        # Main horizontal layout for basic + detailed sections
+        self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         
+        # Basic character panel (always visible)
+        self.basic_panel = QWidget()
+        self.basic_panel.setFixedWidth(648)
+        self.basic_layout = QVBoxLayout(self.basic_panel)
+        self.basic_layout.setContentsMargins(0, 0, 0, 0)
+        self.basic_layout.setSpacing(0)
+        
+        # Detailed expansion panel (hidden by default)
+        self.detail_panel = QWidget()
+        self.detail_panel.setMinimumWidth(0)
+        self.detail_panel.setMaximumWidth(0)  # Start hidden
+        self.detail_layout = QVBoxLayout(self.detail_panel)
+        self.detail_layout.setContentsMargins(0, 0, 0, 0)
+        self.detail_layout.setSpacing(0)
+        
+        # Add panels to main layout
+        self.main_layout.addWidget(self.basic_panel)
+        self.main_layout.addWidget(self.detail_panel)
+        
+        # === BASIC PANEL SETUP ===
+        self._setup_basic_panel()
+        
+        # === DETAILED PANEL SETUP ===
+        self._setup_detail_panel()
+    
+    def _setup_basic_panel(self):
+        """Setup the basic character panel (always visible)."""
         # === HEADER SECTION ===
         self.header_frame = QFrame()
         self.header_frame.setObjectName("headerFrame")
@@ -171,11 +200,114 @@ class CharacterPanel(QWidget):
         
         self.scroll_area.setWidget(self.content_widget)
         
-        # Add sections to main layout
-        self.main_layout.addWidget(self.header_frame)
-        self.main_layout.addWidget(self.info_frame)
-        self.main_layout.addWidget(self.stats_frame)
-        self.main_layout.addWidget(self.scroll_area, 1)  # Take remaining space
+        # Add sections to basic panel layout
+        self.basic_layout.addWidget(self.header_frame)
+        self.basic_layout.addWidget(self.info_frame)
+        self.basic_layout.addWidget(self.stats_frame)
+        self.basic_layout.addWidget(self.scroll_area, 1)  # Take remaining space
+    
+    def _setup_detail_panel(self):
+        """Setup the detailed character panel (shown when expanded)."""
+        # === DETAILED HEADER ===
+        self.detail_header = QFrame()
+        self.detail_header.setObjectName("detailHeader")
+        self.detail_header.setFixedHeight(80)
+        
+        detail_header_layout = QHBoxLayout(self.detail_header)
+        detail_header_layout.setContentsMargins(10, 5, 10, 5)
+        
+        self.detail_title = QLabel("Character Details")
+        self.detail_title.setObjectName("charTitle")
+        detail_header_layout.addWidget(self.detail_title)
+        detail_header_layout.addStretch()
+        
+        # === SKILLS SECTION ===
+        self.skills_frame = QFrame()
+        self.skills_frame.setObjectName("skillsFrame")
+        skills_layout = QVBoxLayout(self.skills_frame)
+        skills_layout.setContentsMargins(5, 5, 5, 5)
+        
+        skills_label = QLabel("Skills & Proficiencies")
+        skills_label.setObjectName("sectionTitle")
+        skills_layout.addWidget(skills_label)
+        
+        # Skills scroll area
+        self.skills_scroll = QScrollArea()
+        self.skills_scroll.setWidgetResizable(True)
+        self.skills_scroll.setObjectName("skillsScroll")
+        
+        self.skills_widget = QWidget()
+        self.skills_layout = QVBoxLayout(self.skills_widget)
+        
+        # Create skill entries (will be populated with character data)
+        self.skill_labels = {}
+        skills = [
+            'Acrobatics (Dex)', 'Animal Handling (Wis)', 'Arcana (Int)', 'Athletics (Str)',
+            'Deception (Cha)', 'History (Int)', 'Insight (Wis)', 'Intimidation (Cha)',
+            'Investigation (Int)', 'Medicine (Wis)', 'Nature (Int)', 'Perception (Wis)',
+            'Performance (Cha)', 'Persuasion (Cha)', 'Religion (Int)', 'Sleight of Hand (Dex)',
+            'Stealth (Dex)', 'Survival (Wis)'
+        ]
+        
+        for skill in skills:
+            skill_frame = QFrame()
+            skill_frame.setObjectName("skillEntry")
+            skill_layout = QHBoxLayout(skill_frame)
+            skill_layout.setContentsMargins(5, 2, 5, 2)
+            
+            skill_name = QLabel(skill)
+            skill_name.setObjectName("skillName")
+            skill_layout.addWidget(skill_name)
+            
+            skill_layout.addStretch()
+            
+            skill_bonus = QLabel("+0")
+            skill_bonus.setObjectName("skillBonus")
+            self.skill_labels[skill] = skill_bonus
+            skill_layout.addWidget(skill_bonus)
+            
+            self.skills_layout.addWidget(skill_frame)
+        
+        self.skills_scroll.setWidget(self.skills_widget)
+        skills_layout.addWidget(self.skills_scroll, 1)
+        
+        # === FEATURES & TRAITS SECTION ===
+        self.features_frame = QFrame()
+        self.features_frame.setObjectName("featuresFrame")
+        features_layout = QVBoxLayout(self.features_frame)
+        features_layout.setContentsMargins(5, 5, 5, 5)
+        
+        features_label = QLabel("Features & Traits")
+        features_label.setObjectName("sectionTitle")
+        features_layout.addWidget(features_label)
+        
+        self.features_text = QTextEdit()
+        self.features_text.setObjectName("featuresText")
+        self.features_text.setReadOnly(True)
+        self.features_text.setPlainText("Racial traits, class features, and special abilities will appear here...")
+        features_layout.addWidget(self.features_text, 1)
+        
+        # === SPELLS SECTION (if applicable) ===
+        self.spells_frame = QFrame()
+        self.spells_frame.setObjectName("spellsFrame")
+        spells_layout = QVBoxLayout(self.spells_frame)
+        spells_layout.setContentsMargins(5, 5, 5, 5)
+        
+        spells_label = QLabel("Spells & Abilities")
+        spells_label.setObjectName("sectionTitle")
+        spells_layout.addWidget(spells_label)
+        
+        self.spells_text = QTextEdit()
+        self.spells_text.setObjectName("spellsText")
+        self.spells_text.setReadOnly(True)
+        self.spells_text.setPlainText("Known spells and special abilities will appear here...")
+        spells_layout.addWidget(self.spells_text, 1)
+        
+        # Add all sections to detail panel
+        self.detail_layout.addWidget(self.detail_header)
+        self.detail_layout.addWidget(self.skills_frame, 1)
+        self.detail_layout.addWidget(self.features_frame, 1)
+        self.detail_layout.addWidget(self.spells_frame, 1)
     
     def _apply_styles(self):
         """Apply dark theme styling to character panel components."""
@@ -188,8 +320,55 @@ class CharacterPanel(QWidget):
             background-color: #2a2a2a;
         }
         
-        QFrame#infoFrame, QFrame#statsFrame, QFrame#actionsFrame {
+        QFrame#infoFrame, QFrame#statsFrame, QFrame#actionsFrame,
+        QFrame#skillsFrame, QFrame#featuresFrame, QFrame#spellsFrame {
             background-color: #252525;
+        }
+        
+        QFrame#detailHeader {
+            background-color: #2a2a2a;
+        }
+        
+        QLabel#sectionTitle {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 5px;
+        }
+        
+        QFrame#skillEntry {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 3px;
+            margin: 1px;
+        }
+        
+        QLabel#skillName {
+            color: #cccccc;
+            font-size: 11px;
+            padding: 2px;
+        }
+        
+        QLabel#skillBonus {
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px;
+            min-width: 30px;
+        }
+        
+        QTextEdit#featuresText, QTextEdit#spellsText {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 11px;
+        }
+        
+        QScrollArea#skillsScroll {
+            background-color: transparent;
+            border: none;
         }
         
         QFrame#abilitiesFrame {
@@ -314,39 +493,31 @@ class CharacterPanel(QWidget):
         self.setStyleSheet(style_sheet)
     
     def _toggle_expansion(self):
-        """Toggle the panel expansion with animation."""
-        # Determine target width
-        start_width = self.width()
-        end_width = 1296 if not self.expanded else 648
-        
-        # Create animation
-        self.animation = QPropertyAnimation(self, b"geometry")
-        self.animation.setDuration(400)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
-        # Set animation values
-        current_geometry = self.geometry()
-        self.animation.setStartValue(current_geometry)
-        self.animation.setEndValue(QRect(
-            current_geometry.x(),
-            current_geometry.y(), 
-            end_width,
-            current_geometry.height()
-        ))
-        
-        # Start animation
-        self.animation.start()
-        
-        # Update state
+        """Toggle the panel expansion - simple and reliable approach."""
+        # Toggle expansion state
         self.expanded = not self.expanded
         
-        # Update button text
         if self.expanded:
+            # EXPAND: Show detail panel and resize main widget
+            self.detail_panel.setMinimumWidth(648)
+            self.detail_panel.setMaximumWidth(648)
+            self.setMinimumSize(1296, 570)
+            self.setMaximumSize(1296, 570)
             self.expand_btn.setText("◀ Collapse")
+            self.raise_()  # Bring to front to cover encounter pane
         else:
+            # COLLAPSE: Hide detail panel and resize main widget
+            self.detail_panel.setMinimumWidth(0)
+            self.detail_panel.setMaximumWidth(0)
+            self.setMinimumSize(648, 570)
+            self.setMaximumSize(1296, 570)  # Allow future expansion
             self.expand_btn.setText("▶ Expand")
         
-        # Emit signal
+        # Force immediate layout update
+        self.updateGeometry()
+        self.adjustSize()
+        
+        # Emit signal for parent to handle layout changes
         self.expansion_changed.emit(self.expanded)
     
     def load_character_data(self, character_data: Dict[str, Any]):
@@ -382,10 +553,88 @@ class CharacterPanel(QWidget):
         # Update detailed text
         self._update_details_text()
         
+        # Update detailed panel with character data
+        self._update_detail_panel()
+        
         # Check level up eligibility
         experience = character_data.get('experience_points', 0)
         next_level_xp = self._calculate_next_level_xp(level)
         self.level_up_btn.setEnabled(experience >= next_level_xp)
+    
+    def _update_detail_panel(self):
+        """Update the detailed panel with character-specific information."""
+        if not self.character_data:
+            return
+        
+        # Update skill bonuses
+        base_abilities = {
+            'Acrobatics (Dex)': self.character_data.get('dexterity', 10),
+            'Animal Handling (Wis)': self.character_data.get('wisdom', 10),
+            'Arcana (Int)': self.character_data.get('intelligence', 10),
+            'Athletics (Str)': self.character_data.get('strength', 10),
+            'Deception (Cha)': self.character_data.get('charisma', 10),
+            'History (Int)': self.character_data.get('intelligence', 10),
+            'Insight (Wis)': self.character_data.get('wisdom', 10),
+            'Intimidation (Cha)': self.character_data.get('charisma', 10),
+            'Investigation (Int)': self.character_data.get('intelligence', 10),
+            'Medicine (Wis)': self.character_data.get('wisdom', 10),
+            'Nature (Int)': self.character_data.get('intelligence', 10),
+            'Perception (Wis)': self.character_data.get('wisdom', 10),
+            'Performance (Cha)': self.character_data.get('charisma', 10),
+            'Persuasion (Cha)': self.character_data.get('charisma', 10),
+            'Religion (Int)': self.character_data.get('intelligence', 10),
+            'Sleight of Hand (Dex)': self.character_data.get('dexterity', 10),
+            'Stealth (Dex)': self.character_data.get('dexterity', 10),
+            'Survival (Wis)': self.character_data.get('wisdom', 10)
+        }
+        
+        # Calculate and display skill bonuses
+        proficiency_bonus = 2 + ((self.character_data.get('level', 1) - 1) // 4)  # D&D 5e proficiency scaling
+        
+        for skill, ability_score in base_abilities.items():
+            ability_mod = (ability_score - 10) // 2
+            # For now, assume no skill proficiencies (could be enhanced later)
+            skill_bonus = ability_mod
+            
+            bonus_text = f"+{skill_bonus}" if skill_bonus >= 0 else str(skill_bonus)
+            if skill in self.skill_labels:
+                self.skill_labels[skill].setText(bonus_text)
+        
+        # Update features and traits
+        race_name = self.character_data.get('race_name', 'Unknown')
+        class_name = self.character_data.get('class_name', 'Unknown') 
+        level = self.character_data.get('level', 1)
+        
+        features_text = f"=== Racial Traits ({race_name}) ===\n"
+        features_text += "• Racial abilities and traits based on character race\n"
+        features_text += "• Special resistances or bonuses\n\n"
+        
+        features_text += f"=== Class Features ({class_name}) ===\n"
+        features_text += f"• Level {level} class abilities and features\n"
+        features_text += "• Subclass specialization\n"
+        features_text += "• Fighting style or specialization\n\n"
+        
+        features_text += "=== Background Features ===\n"
+        if self.character_data.get('background_name'):
+            features_text += f"• {self.character_data.get('background_name')} background benefits\n"
+        features_text += "• Skill proficiencies\n"
+        features_text += "• Equipment and tools\n"
+        
+        self.features_text.setPlainText(features_text)
+        
+        # Update spells section (basic implementation)
+        spells_text = "=== Cantrips ===\n"
+        spells_text += "• Known cantrips will appear here\n\n"
+        
+        spells_text += "=== Spells Known ===\n"
+        spells_text += f"• Level 1-{(level + 1) // 2} spells available\n"
+        spells_text += "• Spell slots and casting ability\n\n"
+        
+        spells_text += "=== Special Abilities ===\n"
+        spells_text += "• Class-specific magical abilities\n"
+        spells_text += "• Racial magical traits\n"
+        
+        self.spells_text.setPlainText(spells_text)
     
     def _update_details_text(self):
         """Update the detailed character information text."""
