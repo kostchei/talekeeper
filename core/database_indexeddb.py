@@ -40,7 +40,7 @@ class IndexedDBSimulator:
     Provides object stores, indexes, transactions, and async operations.
     """
     
-    def __init__(self, db_name: str = "talekeeper_indexed"):
+    def __init__(self, db_name: str = "talekeeper"):
         self.db_name = db_name
         self.db_path = f"{db_name}.idb"
         self.object_stores: Dict[str, Dict] = {}

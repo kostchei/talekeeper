@@ -944,6 +944,9 @@ class EncounterPanel(QWidget):
             
             self.class_description.setPlainText(description)
             
+            # Automatically apply class defaults when class is selected
+            self._apply_class_defaults_auto()
+            
             # Enable class defaults button if we have ability controls
             if hasattr(self, 'set_class_defaults_btn'):
                 self.set_class_defaults_btn.setEnabled(True)
@@ -951,7 +954,7 @@ class EncounterPanel(QWidget):
                 # Update class info
                 class_name = class_data['name'].lower()
                 dump_stats = self._get_class_dump_stats(class_name)
-                info_text = f"{class_data['name']} dump stat: {dump_stats['dump_stat'].title()} = 3, Random stat = 6"
+                info_text = f"{class_data['name']} dump stat: {dump_stats['dump_stat'].title()} = 3 (auto-applied)"
                 self.class_stats_info.setText(info_text)
     
     def _on_background_selected(self, current, previous):
@@ -1006,21 +1009,23 @@ class EncounterPanel(QWidget):
         total_points = 0
         # Extended point costs to handle low values
         point_costs = {
-            3: -4,  # Dump stat gets negative points
-            4: -2,  # Very low stats give points back
-            5: -1, 
-            6: 0,   # 6 costs nothing
-            7: 0,   # 7 costs nothing
             8: 0,   # Standard starting point
             9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
             16: 12, 17: 15, 18: 17  # Handle high rolled values
         }
         
+        # Special handling for dump stat (3) - it costs 0 points
+        # This ensures 27 points total regardless of dump stat
+        
         for ability, spinbox in self.ability_spinboxes.items():
-            cost = point_costs.get(spinbox.value(), 0)
+            value = spinbox.value()
+            if value == 3:  # Dump stat
+                cost = 0  # Dump stat costs nothing
+            else:
+                cost = point_costs.get(value, 0)
             total_points += cost
         
-        # Start with 27 base points, but account for class defaults giving some back
+        # Standard D&D 5e point buy: 27 points
         base_points = 27
         remaining = base_points - total_points
         
@@ -1120,7 +1125,7 @@ class EncounterPanel(QWidget):
         self.exit_character_creation()
     
     def _get_class_dump_stats(self, class_name: str) -> Dict[str, str]:
-        """Get dump stat and random low stat for a class."""
+        """Get dump stat for a class."""
         dump_stats = {
             'fighter': 'intelligence',
             'rogue': 'wisdom',
@@ -1130,14 +1135,8 @@ class EncounterPanel(QWidget):
         # Default to intelligence for unknown classes
         dump_stat = dump_stats.get(class_name, 'intelligence')
         
-        # Choose a random stat that's not the dump stat for the 6-value
-        all_stats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']
-        available_for_six = [stat for stat in all_stats if stat != dump_stat]
-        random_six_stat = random.choice(available_for_six)
-        
         return {
-            'dump_stat': dump_stat,
-            'six_stat': random_six_stat
+            'dump_stat': dump_stat
         }
     
     def _apply_class_defaults(self):
@@ -1155,16 +1154,33 @@ class EncounterPanel(QWidget):
         # Set dump stat to 3
         self.ability_spinboxes[dump_stats['dump_stat']].setValue(3)
         
-        # Set random stat to 6
-        self.ability_spinboxes[dump_stats['six_stat']].setValue(6)
+        # No longer setting a random stat to 6
         
         # Update display
         self._update_point_buy()
         
         # Update info text
         class_data = self.character_creation_data['class']
-        info_text = f"{class_data['name']} defaults applied: {dump_stats['dump_stat'].title()} = 3, {dump_stats['six_stat'].title()} = 6"
+        info_text = f"{class_data['name']} defaults applied: {dump_stats['dump_stat'].title()} = 3"
         self.class_stats_info.setText(info_text)
+    
+    def _apply_class_defaults_auto(self):
+        """Automatically apply class defaults when class is selected."""
+        if 'class' not in self.character_creation_data or not hasattr(self, 'ability_spinboxes'):
+            return
+        
+        class_name = self.character_creation_data['class']['name'].lower()
+        dump_stats = self._get_class_dump_stats(class_name)
+        
+        # Only apply if ability scores are still at default (8)
+        all_at_default = all(spinbox.value() == 8 for spinbox in self.ability_spinboxes.values())
+        
+        if all_at_default:
+            # Set dump stat to 3
+            self.ability_spinboxes[dump_stats['dump_stat']].setValue(3)
+            
+            # Update display
+            self._update_point_buy()
     
     def _roll_4d6_overlay(self):
         """Roll 4d6 drop lowest for each ability score and auto-apply higher values."""
@@ -1184,10 +1200,10 @@ class EncounterPanel(QWidget):
             # Update the rolled score display - show if it beats point buy
             point_buy_value = self.ability_spinboxes[ability].value()
             if total > point_buy_value:
-                roll_text = f"{total}* ({','.join(map(str, rolls[:3]))})"  # * indicates it's being used
+                roll_text = f"{total}* (4d6: {','.join(map(str, rolls))} → {','.join(map(str, rolls[:3]))})"  # * indicates it's being used
                 self.rolled_score_labels[ability].setStyleSheet("color: #50c878; font-weight: bold;")  # Green for winning
             else:
-                roll_text = f"{total} ({','.join(map(str, rolls[:3]))})"
+                roll_text = f"{total} (4d6: {','.join(map(str, rolls))} → {','.join(map(str, rolls[:3]))})"
                 self.rolled_score_labels[ability].setStyleSheet("color: #ff9500; font-weight: bold;")  # Orange for not used
             
             self.rolled_score_labels[ability].setText(roll_text)

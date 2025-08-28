@@ -3,19 +3,16 @@ File: main.py
 Path: /main.py
 
 TaleKeeper Desktop - Entry Point
-Single-player D&D 2024 tactical RPG for Windows with IndexedDB backend.
-
-This version uses IndexedDB through a Python wrapper for more complex
-database operations while maintaining compatibility with the existing codebase.
+Single-player D&D 2024 tactical RPG for Windows.
 
 Pseudo Code:
 1. Initialize logging and configuration
-2. Setup IndexedDB database and migrate from SQLite if needed
+2. Setup SQLite database and create tables
 3. Load game data (races, classes, monsters) from JSON files
 4. Initialize and start the main GUI application
 5. Handle graceful shutdown and save state
 
-AI Agents: This is the main entry point. Uses IndexedDB for enhanced database operations.
+AI Agents: This is the application entry point. Start here for understanding program flow.
 """
 
 import sys
@@ -27,10 +24,12 @@ from loguru import logger
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# PyQt6 handles DPI awareness automatically - no manual setup needed
+
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
-from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
+from core.database import init_database
 from core.game_engine import GameEngine
 from tests_demo.test_full_ui import FullUITestWindow
 
@@ -57,30 +56,20 @@ def main():
     try:
         # Setup logging
         setup_logging()
-        logger.info("Starting TaleKeeper Desktop Application")
+        logger.info("Starting TaleKeeper Desktop Application (PyQt6)")
         
-        # Create PyQt6 application first
+        # Initialize database
+        logger.info("Initializing database...")
+        init_database()
+        
+        # Create PyQt6 application
         app = QApplication(sys.argv)
         app.setStyle('Fusion')  # Use Fusion style for dark theme
         
-        # Initialize IndexedDB database
-        logger.info("Initializing IndexedDB database...")
-        init_indexeddb_database()
-        
-        # Check for existing SQLite database backup and offer migration
-        sqlite_db_path = Path("tests_demo/archive/talekeeper_sqlite_original.db")
-        if sqlite_db_path.exists() and not Path("talekeeper.idb").exists():
-            logger.info("Found SQLite backup database, attempting migration...")
-            try:
-                migrate_from_sqlite("tests_demo/archive/talekeeper_sqlite_original.db")
-                logger.info("SQLite to IndexedDB migration completed successfully")
-            except Exception as e:
-                logger.warning(f"Migration failed, continuing with fresh IndexedDB: {e}")
-        
-        # Initialize game engine (will use IndexedDB backend)
+        # Initialize game engine
         game_engine = GameEngine()
         
-        # Create main application window
+        # Create main application window (using our working PyQt6 interface)
         window = FullUITestWindow()
         window.setWindowTitle("TaleKeeper - D&D 2024 Adventure")
         window.show()
