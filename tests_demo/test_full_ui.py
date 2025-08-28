@@ -18,6 +18,7 @@ from encounter_pane.encounter_panel import EncounterPanel
 from log.log_panel import LogPanel
 from equipment_layout.equipment_panel import EquipmentPanel
 from action_cards.action_panel import ActionPanel
+from core.game_engine import GameEngine
 
 
 class FullUITestWindow(QMainWindow):
@@ -25,6 +26,9 @@ class FullUITestWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("TaleKeeper - Full UI Test (PyQt6)")
         self.setMinimumSize(1920, 1080)
+        
+        # Initialize game engine
+        self.game_engine = GameEngine()
         
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
@@ -36,8 +40,8 @@ class FullUITestWindow(QMainWindow):
         self._apply_dark_theme()
         self._connect_signals()
         
-        # Load test data after 3 seconds
-        QTimer.singleShot(3000, self.load_test_data)
+        # Try to load last character after 1 second, otherwise load test data
+        QTimer.singleShot(1000, self._try_load_last_character)
     
     def _setup_ui(self):
         """Setup fixed position UI layout - no splitters, no animations"""
@@ -103,7 +107,7 @@ class FullUITestWindow(QMainWindow):
         # Menu signals
         self.menu.create_character_requested.connect(self._start_character_creation)
         self.menu.load_game_requested.connect(lambda: self.log_panel.log_info("Load Game requested"))
-        self.menu.save_and_exit_requested.connect(lambda: self.log_panel.log_info("Save & Exit requested"))
+        self.menu.save_and_exit_requested.connect(self._save_and_exit)
         self.menu.archive_character_requested.connect(lambda: self.log_panel.log_info("Archive Character requested"))
         self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
         self.menu.campaign_frame_requested.connect(lambda: self.log_panel.log_info("Campaign Frame requested"))
@@ -222,6 +226,65 @@ class FullUITestWindow(QMainWindow):
         self.menu.set_character_loaded(True)
         
         self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
+    
+    def _save_and_exit(self):
+        """Save the current game state and exit the application."""
+        self.log_panel.log_system("Saving game and exiting...")
+        
+        # Save current character and game state if available
+        try:
+            if hasattr(self, 'game_engine') and self.game_engine.current_character:
+                self.game_engine.save_game()
+                self.log_panel.log_info(f"Saved character: {self.game_engine.current_character.name}")
+            else:
+                self.log_panel.log_info("No active character to save")
+        except Exception as e:
+            self.log_panel.log_error(f"Error saving game: {e}")
+        
+        # Close the application
+        self.log_panel.log_system("Goodbye!")
+        self.close()
+    
+    def _try_load_last_character(self):
+        """Try to load the last played character, otherwise load test data."""
+        last_slot = self.game_engine.settings.get('last_character_slot')
+        
+        if last_slot:
+            character = self.game_engine.load_character(last_slot)
+            if character:
+                self.log_panel.log_system(f"Auto-loaded last character: {character.name}")
+                
+                # Convert character DTO to display format
+                character_data = {
+                    'name': character.name,
+                    'level': character.level,
+                    'race_name': character.race_name,
+                    'class_name': character.class_name,
+                    'current_hit_points': character.hit_points_current,
+                    'hit_points': character.hit_points_max,
+                    'armor_class': character.armor_class,
+                    'strength': character.strength,
+                    'dexterity': character.dexterity,
+                    'constitution': character.constitution,
+                    'intelligence': character.intelligence,
+                    'wisdom': character.wisdom,
+                    'charisma': character.charisma,
+                    'experience_points': character.experience_points,
+                    'speed': 30,  # Default speed
+                    'background_name': character.background_name
+                }
+                
+                # Load into UI
+                self.character_sheet.load_character_data(character_data)
+                self.menu.update_game_info(character.name, character.level)
+                self.menu.set_character_loaded(True)
+                
+                self.log_panel.log_info(f"Welcome back, {character.name}!")
+                return
+        
+        # No last character found, load test data instead
+        self.log_panel.log_system("No saved character found, loading demo character...")
+        self.load_test_data()
     
     def _format_character_for_display(self, character_data):
         """Convert character creation data to display format."""

@@ -32,7 +32,7 @@ from PyQt6.QtCore import Qt
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
 from core.game_engine import GameEngine
-from tests_demo.test_full_ui import FullUITestWindow
+from ui.main_window import MainWindow
 
 
 def setup_logging():
@@ -81,7 +81,7 @@ def main():
         game_engine = GameEngine()
         
         # Create main application window
-        window = FullUITestWindow()
+        window = MainWindow()
         window.setWindowTitle("TaleKeeper - D&D 2024 Adventure")
         window.show()
         

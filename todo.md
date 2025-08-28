@@ -1,4 +1,5 @@
-add CaslonAntique fonts
+add IM Fell Great Primer Roman  font
+add colour chart
 Add encumberance
 use the "vast in the dark" navigation process for stealth and getting lost. The more things you have the more sneaky you are
 "noisy armour" , "dex bonus", "torch"-2, "padded shoes" +2, "light armour"+2, "proficient stealth","profiecient perception", "un-encumbered , less than 10%" +2, "encumbered, more than 50%"-4, "intentionally scouting"+2. Results- ambushed 0 or less, disadvantage initiative 5 or less, normal, advantage initaitve 15 or more, can retreat without being noticed or attack with a round of suprise (you have the invisible condition)20 or more 
