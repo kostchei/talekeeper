@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
         
         # Menu signals
         self.menu.create_character_requested.connect(self._start_character_creation)
-        self.menu.load_game_requested.connect(lambda: self.log_panel.log_info("Load Game requested"))
+        self.menu.load_game_requested.connect(self._show_load_character_dialog)
         self.menu.save_and_exit_requested.connect(self._save_and_exit)
         self.menu.archive_character_requested.connect(lambda: self.log_panel.log_info("Archive Character requested"))
         self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
@@ -147,32 +147,32 @@ class MainWindow(QMainWindow):
         self.encounter_pane.character_created.connect(self._on_character_created)
     
     def load_test_data(self):
-        """Load test data into all widgets"""
-        self.log_panel.log_system("Loading test data...")
+        """Load demo data into all widgets - only used when no saved characters exist"""
+        self.log_panel.log_system("Loading demo data for testing...")
         
-        # Load test character
-        test_character = {
-            'name': 'Thorin Oakenshield',
-            'level': 8,
-            'race_name': 'Dwarf',
+        # Load demo character - make it clear this is temporary
+        demo_character = {
+            'name': 'Demo Adventurer',
+            'level': 1,
+            'race_name': 'Human',
             'class_name': 'Fighter',
-            'current_hit_points': 72,
-            'hit_points': 85,
-            'armor_class': 18,
-            'strength': 18,
+            'current_hit_points': 10,
+            'hit_points': 10,
+            'armor_class': 12,
+            'strength': 15,
             'dexterity': 14,
-            'constitution': 16,
+            'constitution': 13,
             'intelligence': 12,
-            'wisdom': 13,
-            'charisma': 15,
-            'experience_points': 35000,
-            'speed': 25,
-            'background_name': 'Noble'
+            'wisdom': 11,
+            'charisma': 10,
+            'experience_points': 0,
+            'speed': 30,
+            'background_name': 'Folk Hero'
         }
         
-        self.character_sheet.load_character_data(test_character)
-        self.menu.update_game_info(test_character['name'], 3)
-        self.menu.set_character_loaded(True)
+        self.character_sheet.load_character_data(demo_character)
+        self.menu.update_game_info(demo_character['name'], demo_character['level'])
+        self.menu.set_character_loaded(False)  # Mark as not a real saved character
         
         # Add test encounter
         test_encounter = {
@@ -203,8 +203,9 @@ class MainWindow(QMainWindow):
             "What do you do?"
         )
         
-        self.log_panel.log_info("Welcome to the Lonely Mountain adventure!")
-        self.log_panel.log_dice("Rolled 1d20+3 for initiative: 17")
+        self.log_panel.log_info("📝 This is demo data - Create your own character to get started!")
+        self.log_panel.log_system("Use 'Create Character' button to make your own adventurer")
+        self.log_panel.log_info("Demo scenario: You explore ancient ruins...")
     
     def _start_character_creation(self):
         """Start the character creation process."""
@@ -219,15 +220,35 @@ class MainWindow(QMainWindow):
         
         self.log_panel.log_system(f"Character created: {name} ({species_name} {class_name})")
         
-        # Load the new character into the character sheet
-        formatted_character = self._format_character_for_display(character_data)
-        self.character_sheet.load_character_data(formatted_character)
-        
-        # Update menu
-        self.menu.update_game_info(name, 1)
-        self.menu.set_character_loaded(True)
-        
-        self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
+        try:
+            # Save character to database first
+            save_character_data = self._prepare_character_for_save(character_data)
+            saved_character = self.game_engine.create_new_character(save_character_data, save_slot=1)
+            
+            # Store the last used slot for auto-loading
+            self.game_engine.settings['last_character_slot'] = 1
+            self.game_engine.save_settings()
+            
+            # Load the saved character into the character sheet
+            character_display_data = self._convert_dto_to_display(saved_character)
+            self.character_sheet.load_character_data(character_display_data)
+            
+            # Update menu
+            self.menu.update_game_info(saved_character.name, saved_character.level)
+            self.menu.set_character_loaded(True)
+            
+            # Provide definitive feedback that character was saved
+            self.log_panel.log_info(f"✓ Character '{name}' successfully created and saved!")
+            self.log_panel.log_system(f"Saved to slot 1 - Level {saved_character.level} {species_name} {class_name}")
+            self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
+            
+        except Exception as e:
+            self.log_panel.log_error(f"Failed to save character: {e}")
+            # Still load the character in UI even if save failed
+            formatted_character = self._format_character_for_display(character_data)
+            self.character_sheet.load_character_data(formatted_character)
+            self.menu.update_game_info(name, 1)
+            self.menu.set_character_loaded(True)
     
     def _save_and_exit(self):
         """Save the current game state and exit the application."""
@@ -248,45 +269,163 @@ class MainWindow(QMainWindow):
         self.close()
     
     def _try_load_last_character(self):
-        """Try to load the last played character, otherwise load test data."""
-        last_slot = self.game_engine.settings.get('last_character_slot')
-        
-        if last_slot:
-            character = self.game_engine.load_character(last_slot)
-            if character:
-                self.log_panel.log_system(f"Auto-loaded last character: {character.name}")
+        """Try to load the most recent character, otherwise load test data."""
+        try:
+            # First, try to load from the last used slot
+            last_slot = self.game_engine.settings.get('last_character_slot')
+            if last_slot:
+                character = self.game_engine.load_character(last_slot)
+                if character:
+                    self._load_character_into_ui(character, f"Auto-loaded last character from slot {last_slot}")
+                    return
+            
+            # If no last slot or it's empty, try to find the most recent character from any slot
+            save_slots = self.game_engine.get_save_slots()
+            occupied_slots = [slot for slot in save_slots if slot.is_occupied]
+            
+            if occupied_slots:
+                # Sort by last_played date, most recent first
+                occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
+                most_recent_slot = occupied_slots[0]
                 
-                # Convert character DTO to display format
-                character_data = {
-                    'name': character.name,
-                    'level': character.level,
-                    'race_name': character.race_name,
-                    'class_name': character.class_name,
-                    'current_hit_points': character.hit_points_current,
-                    'hit_points': character.hit_points_max,
-                    'armor_class': character.armor_class,
-                    'strength': character.strength,
-                    'dexterity': character.dexterity,
-                    'constitution': character.constitution,
-                    'intelligence': character.intelligence,
-                    'wisdom': character.wisdom,
-                    'charisma': character.charisma,
-                    'experience_points': character.experience_points,
-                    'speed': 30,  # Default speed
-                    'background_name': character.background_name
+                character = self.game_engine.load_character(most_recent_slot.slot_number)
+                if character:
+                    # Update the last character slot setting for next time
+                    self.game_engine.settings['last_character_slot'] = most_recent_slot.slot_number
+                    self.game_engine.save_settings()
+                    
+                    self._load_character_into_ui(character, f"Auto-loaded most recent character from slot {most_recent_slot.slot_number}")
+                    return
+            
+            # No saved characters found at all
+            self.log_panel.log_system("No saved characters found")
+            self.log_panel.log_info("Create a new character to get started!")
+            self.log_panel.log_system("Loading demo character for testing...")
+            self.load_test_data()
+            
+        except Exception as e:
+            self.log_panel.log_error(f"Error loading characters: {e}")
+            self.log_panel.log_system("Loading demo character as fallback...")
+            self.load_test_data()
+    
+    def _load_character_into_ui(self, character, log_message):
+        """Helper method to load a character into the UI."""
+        self.log_panel.log_system(log_message)
+        
+        # Convert character DTO to display format
+        character_data = self._convert_dto_to_display(character)
+        
+        # Load into UI
+        self.character_sheet.load_character_data(character_data)
+        self.menu.update_game_info(character.name, character.level)
+        self.menu.set_character_loaded(True)
+        
+        self.log_panel.log_info(f"Welcome back, {character.name}!")
+    
+    def _show_load_character_dialog(self):
+        """Show dialog to load a saved character."""
+        try:
+            from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout, QLabel, QHBoxLayout
+            
+            self.log_panel.log_system("Opening character selection dialog...")
+            
+            # Get all save slots
+            save_slots = self.game_engine.get_save_slots()
+            occupied_slots = [slot for slot in save_slots if slot.is_occupied]
+            
+            if not occupied_slots:
+                self.log_panel.log_info("No saved characters found!")
+                return
+            
+            # Create dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Load Character")
+            dialog.setFixedSize(500, 400)
+            dialog.setStyleSheet("""
+                QDialog {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
                 }
+                QListWidget {
+                    background-color: #1a1a1a;
+                    color: #ffffff;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                }
+                QListWidget::item {
+                    padding: 8px;
+                    border-bottom: 1px solid #333333;
+                }
+                QListWidget::item:selected {
+                    background-color: #4a90e2;
+                }
+                QLabel {
+                    color: #ffffff;
+                    font-weight: bold;
+                }
+            """)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Title
+            title = QLabel("Select Character to Load:")
+            layout.addWidget(title)
+            
+            # Character list
+            char_list = QListWidget()
+            
+            # Sort slots by last played (most recent first)
+            occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
+            
+            for slot in occupied_slots:
+                # Create display text
+                last_played = "Never" if not slot.last_played else slot.last_played.strftime("%Y-%m-%d %H:%M")
+                item_text = f"Slot {slot.slot_number}: {slot.character_name} (Level {slot.character_level})\n"
+                item_text += f"Location: {slot.current_location} | Last Played: {last_played}"
+                
+                item = QListWidgetItem(item_text)
+                item.setData(Qt.ItemDataRole.UserRole, slot.slot_number)
+                char_list.addItem(item)
+            
+            layout.addWidget(char_list)
+            
+            # Buttons
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+            layout.addWidget(button_box)
+            
+            # Show dialog
+            result = dialog.exec()
+            
+            if result == QDialog.DialogCode.Accepted:
+                current_item = char_list.currentItem()
+                if current_item:
+                    slot_number = current_item.data(Qt.ItemDataRole.UserRole)
+                    self._load_character_from_slot(slot_number)
+                else:
+                    self.log_panel.log_info("No character selected")
+            
+        except Exception as e:
+            self.log_panel.log_error(f"Error opening character selection dialog: {e}")
+    
+    def _load_character_from_slot(self, slot_number):
+        """Load a character from a specific save slot."""
+        try:
+            character = self.game_engine.load_character(slot_number)
+            if character:
+                # Update the last character slot setting
+                self.game_engine.settings['last_character_slot'] = slot_number
+                self.game_engine.save_settings()
                 
                 # Load into UI
-                self.character_sheet.load_character_data(character_data)
-                self.menu.update_game_info(character.name, character.level)
-                self.menu.set_character_loaded(True)
+                self._load_character_into_ui(character, f"Loaded character from slot {slot_number}")
                 
-                self.log_panel.log_info(f"Welcome back, {character.name}!")
-                return
-        
-        # No last character found, load test data instead
-        self.log_panel.log_system("No saved character found, loading demo character...")
-        self.load_test_data()
+                self.log_panel.log_info(f"Successfully loaded {character.name}")
+            else:
+                self.log_panel.log_error(f"Failed to load character from slot {slot_number}")
+        except Exception as e:
+            self.log_panel.log_error(f"Error loading character from slot {slot_number}: {e}")
     
     def _format_character_for_display(self, character_data):
         """Convert character creation data to display format."""
@@ -324,4 +463,85 @@ class MainWindow(QMainWindow):
             'charisma': final_scores.get('charisma', 10),
             'experience_points': 0,
             'speed': species_data.get('speed', 30)
+        }
+    
+    def _prepare_character_for_save(self, character_data):
+        """Convert character creation data to format expected by game engine."""
+        # Get data with defaults
+        species_data = character_data.get('species_data', {})
+        class_data = character_data.get('class_data', {})
+        background_data = character_data.get('background_data', {})
+        ability_scores = character_data.get('ability_scores', {})
+        
+        # Get IDs by looking up the names in the database
+        race_id = self._get_race_id_by_name(species_data.get('name', 'Human'))
+        class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
+        background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
+        
+        return {
+            'name': character_data.get('name', 'Adventurer'),
+            'race_id': race_id,
+            'class_id': class_id,
+            'background_id': background_id,
+            'strength': ability_scores.get('strength', 10),
+            'dexterity': ability_scores.get('dexterity', 10),
+            'constitution': ability_scores.get('constitution', 10),
+            'intelligence': ability_scores.get('intelligence', 10),
+            'wisdom': ability_scores.get('wisdom', 10),
+            'charisma': ability_scores.get('charisma', 10),
+            'notes': f"Created via character creator. Final scores include racial bonuses."
+        }
+    
+    def _get_race_id_by_name(self, name):
+        """Get race ID by name from database."""
+        try:
+            races = self.game_engine.get_available_races()
+            for race in races:
+                if race.name == name:
+                    return race.id
+            return races[0].id if races else 'human'  # Fallback to first race or default
+        except:
+            return 'human'  # Safe fallback
+    
+    def _get_class_id_by_name(self, name):
+        """Get class ID by name from database."""
+        try:
+            classes = self.game_engine.get_available_classes()
+            for cls in classes:
+                if cls.name == name:
+                    return cls.id
+            return classes[0].id if classes else 'fighter'  # Fallback to first class or default
+        except:
+            return 'fighter'  # Safe fallback
+    
+    def _get_background_id_by_name(self, name):
+        """Get background ID by name from database."""
+        try:
+            backgrounds = self.game_engine.get_available_backgrounds()
+            for bg in backgrounds:
+                if bg.name == name:
+                    return bg.id
+            return backgrounds[0].id if backgrounds else 'folk-hero'  # Fallback to first background or default
+        except:
+            return 'folk-hero'  # Safe fallback
+    
+    def _convert_dto_to_display(self, character_dto):
+        """Convert CharacterDTO to format expected by character sheet."""
+        return {
+            'name': character_dto.name,
+            'level': character_dto.level,
+            'race_name': character_dto.race_name,
+            'class_name': character_dto.class_name,
+            'background_name': character_dto.background_name,
+            'current_hit_points': character_dto.hit_points_current,
+            'hit_points': character_dto.hit_points_max,
+            'armor_class': character_dto.armor_class,
+            'strength': character_dto.strength,
+            'dexterity': character_dto.dexterity,
+            'constitution': character_dto.constitution,
+            'intelligence': character_dto.intelligence,
+            'wisdom': character_dto.wisdom,
+            'charisma': character_dto.charisma,
+            'experience_points': character_dto.experience_points,
+            'speed': 30  # Default speed for now
         }

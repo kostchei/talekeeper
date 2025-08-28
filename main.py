@@ -31,6 +31,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
+from core.database import init_database
 from core.game_engine import GameEngine
 from ui.main_window import MainWindow
 
@@ -67,6 +68,10 @@ def main():
         logger.info("Initializing IndexedDB database...")
         init_indexeddb_database()
         
+        # Initialize SQLite database (still needed for GameEngine)
+        logger.info("Initializing SQLite database...")
+        init_database()
+        
         # Check for existing SQLite database backup and offer migration
         sqlite_db_path = Path("tests_demo/archive/talekeeper_sqlite_original.db")
         if sqlite_db_path.exists() and not Path("talekeeper.idb").exists():
@@ -77,7 +82,7 @@ def main():
             except Exception as e:
                 logger.warning(f"Migration failed, continuing with fresh IndexedDB: {e}")
         
-        # Initialize game engine (will use IndexedDB backend)
+        # Initialize game engine (uses SQLite backend)
         game_engine = GameEngine()
         
         # Create main application window

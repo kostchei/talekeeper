@@ -1,3 +1,4 @@
+Test removing /changing path to the test folder, see what happens
 add IM Fell Great Primer Roman  font
 add colour chart
 Add encumberance
