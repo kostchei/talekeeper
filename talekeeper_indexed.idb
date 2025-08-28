@@ -1,0 +1,1416 @@
+{
+  "stores": {
+    "races": {
+      "data": {
+        "human": {
+          "name": "Human",
+          "description": "Versatile and ambitious, humans are the most common race in most D&D worlds.",
+          "size": "Medium",
+          "speed": 30,
+          "ability_score_increases": {
+            "strength": 1,
+            "dexterity": 1,
+            "constitution": 1,
+            "intelligence": 1,
+            "wisdom": 1,
+            "charisma": 1
+          },
+          "languages": [
+            "Common"
+          ],
+          "proficiencies": [],
+          "traits": {
+            "versatile": "Gain proficiency in one skill of your choice.",
+            "extra_feat": "Gain an additional feat at 1st level."
+          }
+        },
+        "dwarf": {
+          "name": "Dwarf",
+          "description": "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.",
+          "size": "Medium",
+          "speed": 25,
+          "ability_score_increases": {
+            "constitution": 2,
+            "strength": 1
+          },
+          "languages": [
+            "Common",
+            "Dwarvish"
+          ],
+          "proficiencies": [
+            "battleaxe",
+            "handaxe",
+            "light_hammer",
+            "warhammer"
+          ],
+          "traits": {
+            "darkvision": "You can see in dim light within 60 feet as if it were bright light.",
+            "dwarven_resilience": "Advantage against poison saves and resistance to poison damage.",
+            "stonecunning": "Double proficiency bonus on Intelligence (History) checks related to stonework."
+          }
+        },
+        "Human": {
+          "id": "64aeb44b-0e54-46fc-85e4-66491fdbfecf",
+          "name": "Human",
+          "description": "Versatile and ambitious, humans are the most common race in most D&D worlds.",
+          "ability_score_increases": {
+            "strength": 1,
+            "dexterity": 1,
+            "constitution": 1,
+            "intelligence": 1,
+            "wisdom": 1,
+            "charisma": 1
+          },
+          "size": "Medium",
+          "speed": 30,
+          "languages": [
+            "Common"
+          ],
+          "proficiencies": [],
+          "traits": {
+            "versatile": "Gain proficiency in one skill of your choice.",
+            "extra_feat": "Gain an additional feat at 1st level."
+          },
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Dwarf": {
+          "id": "ebf0d21c-59d5-4904-9e7d-b86ff6e3ab8f",
+          "name": "Dwarf",
+          "description": "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.",
+          "ability_score_increases": {
+            "constitution": 2,
+            "strength": 1
+          },
+          "size": "Medium",
+          "speed": 25,
+          "languages": [
+            "Common",
+            "Dwarvish"
+          ],
+          "proficiencies": [
+            "battleaxe",
+            "handaxe",
+            "light_hammer",
+            "warhammer"
+          ],
+          "traits": {
+            "darkvision": "You can see in dim light within 60 feet as if it were bright light.",
+            "dwarven_resilience": "Advantage against poison saves and resistance to poison damage.",
+            "stonecunning": "Double proficiency bonus on Intelligence (History) checks related to stonework."
+          },
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "classes": {
+      "data": {
+        "fighter": {
+          "name": "Fighter",
+          "description": "A master of martial combat, skilled with a variety of weapons and armor.",
+          "hit_die": 10,
+          "primary_ability": "Strength or Dexterity",
+          "saving_throw_proficiencies": [
+            "strength",
+            "constitution"
+          ],
+          "armor_proficiencies": [
+            "light",
+            "medium",
+            "heavy",
+            "shields"
+          ],
+          "weapon_proficiencies": [
+            "simple",
+            "martial"
+          ],
+          "skill_proficiencies": [
+            "Acrobatics",
+            "Animal Handling",
+            "Athletics",
+            "History",
+            "Insight",
+            "Intimidation",
+            "Perception",
+            "Survival"
+          ],
+          "skill_choices": 2,
+          "starting_equipment": {
+            "armor": "chain_mail",
+            "weapons": [
+              "longsword",
+              "shield"
+            ],
+            "equipment": [
+              "dungeoneer_pack",
+              "javelin_2"
+            ]
+          },
+          "class_features": {
+            "1": [
+              "Fighting Style",
+              "Second Wind"
+            ],
+            "2": [
+              "Action Surge"
+            ],
+            "3": [
+              "Martial Archetype"
+            ]
+          }
+        },
+        "rogue": {
+          "name": "Rogue",
+          "description": "A scoundrel who uses stealth and trickery to overcome obstacles.",
+          "hit_die": 8,
+          "primary_ability": "Dexterity",
+          "saving_throw_proficiencies": [
+            "dexterity",
+            "intelligence"
+          ],
+          "armor_proficiencies": [
+            "light"
+          ],
+          "weapon_proficiencies": [
+            "simple",
+            "hand_crossbow",
+            "longsword",
+            "rapier",
+            "shortsword"
+          ],
+          "skill_proficiencies": [
+            "Acrobatics",
+            "Athletics",
+            "Deception",
+            "Insight",
+            "Intimidation",
+            "Investigation",
+            "Perception",
+            "Performance",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth",
+            "Survival"
+          ],
+          "skill_choices": 4,
+          "starting_equipment": {
+            "armor": "leather_armor",
+            "weapons": [
+              "rapier",
+              "shortbow"
+            ],
+            "equipment": [
+              "burglar_pack",
+              "thieves_tools"
+            ]
+          },
+          "class_features": {
+            "1": [
+              "Expertise",
+              "Sneak Attack",
+              "Thieves' Cant"
+            ],
+            "2": [
+              "Cunning Action"
+            ],
+            "3": [
+              "Roguish Archetype"
+            ]
+          }
+        },
+        "Fighter": {
+          "id": "e95aa326-0e41-408f-a0f2-cb9a282fabde",
+          "name": "Fighter",
+          "description": "A master of martial combat, skilled with a variety of weapons and armor.",
+          "hit_die": 10,
+          "primary_ability": "Strength or Dexterity",
+          "saving_throw_proficiencies": [
+            "strength",
+            "constitution"
+          ],
+          "armor_proficiencies": [
+            "light",
+            "medium",
+            "heavy",
+            "shields"
+          ],
+          "weapon_proficiencies": [
+            "simple",
+            "martial"
+          ],
+          "skill_proficiencies": [
+            "Acrobatics",
+            "Animal Handling",
+            "Athletics",
+            "History",
+            "Insight",
+            "Intimidation",
+            "Perception",
+            "Survival"
+          ],
+          "skill_choices": 2,
+          "starting_equipment": {
+            "armor": "chain_mail",
+            "weapons": [
+              "longsword",
+              "shield"
+            ],
+            "equipment": [
+              "dungeoneer_pack",
+              "javelin_2"
+            ]
+          },
+          "class_features": {
+            "1": [
+              "Fighting Style",
+              "Second Wind"
+            ],
+            "2": [
+              "Action Surge"
+            ],
+            "3": [
+              "Martial Archetype"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Rogue": {
+          "id": "6decf363-79f7-410d-8f9b-7ab143012408",
+          "name": "Rogue",
+          "description": "A scoundrel who uses stealth and trickery to overcome obstacles.",
+          "hit_die": 8,
+          "primary_ability": "Dexterity",
+          "saving_throw_proficiencies": [
+            "dexterity",
+            "intelligence"
+          ],
+          "armor_proficiencies": [
+            "light"
+          ],
+          "weapon_proficiencies": [
+            "simple",
+            "hand_crossbow",
+            "longsword",
+            "rapier",
+            "shortsword"
+          ],
+          "skill_proficiencies": [
+            "Acrobatics",
+            "Athletics",
+            "Deception",
+            "Insight",
+            "Intimidation",
+            "Investigation",
+            "Perception",
+            "Performance",
+            "Persuasion",
+            "Sleight of Hand",
+            "Stealth",
+            "Survival"
+          ],
+          "skill_choices": 4,
+          "starting_equipment": {
+            "armor": "leather_armor",
+            "weapons": [
+              "rapier",
+              "shortbow"
+            ],
+            "equipment": [
+              "burglar_pack",
+              "thieves_tools"
+            ]
+          },
+          "class_features": {
+            "1": [
+              "Expertise",
+              "Sneak Attack",
+              "Thieves' Cant"
+            ],
+            "2": [
+              "Cunning Action"
+            ],
+            "3": [
+              "Roguish Archetype"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "subclasses": {
+      "data": {
+        "38cce4bd-234c-407d-8d0e-cbbdbeaf3199": {
+          "name": "Champion",
+          "description": "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.",
+          "features": {
+            "3": [
+              "Improved Critical"
+            ],
+            "7": [
+              "Remarkable Athlete"
+            ],
+            "10": [
+              "Additional Fighting Style"
+            ],
+            "15": [
+              "Superior Critical"
+            ],
+            "18": [
+              "Survivor"
+            ]
+          },
+          "class_id": "Fighter",
+          "id": "38cce4bd-234c-407d-8d0e-cbbdbeaf3199"
+        },
+        "7ec78dbf-af3a-4935-943f-f3bad055f657": {
+          "name": "Battle Master",
+          "description": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
+          "features": {
+            "3": [
+              "Combat Superiority",
+              "Maneuvers"
+            ],
+            "7": [
+              "Know Your Enemy"
+            ],
+            "10": [
+              "Additional Maneuvers"
+            ],
+            "15": [
+              "Relentless"
+            ],
+            "18": [
+              "Additional Maneuvers"
+            ]
+          },
+          "class_id": "Fighter",
+          "id": "7ec78dbf-af3a-4935-943f-f3bad055f657"
+        },
+        "df9de067-8783-40cc-9bcb-2cf60e4b5f42": {
+          "name": "Thief",
+          "description": "You hone your skills in the larcenous arts.",
+          "features": {
+            "3": [
+              "Fast Hands",
+              "Second-Story Work"
+            ],
+            "9": [
+              "Supreme Sneak"
+            ],
+            "13": [
+              "Use Magic Device"
+            ],
+            "17": [
+              "Thief's Reflexes"
+            ]
+          },
+          "class_id": "Rogue",
+          "id": "df9de067-8783-40cc-9bcb-2cf60e4b5f42"
+        },
+        "4888e328-5e20-4923-b47b-45519eb6ed47": {
+          "name": "Assassin",
+          "description": "You focus your training on the grim art of death.",
+          "features": {
+            "3": [
+              "Bonus Proficiencies",
+              "Assassinate"
+            ],
+            "9": [
+              "Infiltration Expertise"
+            ],
+            "13": [
+              "Impostor"
+            ],
+            "17": [
+              "Death Strike"
+            ]
+          },
+          "class_id": "Rogue",
+          "id": "4888e328-5e20-4923-b47b-45519eb6ed47"
+        },
+        "39f0db27-1ba1-4204-8750-0c53b3430bb6": {
+          "id": "39f0db27-1ba1-4204-8750-0c53b3430bb6",
+          "class_id": "e95aa326-0e41-408f-a0f2-cb9a282fabde",
+          "name": "Champion",
+          "description": "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.",
+          "features": {
+            "3": [
+              "Improved Critical"
+            ],
+            "7": [
+              "Remarkable Athlete"
+            ],
+            "10": [
+              "Additional Fighting Style"
+            ],
+            "15": [
+              "Superior Critical"
+            ],
+            "18": [
+              "Survivor"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "71d531fc-4b38-4df2-8e5f-e4c3657c92a8": {
+          "id": "71d531fc-4b38-4df2-8e5f-e4c3657c92a8",
+          "class_id": "e95aa326-0e41-408f-a0f2-cb9a282fabde",
+          "name": "Battle Master",
+          "description": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
+          "features": {
+            "3": [
+              "Combat Superiority",
+              "Maneuvers"
+            ],
+            "7": [
+              "Know Your Enemy"
+            ],
+            "10": [
+              "Additional Maneuvers"
+            ],
+            "15": [
+              "Relentless"
+            ],
+            "18": [
+              "Additional Maneuvers"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "c98b6c62-ab94-4bbb-b981-f05c4a81e161": {
+          "id": "c98b6c62-ab94-4bbb-b981-f05c4a81e161",
+          "class_id": "6decf363-79f7-410d-8f9b-7ab143012408",
+          "name": "Thief",
+          "description": "You hone your skills in the larcenous arts.",
+          "features": {
+            "3": [
+              "Fast Hands",
+              "Second-Story Work"
+            ],
+            "9": [
+              "Supreme Sneak"
+            ],
+            "13": [
+              "Use Magic Device"
+            ],
+            "17": [
+              "Thief's Reflexes"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "fab4817b-a268-4bc5-b3f0-307486fb1694": {
+          "id": "fab4817b-a268-4bc5-b3f0-307486fb1694",
+          "class_id": "6decf363-79f7-410d-8f9b-7ab143012408",
+          "name": "Assassin",
+          "description": "You focus your training on the grim art of death.",
+          "features": {
+            "3": [
+              "Bonus Proficiencies",
+              "Assassinate"
+            ],
+            "9": [
+              "Infiltration Expertise"
+            ],
+            "13": [
+              "Impostor"
+            ],
+            "17": [
+              "Death Strike"
+            ]
+          },
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "backgrounds": {
+      "data": {
+        "farmer": {
+          "name": "Farmer",
+          "description": "You know the hard work of the farm and field. You understand the cycle of seasons and the patience required to nurture crops and livestock.",
+          "skill_proficiencies": [
+            "Animal Handling",
+            "Nature"
+          ],
+          "language_proficiencies": [],
+          "tool_proficiencies": [
+            "Carpenter's Tools",
+            "Vehicles (land)"
+          ],
+          "starting_equipment": {
+            "equipment": [
+              "carpenter_tools",
+              "shovel",
+              "common_clothes",
+              "belt_pouch"
+            ],
+            "gold": 10
+          },
+          "feature_name": "Rustic Hospitality",
+          "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners, especially in rural areas."
+        },
+        "soldier": {
+          "name": "Soldier",
+          "description": "War has been your life for as long as you care to remember.",
+          "skill_proficiencies": [
+            "Athletics",
+            "Intimidation"
+          ],
+          "language_proficiencies": [],
+          "tool_proficiencies": [
+            "Gaming Set",
+            "Vehicles (land)"
+          ],
+          "starting_equipment": {
+            "equipment": [
+              "rank_insignia",
+              "trophy",
+              "deck_of_cards",
+              "common_clothes",
+              "belt_pouch"
+            ],
+            "gold": 10
+          },
+          "feature_name": "Military Rank",
+          "feature_description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence."
+        },
+        "Farmer": {
+          "id": "a816d997-dbaf-487d-85f5-75f36400148a",
+          "name": "Farmer",
+          "description": "You know the hard work of the farm and field. You understand the cycle of seasons and the patience required to nurture crops and livestock.",
+          "skill_proficiencies": [
+            "Animal Handling",
+            "Nature"
+          ],
+          "language_proficiencies": [],
+          "tool_proficiencies": [
+            "Carpenter's Tools",
+            "Vehicles (land)"
+          ],
+          "starting_equipment": {
+            "equipment": [
+              "carpenter_tools",
+              "shovel",
+              "common_clothes",
+              "belt_pouch"
+            ],
+            "gold": 10
+          },
+          "feature_name": "Rustic Hospitality",
+          "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners, especially in rural areas.",
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Soldier": {
+          "id": "e789b2e4-c822-4fc1-b46b-4967d8868e39",
+          "name": "Soldier",
+          "description": "War has been your life for as long as you care to remember.",
+          "skill_proficiencies": [
+            "Athletics",
+            "Intimidation"
+          ],
+          "language_proficiencies": [],
+          "tool_proficiencies": [
+            "Gaming Set",
+            "Vehicles (land)"
+          ],
+          "starting_equipment": {
+            "equipment": [
+              "rank_insignia",
+              "trophy",
+              "deck_of_cards",
+              "common_clothes",
+              "belt_pouch"
+            ],
+            "gold": 10
+          },
+          "feature_name": "Military Rank",
+          "feature_description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence.",
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "monsters": {
+      "data": {
+        "goblin": {
+          "name": "Goblin",
+          "challenge_rating": 0.25,
+          "size": "Small",
+          "type": "humanoid",
+          "alignment": "neutral evil",
+          "armor_class": 15,
+          "hit_points": 7,
+          "hit_dice": "2d6",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 8,
+          "dexterity": 14,
+          "constitution": 10,
+          "intelligence": 10,
+          "wisdom": 8,
+          "charisma": 8,
+          "skills": {
+            "stealth": 6
+          },
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [
+            "Common",
+            "Goblin"
+          ],
+          "actions": [
+            {
+              "name": "Scimitar",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage."
+            },
+            {
+              "name": "Shortbow",
+              "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            }
+          ],
+          "ai_script": "basic_melee",
+          "xp_value": 50
+        },
+        "orc": {
+          "name": "Orc",
+          "challenge_rating": 0.5,
+          "size": "Medium",
+          "type": "humanoid",
+          "alignment": "chaotic evil",
+          "armor_class": 13,
+          "hit_points": 15,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 16,
+          "dexterity": 12,
+          "constitution": 13,
+          "intelligence": 7,
+          "wisdom": 11,
+          "charisma": 10,
+          "skills": {
+            "intimidation": 2
+          },
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [
+            "Common",
+            "Orc"
+          ],
+          "actions": [
+            {
+              "name": "Greataxe",
+              "description": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 9 (1d12 + 3) slashing damage."
+            },
+            {
+              "name": "Javelin",
+              "description": "Melee or Ranged Weapon Attack: +5 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 6 (1d6 + 3) piercing damage."
+            }
+          ],
+          "ai_script": "aggressive_melee",
+          "xp_value": 100
+        },
+        "wolf": {
+          "name": "Wolf",
+          "challenge_rating": 0.25,
+          "size": "Medium",
+          "type": "beast",
+          "alignment": "unaligned",
+          "armor_class": 13,
+          "hit_points": 11,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 40
+          },
+          "strength": 12,
+          "dexterity": 15,
+          "constitution": 12,
+          "intelligence": 3,
+          "wisdom": 12,
+          "charisma": 6,
+          "skills": {
+            "perception": 3,
+            "stealth": 4
+          },
+          "senses": {},
+          "languages": [],
+          "actions": [
+            {
+              "name": "Bite",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."
+            }
+          ],
+          "ai_script": "pack_hunter",
+          "xp_value": 50
+        },
+        "skeleton": {
+          "name": "Skeleton",
+          "challenge_rating": 0.25,
+          "size": "Medium",
+          "type": "undead",
+          "alignment": "lawful evil",
+          "armor_class": 13,
+          "hit_points": 13,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 10,
+          "dexterity": 14,
+          "constitution": 15,
+          "intelligence": 6,
+          "wisdom": 8,
+          "charisma": 5,
+          "damage_vulnerabilities": [
+            "bludgeoning"
+          ],
+          "damage_immunities": [
+            "poison"
+          ],
+          "condition_immunities": [
+            "exhaustion",
+            "poisoned"
+          ],
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [],
+          "actions": [
+            {
+              "name": "Shortsword",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            },
+            {
+              "name": "Shortbow",
+              "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            }
+          ],
+          "ai_script": "undead_basic",
+          "xp_value": 50
+        },
+        "Goblin": {
+          "id": 1,
+          "name": "Goblin",
+          "challenge_rating": 0.25,
+          "size": "Small",
+          "type": "humanoid",
+          "alignment": "neutral evil",
+          "armor_class": 15,
+          "hit_points": 7,
+          "hit_dice": "2d6",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 8,
+          "dexterity": 14,
+          "constitution": 10,
+          "intelligence": 10,
+          "wisdom": 8,
+          "charisma": 8,
+          "saving_throws": null,
+          "skills": {
+            "stealth": 6
+          },
+          "damage_vulnerabilities": null,
+          "damage_resistances": null,
+          "damage_immunities": null,
+          "condition_immunities": null,
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [
+            "Common",
+            "Goblin"
+          ],
+          "actions": [
+            {
+              "name": "Scimitar",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage."
+            },
+            {
+              "name": "Shortbow",
+              "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            }
+          ],
+          "reactions": null,
+          "legendary_actions": null,
+          "special_abilities": null,
+          "ai_script": "basic_melee",
+          "loot_table": null,
+          "xp_value": 50,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Orc": {
+          "id": 2,
+          "name": "Orc",
+          "challenge_rating": 0.5,
+          "size": "Medium",
+          "type": "humanoid",
+          "alignment": "chaotic evil",
+          "armor_class": 13,
+          "hit_points": 15,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 16,
+          "dexterity": 12,
+          "constitution": 13,
+          "intelligence": 7,
+          "wisdom": 11,
+          "charisma": 10,
+          "saving_throws": null,
+          "skills": {
+            "intimidation": 2
+          },
+          "damage_vulnerabilities": null,
+          "damage_resistances": null,
+          "damage_immunities": null,
+          "condition_immunities": null,
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [
+            "Common",
+            "Orc"
+          ],
+          "actions": [
+            {
+              "name": "Greataxe",
+              "description": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 9 (1d12 + 3) slashing damage."
+            },
+            {
+              "name": "Javelin",
+              "description": "Melee or Ranged Weapon Attack: +5 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 6 (1d6 + 3) piercing damage."
+            }
+          ],
+          "reactions": null,
+          "legendary_actions": null,
+          "special_abilities": null,
+          "ai_script": "aggressive_melee",
+          "loot_table": null,
+          "xp_value": 100,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Wolf": {
+          "id": 3,
+          "name": "Wolf",
+          "challenge_rating": 0.25,
+          "size": "Medium",
+          "type": "beast",
+          "alignment": "unaligned",
+          "armor_class": 13,
+          "hit_points": 11,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 40
+          },
+          "strength": 12,
+          "dexterity": 15,
+          "constitution": 12,
+          "intelligence": 3,
+          "wisdom": 12,
+          "charisma": 6,
+          "saving_throws": null,
+          "skills": {
+            "perception": 3,
+            "stealth": 4
+          },
+          "damage_vulnerabilities": null,
+          "damage_resistances": null,
+          "damage_immunities": null,
+          "condition_immunities": null,
+          "senses": {},
+          "languages": [],
+          "actions": [
+            {
+              "name": "Bite",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."
+            }
+          ],
+          "reactions": null,
+          "legendary_actions": null,
+          "special_abilities": null,
+          "ai_script": "pack_hunter",
+          "loot_table": null,
+          "xp_value": 50,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Skeleton": {
+          "id": 4,
+          "name": "Skeleton",
+          "challenge_rating": 0.25,
+          "size": "Medium",
+          "type": "undead",
+          "alignment": "lawful evil",
+          "armor_class": 13,
+          "hit_points": 13,
+          "hit_dice": "2d8+2",
+          "speed": {
+            "walk": 30
+          },
+          "strength": 10,
+          "dexterity": 14,
+          "constitution": 15,
+          "intelligence": 6,
+          "wisdom": 8,
+          "charisma": 5,
+          "saving_throws": null,
+          "skills": null,
+          "damage_vulnerabilities": [
+            "bludgeoning"
+          ],
+          "damage_resistances": null,
+          "damage_immunities": [
+            "poison"
+          ],
+          "condition_immunities": [
+            "exhaustion",
+            "poisoned"
+          ],
+          "senses": {
+            "darkvision": 60
+          },
+          "languages": [],
+          "actions": [
+            {
+              "name": "Shortsword",
+              "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            },
+            {
+              "name": "Shortbow",
+              "description": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+            }
+          ],
+          "reactions": null,
+          "legendary_actions": null,
+          "special_abilities": null,
+          "ai_script": "undead_basic",
+          "loot_table": null,
+          "xp_value": 50,
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "items": {
+      "data": {
+        "longsword": {
+          "name": "Longsword",
+          "description": "A versatile martial weapon favored by many warriors.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 15,
+          "weight_lb": 3.0,
+          "damage_dice": "1d8",
+          "damage_type": "slashing",
+          "weapon_properties": [
+            "versatile"
+          ]
+        },
+        "shortsword": {
+          "name": "Shortsword",
+          "description": "A light, finesse weapon ideal for quick strikes.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 2.0,
+          "damage_dice": "1d6",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "finesse",
+            "light"
+          ]
+        },
+        "rapier": {
+          "name": "Rapier",
+          "description": "A slender, precise thrusting weapon.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 25,
+          "weight_lb": 2.0,
+          "damage_dice": "1d8",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "finesse"
+          ]
+        },
+        "shortbow": {
+          "name": "Shortbow",
+          "description": "A simple ranged weapon for hunting and combat.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 25,
+          "weight_lb": 2.0,
+          "damage_dice": "1d6",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "ammunition",
+            "range",
+            "two-handed"
+          ]
+        },
+        "leather_armor": {
+          "name": "Leather Armor",
+          "description": "Light armor made from supple and thin leather.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 10.0,
+          "armor_class": 11
+        },
+        "chain_mail": {
+          "name": "Chain Mail",
+          "description": "Heavy armor made of interlocking metal rings.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 75,
+          "weight_lb": 55.0,
+          "armor_class": 16
+        },
+        "shield": {
+          "name": "Shield",
+          "description": "A shield made from wood or metal, increases AC by 2.",
+          "item_type": "shield",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 6.0,
+          "armor_class": 2
+        },
+        "Longsword": {
+          "id": "9e2c00ef-779f-4f0f-8d34-198e9fbe011c",
+          "name": "Longsword",
+          "description": "A versatile martial weapon favored by many warriors.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 15,
+          "weight_lb": 3,
+          "armor_class": null,
+          "damage_dice": "1d8",
+          "damage_type": "slashing",
+          "weapon_properties": [
+            "versatile"
+          ],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Shortsword": {
+          "id": "456453e9-0224-48d3-9ad4-ba9ed3eb6728",
+          "name": "Shortsword",
+          "description": "A light, finesse weapon ideal for quick strikes.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 2,
+          "armor_class": null,
+          "damage_dice": "1d6",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "finesse",
+            "light"
+          ],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Rapier": {
+          "id": "a79059c8-5c8b-4201-a32a-76d04f7bd3f2",
+          "name": "Rapier",
+          "description": "A slender, precise thrusting weapon.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 25,
+          "weight_lb": 2,
+          "armor_class": null,
+          "damage_dice": "1d8",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "finesse"
+          ],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Shortbow": {
+          "id": "6ae1117a-d866-4045-bc85-bd5c1898a2d4",
+          "name": "Shortbow",
+          "description": "A simple ranged weapon for hunting and combat.",
+          "item_type": "weapon",
+          "rarity": "common",
+          "cost_gp": 25,
+          "weight_lb": 2,
+          "armor_class": null,
+          "damage_dice": "1d6",
+          "damage_type": "piercing",
+          "weapon_properties": [
+            "ammunition",
+            "range",
+            "two-handed"
+          ],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Leather Armor": {
+          "id": "b2c629d5-422d-44da-9652-8a6567f9b76a",
+          "name": "Leather Armor",
+          "description": "Light armor made from supple and thin leather.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 10,
+          "armor_class": 11,
+          "damage_dice": null,
+          "damage_type": null,
+          "weapon_properties": [],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Chain Mail": {
+          "id": "7a144c49-0358-4a18-a857-02b61f32cf83",
+          "name": "Chain Mail",
+          "description": "Heavy armor made of interlocking metal rings.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 75,
+          "weight_lb": 55,
+          "armor_class": 16,
+          "damage_dice": null,
+          "damage_type": null,
+          "weapon_properties": [],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        },
+        "Shield": {
+          "id": "63e45a0a-21e7-4786-9cba-b41d33ded6d6",
+          "name": "Shield",
+          "description": "A shield made from wood or metal, increases AC by 2.",
+          "item_type": "shield",
+          "rarity": "common",
+          "cost_gp": 10,
+          "weight_lb": 6,
+          "armor_class": 2,
+          "damage_dice": null,
+          "damage_type": null,
+          "weapon_properties": [],
+          "is_magical": 0,
+          "magical_properties": {},
+          "attunement_required": 0,
+          "created_at": "2025-08-23 17:34:54"
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "characters": {
+      "data": {
+        "9cb75ee0-762f-4597-9549-a863abf9f265": {
+          "id": "9cb75ee0-762f-4597-9549-a863abf9f265",
+          "save_slot_id": "689c9d24-6517-47cf-920e-f0f2e0a46b73",
+          "name": "jj",
+          "race_id": "ebf0d21c-59d5-4904-9e7d-b86ff6e3ab8f",
+          "class_id": "6decf363-79f7-410d-8f9b-7ab143012408",
+          "subclass_id": "c98b6c62-ab94-4bbb-b981-f05c4a81e161",
+          "background_id": "e789b2e4-c822-4fc1-b46b-4967d8868e39",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 13,
+          "dexterity": 4,
+          "constitution": 10,
+          "intelligence": 13,
+          "wisdom": 10,
+          "charisma": 8,
+          "armor_class": 7,
+          "hit_points_max": 8,
+          "hit_points_current": 8,
+          "hit_points_temporary": 0,
+          "max_hit_points": 8,
+          "current_hit_points": 8,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-23 17:35:27",
+          "updated_at": null,
+          "notes": ""
+        }
+      },
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "save_slots": {
+      "data": {
+        "689c9d24-6517-47cf-920e-f0f2e0a46b73": {
+          "id": "689c9d24-6517-47cf-920e-f0f2e0a46b73",
+          "slot_number": 1,
+          "is_occupied": 1,
+          "save_name": "jj - Level 1",
+          "last_played": "2025-08-24 04:25:28.829793",
+          "play_time_minutes": 0,
+          "character_name": "jj",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-23 17:35:27",
+          "updated_at": "2025-08-24 04:25:28"
+        }
+      },
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "game_states": {
+      "data": {
+        "ec0e2fa5-b00a-4136-bbff-9f8d4d767de9": {
+          "id": "ec0e2fa5-b00a-4136-bbff-9f8d4d767de9",
+          "character_id": "9cb75ee0-762f-4597-9549-a863abf9f265",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-23 17:35:27",
+          "updated_at": null
+        }
+      },
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "combat_sessions": {
+      "data": {},
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "character_inventory": {
+      "data": {},
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "combat_actions": {
+      "data": {},
+      "key_path": "id",
+      "auto_increment": false
+    },
+    "equipment_packages": {
+      "data": {},
+      "key_path": "id",
+      "auto_increment": false
+    }
+  },
+  "indexes": {
+    "characters.race_id": {
+      "store": "characters",
+      "key_path": "race_id",
+      "unique": false,
+      "index_data": {
+        "ebf0d21c-59d5-4904-9e7d-b86ff6e3ab8f": [
+          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        ]
+      }
+    },
+    "characters.class_id": {
+      "store": "characters",
+      "key_path": "class_id",
+      "unique": false,
+      "index_data": {
+        "6decf363-79f7-410d-8f9b-7ab143012408": [
+          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        ]
+      }
+    },
+    "characters.name": {
+      "store": "characters",
+      "key_path": "name",
+      "unique": false,
+      "index_data": {
+        "jj": [
+          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        ]
+      }
+    },
+    "monsters.challenge_rating": {
+      "store": "monsters",
+      "key_path": "challenge_rating",
+      "unique": false,
+      "index_data": {
+        "0.25": [
+          "Goblin",
+          "Wolf",
+          "Skeleton"
+        ],
+        "0.5": [
+          "Orc"
+        ]
+      }
+    },
+    "items.item_type": {
+      "store": "items",
+      "key_path": "item_type",
+      "unique": false,
+      "index_data": {
+        "weapon": [
+          "Longsword",
+          "Shortsword",
+          "Rapier",
+          "Shortbow"
+        ],
+        "armor": [
+          "Leather Armor",
+          "Chain Mail"
+        ],
+        "shield": [
+          "Shield"
+        ]
+      }
+    },
+    "items.rarity": {
+      "store": "items",
+      "key_path": "rarity",
+      "unique": false,
+      "index_data": {
+        "common": [
+          "Longsword",
+          "Shortsword",
+          "Rapier",
+          "Shortbow",
+          "Leather Armor",
+          "Chain Mail",
+          "Shield"
+        ]
+      }
+    }
+  }
+}

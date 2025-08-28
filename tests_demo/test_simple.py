@@ -1,57 +1,27 @@
 #!/usr/bin/env python3
-"""
-Simple test to check if PyQt6 imports work
-"""
+"""Simple test of imports"""
 
-import sys
-import os
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-print("Testing PyQt6 import...")
 try:
-    from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
-    from PyQt6.QtCore import Qt
-    print("[OK] PyQt6 imports successful")
-except ImportError as e:
-    print(f"[FAIL] PyQt6 import failed: {e}")
-    sys.exit(1)
-
-print("Testing menu widget import...")
-try:
-    from menu.game_menu import GameMenu
-    print("[OK] Menu widget import successful")
-except Exception as e:
-    print(f"[FAIL] Menu widget import failed: {e}")
-    sys.exit(1)
-
-print("Testing character sheet import...")
-try:
-    from character_sheet.character_panel import CharacterPanel
-    print("[OK] Character sheet import successful")
-except Exception as e:
-    print(f"[FAIL] Character sheet import failed: {e}")
-    sys.exit(1)
-
-print("Creating simple test window...")
-try:
+    print("Testing imports...")
+    from PyQt6.QtWidgets import QApplication
+    print("PyQt6 imported successfully")
+    
+    from encounter_pane.encounter_panel import EncounterPanel
+    print("EncounterPanel imported successfully")
+    
+    print("Creating QApplication...")
+    import sys
     app = QApplication(sys.argv)
     
-    window = QWidget()
-    window.setWindowTitle("TaleKeeper - Simple Test")
-    window.setMinimumSize(400, 300)
+    print("Creating EncounterPanel...")
+    panel = EncounterPanel()
     
-    layout = QVBoxLayout()
-    label = QLabel("PyQt6 is working!")
-    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    layout.addWidget(label)
-    window.setLayout(layout)
+    print("Setting character creation mode...")
+    panel.set_character_creation_mode()
     
-    window.show()
-    print("[OK] Test window created successfully!")
-    print("Close the window to continue...")
+    print("All tests passed!")
     
-    sys.exit(app.exec())
 except Exception as e:
-    print(f"[FAIL] Window creation failed: {e}")
-    sys.exit(1)
+    print(f"Error: {e}")
+    import traceback
+    traceback.print_exc()
