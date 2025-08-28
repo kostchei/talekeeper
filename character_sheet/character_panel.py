@@ -481,7 +481,9 @@ class CharacterPanel(QWidget):
         return widget
     
     def _apply_styles(self):
-        """Apply dark theme styling to character panel components."""
+        """No hardcoded styling - let main theme handle all colors."""
+        # Disabled - theme system handles all styling now
+        return
         style_sheet = """
         CharacterPanel {
             background-color: #202020;

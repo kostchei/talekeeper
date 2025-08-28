@@ -29,6 +29,7 @@ sys.path.insert(0, str(project_root))
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFontDatabase, QFont
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
 from core.game_engine_indexeddb import GameEngineIndexedDB
@@ -61,7 +62,22 @@ def main():
         
         # Create PyQt6 application first
         app = QApplication(sys.argv)
-        app.setStyle('Fusion')  # Use Fusion style for dark theme
+        app.setStyle('Fusion')  # Use Fusion style for consistent theming
+        
+        # Load custom IM Fell Great Primer Roman font
+        font_path = project_root / "art" / "IMFellGreatPrimer-Regular.ttf"
+        if font_path.exists():
+            font_id = QFontDatabase.addApplicationFont(str(font_path))
+            if font_id != -1:
+                family = QFontDatabase.applicationFontFamilies(font_id)[0]
+                app.setFont(QFont(family, 12))
+                logger.info(f"Loaded custom font: {family}")
+            else:
+                logger.warning(f"Failed to load font from {font_path}")
+                app.setFont(QFont("Times New Roman", 12))  # Fallback font
+        else:
+            logger.warning(f"Font file not found at {font_path}")
+            app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
         # Initialize IndexedDB database
         logger.info("Initializing IndexedDB database...")

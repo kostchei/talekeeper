@@ -42,27 +42,40 @@ A single-player D&D 2024 tactical RPG for Windows. Experience classic tabletop R
 ```
 TaleKeeper/
 ├── main.py              # Application entry point
-├── core/                # Core game systems
-├── models/              # Database models
-├── services/            # Business logic
-├── ui/                  # User interface
-├── data/                # Game data (JSON)
-├── assets/              # Images, icons, fonts
-└── config/              # Settings and configuration
+├── run_game.py          # Safe launcher with dependency checks
+├── core/                # Core game systems (IndexedDB engine)
+├── models/              # Dataclass models for IndexedDB
+├── services/            # Business logic (dice, combat)
+├── ui/                  # PyQt6 user interface
+├── data/                # D&D 2024 game data (JSON)
+├── assets/              # Fonts and images
+├── config/              # Settings and configuration
+├── log/                 # Logging panel component
+├── character_sheet/     # Character sheet UI component
+├── encounter_pane/      # Encounter UI component
+├── equipment_layout/    # Equipment UI component
+├── action_cards/        # Action cards UI component
+├── menu/                # Game menu component
+└── tests_demo/          # Test and demo scripts
 ```
 
 ### Key Technologies
-- **Python + Tkinter** - Desktop GUI framework
-- **SQLite + SQLAlchemy** - Local database with ORM
+- **Python + PyQt6** - Desktop GUI framework
+- **IndexedDB Simulation** - Local data persistence with JSON
 - **PyInstaller** - Executable packaging
-- **GitHub Actions** - Automated builds
 
 ### Building Locally
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Build executable  
+# Run the game (recommended launcher)
+python run_game.py
+
+# Or run directly
+python main.py
+
+# Build executable
 pyinstaller build.spec
 
 # Or use the batch script (Windows)
@@ -82,7 +95,7 @@ build.bat
 ## 🔧 Configuration
 
 The game creates configuration files automatically:
-- `talekeeper.db` - SQLite database with all game data
+- `talekeeper.idb` - IndexedDB JSON file with all game data
 - `config/settings.json` - Game settings
 - `talekeeper.log` - Application logs
 

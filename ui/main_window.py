@@ -11,9 +11,11 @@ but serves as the production main window.
 
 import sys
 import os
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSplitter
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSplitter, QMenuBar, QMenu, QPushButton
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QAction, QKeySequence
 
+from ui.themes import build_stylesheet, get_theme_palette
 from menu.game_menu import GameMenu
 from character_sheet.character_panel import CharacterPanel
 from encounter_pane.encounter_panel import EncounterPanel
@@ -32,14 +34,18 @@ class MainWindow(QMainWindow):
         # Initialize game engine
         self.game_engine = GameEngineIndexedDB()
         
+        # Theme management
+        self.current_theme = "light"  # Default to light theme
+        
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         self.main_layout = QVBoxLayout(central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)  # No margins - fill full height
         
+        self._setup_menu_bar()
         self._setup_ui()
-        self._apply_dark_theme()
+        self._apply_theme(self.current_theme)
         self._connect_signals()
         
         # Try to load last character after 1 second, otherwise load test data
@@ -84,24 +90,72 @@ class MainWindow(QMainWindow):
         self.action_panel.move(96, 1080 - 54 - 300)  # Bottom left
         self.action_panel.show()
         self.action_panel.raise_()
+        
+        # Theme toggle button (top right, near log panel)
+        self.theme_toggle_button = QPushButton("🌙 Dark", self)  # Start with moon for switching to dark
+        self.theme_toggle_button.setGeometry(96 + 648 + 648 - 100, 20, 90, 30)  # Top right, above log panel
+        self.theme_toggle_button.clicked.connect(self._toggle_theme)
+        self.theme_toggle_button.setToolTip("Toggle between Light and Dark themes (Ctrl+T)")
+        self.theme_toggle_button.show()
+        self.theme_toggle_button.raise_()
     
-    def _apply_dark_theme(self):
-        """Apply dark theme to main window"""
-        self.setStyleSheet("""
-        QMainWindow {
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }
-        QSplitter::handle {
-            background-color: #666666;
-        }
-        QSplitter::handle:horizontal {
-            width: 3px;
-        }
-        QSplitter::handle:vertical {
-            height: 3px;
-        }
-        """)
+    def _setup_menu_bar(self):
+        """Setup menu bar with theme toggle."""
+        menubar = self.menuBar()
+        
+        # View menu
+        view_menu = menubar.addMenu('View')
+        
+        # Theme submenu
+        theme_menu = view_menu.addMenu('Theme')
+        
+        # Light theme action
+        light_action = QAction('Light Theme', self)
+        light_action.setShortcut(QKeySequence('Ctrl+1'))
+        light_action.triggered.connect(lambda: self._apply_theme('light'))
+        theme_menu.addAction(light_action)
+        
+        # Dark theme action
+        dark_action = QAction('Dark Theme', self)
+        dark_action.setShortcut(QKeySequence('Ctrl+2'))
+        dark_action.triggered.connect(lambda: self._apply_theme('dark'))
+        theme_menu.addAction(dark_action)
+        
+        # Theme toggle action
+        toggle_action = QAction('Toggle Theme', self)
+        toggle_action.setShortcut(QKeySequence('Ctrl+T'))
+        toggle_action.triggered.connect(self._toggle_theme)
+        theme_menu.addAction(toggle_action)
+    
+    def _apply_theme(self, theme_name: str):
+        """Apply the specified theme to the main window and all child widgets.
+        
+        Args:
+            theme_name: Name of the theme to apply ('light' or 'dark')
+        """
+        try:
+            palette = get_theme_palette(theme_name)
+            stylesheet = build_stylesheet(palette)
+            self.setStyleSheet(stylesheet)
+            self.current_theme = theme_name
+            
+            # Update toggle button text/icon based on current theme
+            if hasattr(self, 'theme_toggle_button'):
+                if theme_name == 'light':
+                    self.theme_toggle_button.setText("🌙 Dark")  # Moon icon to switch to dark
+                else:
+                    self.theme_toggle_button.setText("☀️ Light")  # Sun icon to switch to light
+                    
+        except ValueError as e:
+            # Log error and fall back to light theme
+            print(f"Theme error: {e}. Falling back to light theme.")
+            if theme_name != 'light':
+                self._apply_theme('light')
+    
+    def _toggle_theme(self):
+        """Toggle between light and dark themes."""
+        new_theme = 'dark' if self.current_theme == 'light' else 'light'
+        self._apply_theme(new_theme)
     
     def _connect_signals(self):
         """Connect all widget signals"""
