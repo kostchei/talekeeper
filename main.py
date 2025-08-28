@@ -29,6 +29,7 @@ sys.path.insert(0, str(project_root))
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFontDatabase, QFont
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
 from core.database import init_database
@@ -62,7 +63,16 @@ def main():
         
         # Create PyQt6 application first
         app = QApplication(sys.argv)
-        app.setStyle('Fusion')  # Use Fusion style for dark theme
+        app.setStyle('Fusion')
+
+        # Load custom font
+        font_path = project_root / "assets" / "IMFellGreatPrimer-Regular.ttf"
+        font_id = QFontDatabase.addApplicationFont(str(font_path))
+        if font_id != -1:
+            family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            app.setFont(QFont(family))
+        else:
+            app.setFont(QFont("IM FELL Great Primer Roman"))
         
         # Initialize IndexedDB database
         logger.info("Initializing IndexedDB database...")

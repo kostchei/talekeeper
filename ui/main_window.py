@@ -13,6 +13,9 @@ import sys
 import os
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSplitter
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QKeySequence, QShortcut
+
+from ui.themes import build_stylesheet, LIGHT_THEME, DARK_THEME
 
 from menu.game_menu import GameMenu
 from character_sheet.character_panel import CharacterPanel
@@ -39,7 +42,7 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)  # No margins - fill full height
         
         self._setup_ui()
-        self._apply_dark_theme()
+        self.apply_theme("light")
         self._connect_signals()
         
         # Try to load last character after 1 second, otherwise load test data
@@ -85,23 +88,16 @@ class MainWindow(QMainWindow):
         self.action_panel.show()
         self.action_panel.raise_()
     
-    def _apply_dark_theme(self):
-        """Apply dark theme to main window"""
-        self.setStyleSheet("""
-        QMainWindow {
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }
-        QSplitter::handle {
-            background-color: #666666;
-        }
-        QSplitter::handle:horizontal {
-            width: 3px;
-        }
-        QSplitter::handle:vertical {
-            height: 3px;
-        }
-        """)
+    def apply_theme(self, mode: str = "light"):
+        """Apply the requested color theme to the window."""
+        palette = LIGHT_THEME if mode == "light" else DARK_THEME
+        self.setStyleSheet(build_stylesheet(palette))
+        self.current_theme = mode
+
+    def toggle_theme(self):
+        """Toggle between light and dark themes."""
+        new_mode = "dark" if getattr(self, "current_theme", "light") == "light" else "light"
+        self.apply_theme(new_mode)
     
     def _connect_signals(self):
         """Connect all widget signals"""
@@ -142,9 +138,13 @@ class MainWindow(QMainWindow):
         self.action_panel.action_triggered.connect(
             lambda action, context: self.log_panel.log_combat(f"Action: {action.value} - {context.get('name', '')}")
         )
-        
+
         # Encounter pane character creation signal
         self.encounter_pane.character_created.connect(self._on_character_created)
+
+        # Keyboard shortcut to toggle theme
+        self.theme_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
+        self.theme_shortcut.activated.connect(self.toggle_theme)
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
