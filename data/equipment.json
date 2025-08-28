@@ -69,5 +69,38 @@
     "cost_gp": 10,
     "weight_lb": 6.0,
     "armor_class": 2
+  },
+  {
+    "name": "Greatsword",
+    "description": "A massive two-handed sword for powerful strikes. Proficiency allows you to add your proficiency bonus to attack rolls.",
+    "item_type": "weapon",
+    "rarity": "common",
+    "cost_gp": 50,
+    "weight_lb": 6.0,
+    "damage_dice": "2d6",
+    "damage_type": "slashing",
+    "weapon_properties": ["heavy", "two-handed", "graze"],
+    "mastery_property": "Graze: If your attack roll misses, you can deal damage equal to your ability modifier (same damage type)."
+  },
+  {
+    "name": "Studded Leather",
+    "description": "Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 45,
+    "weight_lb": 13.0,
+    "armor_class": 12,
+    "armor_type": "light"
+  },
+  {
+    "name": "Breastplate",
+    "description": "This armor consists of a fitted metal chest piece worn with supple leather.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 400,
+    "weight_lb": 20.0,
+    "armor_class": 14,
+    "armor_type": "medium",
+    "dex_bonus_max": 2
   }
 ]

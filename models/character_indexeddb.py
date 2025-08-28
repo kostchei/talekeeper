@@ -223,6 +223,7 @@ class Class:
     
     # Equipment and features
     starting_equipment: Dict[str, Any] = field(default_factory=dict)
+    equipment_choices: List[Dict[str, Any]] = field(default_factory=list)  # Equipment choice options
     class_features: Dict[str, Any] = field(default_factory=dict)  # Features by level
     
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())

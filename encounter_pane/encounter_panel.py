@@ -19,7 +19,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QTabWidget, QListWidget, QListWidgetItem,
                             QSplitter, QGroupBox, QGridLayout, QComboBox,
-                            QSpinBox, QCheckBox, QStackedWidget)
+                            QSpinBox, QCheckBox, QStackedWidget, QRadioButton,
+                            QButtonGroup)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import json
@@ -846,12 +847,78 @@ class EncounterPanel(QWidget):
         title.setObjectName("creationStepTitle")
         layout.addWidget(title)
         
-        # Equipment will be populated based on class/background choices
-        self.equipment_list = QListWidget()
-        self.equipment_list.setObjectName("equipmentList")
-        layout.addWidget(self.equipment_list)
+        # Equipment choices will be populated when class is selected
+        self.equipment_choices_widget = QWidget()
+        self.equipment_choices_layout = QVBoxLayout(self.equipment_choices_widget)
+        layout.addWidget(self.equipment_choices_widget)
         
+        # Add some default content
+        self._populate_equipment_choices()
+        
+        layout.addStretch()
         return widget
+    
+    def _populate_equipment_choices(self):
+        """Populate equipment choices based on selected class."""
+        # Clear existing choices
+        for i in reversed(range(self.equipment_choices_layout.count())):
+            child = self.equipment_choices_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        # Check if class is selected
+        selected_class_data = self.character_creation_data.get('class')
+        if not selected_class_data:
+            info_label = QLabel("Please select a class first.")
+            info_label.setStyleSheet("color: #ff6b6b;")
+            self.equipment_choices_layout.addWidget(info_label)
+            return
+        
+        # Get class name
+        selected_class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
+        
+        # Test data for Fighter (you can expand this)
+        equipment_choices = []
+        if selected_class_name == "Fighter":
+            equipment_choices = [
+                {
+                    "name": "Martial Weapon",
+                    "options": ["Longsword (1d8 slashing)", "Greatsword (2d6 slashing)", "Rapier (1d8 piercing)"]
+                },
+                {
+                    "name": "Armor",  
+                    "options": ["Studded Leather (AC 12)", "Breastplate (AC 14)", "Chain Mail (AC 16)"]
+                }
+            ]
+        
+        if not equipment_choices:
+            info_label = QLabel(f"No equipment choices available for {selected_class_name}.")
+            self.equipment_choices_layout.addWidget(info_label)
+            return
+        
+        # Create equipment choice widgets
+        self.equipment_button_groups = {}  # Store button groups for each choice
+        
+        for choice in equipment_choices:
+            # Choice group
+            choice_group = QGroupBox(choice["name"])
+            choice_layout = QVBoxLayout(choice_group)
+            
+            # Create button group to ensure only one selection per choice
+            button_group = QButtonGroup(self)
+            self.equipment_button_groups[choice["name"]] = button_group
+            
+            # Radio buttons for options
+            for i, option in enumerate(choice["options"]):
+                radio = QRadioButton(option)
+                choice_layout.addWidget(radio)
+                button_group.addButton(radio, i)
+                
+                # Select first option by default
+                if i == 0:
+                    radio.setChecked(True)
+            
+            self.equipment_choices_layout.addWidget(choice_group)
     
     def _create_review_step(self) -> QWidget:
         """Create final review and confirmation step."""
@@ -941,13 +1008,16 @@ class EncounterPanel(QWidget):
         """Handle class selection change."""
         if current:
             class_data = current.data(Qt.ItemDataRole.UserRole)
-            self.character_creation_data['class'] = class_data
+            self.character_creation_data['class'] = class_data  # Store the full class data
             
             description = f"**{class_data['name']}**\n\n"
             description += f"{class_data['description']}\n\n"
             description += f"Hit Die: d{class_data['hit_die']}\n"
             description += f"Primary Ability: {class_data['primary_ability']}\n"
             description += f"Saving Throws: {', '.join(class_data['saving_throw_proficiencies'])}"
+            
+            # Update equipment choices
+            self._populate_equipment_choices()
             
             self.class_description.setPlainText(description)
             

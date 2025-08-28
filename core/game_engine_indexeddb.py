@@ -515,6 +515,87 @@ class GameEngineIndexedDB:
         """Synchronous version of get_available_backgrounds."""
         return asyncio.run(self.get_available_backgrounds())
     
+    async def get_class_equipment_choices(self, class_id: str) -> List[Dict[str, Any]]:
+        """Get equipment choices for a class."""
+        await self._ensure_connected()
+        
+        class_data = await indexeddb.get('classes', class_id)
+        if class_data and 'equipment_choices' in class_data:
+            return class_data['equipment_choices']
+        return []
+    
+    def get_class_equipment_choices_sync(self, class_id: str) -> List[Dict[str, Any]]:
+        """Synchronous version of get_class_equipment_choices."""
+        # Direct access to avoid async issues in UI context
+        if not indexeddb.is_connected or not indexeddb.object_stores:
+            return []
+        
+        classes_store = indexeddb.object_stores.get('classes', {})
+        class_key = class_id.lower().replace(' ', '_')
+        class_data = classes_store.get('data', {}).get(class_key)
+        
+        if class_data and 'equipment_choices' in class_data:
+            return class_data['equipment_choices']
+        return []
+    
+    async def get_equipment_item(self, item_name: str) -> Optional[Dict[str, Any]]:
+        """Get equipment item details by name."""
+        await self._ensure_connected()
+        
+        # Equipment is stored in 'items' object store
+        items_data = await indexeddb.get_all('items')
+        for item in items_data:
+            if item.get('name', '').lower() == item_name.lower():
+                return item
+        return None
+    
+    def get_equipment_item_sync(self, item_name: str) -> Optional[Dict[str, Any]]:
+        """Synchronous version of get_equipment_item."""
+        # Direct access to avoid async issues in UI context
+        if not indexeddb.is_connected or not indexeddb.object_stores:
+            return None
+        
+        items_store = indexeddb.object_stores.get('items', {})
+        items_data = items_store.get('data', {})
+        
+        # Search through items by name
+        for item_key, item_data in items_data.items():
+            if item_data.get('name', '').lower() == item_name.lower():
+                return item_data
+        return None
+    
+    async def apply_equipment_choices(self, character_data: Dict[str, Any], 
+                                     equipment_selections: Dict[str, str]) -> None:
+        """Apply selected equipment choices to character data."""
+        await self._ensure_connected()
+        
+        # This will be called during character creation
+        # equipment_selections format: {"choice_name": "selected_item_name"}
+        
+        # For now, store the selections in character data
+        # Later we can create CharacterInventory records
+        if 'equipment_selections' not in character_data:
+            character_data['equipment_selections'] = {}
+        character_data['equipment_selections'].update(equipment_selections)
+        
+        # Apply selected items to equipment slots based on item type
+        for choice_name, item_name in equipment_selections.items():
+            item = await self.get_equipment_item(item_name)
+            if item:
+                item_type = item.get('item_type', '')
+                if item_type == 'weapon':
+                    if not character_data.get('equipment_main_hand'):
+                        character_data['equipment_main_hand'] = item_name
+                elif item_type == 'armor':
+                    character_data['equipment_armor'] = item_name
+                elif item_type == 'shield':
+                    character_data['equipment_shield'] = item_name
+    
+    def apply_equipment_choices_sync(self, character_data: Dict[str, Any], 
+                                    equipment_selections: Dict[str, str]) -> None:
+        """Synchronous version of apply_equipment_choices."""
+        return asyncio.run(self.apply_equipment_choices(character_data, equipment_selections))
+    
     async def _calculate_character_stats(self, character: Character):
         """Calculate derived character statistics."""
         await self._ensure_connected()

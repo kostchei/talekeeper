@@ -14,9 +14,25 @@
     "skill_choices": 2,
     "starting_equipment": {
       "armor": "chain_mail",
-      "weapons": ["longsword", "shield"],
+      "weapons": ["shield"],
       "equipment": ["dungeoneer_pack", "javelin_2"]
     },
+    "equipment_choices": [
+      {
+        "name": "Martial Weapon",
+        "choice_type": "weapon",
+        "options": ["longsword", "greatsword", "rapier"],
+        "max_selections": 1,
+        "is_required": true
+      },
+      {
+        "name": "Armor",
+        "choice_type": "armor",
+        "options": ["studded leather", "breastplate", "chain mail"],
+        "max_selections": 1,
+        "is_required": true
+      }
+    ],
     "class_features": {
       "1": ["Fighting Style", "Second Wind"],
       "2": ["Action Surge"],

@@ -117,6 +117,42 @@ class Equipment:
 
 
 @dataclass
+class EquipmentChoice:
+    """Equipment choice options for classes/backgrounds for IndexedDB storage."""
+    # Primary key
+    id: str = field(default_factory=lambda: str(uuid4()))
+    name: str = ""  # "Martial Weapon", "Armor Choice"
+    class_id: Optional[str] = None
+    background_id: Optional[str] = None
+    choice_type: str = ""  # "weapon", "armor", "pack", "tool"
+    
+    # Choice options - list of item names
+    options: List[str] = field(default_factory=list)
+    max_selections: int = 1  # Usually 1, but could allow multiple
+    is_required: bool = True
+    
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert equipment choice to dictionary for IndexedDB storage."""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EquipmentChoice':
+        """Create equipment choice from dictionary from IndexedDB."""
+        defaults = {
+            'options': [],
+            'created_at': datetime.now().isoformat()
+        }
+        
+        for key, default_value in defaults.items():
+            if key not in data:
+                data[key] = default_value
+        
+        return cls(**data)
+
+
+@dataclass
 class CharacterInventory:
     """Character's inventory items for IndexedDB storage."""
     # Primary key

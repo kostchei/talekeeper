@@ -82,6 +82,10 @@ class CharacterCreatorWindow:
         self.selected_subclass = None
         self.selected_background = None
         
+        # Equipment choices
+        self.equipment_choices = []
+        self.equipment_selections = {}
+        
         # Setup custom fonts
         self._setup_fonts()
         
@@ -247,8 +251,8 @@ class CharacterCreatorWindow:
         self.notebook.add(self.step1_frame, text="Basic Info")
         self.notebook.add(self.step2_frame, text="Race")
         self.notebook.add(self.step3_frame, text="Class")
-        self.notebook.add(self.step4_frame, text="Background")
-        self.notebook.add(self.step5_frame, text="Abilities")
+        self.notebook.add(self.step4_frame, text="Starting Equipment")
+        self.notebook.add(self.step5_frame, text="Background & Abilities")
         
         # Create button frames in bottom left and right grid cells
         button_width = 15  # Standard button width in characters
@@ -419,9 +423,10 @@ class CharacterCreatorWindow:
         self.subclass_var = tk.StringVar()
         self.subclass_combo = ttk.Combobox(details_frame, textvariable=self.subclass_var, state="readonly", font=self.caslon_font)
         self.subclass_combo.pack(fill=tk.X)
+        
     
-    def _setup_step4_background(self):
-        """Setup background selection step.""" 
+    def _setup_step4_starting_equipment(self):
+        """Setup starting equipment selection step.""" 
         # Clear frame
         for widget in self.step4_frame.winfo_children():
             widget.destroy()
@@ -430,18 +435,128 @@ class CharacterCreatorWindow:
         content_frame = ttk.Frame(self.step4_frame)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        ttk.Label(content_frame, text="Choose your character's background:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(5, 10))
+        ttk.Label(content_frame, text="Choose your starting equipment:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(5, 10))
+        
+        # Test label to verify step 4 is showing
+        ttk.Label(content_frame, text="DEBUG: Step 4 content is loading...", font=self.caslon_font, foreground="blue").pack(anchor=tk.W, pady=(5, 5))
+        
+        # Equipment choices section
+        self.equipment_choices_frame = ttk.Frame(content_frame)
+        self.equipment_choices_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Load and display equipment choices
+        self._load_equipment_choices_for_step4()
+    
+    def _load_equipment_choices_for_step4(self):
+        """Load and display equipment choices for step 4."""
+        logger.info(f"Loading equipment choices for step 4. Selected class: {self.selected_class}")
+        
+        # Clear existing choice widgets
+        for widget in self.equipment_choices_frame.winfo_children():
+            widget.destroy()
+        
+        # Check if class is selected
+        if not self.selected_class:
+            logger.warning("No class selected for equipment choices")
+            ttk.Label(self.equipment_choices_frame, 
+                     text="Please select a class in step 3 first.", 
+                     font=self.caslon_font, 
+                     foreground="red").pack(anchor=tk.W, pady=(10, 5))
+            return
+        
+        # Get equipment choices from game engine
+        try:
+            equipment_choices = self.game_engine.get_class_equipment_choices_sync(self.selected_class.name)
+            logger.info(f"Found {len(equipment_choices)} equipment choices for {self.selected_class.name}")
+            
+            if not equipment_choices:
+                logger.warning(f"No equipment choices found for {self.selected_class.name}")
+                ttk.Label(self.equipment_choices_frame, 
+                         text=f"{self.selected_class.name} has no equipment choices available.", 
+                         font=self.caslon_font).pack(anchor=tk.W, pady=(10, 5))
+                return
+            
+            # Create UI for each equipment choice
+            for i, choice in enumerate(equipment_choices):
+                choice_name = choice.get('name', f'Choice {i+1}')
+                options = choice.get('options', [])
+                
+                if not options:
+                    continue
+                
+                # Choice label
+                choice_frame = ttk.Frame(self.equipment_choices_frame)
+                choice_frame.pack(fill=tk.X, pady=(10, 0))
+                
+                ttk.Label(choice_frame, text=f"{choice_name}:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(0, 5))
+                
+                # Radio buttons for options
+                choice_var = tk.StringVar()
+                choice_var.set(options[0])  # Default to first option
+                self.equipment_selections[choice_name] = choice_var
+                
+                options_frame = ttk.Frame(choice_frame)
+                options_frame.pack(fill=tk.X, padx=(20, 0))
+                
+                for option in options:
+                    # Get item details for display
+                    try:
+                        item = self.game_engine.get_equipment_item_sync(option)
+                        display_text = option.title()
+                        if item:
+                            if item.get('damage_dice'):
+                                display_text += f" ({item['damage_dice']} {item.get('damage_type', '')})"
+                            elif item.get('armor_class'):
+                                display_text += f" (AC {item['armor_class']})"
+                            
+                            # Add cost if available
+                            if item.get('cost_gp'):
+                                display_text += f" - {item['cost_gp']} gp"
+                    except:
+                        display_text = option.title()
+                    
+                    rb = ttk.Radiobutton(
+                        options_frame, 
+                        text=display_text, 
+                        variable=choice_var, 
+                        value=option,
+                        command=self._on_equipment_choice_changed
+                    )
+                    rb.pack(anchor=tk.W, pady=2)
+                    
+        except Exception as e:
+            logger.error(f"Error loading equipment choices: {e}")
+            ttk.Label(self.equipment_choices_frame, 
+                     text="Error loading equipment choices.", 
+                     font=self.caslon_font, 
+                     foreground="red").pack(anchor=tk.W, pady=(10, 5))
+    
+    def _setup_step5_background_abilities(self):
+        """Setup background selection and ability score generation step."""
+        # Clear frame
+        for widget in self.step5_frame.winfo_children():
+            widget.destroy()
+        
+        # Container with proper spacing
+        content_frame = ttk.Frame(self.step5_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        # Background Section
+        bg_section = ttk.Frame(content_frame)
+        bg_section.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Label(bg_section, text="Choose your character's background:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(5, 10))
         
         # Background layout
-        bg_frame = ttk.Frame(content_frame)
-        bg_frame.pack(fill=tk.BOTH, expand=True)
+        bg_frame = ttk.Frame(bg_section)
+        bg_frame.pack(fill=tk.X)
         
         # Left side: background list
         list_frame = ttk.Frame(bg_frame)
         list_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 15))
         
         ttk.Label(list_frame, text="Backgrounds:", font=self.caslon_font).pack(anchor=tk.W, pady=(0, 5))
-        self.background_listbox = tk.Listbox(list_frame, font=self.caslon_font, selectmode=tk.SINGLE, width=25)
+        self.background_listbox = tk.Listbox(list_frame, font=self.caslon_font, selectmode=tk.SINGLE, width=25, height=6)
         self.background_listbox.pack(fill=tk.BOTH, expand=True)
         self.background_listbox.bind("<<ListboxSelect>>", self._on_background_select)
         
@@ -454,23 +569,21 @@ class CharacterCreatorWindow:
         
         ttk.Label(self.background_details_frame, text="Background Details:", font=self.caslon_font).pack(anchor=tk.W, pady=(0, 5))
         self.background_details_text = tk.Text(self.background_details_frame, wrap=tk.WORD, state=tk.DISABLED, 
-                                              font=self.caslon_font, bg='#f8f8f8')
+                                              font=self.caslon_font, bg='#f8f8f8', height=8)
         self.background_details_text.pack(fill=tk.BOTH, expand=True)
-    
-    def _setup_step5_abilities(self):
-        """Setup ability score generation step."""
-        # Clear frame
-        for widget in self.step5_frame.winfo_children():
-            widget.destroy()
         
-        # Container with proper spacing
-        content_frame = ttk.Frame(self.step5_frame)
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        # Separator
+        separator = ttk.Separator(content_frame, orient='horizontal')
+        separator.pack(fill=tk.X, pady=15)
         
-        ttk.Label(content_frame, text="Generate Ability Scores:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(5, 10))
+        # Abilities Section
+        abilities_section = ttk.Frame(content_frame)
+        abilities_section.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(abilities_section, text="Generate Ability Scores:", font=self.caslon_large_font).pack(anchor=tk.W, pady=(5, 10))
         
         # Generation method
-        method_frame = ttk.Frame(content_frame)
+        method_frame = ttk.Frame(abilities_section)
         method_frame.pack(fill=tk.X, pady=(0, 15))
         
         ttk.Label(method_frame, text="Method:", font=self.caslon_font).pack(side=tk.LEFT)
@@ -486,7 +599,7 @@ class CharacterCreatorWindow:
         generate_btn.pack(side=tk.LEFT, padx=(10, 0))
         
         # Ability scores display
-        self.abilities_frame = ttk.Frame(content_frame)
+        self.abilities_frame = ttk.Frame(abilities_section)
         self.abilities_frame.pack(fill=tk.X, pady=(0, 15))
         
         self.ability_vars = {}
@@ -512,10 +625,10 @@ class CharacterCreatorWindow:
         self.abilities_frame.columnconfigure(2, weight=1)
         
         # Summary
-        summary_label = ttk.Label(content_frame, text="Character Summary:", font=self.caslon_large_font)
+        summary_label = ttk.Label(abilities_section, text="Character Summary:", font=self.caslon_large_font)
         summary_label.pack(anchor=tk.W, pady=(15, 5))
         
-        self.summary_text = tk.Text(content_frame, wrap=tk.WORD, state=tk.DISABLED, 
+        self.summary_text = tk.Text(abilities_section, wrap=tk.WORD, state=tk.DISABLED, 
                                    font=self.caslon_font, bg='#f8f8f8')
         self.summary_text.pack(fill=tk.BOTH, expand=True)
     
@@ -634,6 +747,66 @@ class CharacterCreatorWindow:
         
         self._update_character_summary()
     
+    def _load_equipment_choices(self):
+        """Load and display equipment choices for the selected class."""
+        # Clear existing choice widgets
+        for widget in self.equipment_choices_frame.winfo_children():
+            if hasattr(widget, 'choice_name'):  # Only clear choice widgets, not the label
+                widget.destroy()
+        
+        if not self.selected_class:
+            return
+        
+        # Get equipment choices from game engine
+        self.equipment_choices = self.game_engine.get_class_equipment_choices_sync(self.selected_class.name)
+        
+        # Create UI for each equipment choice
+        for i, choice in enumerate(self.equipment_choices):
+            choice_name = choice.get('name', f'Choice {i+1}')
+            options = choice.get('options', [])
+            
+            if not options:
+                continue
+            
+            # Choice label
+            choice_frame = ttk.Frame(self.equipment_choices_frame)
+            choice_frame.pack(fill=tk.X, pady=(5, 0))
+            choice_frame.choice_name = choice_name  # Mark for cleanup
+            
+            ttk.Label(choice_frame, text=f"{choice_name}:", font=self.caslon_font).pack(anchor=tk.W)
+            
+            # Radio buttons for options
+            choice_var = tk.StringVar()
+            choice_var.set(options[0])  # Default to first option
+            self.equipment_selections[choice_name] = choice_var
+            
+            options_frame = ttk.Frame(choice_frame)
+            options_frame.pack(fill=tk.X, padx=(20, 0))
+            
+            for option in options:
+                # Get item details for display
+                item = self.game_engine.get_equipment_item_sync(option)
+                display_text = option
+                if item:
+                    if item.get('damage_dice'):
+                        display_text += f" ({item['damage_dice']} {item.get('damage_type', '')})"
+                    elif item.get('armor_class'):
+                        display_text += f" (AC {item['armor_class']})"
+                
+                rb = ttk.Radiobutton(
+                    options_frame, 
+                    text=display_text, 
+                    variable=choice_var, 
+                    value=option,
+                    command=self._on_equipment_choice_changed
+                )
+                rb.pack(anchor=tk.W)
+    
+    def _on_equipment_choice_changed(self):
+        """Handle equipment choice changes."""
+        # Update character summary when choices change
+        self._update_character_summary()
+    
     def _on_background_select(self, event):
         """Handle background selection."""
         selection = self.background_listbox.curselection()
@@ -672,10 +845,10 @@ class CharacterCreatorWindow:
             self._setup_step2_race()
         elif current_tab == 2:  # Class
             self._setup_step3_class()
-        elif current_tab == 3:  # Background
-            self._setup_step4_background()
-        elif current_tab == 4:  # Abilities
-            self._setup_step5_abilities()
+        elif current_tab == 3:  # Starting Equipment
+            self._setup_step4_starting_equipment()
+        elif current_tab == 4:  # Background & Abilities
+            self._setup_step5_background_abilities()
             self._generate_abilities()  # Auto-generate on first view
         
         # Update button layout
@@ -714,7 +887,15 @@ class CharacterCreatorWindow:
                 messagebox.showerror("Error", "Please select a class.")
                 return False
         
-        elif step == 3:  # Background
+        elif step == 3:  # Starting Equipment
+            # Validate equipment choices are made
+            if self.equipment_selections:
+                for choice_name, choice_var in self.equipment_selections.items():
+                    if not choice_var.get():
+                        messagebox.showerror("Error", f"Please select equipment for {choice_name}.")
+                        return False
+        
+        elif step == 4:  # Background & Abilities
             if not self.selected_background:
                 messagebox.showerror("Error", "Please select a background.")
                 return False
@@ -731,6 +912,14 @@ class CharacterCreatorWindow:
             # Update ability scores with current values
             for ability in ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]:
                 self.character_data[ability] = int(self.ability_vars[ability].get())
+            
+            # Apply equipment choices
+            equipment_selections = {}
+            for choice_name, choice_var in self.equipment_selections.items():
+                equipment_selections[choice_name] = choice_var.get()
+            
+            if equipment_selections:
+                self.game_engine.apply_equipment_choices_sync(self.character_data, equipment_selections)
             
             # Create character
             character_name = self.character_data['name']  # Store name before creation
