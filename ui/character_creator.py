@@ -93,49 +93,34 @@ class CharacterCreatorWindow:
         logger.info("Character creator opened")
     
     def _setup_fonts(self):
-        """Setup custom Caslon Antique fonts from assets folder using pyglet."""
-        # Default font family name
-        caslon_family = "Georgia"
-        
+        """Setup IM Fell Great Primer Roman font from assets using pyglet."""
+        font_family = "Georgia"
+
         try:
-            # Get assets directory
             assets_dir = Path("assets")
-            font_files = [
-                "CaslonAntique.ttf",
-                "CaslonAntique-Bold.ttf", 
-                "CaslonAntique-Italic.ttf",
-                "CaslonAntique-BoldItalic.ttf"
-            ]
-            
-            # Load fonts using pyglet if available
+            font_file = "IMFellGreatPrimer-Regular.ttf"
+
             if PYGLET_AVAILABLE:
-                fonts_loaded = 0
-                for font_file in font_files:
-                    font_path = assets_dir / font_file
-                    if font_path.exists():
-                        try:
-                            pyglet.font.add_file(str(font_path.absolute()))
-                            fonts_loaded += 1
-                        except Exception as e:
-                            logger.warning(f"Failed to load font {font_file}: {e}")
-                
-                if fonts_loaded > 0:
-                    caslon_family = "Caslon Antique"
-                    logger.info(f"Loaded {fonts_loaded} Caslon Antique font files using pyglet")
+                font_path = assets_dir / font_file
+                if font_path.exists():
+                    try:
+                        pyglet.font.add_file(str(font_path.absolute()))
+                        font_family = "IM FELL Great Primer Roman"
+                        logger.info("Loaded IM Fell Great Primer Roman font using pyglet")
+                    except Exception as e:
+                        logger.warning(f"Failed to load font {font_file}: {e}")
                 else:
-                    logger.warning("No Caslon Antique fonts could be loaded, using Georgia fallback")
+                    logger.warning("IM Fell Great Primer font file not found, using fallback")
             else:
                 logger.info("pyglet not available, using Georgia fonts")
-            
-            # Create font objects with the determined family
-            self.caslon_font = font.Font(family=caslon_family, size=14)
-            self.caslon_large_font = font.Font(family=caslon_family, size=20)
-            self.caslon_title_font = font.Font(family=caslon_family, size=28, weight="bold")
-            self.caslon_button_font = font.Font(family=caslon_family, size=16)
-            
+
+            self.caslon_font = font.Font(family=font_family, size=14)
+            self.caslon_large_font = font.Font(family=font_family, size=20)
+            self.caslon_title_font = font.Font(family=font_family, size=28, weight="bold")
+            self.caslon_button_font = font.Font(family=font_family, size=16)
+
         except Exception as e:
             logger.warning(f"Font setup failed: {e}, using default fonts")
-            # Safe fallback
             self.caslon_font = font.Font(size=14)
             self.caslon_large_font = font.Font(size=20)
             self.caslon_title_font = font.Font(size=28, weight="bold")
