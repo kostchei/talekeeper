@@ -83,10 +83,10 @@ class CharacterPanel(QWidget):
         # === HEADER SECTION ===
         self.header_frame = QFrame()
         self.header_frame.setObjectName("headerFrame")
-        self.header_frame.setFixedHeight(40)
+        self.header_frame.setFixedHeight(35)
         
         header_layout = QHBoxLayout(self.header_frame)
-        header_layout.setContentsMargins(10, 5, 10, 5)
+        header_layout.setContentsMargins(8, 3, 8, 3)
         
         # Character name as title (will be updated with actual character name)
         self.char_name_title = QLabel("Character Name")
@@ -95,9 +95,24 @@ class CharacterPanel(QWidget):
         
         header_layout.addStretch()
         
-        self.expand_btn = QPushButton("▶ Expand")
+        self.expand_btn = QPushButton("▼ Expand")
         self.expand_btn.setObjectName("expandButton")
         self.expand_btn.clicked.connect(self._toggle_expansion)
+        # Apply styling directly to override global theme
+        self.expand_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #404040;
+                color: #ffffff;
+                border: 1px solid #666666;
+                border-radius: 3px;
+                padding: 4px 8px;
+                font-size: 10px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+            }
+        """)
         header_layout.addWidget(self.expand_btn)
         
         # === D&D CHARACTER SHEET LAYOUT ===
@@ -649,8 +664,8 @@ class CharacterPanel(QWidget):
         
         QLabel#charTitle {
             color: #ffffff;
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: normal !important;
         }
         
         QLabel#charNameLabel {
@@ -689,9 +704,10 @@ class CharacterPanel(QWidget):
             background-color: #404040;
             color: #ffffff;
             border: 1px solid #666666;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-weight: bold;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 10px !important;
+            font-weight: bold !important;
         }
         
         QPushButton#expandButton:hover {
@@ -774,7 +790,7 @@ class CharacterPanel(QWidget):
             self.detail_panel.setMaximumWidth(648)
             self.setMinimumSize(1296, 570)
             self.setMaximumSize(1296, 570)
-            self.expand_btn.setText("◀ Collapse")
+            self.expand_btn.setText("▲ Collapse")
             self.raise_()  # Bring to front to cover encounter pane
         else:
             # COLLAPSE: Hide detail panel and resize main widget
@@ -782,7 +798,7 @@ class CharacterPanel(QWidget):
             self.detail_panel.setMaximumWidth(0)
             self.setMinimumSize(648, 570)
             self.setMaximumSize(1296, 570)  # Allow future expansion
-            self.expand_btn.setText("▶ Expand")
+            self.expand_btn.setText("▼ Expand")
         
         # Force immediate layout update
         self.updateGeometry()

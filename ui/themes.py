@@ -570,8 +570,8 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     
     QLabel#charTitle {{
         color: {palette['text']};
-        font-size: 16px;
-        font-weight: bold;
+        font-size: 12px;
+        font-weight: normal;
     }}
     
     QLabel#charNameLabel {{

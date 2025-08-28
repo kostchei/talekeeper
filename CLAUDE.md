@@ -89,3 +89,11 @@ flake8
 - **`build.bat`** - Windows batch script for automated building
 - Bundles all dependencies, data files, and assets into single `.exe`
 - Uses UPX compression and excludes unnecessary modules to reduce size
+
+## UI Styling Notes
+
+### PyQt6 CSS Priority Issues
+- **Global Theme Override Problem**: The global theme from `ui/themes.py` is applied to the entire application AFTER individual widget stylesheets are set, causing it to override local CSS even with `!important` declarations
+- **Solution**: For critical styling that must override global themes, apply CSS directly to the widget using `widget.setStyleSheet()` instead of relying on class-level CSS in `_apply_styles()`
+- **Example**: Character sheet expand button required direct styling to match equipment panel styling due to global theme interference
+- **Best Practice**: Use direct widget styling for UI elements that need consistent appearance across theme changes
