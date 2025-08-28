@@ -31,8 +31,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
-from core.database import init_database
-from core.game_engine import GameEngine
+from core.game_engine_indexeddb import GameEngineIndexedDB
 from ui.main_window import MainWindow
 
 
@@ -68,22 +67,25 @@ def main():
         logger.info("Initializing IndexedDB database...")
         init_indexeddb_database()
         
-        # Initialize SQLite database (still needed for GameEngine)
-        logger.info("Initializing SQLite database...")
-        init_database()
+        # Check for existing SQLite databases and offer migration
+        sqlite_paths = [
+            Path("characters.db"),
+            Path("tests_demo/archive/talekeeper_sqlite_original.db"),
+            Path("tests_demo/talekeeper.db")
+        ]
         
-        # Check for existing SQLite database backup and offer migration
-        sqlite_db_path = Path("tests_demo/archive/talekeeper_sqlite_original.db")
-        if sqlite_db_path.exists() and not Path("talekeeper.idb").exists():
-            logger.info("Found SQLite backup database, attempting migration...")
-            try:
-                migrate_from_sqlite("tests_demo/archive/talekeeper_sqlite_original.db")
-                logger.info("SQLite to IndexedDB migration completed successfully")
-            except Exception as e:
-                logger.warning(f"Migration failed, continuing with fresh IndexedDB: {e}")
+        for sqlite_db_path in sqlite_paths:
+            if sqlite_db_path.exists() and not Path("talekeeper.idb").exists():
+                logger.info(f"Found SQLite database {sqlite_db_path}, attempting migration...")
+                try:
+                    migrate_from_sqlite(str(sqlite_db_path))
+                    logger.info("SQLite to IndexedDB migration completed successfully")
+                    break
+                except Exception as e:
+                    logger.warning(f"Migration from {sqlite_db_path} failed, trying next: {e}")
         
-        # Initialize game engine (uses SQLite backend)
-        game_engine = GameEngine()
+        # Initialize IndexedDB game engine
+        game_engine = GameEngineIndexedDB()
         
         # Create main application window
         window = MainWindow()

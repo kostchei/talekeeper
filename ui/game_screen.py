@@ -20,8 +20,8 @@ from tkinter import ttk, messagebox
 from typing import Optional, Dict, Any
 from loguru import logger
 
-from core.game_engine import GameEngine
-from models.character import Character
+from core.game_engine_indexeddb import GameEngineIndexedDB
+from models.character_indexeddb import Character
 
 
 class GameScreen:
@@ -31,7 +31,7 @@ class GameScreen:
     AI Agents: Add new exploration mechanics and location types here.
     """
     
-    def __init__(self, parent: ttk.Frame, game_engine: GameEngine, character: Character):
+    def __init__(self, parent: ttk.Frame, game_engine: GameEngineIndexedDB, character: Character):
         """Initialize the game screen."""
         self.parent = parent
         self.game_engine = game_engine
@@ -214,17 +214,9 @@ class GameScreen:
     def _random_encounter(self):
         """Generate a random encounter."""
         try:
-            # Get fresh character data from database to avoid detached session issues
-            from core.database import DatabaseSession
-            with DatabaseSession() as db:
-                character = db.query(Character).filter(Character.id == self.character.id).first()
-                if not character:
-                    self._add_log_entry("Error: Character data not found!")
-                    return
-                
-                # Get monsters appropriate for character level
-                max_cr = max(0.25, character.level * 0.5)  # Simple CR scaling
-                monsters = self.game_engine.get_monsters_by_cr(0, max_cr)
+            # Get monsters appropriate for character level
+            max_cr = max(0.25, self.character.level * 0.5)  # Simple CR scaling
+            monsters = self.game_engine.get_monsters_by_cr_sync(0, max_cr)
             
             if not monsters:
                 self._add_log_entry("The area seems strangely quiet...")

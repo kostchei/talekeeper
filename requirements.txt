@@ -1,9 +1,8 @@
 # TaleKeeper Desktop - Python Dependencies
 # Core dependencies for single-player D&D desktop application
 
-# Database
-sqlalchemy>=2.0.0
-alembic>=1.12.0
+# GUI Framework
+PyQt6>=6.5.0
 
 # Logging
 loguru>=0.7.0
@@ -13,12 +12,8 @@ pytest>=7.0.0
 black>=23.0.0
 flake8>=6.0.0
 
-# GUI (Tkinter is built into Python)
-# Font loading for custom TTF fonts
+# Font loading for custom TTF fonts (optional)
 pyglet>=2.1.0
 
 # Build tool for creating executable
 pyinstaller>=5.13.0
-
-# PyQt6 for modern UI
-PyQt6>=6.5.0

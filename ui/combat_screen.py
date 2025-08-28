@@ -20,9 +20,9 @@ from tkinter import ttk, messagebox
 from typing import List, Dict, Any, Optional
 from loguru import logger
 
-from core.game_engine import GameEngine
-from models.character import Character
-from models.monsters import Monster
+from core.game_engine_indexeddb import GameEngineIndexedDB
+from models.character_indexeddb import Character
+from models.monsters_indexeddb import Monster
 
 
 class CombatScreen:

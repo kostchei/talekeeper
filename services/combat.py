@@ -22,10 +22,9 @@ from enum import Enum
 from loguru import logger
 
 from services.dice import dice, attack_roll
-from models.character import Character
-from models.monsters import Monster
-from models.items import Item
-from core.database import DatabaseSession
+from models.character_indexeddb import Character
+from models.monsters_indexeddb import Monster
+from models.items_indexeddb import Item
 
 
 class CombatState(str, Enum):

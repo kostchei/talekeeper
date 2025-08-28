@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TaleKeeper is a single-player D&D 2024 tactical RPG desktop application for Windows. It's built with Python + Tkinter for the GUI, SQLite + SQLAlchemy for data persistence, and can be packaged into a standalone Windows executable using PyInstaller.
+TaleKeeper is a single-player D&D 2024 tactical RPG desktop application for Windows. It's built with Python + PyQt6 for the GUI, IndexedDB simulation for data persistence, and can be packaged into a standalone Windows executable using PyInstaller.
 
 ## Development Commands
 
@@ -32,7 +32,7 @@ pyinstaller build.spec
 # Install all dependencies
 pip install -r requirements.txt
 
-# Core dependencies: sqlalchemy, loguru, alembic, pyinstaller
+# Core dependencies: PyQt6, loguru, pyinstaller
 # Development/testing: pytest, black, flake8
 ```
 
@@ -51,38 +51,38 @@ flake8
 ## Architecture Overview
 
 ### Core Systems
-- **`core/game_engine.py`** - Central coordinator for all game systems, manages application state
-- **`core/database.py`** - SQLite database setup with SQLAlchemy ORM, table initialization
+- **`core/game_engine_indexeddb.py`** - Central coordinator for all game systems, manages application state with IndexedDB
+- **`core/database_indexeddb.py`** - IndexedDB simulation setup and data management
 - **`services/dice.py`** - D&D dice rolling mechanics and probability systems
 
 ### Data Layer
-- **`models/`** - SQLAlchemy ORM models for characters, monsters, items, combat, game state
+- **`models/*_indexeddb.py`** - Python dataclass models for characters, monsters, items, combat, game state
 - **`data/`** - JSON files containing D&D 2024 game data (races, classes, backgrounds, monsters, equipment)
-- **`talekeeper.db`** - SQLite database file created automatically on first run
+- **`talekeeper.idb`** - IndexedDB JSON file created automatically on first run
 
 ### User Interface
-- **`ui/main_window.py`** - Main Tkinter application window and navigation
+- **`ui/main_window.py`** - Main PyQt6 application window and navigation
 - **`ui/character_creator.py`** - Character creation interface with D&D 2024 rules
 - **`ui/combat_screen.py`** - Turn-based combat interface
 - **`ui/game_screen.py`** - Main gameplay and exploration interface
 
 ### Application Flow
-1. `main.py` initializes logging, database, and starts the GUI
-2. `core/game_engine.py` coordinates all game systems and state management
+1. `main.py` initializes logging, IndexedDB database, and starts the GUI
+2. `core/game_engine_indexeddb.py` coordinates all game systems and state management
 3. UI components interact with the game engine to perform game operations
-4. All game data is persisted to SQLite database via SQLAlchemy models
+4. All game data is persisted to IndexedDB JSON file via dataclass models
 
 ### Key Design Patterns
-- **MVC Architecture**: UI components (View) → GameEngine (Controller) → Models/Database (Model)
-- **ORM Pattern**: All database operations go through SQLAlchemy models
+- **MVC Architecture**: UI components (View) → GameEngineIndexedDB (Controller) → Dataclass Models/IndexedDB (Model)
+- **Dataclass Pattern**: All database operations use Python dataclasses with JSON serialization
 - **Service Layer**: Business logic encapsulated in services (dice, combat, etc.)
-- **State Management**: Centralized through GameEngine with database persistence
+- **State Management**: Centralized through GameEngineIndexedDB with IndexedDB persistence
 
 ### Database Schema
-- Characters, monsters, items use SQLAlchemy declarative models
+- Characters, monsters, items use Python dataclass models
 - Save slots support multiple character saves with metadata
 - Combat sessions track initiative, actions, and state
-- Game data loaded from JSON files into database on initialization
+- Game data loaded from JSON files into IndexedDB on initialization
 
 ### Build System
 - **`build.spec`** - PyInstaller configuration for Windows executable
