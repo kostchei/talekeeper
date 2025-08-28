@@ -31,7 +31,7 @@ except ImportError:
     PYGLET_AVAILABLE = False
     logger.warning("pyglet not available, using fallback fonts")
 
-from core.game_engine import GameEngine
+from core.game_engine_indexeddb import GameEngineIndexedDB
 
 
 class CharacterCreatorWindow:
@@ -41,7 +41,7 @@ class CharacterCreatorWindow:
     AI Agents: Extend with additional character options and validation.
     """
     
-    def __init__(self, parent: tk.Tk, game_engine: GameEngine, save_slot: Optional[int], callback: Callable):
+    def __init__(self, parent: tk.Tk, game_engine: GameEngineIndexedDB, save_slot: Optional[int], callback: Callable):
         """
         Initialize character creator.
         
@@ -734,7 +734,7 @@ class CharacterCreatorWindow:
             
             # Create character
             character_name = self.character_data['name']  # Store name before creation
-            character = self.game_engine.create_new_character(self.character_data, self.save_slot or 1)
+            character = self.game_engine.create_new_character_sync(self.character_data, self.save_slot or 1)
             
             messagebox.showinfo("Success", f"Character '{character_name}' created successfully!")
             

@@ -1260,6 +1260,117 @@
           "created_at": "2025-08-23 17:35:27",
           "updated_at": null,
           "notes": ""
+        },
+        "5b86c608-c5fd-4e26-856e-a9bcdb83e0ee": {
+          "id": "5b86c608-c5fd-4e26-856e-a9bcdb83e0ee",
+          "save_slot_id": "306f8a5c-9415-43c3-8ea3-ce82ad8708af",
+          "name": "Test Character",
+          "race_id": "human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "folk-hero",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 16,
+          "dexterity": 15,
+          "constitution": 11,
+          "intelligence": 11,
+          "wisdom": 11,
+          "charisma": 11,
+          "armor_class": 12,
+          "hit_points_max": 10,
+          "hit_points_current": 10,
+          "hit_points_temporary": 0,
+          "max_hit_points": 10,
+          "current_hit_points": 10,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-28T20:48:04.634604",
+          "updated_at": null,
+          "notes": ""
+        },
+        "6627cb25-9bca-404b-b0bc-308154fb01ce": {
+          "id": "6627cb25-9bca-404b-b0bc-308154fb01ce",
+          "save_slot_id": "aa027b64-5e8f-45bd-8d5a-1f9d9d48a87f",
+          "name": "Archive Test Character",
+          "race_id": "human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "folk-hero",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 11,
+          "dexterity": 11,
+          "constitution": 11,
+          "intelligence": 11,
+          "wisdom": 11,
+          "charisma": 11,
+          "armor_class": 10,
+          "hit_points_max": 10,
+          "hit_points_current": 10,
+          "hit_points_temporary": 0,
+          "max_hit_points": 10,
+          "current_hit_points": 10,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-28T20:52:02.613890",
+          "updated_at": null,
+          "notes": ""
+        },
+        "2b731241-27ad-4499-9d27-7b5d2ef0f1c9": {
+          "id": "2b731241-27ad-4499-9d27-7b5d2ef0f1c9",
+          "save_slot_id": "6f7b2137-1321-486d-83f7-970421adf445",
+          "name": "Templar",
+          "race_id": "Human",
+          "class_id": "Fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 17,
+          "dexterity": 11,
+          "constitution": 16,
+          "intelligence": 13,
+          "wisdom": 18,
+          "charisma": 16,
+          "armor_class": 10,
+          "hit_points_max": 13,
+          "hit_points_current": 13,
+          "hit_points_temporary": 0,
+          "max_hit_points": 13,
+          "current_hit_points": 13,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-28T20:53:33.220791",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
         }
       },
       "key_path": "id",
@@ -1279,6 +1390,45 @@
           "current_location": "Starting Town",
           "created_at": "2025-08-23 17:35:27",
           "updated_at": "2025-08-24 04:25:28"
+        },
+        "306f8a5c-9415-43c3-8ea3-ce82ad8708af": {
+          "id": "306f8a5c-9415-43c3-8ea3-ce82ad8708af",
+          "slot_number": 1,
+          "is_occupied": true,
+          "save_name": "Test Character - Level 1",
+          "last_played": "2025-08-28T20:48:04.639596",
+          "play_time_minutes": 0,
+          "character_name": "Test Character",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-28T20:48:04.631351",
+          "updated_at": "2025-08-28T20:48:04.639596"
+        },
+        "aa027b64-5e8f-45bd-8d5a-1f9d9d48a87f": {
+          "id": "aa027b64-5e8f-45bd-8d5a-1f9d9d48a87f",
+          "slot_number": 2,
+          "is_occupied": true,
+          "save_name": "Archive Test Character - Level 1",
+          "last_played": "2025-08-28T20:52:02.619897",
+          "play_time_minutes": 0,
+          "character_name": "Archive Test Character",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-28T20:52:02.610916",
+          "updated_at": "2025-08-28T20:52:02.619897"
+        },
+        "6f7b2137-1321-486d-83f7-970421adf445": {
+          "id": "6f7b2137-1321-486d-83f7-970421adf445",
+          "slot_number": 1,
+          "is_occupied": true,
+          "save_name": "Templar - Level 1",
+          "last_played": "2025-08-28T20:53:33.230371",
+          "play_time_minutes": 0,
+          "character_name": "Templar",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-28T20:53:33.218666",
+          "updated_at": "2025-08-28T20:53:33.230371"
         }
       },
       "key_path": "id",
@@ -1303,6 +1453,63 @@
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
           "created_at": "2025-08-23 17:35:27",
+          "updated_at": null
+        },
+        "99caf9fa-0117-4e1f-a2aa-87153721008c": {
+          "id": "99caf9fa-0117-4e1f-a2aa-87153721008c",
+          "character_id": "5b86c608-c5fd-4e26-856e-a9bcdb83e0ee",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-28T20:48:04.636596",
+          "updated_at": null
+        },
+        "91a7c50d-66af-4f3a-a96e-3615db429d47": {
+          "id": "91a7c50d-66af-4f3a-a96e-3615db429d47",
+          "character_id": "6627cb25-9bca-404b-b0bc-308154fb01ce",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-28T20:52:02.616890",
+          "updated_at": null
+        },
+        "4a580db9-bdbe-40ac-95ed-b27a34185507": {
+          "id": "4a580db9-bdbe-40ac-95ed-b27a34185507",
+          "character_id": "2b731241-27ad-4499-9d27-7b5d2ef0f1c9",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-28T20:53:33.227544",
           "updated_at": null
         }
       },
@@ -1336,8 +1543,8 @@
       "key_path": "race_id",
       "unique": false,
       "index_data": {
-        "ebf0d21c-59d5-4904-9e7d-b86ff6e3ab8f": [
-          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        "Human": [
+          "2b731241-27ad-4499-9d27-7b5d2ef0f1c9"
         ]
       }
     },
@@ -1346,8 +1553,8 @@
       "key_path": "class_id",
       "unique": false,
       "index_data": {
-        "6decf363-79f7-410d-8f9b-7ab143012408": [
-          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        "Fighter": [
+          "2b731241-27ad-4499-9d27-7b5d2ef0f1c9"
         ]
       }
     },
@@ -1356,8 +1563,8 @@
       "key_path": "name",
       "unique": false,
       "index_data": {
-        "jj": [
-          "9cb75ee0-762f-4597-9549-a863abf9f265"
+        "Templar": [
+          "2b731241-27ad-4499-9d27-7b5d2ef0f1c9"
         ]
       }
     },
@@ -1365,52 +1572,19 @@
       "store": "monsters",
       "key_path": "challenge_rating",
       "unique": false,
-      "index_data": {
-        "0.25": [
-          "Goblin",
-          "Wolf",
-          "Skeleton"
-        ],
-        "0.5": [
-          "Orc"
-        ]
-      }
+      "index_data": {}
     },
     "items.item_type": {
       "store": "items",
       "key_path": "item_type",
       "unique": false,
-      "index_data": {
-        "weapon": [
-          "Longsword",
-          "Shortsword",
-          "Rapier",
-          "Shortbow"
-        ],
-        "armor": [
-          "Leather Armor",
-          "Chain Mail"
-        ],
-        "shield": [
-          "Shield"
-        ]
-      }
+      "index_data": {}
     },
     "items.rarity": {
       "store": "items",
       "key_path": "rarity",
       "unique": false,
-      "index_data": {
-        "common": [
-          "Longsword",
-          "Shortsword",
-          "Rapier",
-          "Shortbow",
-          "Leather Armor",
-          "Chain Mail",
-          "Shield"
-        ]
-      }
+      "index_data": {}
     }
   }
 }

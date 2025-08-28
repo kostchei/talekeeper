@@ -64,10 +64,8 @@ class EquipmentPanel(QWidget):
         self.equipped_items = {}  # slot -> item mapping
         self.inventory_items = []  # list of inventory items
         
-        # Set initial size (extends to bottom above action cards)
-        self.setMinimumSize(432, 772)  # Use minimum size instead of fixed
-        self.setMaximumSize(1080, 772)  # Allow expansion to wider size
-        self.resize(432, 772)  # Set initial size
+        # Set initial size (extends to bottom of window)
+        self.setFixedSize(432, 486)
         self._setup_ui()
         self._apply_styles()
     
@@ -399,8 +397,7 @@ class EquipmentPanel(QWidget):
             new_x = current_pos.x() - (1080 - 432)
             self.move(new_x, current_pos.y())
             
-            self.setMinimumSize(1080, 772)
-            self.setMaximumSize(1080, 772)
+            self.setFixedSize(1080, 472)
             self.expand_btn.setText("▲ Collapse")
             self.raise_()  # Bring to front to cover encounter pane
             
@@ -413,8 +410,7 @@ class EquipmentPanel(QWidget):
             new_x = current_pos.x() + (1080 - 432)
             self.move(new_x, current_pos.y())
             
-            self.setMinimumSize(432, 772)
-            self.setMaximumSize(1080, 772)  # Allow future expansion
+            self.setFixedSize(432, 472)
             self.expand_btn.setText("▼ Expand")
             
             # Switch to compact layout

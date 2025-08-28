@@ -20,7 +20,7 @@ from encounter_pane.encounter_panel import EncounterPanel
 from log.log_panel import LogPanel
 from equipment_layout.equipment_panel import EquipmentPanel
 from action_cards.action_panel import ActionPanel
-from core.game_engine import GameEngine
+from core.game_engine_indexeddb import GameEngineIndexedDB
 
 
 class MainWindow(QMainWindow):
@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1920, 1080)
         
         # Initialize game engine
-        self.game_engine = GameEngine()
+        self.game_engine = GameEngineIndexedDB()
         
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
         
         # Equipment panel (bottom right)
         self.equipment_panel = EquipmentPanel(self)
-        self.equipment_panel.move(96 + 648 + 648, 54 + 200)  # Below log
+        self.equipment_panel.move(96 + 648 + 648, 54 + 486)  # Below log
         self.equipment_panel.show()
         
         # Action cards (bottom left)
@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
         self.menu.create_character_requested.connect(self._start_character_creation)
         self.menu.load_game_requested.connect(self._show_load_character_dialog)
         self.menu.save_and_exit_requested.connect(self._save_and_exit)
-        self.menu.archive_character_requested.connect(lambda: self.log_panel.log_info("Archive Character requested"))
+        self.menu.archive_character_requested.connect(self._archive_current_character)
         self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
         self.menu.campaign_frame_requested.connect(lambda: self.log_panel.log_info("Campaign Frame requested"))
         
@@ -223,7 +223,7 @@ class MainWindow(QMainWindow):
         try:
             # Save character to database first
             save_character_data = self._prepare_character_for_save(character_data)
-            saved_character = self.game_engine.create_new_character(save_character_data, save_slot=1)
+            saved_character = self.game_engine.create_new_character_sync(save_character_data, save_slot=1)
             
             # Store the last used slot for auto-loading
             self.game_engine.settings['last_character_slot'] = 1
@@ -257,7 +257,7 @@ class MainWindow(QMainWindow):
         # Save current character and game state if available
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
-                self.game_engine.save_game()
+                self.game_engine.save_game_sync()
                 self.log_panel.log_info(f"Saved character: {self.game_engine.current_character.name}")
             else:
                 self.log_panel.log_info("No active character to save")
@@ -268,19 +268,37 @@ class MainWindow(QMainWindow):
         self.log_panel.log_system("Goodbye!")
         self.close()
     
+    def _archive_current_character(self):
+        """Archive (save) the current character without exiting the application."""
+        self.log_panel.log_system("Archiving current character...")
+        
+        # Save current character and game state if available
+        try:
+            if hasattr(self, 'game_engine') and self.game_engine.current_character:
+                self.game_engine.save_game_sync()
+                character_name = self.game_engine.current_character.name
+                self.log_panel.log_info(f"Character '{character_name}' archived successfully!")
+                self.log_panel.log_system("Game state saved to IndexedDB")
+            else:
+                self.log_panel.log_error("No active character to archive")
+                self.log_panel.log_info("Load or create a character first")
+        except Exception as e:
+            self.log_panel.log_error(f"Failed to archive character: {e}")
+            self.log_panel.log_system("Archive operation failed")
+    
     def _try_load_last_character(self):
         """Try to load the most recent character, otherwise load test data."""
         try:
             # First, try to load from the last used slot
             last_slot = self.game_engine.settings.get('last_character_slot')
             if last_slot:
-                character = self.game_engine.load_character(last_slot)
+                character = self.game_engine.load_character_sync(last_slot)
                 if character:
                     self._load_character_into_ui(character, f"Auto-loaded last character from slot {last_slot}")
                     return
             
             # If no last slot or it's empty, try to find the most recent character from any slot
-            save_slots = self.game_engine.get_save_slots()
+            save_slots = self.game_engine.get_save_slots_sync()
             occupied_slots = [slot for slot in save_slots if slot.is_occupied]
             
             if occupied_slots:
@@ -288,7 +306,7 @@ class MainWindow(QMainWindow):
                 occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
                 most_recent_slot = occupied_slots[0]
                 
-                character = self.game_engine.load_character(most_recent_slot.slot_number)
+                character = self.game_engine.load_character_sync(most_recent_slot.slot_number)
                 if character:
                     # Update the last character slot setting for next time
                     self.game_engine.settings['last_character_slot'] = most_recent_slot.slot_number
@@ -330,7 +348,7 @@ class MainWindow(QMainWindow):
             self.log_panel.log_system("Opening character selection dialog...")
             
             # Get all save slots
-            save_slots = self.game_engine.get_save_slots()
+            save_slots = self.game_engine.get_save_slots_sync()
             occupied_slots = [slot for slot in save_slots if slot.is_occupied]
             
             if not occupied_slots:
@@ -412,7 +430,7 @@ class MainWindow(QMainWindow):
     def _load_character_from_slot(self, slot_number):
         """Load a character from a specific save slot."""
         try:
-            character = self.game_engine.load_character(slot_number)
+            character = self.game_engine.load_character_sync(slot_number)
             if character:
                 # Update the last character slot setting
                 self.game_engine.settings['last_character_slot'] = slot_number
@@ -495,7 +513,7 @@ class MainWindow(QMainWindow):
     def _get_race_id_by_name(self, name):
         """Get race ID by name from database."""
         try:
-            races = self.game_engine.get_available_races()
+            races = self.game_engine.get_available_races_sync()
             for race in races:
                 if race.name == name:
                     return race.id
@@ -506,7 +524,7 @@ class MainWindow(QMainWindow):
     def _get_class_id_by_name(self, name):
         """Get class ID by name from database."""
         try:
-            classes = self.game_engine.get_available_classes()
+            classes = self.game_engine.get_available_classes_sync()
             for cls in classes:
                 if cls.name == name:
                     return cls.id
@@ -517,7 +535,7 @@ class MainWindow(QMainWindow):
     def _get_background_id_by_name(self, name):
         """Get background ID by name from database."""
         try:
-            backgrounds = self.game_engine.get_available_backgrounds()
+            backgrounds = self.game_engine.get_available_backgrounds_sync()
             for bg in backgrounds:
                 if bg.name == name:
                     return bg.id
