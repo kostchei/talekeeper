@@ -25,8 +25,8 @@ from sqlalchemy.engine import Engine
 from loguru import logger
 from typing import Optional
 
-# Database file path
-DB_FILE = "talekeeper.db"
+# Database file path - use characters.db for SQLAlchemy character operations
+DB_FILE = "characters.db"  # Separate from main IndexedDB talekeeper.idb
 DATABASE_URL = f"sqlite:///{DB_FILE}"
 
 # SQLAlchemy setup

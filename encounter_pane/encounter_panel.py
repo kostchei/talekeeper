@@ -613,6 +613,12 @@ class EncounterPanel(QWidget):
         self.content_tabs.setCurrentIndex(3)  # Switch to character creation tab
         self.creation_step = 0
         self.character_creation_data = {}
+        # Reset 4d6 rolling for new character
+        if hasattr(self, 'has_rolled_4d6'):
+            self.has_rolled_4d6 = False
+        if hasattr(self, 'roll_4d6_btn'):
+            self.roll_4d6_btn.setEnabled(True)
+            self.roll_4d6_btn.setText("Roll 4d6 Drop Lowest (One Time Only)")
         self._update_creation_step()
     
     def exit_character_creation(self):
@@ -779,7 +785,7 @@ class EncounterPanel(QWidget):
             spinbox.setMinimum(3)  # Allow down to 3 for dump stats
             spinbox.setMaximum(15)
             spinbox.setValue(8)
-            spinbox.valueChanged.connect(self._update_point_buy)
+            spinbox.valueChanged.connect(self._on_ability_value_changed)
             self.ability_spinboxes[ability_lower] = spinbox
             abilities_layout.addWidget(spinbox, row, 1)
             
@@ -815,8 +821,9 @@ class EncounterPanel(QWidget):
         controls_layout.addStretch()
         
         # Roll 4d6 button
-        self.roll_4d6_btn = QPushButton("Roll 4d6 Drop Lowest (Auto-Applied)")
+        self.roll_4d6_btn = QPushButton("Roll 4d6 Drop Lowest (One Time Only)")
         self.roll_4d6_btn.clicked.connect(self._roll_4d6_overlay)
+        self.has_rolled_4d6 = False  # Track if 4d6 has been used
         controls_layout.addWidget(self.roll_4d6_btn)
         
         layout.addLayout(controls_layout)
@@ -1182,8 +1189,61 @@ class EncounterPanel(QWidget):
             # Update display
             self._update_point_buy()
     
+    def _on_ability_value_changed(self, value):
+        """Handle ability score changes with budget enforcement."""
+        sender = self.sender()
+        
+        # Check if this change would exceed budget
+        if self._would_exceed_budget(sender, value):
+            # Find the maximum value we can afford
+            max_affordable = self._get_max_affordable_value(sender)
+            sender.blockSignals(True)  # Prevent recursion
+            sender.setValue(max_affordable)
+            sender.blockSignals(False)
+        
+        self._update_point_buy()
+    
+    def _would_exceed_budget(self, changed_spinbox, new_value) -> bool:
+        """Check if changing a spinbox to new_value would exceed 27 points."""
+        point_costs = {
+            8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
+        }
+        
+        total_points = 0
+        for ability, spinbox in self.ability_spinboxes.items():
+            if spinbox == changed_spinbox:
+                # Use the proposed new value
+                value = new_value
+            else:
+                # Use current value
+                value = spinbox.value()
+            
+            if value == 3:  # Dump stat
+                cost = 0
+            else:
+                cost = point_costs.get(value, 0)
+            total_points += cost
+        
+        return total_points > 27
+    
+    def _get_max_affordable_value(self, changed_spinbox) -> int:
+        """Find the highest value we can set without exceeding budget."""
+        for test_value in range(15, 2, -1):  # Test from 15 down to 3
+            if not self._would_exceed_budget(changed_spinbox, test_value):
+                return test_value
+        return 3  # Minimum value
+    
     def _roll_4d6_overlay(self):
         """Roll 4d6 drop lowest for each ability score and auto-apply higher values."""
+        # Check if already rolled
+        if self.has_rolled_4d6:
+            return
+        
+        # Mark as used
+        self.has_rolled_4d6 = True
+        self.roll_4d6_btn.setEnabled(False)
+        self.roll_4d6_btn.setText("4d6 Already Rolled")
+        
         rolled_scores = {}
         
         for ability in self.ability_spinboxes:
@@ -1215,7 +1275,7 @@ class EncounterPanel(QWidget):
         self._update_final_scores()
         
         # Update info text
-        self.class_stats_info.setText("4d6 rolled! Final scores use higher of point buy or rolled (* = rolled used)")
+        self.class_stats_info.setText("4d6 rolled! Point buy is your minimum - 4d6 only improves if higher (* = rolled used)")
         
         # Log the rolls - try to find log panel in parent hierarchy
         log_panel = None
