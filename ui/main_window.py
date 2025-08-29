@@ -559,9 +559,9 @@ class MainWindow(QMainWindow):
     
     def _format_character_for_display(self, character_data):
         """Convert character creation data to display format."""
-        ability_scores = character_data.get('ability_scores', {})
-        species_data = character_data.get('species_data', {})
-        class_data = character_data.get('class_data', {})
+        ability_scores = character_data.get('ability_scores') or {}
+        species_data = character_data.get('species_data') or {}
+        class_data = character_data.get('class_data') or {}
         
         # Apply racial bonuses
         racial_bonuses = species_data.get('ability_score_increases', {})
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
             'level': 1,
             'race_name': species_data.get('name', 'Human'),
             'class_name': class_data.get('name', 'Fighter'),
-            'background_name': character_data.get('background_data', {}).get('name', 'Folk Hero'),
+            'background_name': (character_data.get('background_data') or {}).get('name', 'Folk Hero'),
             'current_hit_points': max_hp,
             'hit_points': max_hp,
             'armor_class': 10 + dex_mod,  # Base AC + Dex modifier
@@ -598,10 +598,10 @@ class MainWindow(QMainWindow):
     def _prepare_character_for_save(self, character_data):
         """Convert character creation data to format expected by game engine."""
         # Get data with defaults
-        species_data = character_data.get('species_data', {})
-        class_data = character_data.get('class_data', {})
-        background_data = character_data.get('background_data', {})
-        ability_scores = character_data.get('ability_scores', {})
+        species_data = character_data.get('species_data') or {}
+        class_data = character_data.get('class_data') or {}
+        background_data = character_data.get('background_data') or {}
+        ability_scores = character_data.get('ability_scores') or {}
         
         # Get IDs by looking up the names in the database
         race_id = self._get_race_id_by_name(species_data.get('name', 'Human'))
