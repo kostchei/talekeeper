@@ -38,15 +38,16 @@ class ActionType(Enum):
     REST = "rest"
     INVESTIGATE = "investigate"
     INTERACT = "interact"
+    OPPORTUNITY = "opportunity"
 
 
 class ActionCategory(Enum):
     """Action categories for grouping."""
     COMBAT = "combat"
     MOVEMENT = "movement"
-    UTILITY = "utility"
-    SOCIAL = "social"
-    EXPLORATION = "exploration"
+    BONUS = "bonus"
+    FREE = "free"
+    REACTION = "reaction"
 
 
 class ActionPanel(QWidget):
@@ -109,8 +110,16 @@ class ActionPanel(QWidget):
         # Category filter buttons
         self.category_buttons = QButtonGroup(self)
         
+        category_labels = {
+            ActionCategory.COMBAT: "Action",
+            ActionCategory.MOVEMENT: "Movement", 
+            ActionCategory.BONUS: "Bonus",
+            ActionCategory.FREE: "Free",
+            ActionCategory.REACTION: "Reaction"
+        }
+        
         for category in ActionCategory:
-            btn = QPushButton(category.value.title())
+            btn = QPushButton(category_labels[category])
             btn.setObjectName("categoryButton")
             btn.setCheckable(True)
             btn.clicked.connect(lambda checked, c=category: self._set_category(c))
@@ -157,7 +166,7 @@ class ActionPanel(QWidget):
         # Create non-weapon action cards first
         static_actions = {
             ActionCategory.COMBAT: [
-                (ActionType.CAST_SPELL, "✨", "Cast Spell", "Cast a spell from your repertoire"),
+                (ActionType.CAST_SPELL, "✨", "Magic", "Cast a spell from your repertoire"),
                 (ActionType.USE_ITEM, "🧪", "Use Item", "Use an item from your inventory"),
                 (ActionType.DODGE, "🛡️", "Dodge", "Gain advantage on Dexterity saves"),
             ],
@@ -166,11 +175,16 @@ class ActionPanel(QWidget):
                 (ActionType.DASH, "💨", "Dash", "Double your movement speed this turn"),
                 (ActionType.HIDE, "👻", "Hide", "Attempt to become hidden"),
             ],
-            ActionCategory.UTILITY: [
+            ActionCategory.BONUS: [
                 (ActionType.SEARCH, "🔍", "Search", "Look for hidden objects or clues"),
                 (ActionType.INVESTIGATE, "🕵️", "Investigate", "Make a detailed investigation"),
-                (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
                 (ActionType.REST, "😴", "Rest", "Take a short rest to recover"),
+            ],
+            ActionCategory.FREE: [
+                (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
+            ],
+            ActionCategory.REACTION: [
+                (ActionType.OPPORTUNITY, "⚡", "Opportunity", "Make an opportunity attack"),
             ]
         }
         
@@ -402,9 +416,25 @@ class ActionPanel(QWidget):
                     self.cards_layout.addWidget(card)
                     card.show()
                     
-        elif self.current_category == ActionCategory.UTILITY:
-            utility_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.INTERACT, ActionType.REST]
-            for action_type in utility_actions:
+        elif self.current_category == ActionCategory.BONUS:
+            bonus_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.REST]
+            for action_type in bonus_actions:
+                if action_type in self.action_cards:
+                    card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+                    
+        elif self.current_category == ActionCategory.FREE:
+            free_actions = [ActionType.INTERACT]
+            for action_type in free_actions:
+                if action_type in self.action_cards:
+                    card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+                    
+        elif self.current_category == ActionCategory.REACTION:
+            reaction_actions = [ActionType.OPPORTUNITY]
+            for action_type in reaction_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
                     self.cards_layout.addWidget(card)
@@ -459,11 +489,12 @@ class ActionPanel(QWidget):
             ActionType.MOVE: "movement",
             ActionType.DASH: "action",
             ActionType.DODGE: "action",
-            ActionType.SEARCH: "action",
+            ActionType.SEARCH: "bonus_action",
             ActionType.INVESTIGATE: "action",
-            ActionType.INTERACT: "action",
+            ActionType.INTERACT: "free",
             ActionType.HIDE: "action",
-            ActionType.REST: "special"
+            ActionType.REST: "special",
+            ActionType.OPPORTUNITY: "reaction"
         }
         
         cost_type = action_costs.get(action_type, "free")

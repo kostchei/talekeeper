@@ -110,24 +110,58 @@ class EquipmentPanel(QWidget):
         equipment_layout = QVBoxLayout(self.equipment_tab)
         equipment_layout.setContentsMargins(5, 5, 5, 5)
         
-        # Quick stats display (always visible)
-        self.stats_frame = QFrame()
-        self.stats_frame.setObjectName("statsFrame")
-        stats_layout = QGridLayout(self.stats_frame)
-        stats_layout.setContentsMargins(5, 5, 5, 5)
+        # Attack display (always visible)
+        self.attacks_frame = QFrame()
+        self.attacks_frame.setObjectName("attacksFrame")
+        attacks_layout = QVBoxLayout(self.attacks_frame)
+        attacks_layout.setContentsMargins(2, 2, 2, 2)
+        attacks_layout.setSpacing(1)
         
-        # AC, Damage, etc.
-        stats_layout.addWidget(QLabel("AC:"), 0, 0)
-        self.ac_label = QLabel("10")
-        self.ac_label.setObjectName("statValue")
-        stats_layout.addWidget(self.ac_label, 0, 1)
+        # Main Hand attack
+        self.main_hand_frame = QFrame()
+        main_hand_layout = QHBoxLayout(self.main_hand_frame)
+        main_hand_layout.setContentsMargins(2, 1, 2, 1)
+        main_hand_layout.addWidget(QLabel("Main Hand:"))
+        self.main_hand_label = QLabel("Unarmed +2 (1+2)")
+        self.main_hand_label.setObjectName("attackValue")
+        main_hand_layout.addWidget(self.main_hand_label)
+        main_hand_layout.addStretch()
+        attacks_layout.addWidget(self.main_hand_frame)
         
-        stats_layout.addWidget(QLabel("ATK:"), 0, 2)
-        self.attack_label = QLabel("+0")
-        self.attack_label.setObjectName("statValue")
-        stats_layout.addWidget(self.attack_label, 0, 3)
+        # Off Hand attack  
+        self.off_hand_frame = QFrame()
+        off_hand_layout = QHBoxLayout(self.off_hand_frame)
+        off_hand_layout.setContentsMargins(2, 1, 2, 1)
+        off_hand_layout.addWidget(QLabel("Off Hand:"))
+        self.off_hand_label = QLabel("None")
+        self.off_hand_label.setObjectName("attackValue")
+        off_hand_layout.addWidget(self.off_hand_label)
+        off_hand_layout.addStretch()
+        attacks_layout.addWidget(self.off_hand_frame)
         
-        equipment_layout.addWidget(self.stats_frame)
+        # Unarmed attack
+        self.unarmed_frame = QFrame()
+        unarmed_layout = QHBoxLayout(self.unarmed_frame)
+        unarmed_layout.setContentsMargins(2, 1, 2, 1)
+        unarmed_layout.addWidget(QLabel("Unarmed:"))
+        self.unarmed_label = QLabel("+2 (1+2)")
+        self.unarmed_label.setObjectName("attackValue")
+        unarmed_layout.addWidget(self.unarmed_label)
+        unarmed_layout.addStretch()
+        attacks_layout.addWidget(self.unarmed_frame)
+        
+        # Magic attack
+        self.magic_frame = QFrame()
+        magic_layout = QHBoxLayout(self.magic_frame)
+        magic_layout.setContentsMargins(2, 1, 2, 1)
+        magic_layout.addWidget(QLabel("Magic:"))
+        self.magic_label = QLabel("+4 spell attack")
+        self.magic_label.setObjectName("attackValue")
+        magic_layout.addWidget(self.magic_label)
+        magic_layout.addStretch()
+        attacks_layout.addWidget(self.magic_frame)
+        
+        equipment_layout.addWidget(self.attacks_frame)
         
         # Equipment slots (compact view)
         self.equipment_slots_frame = QFrame()
@@ -240,10 +274,16 @@ class EquipmentPanel(QWidget):
             border-radius: 4px;
         }
         
-        QFrame#statsFrame {
+        QFrame#attacksFrame {
             background-color: #252525;
             border: 1px solid #444444;
             border-radius: 4px;
+        }
+        
+        QLabel#attackValue {
+            color: #4a90e2;
+            font-size: 11px;
+            font-weight: bold;
         }
         
         QFrame#equipmentSlotsFrame {
@@ -384,6 +424,130 @@ class EquipmentPanel(QWidget):
         QScrollBar::handle:vertical:hover {
             background-color: #666666;
         }
+        """
+        self.setStyleSheet(style_sheet)
+    
+    def update_theme(self, theme_name: str):
+        """Update styling based on theme."""
+        from ui.themes import get_theme_palette
+        palette = get_theme_palette(theme_name)
+        
+        style_sheet = f"""
+        EquipmentPanel {{
+            background-color: {palette['surface']};
+            border: 2px solid {palette['border']};
+            border-radius: 8px;
+        }}
+        
+        QFrame#headerFrame {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QFrame#attacksFrame {{
+            background-color: {palette['background']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QLabel#attackValue {{
+            color: {palette['accent_tertiary']};
+            font-size: 11px;
+            font-weight: bold;
+        }}
+        
+        QFrame#equipmentSlotsFrame {{
+            background-color: {palette['background']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QLabel#titleLabel {{
+            color: {palette['text']};
+            font-size: 14px;
+            font-weight: bold;
+        }}
+        
+        QLabel#statValue {{
+            color: {palette['accent_tertiary']};
+            font-size: 12px;
+            font-weight: bold;
+        }}
+        
+        QLabel#weightLabel {{
+            color: {palette['text_secondary']};
+            font-size: 11px;
+            min-width: 50px;
+        }}
+        
+        QPushButton#expandButton {{
+            background-color: {palette['button']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: bold;
+        }}
+        
+        QPushButton#expandButton:hover {{
+            background-color: {palette['button_hover']};
+        }}
+        
+        QPushButton#expandButton:pressed {{
+            background-color: {palette['button_pressed']};
+        }}
+        
+        QScrollArea#inventoryScrollArea {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QScrollArea#inventoryScrollArea > QWidget > QWidget {{
+            background-color: {palette['surface']};
+        }}
+        
+        QListWidget {{
+            background-color: {palette['surface']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            alternate-background-color: {palette['highlight']};
+            selection-background-color: {palette['selection']};
+            selection-color: {palette['text']};
+        }}
+        
+        QListWidget::item {{
+            padding: 4px;
+            border-bottom: 1px solid {palette['border']};
+        }}
+        
+        QProgressBar {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            text-align: center;
+            color: {palette['text']};
+        }}
+        
+        QScrollBar:vertical {{
+            background-color: {palette['surface']};
+            width: 12px;
+            border: 1px solid {palette['border']};
+        }}
+        
+        QScrollBar::handle:vertical {{
+            background-color: {palette['accent_primary']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            min-height: 20px;
+        }}
+        
+        QScrollBar::handle:vertical:hover {{
+            background-color: {palette['accent_secondary']};
+        }}
         """
         self.setStyleSheet(style_sheet)
     
@@ -581,14 +745,121 @@ class EquipmentPanel(QWidget):
     
     def _update_stats_display(self):
         """Update the stats display based on equipped items."""
-        # Calculate AC using D&D 2024 rules
-        ac = self._calculate_armor_class()
+        # Update attack displays
+        self._update_attack_displays()
+    
+    def _update_attack_displays(self):
+        """Update all attack display rows."""
+        # Main Hand attack
+        main_hand_weapon = self.equipped_items.get(EquipmentSlot.MAIN_HAND)
+        if main_hand_weapon and (main_hand_weapon.get('item_type') == 'weapon' or main_hand_weapon.get('type') == 'weapon'):
+            attack_bonus = self._calculate_weapon_attack_bonus(main_hand_weapon)
+            damage = self._calculate_weapon_damage(main_hand_weapon)
+            weapon_name = main_hand_weapon.get('name', 'Weapon')
+            self.main_hand_label.setText(f"{weapon_name} Hit {attack_bonus:+d} Dam {damage}")
+        else:
+            # Unarmed attack as main hand
+            attack_bonus = self._calculate_unarmed_attack_bonus()
+            damage = self._calculate_unarmed_damage()
+            self.main_hand_label.setText(f"Unarmed Hit {attack_bonus:+d} Dam {damage}")
         
-        # Calculate attack bonus from main hand weapon
-        attack_bonus = self._calculate_main_hand_attack_bonus()
+        # Off Hand attack
+        off_hand_weapon = self.equipped_items.get(EquipmentSlot.OFF_HAND)
+        if off_hand_weapon and (off_hand_weapon.get('item_type') == 'weapon' or off_hand_weapon.get('type') == 'weapon'):
+            attack_bonus = self._calculate_weapon_attack_bonus(off_hand_weapon, is_off_hand=True)
+            damage = self._calculate_weapon_damage(off_hand_weapon, is_off_hand=True)
+            weapon_name = off_hand_weapon.get('name', 'Weapon')
+            self.off_hand_label.setText(f"{weapon_name} Hit {attack_bonus:+d} Dam {damage}")
+        else:
+            self.off_hand_label.setText("None")
         
-        self.ac_label.setText(str(ac))
-        self.attack_label.setText(f"+{attack_bonus}" if attack_bonus >= 0 else str(attack_bonus))
+        # Unarmed attack
+        attack_bonus = self._calculate_unarmed_attack_bonus()
+        damage = self._calculate_unarmed_damage()
+        self.unarmed_label.setText(f"Hit {attack_bonus:+d} Dam {damage}")
+        
+        # Magic attack
+        spell_attack_bonus = self._calculate_spell_attack_bonus()
+        self.magic_label.setText(f"Hit {spell_attack_bonus:+d} spell attack")
+    
+    def _calculate_weapon_attack_bonus(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> int:
+        """Calculate attack bonus for a specific weapon."""
+        # Base proficiency bonus (assume level 1 = +2 for now)
+        prof_bonus = 2
+        
+        # Get relevant ability modifier (Str for most weapons, Dex for finesse)
+        weapon_props = weapon.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            # Use higher of Str or Dex for finesse weapons
+            str_mod = (self.character_strength - 10) // 2
+            dex_mod = (self.character_dexterity - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        elif 'ranged' in weapon_props or weapon.get('damage_type') == 'ranged':
+            # Ranged weapons use Dex
+            ability_mod = (self.character_dexterity - 10) // 2
+        else:
+            # Melee weapons use Str
+            ability_mod = (self.character_strength - 10) // 2
+        
+        # Magic weapon bonus
+        magic_bonus = weapon.get('attack_bonus', 0)
+        
+        return prof_bonus + ability_mod + magic_bonus
+    
+    def _calculate_weapon_damage(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> str:
+        """Format weapon damage string."""
+        damage_dice = weapon.get('damage_dice', '1d4')
+        damage_type = weapon.get('damage_type', 'slashing')
+        
+        # Get ability modifier for damage
+        weapon_props = weapon.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            str_mod = (self.character_strength - 10) // 2
+            dex_mod = (self.character_dexterity - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        elif 'ranged' in weapon_props or damage_type == 'ranged':
+            ability_mod = (self.character_dexterity - 10) // 2
+        else:
+            ability_mod = (self.character_strength - 10) // 2
+        
+        # Off-hand attacks don't add ability modifier to damage (unless Two Weapon Fighting)
+        if is_off_hand:
+            ability_mod = 0  # Simplified - would check for Two Weapon Fighting feat
+        
+        # Magic weapon damage bonus
+        magic_bonus = weapon.get('damage_bonus', 0)
+        total_bonus = ability_mod + magic_bonus
+        
+        if total_bonus > 0:
+            return f"{damage_dice}+{total_bonus}"
+        elif total_bonus < 0:
+            return f"{damage_dice}{total_bonus}"
+        else:
+            return damage_dice
+    
+    def _calculate_unarmed_attack_bonus(self) -> int:
+        """Calculate unarmed attack bonus."""
+        prof_bonus = 2  # Assume level 1
+        str_mod = (self.character_strength - 10) // 2
+        return prof_bonus + str_mod
+    
+    def _calculate_unarmed_damage(self) -> str:
+        """Calculate unarmed damage."""
+        str_mod = (self.character_strength - 10) // 2
+        if str_mod > 0:
+            return f"1+{str_mod}"
+        elif str_mod < 0:
+            return f"1{str_mod}"
+        else:
+            return "1"
+    
+    def _calculate_spell_attack_bonus(self) -> int:
+        """Calculate spell attack bonus."""
+        prof_bonus = 2  # Assume level 1
+        # For now, assume primary spellcasting ability based on class
+        # This should be configurable based on character class
+        spellcasting_mod = (self.character_dexterity - 10) // 2  # Placeholder
+        return prof_bonus + spellcasting_mod
     
     def _calculate_armor_class(self):
         """Calculate total AC from equipped armor, shield, and dexterity."""

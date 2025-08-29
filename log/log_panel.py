@@ -256,6 +256,126 @@ class LogPanel(QWidget):
         """
         self.setStyleSheet(style_sheet)
     
+    def update_theme(self, theme_name: str):
+        """Update styling based on theme."""
+        from ui.themes import get_theme_palette
+        palette = get_theme_palette(theme_name)
+        
+        style_sheet = f"""
+        LogPanel {{
+            background-color: {palette['background']};
+            border: 2px solid {palette['border']};
+            border-radius: 8px;
+        }}
+        
+        QFrame#headerFrame {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QFrame#filtersFrame {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QLabel#titleLabel {{
+            color: {palette['text']};
+            font-size: 14px;
+            font-weight: bold;
+        }}
+        
+        QLabel#levelLabel {{
+            color: {palette['text_secondary']};
+            font-size: 11px;
+            font-weight: bold;
+        }}
+        
+        QTextEdit#logDisplay {{
+            background-color: {palette['background']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            selection-background-color: {palette['selection']};
+            selection-color: {palette['text']};
+        }}
+        
+        QComboBox#levelFilter {{
+            background-color: {palette['surface']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 2px 6px;
+        }}
+        
+        QPushButton#clearButton {{
+            background-color: {palette['button']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: bold;
+        }}
+        
+        QPushButton#clearButton:hover {{
+            background-color: {palette['button_hover']};
+        }}
+        
+        QPushButton#clearButton:pressed {{
+            background-color: {palette['button_pressed']};
+        }}
+        
+        QPushButton#autoScrollButton {{
+            background-color: {palette['surface']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+        }}
+        
+        QPushButton#smallButton {{
+            background-color: {palette['button']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 8px;
+            font-weight: bold;
+            min-width: 50px;
+        }}
+        
+        QPushButton#smallButton:hover {{
+            background-color: {palette['button_hover']};
+        }}
+        
+        QPushButton#smallButton:pressed {{
+            background-color: {palette['button_pressed']};
+        }}
+        
+        QScrollBar:vertical {{
+            background-color: {palette['surface']};
+            width: 12px;
+            border: 1px solid {palette['border']};
+        }}
+        
+        QScrollBar::handle:vertical {{
+            background-color: {palette['accent_primary']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            min-height: 20px;
+        }}
+        
+        QScrollBar::handle:vertical:hover {{
+            background-color: {palette['accent_secondary']};
+        }}
+        """
+        self.setStyleSheet(style_sheet)
+    
     def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO, 
                        details: Optional[Dict[str, Any]] = None):
         """Add a new message to the log."""

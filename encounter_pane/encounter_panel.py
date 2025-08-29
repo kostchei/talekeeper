@@ -487,6 +487,129 @@ class EncounterPanel(QWidget):
         """
         self.setStyleSheet(style_sheet)
     
+    def update_theme(self, theme_name: str):
+        """Update styling based on theme."""
+        from ui.themes import get_theme_palette
+        palette = get_theme_palette(theme_name)
+        
+        style_sheet = f"""
+        EncounterPanel {{
+            background-color: {palette['background']};
+            border: 2px solid {palette['border']};
+            border-radius: 8px;
+        }}
+        
+        QFrame#headerFrame {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QFrame#contentFrame {{
+            background-color: {palette['background']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+        }}
+        
+        QLabel#titleLabel {{
+            color: {palette['text']};
+            font-size: 16px;
+            font-weight: bold;
+        }}
+        
+        QLabel#modeLabel {{
+            color: {palette['accent_tertiary']};
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border: 1px solid {palette['accent_tertiary']};
+            border-radius: 3px;
+        }}
+        
+        QTabWidget::pane {{
+            border: 1px solid {palette['border']};
+            background-color: {palette['surface']};
+            border-radius: 4px;
+        }}
+        
+        QTabBar::tab {{
+            background-color: {palette['surface']};
+            color: {palette['text']};
+            padding: 6px 12px;
+            margin-right: 2px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            border: 1px solid {palette['border']};
+        }}
+        
+        QTabBar::tab:selected {{
+            background-color: {palette['accent_primary']};
+            border-bottom-color: {palette['accent_primary']};
+        }}
+        
+        QTextEdit {{
+            background-color: {palette['background']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            font-size: 12px;
+            selection-background-color: {palette['selection']};
+            alternate-background-color: {palette['highlight']};
+        }}
+        
+        QListWidget {{
+            background-color: {palette['background']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            alternate-background-color: {palette['highlight']};
+            selection-background-color: {palette['selection']};
+            selection-color: {palette['text']};
+        }}
+        
+        QListWidget::item {{
+            padding: 4px;
+            border-bottom: 1px solid {palette['border']};
+        }}
+        
+        QPushButton {{
+            background-color: {palette['button']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }}
+        
+        QPushButton:hover {{
+            background-color: {palette['button_hover']};
+        }}
+        
+        QPushButton:pressed {{
+            background-color: {palette['button_pressed']};
+        }}
+        
+        QPushButton#rollButton {{
+            background-color: {palette['accent_tertiary']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+        }}
+        
+        QPushButton#rollButton:hover {{
+            background-color: {palette['accent_secondary']};
+        }}
+        
+        QPushButton#rollButton:pressed {{
+            background-color: {palette['accent_primary']};
+        }}
+        """
+        self.setStyleSheet(style_sheet)
+    
     def set_exploration_mode(self):
         """Switch to exploration mode."""
         self.encounter_mode = "exploration"

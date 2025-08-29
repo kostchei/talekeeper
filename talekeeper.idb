@@ -842,44 +842,6 @@
           "created_at": "2025-08-29T15:55:30.279372",
           "updated_at": null,
           "notes": "Created via character creator. Final scores include racial bonuses."
-        },
-        "28f2ec11-d342-4523-8016-a0b85ec6c89c": {
-          "id": "28f2ec11-d342-4523-8016-a0b85ec6c89c",
-          "save_slot_id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
-          "name": "Yarl",
-          "race_id": "Human",
-          "class_id": "fighter",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 15,
-          "dexterity": 18,
-          "constitution": 15,
-          "intelligence": 16,
-          "wisdom": 10,
-          "charisma": 8,
-          "armor_class": 16,
-          "hit_points_max": 12,
-          "hit_points_current": 12,
-          "hit_points_temporary": 0,
-          "max_hit_points": 12,
-          "current_hit_points": 12,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "feats": [],
-          "equipment_main_hand": "Greatsword",
-          "equipment_off_hand": null,
-          "equipment_armor": "Chain Mail",
-          "equipment_shield": null,
-          "created_at": "2025-08-29T16:06:45.309073",
-          "updated_at": null,
-          "notes": "Created via character creator. Final scores include racial bonuses."
         }
       },
       "key_path": "id",
@@ -890,15 +852,15 @@
         "4db7615f-df95-4523-b6b7-57ef5247d1db": {
           "id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
           "slot_number": 1,
-          "is_occupied": true,
-          "save_name": "Yarl - Level 1",
-          "last_played": "2025-08-29T16:06:45.313580",
+          "is_occupied": false,
+          "save_name": null,
+          "last_played": null,
           "play_time_minutes": 0,
-          "character_name": "Yarl",
-          "character_level": 1,
-          "current_location": "Starting Town",
+          "character_name": null,
+          "character_level": null,
+          "current_location": null,
           "created_at": "2025-08-29T11:14:16.893054",
-          "updated_at": "2025-08-29T16:06:45.313580"
+          "updated_at": "2025-08-29T17:05:02.357229"
         },
         "a98d3bfe-e6d0-491f-bb60-b25f2960c772": {
           "id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
@@ -944,7 +906,7 @@
           "slot_number": 5,
           "is_occupied": true,
           "save_name": "Bill - Level 1",
-          "last_played": "2025-08-29T16:06:00.136912",
+          "last_played": "2025-08-29T17:10:27.076788",
           "play_time_minutes": 0,
           "character_name": "Bill",
           "character_level": 1,
@@ -975,25 +937,6 @@
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
           "created_at": "2025-08-29T15:55:30.280876",
-          "updated_at": null
-        },
-        "f69b7504-a4f8-4cd7-9767-b56885f7747c": {
-          "id": "f69b7504-a4f8-4cd7-9767-b56885f7747c",
-          "character_id": "28f2ec11-d342-4523-8016-a0b85ec6c89c",
-          "current_location": "Starting Town",
-          "location_type": "town",
-          "discovered_locations": [],
-          "completed_quests": [],
-          "quest_flags": {},
-          "world_events": {},
-          "encounter_bag_remaining": {},
-          "encounter_bag_history": {},
-          "total_play_time_minutes": 0,
-          "encounters_won": 0,
-          "encounters_fled": 0,
-          "total_damage_dealt": 0,
-          "total_damage_taken": 0,
-          "created_at": "2025-08-29T16:06:45.311580",
           "updated_at": null
         }
       },
@@ -1026,31 +969,19 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {
-        "Human": [
-          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
-        ]
-      }
+      "index_data": {}
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {
-        "fighter": [
-          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
-        ]
-      }
+      "index_data": {}
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {
-        "Yarl": [
-          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
-        ]
-      }
+      "index_data": {}
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -1077,18 +1008,6 @@
       "index_data": {
         "5": [
           "e4ce02d3-18f4-403f-a0f6-dcb549bf0492"
-        ],
-        "1": [
-          "4db7615f-df95-4523-b6b7-57ef5247d1db"
-        ],
-        "2": [
-          "a98d3bfe-e6d0-491f-bb60-b25f2960c772"
-        ],
-        "3": [
-          "236aca00-8007-4f8b-952e-c75d16b21415"
-        ],
-        "4": [
-          "03978361-13f2-40bb-afce-d1cf5a125d3d"
         ]
       }
     }

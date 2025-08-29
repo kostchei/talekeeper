@@ -150,9 +150,15 @@ class MainWindow(QMainWindow):
             self.setStyleSheet(stylesheet)
             self.current_theme = theme_name
             
-            # Update action panel theme
+            # Update panel themes
             if hasattr(self, 'action_panel'):
                 self.action_panel.update_theme(theme_name)
+            if hasattr(self, 'equipment_panel'):
+                self.equipment_panel.update_theme(theme_name)
+            if hasattr(self, 'log_panel'):
+                self.log_panel.update_theme(theme_name)
+            if hasattr(self, 'encounter_panel'):
+                self.encounter_panel.update_theme(theme_name)
             
             # Update toggle button text/icon based on current theme
             if hasattr(self, 'theme_toggle_button'):
