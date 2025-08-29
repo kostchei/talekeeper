@@ -674,11 +674,12 @@ class ActionCard(QWidget):
         }}
         
         QLabel#iconLabel {{
-            font-size: 32px;
+            font-size: 18px;
             background-color: {icon_bg};
             border-radius: 20px;
             min-height: 40px;
             max-height: 40px;
+            font-weight: bold;
         }}
         
         QLabel#nameLabel {{
