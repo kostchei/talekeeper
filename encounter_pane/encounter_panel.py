@@ -1192,9 +1192,18 @@ class EncounterPanel(QWidget):
             'point_buy_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
             'rolled_scores': rolled_scores,
             'level': 1,
-            'experience_points': 0
+            'experience_points': 0,
+            'equipment_choices': {}
         }
-        
+
+        # Record selected equipment options
+        if hasattr(self, 'equipment_button_groups'):
+            for choice_name, button_group in self.equipment_button_groups.items():
+                checked = button_group.checkedButton()
+                if checked:
+                    item_name = checked.text().split(' (', 1)[0]
+                    final_character['equipment_choices'][choice_name] = item_name
+
         # Emit the completed character
         self.character_created.emit(final_character)
         

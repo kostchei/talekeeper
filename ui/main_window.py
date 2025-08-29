@@ -300,11 +300,22 @@ class MainWindow(QMainWindow):
             # Store the last used slot for auto-loading
             self.game_engine.settings['last_character_slot'] = save_slot
             self.game_engine.save_settings()
-            
+
             # Load the saved character into the character sheet
             character_display_data = self._convert_dto_to_display(saved_character)
             self.character_sheet.load_character_data(character_display_data)
-            
+
+            equipped_items = {}
+            if saved_character.equipment_main_hand:
+                equipped_items['main_hand'] = {'name': saved_character.equipment_main_hand}
+            if saved_character.equipment_off_hand:
+                equipped_items['off_hand'] = {'name': saved_character.equipment_off_hand}
+            if saved_character.equipment_armor:
+                equipped_items['armor'] = {'name': saved_character.equipment_armor}
+            if saved_character.equipment_shield and 'off_hand' not in equipped_items:
+                equipped_items['off_hand'] = {'name': saved_character.equipment_shield}
+            self.equipment_panel.load_equipment_data(equipped_items, [])
+
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
             self.menu.set_character_loaded(True)
@@ -323,6 +334,7 @@ class MainWindow(QMainWindow):
             self.character_sheet.load_character_data(formatted_character)
             self.menu.update_game_info(name, 1)
             self.menu.set_character_loaded(True)
+            self.equipment_panel.load_equipment_data({}, [])
     
     def _save_and_exit(self):
         """Save the current game state and exit the application."""
@@ -411,7 +423,18 @@ class MainWindow(QMainWindow):
         self.character_sheet.load_character_data(character_data)
         self.menu.update_game_info(character.name, character.level)
         self.menu.set_character_loaded(True)
-        
+
+        equipped_items = {}
+        if character.equipment_main_hand:
+            equipped_items['main_hand'] = {'name': character.equipment_main_hand}
+        if character.equipment_off_hand:
+            equipped_items['off_hand'] = {'name': character.equipment_off_hand}
+        if character.equipment_armor:
+            equipped_items['armor'] = {'name': character.equipment_armor}
+        if character.equipment_shield and 'off_hand' not in equipped_items:
+            equipped_items['off_hand'] = {'name': character.equipment_shield}
+        self.equipment_panel.load_equipment_data(equipped_items, [])
+
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     
     def _show_load_character_dialog(self):
@@ -602,13 +625,13 @@ class MainWindow(QMainWindow):
         class_data = character_data.get('class_data') or {}
         background_data = character_data.get('background_data') or {}
         ability_scores = character_data.get('ability_scores') or {}
-        
+
         # Get IDs by looking up the names in the database
         race_id = self._get_race_id_by_name(species_data.get('name', 'Human'))
         class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
         background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
-        
-        return {
+
+        save_data = {
             'name': character_data.get('name', 'Adventurer'),
             'race_id': race_id,
             'class_id': class_id,
@@ -619,9 +642,18 @@ class MainWindow(QMainWindow):
             'intelligence': ability_scores.get('intelligence', 10),
             'wisdom': ability_scores.get('wisdom', 10),
             'charisma': ability_scores.get('charisma', 10),
-            'notes': f"Created via character creator. Final scores include racial bonuses."
+            'notes': f"Created via character creator. Final scores include racial bonuses.",
         }
-    
+
+        equipment_choices = character_data.get('equipment_choices') or {}
+        if equipment_choices:
+            try:
+                self.game_engine.apply_equipment_choices_sync(save_data, equipment_choices)
+            except Exception:
+                pass
+
+        return save_data
+
     def _get_race_id_by_name(self, name):
         """Get race ID by name from database."""
         try:
