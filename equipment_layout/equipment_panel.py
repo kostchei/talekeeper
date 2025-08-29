@@ -648,9 +648,67 @@ class EquipmentPanel(QWidget):
                 slot = item_data['slot']
                 self._unequip_item(slot)
             else:
-                # Use/consume the item
+                # Check if this is equipment that can be equipped
                 item = item_data['item']
-                self.item_used.emit(item)
+                item_type = item.get('item_type', item.get('type', ''))
+                
+                if item_type == 'weapon':
+                    # Try to equip weapon to main hand first, then off hand if occupied
+                    target_slot = EquipmentSlot.MAIN_HAND
+                    if self.equipped_items.get(target_slot):
+                        target_slot = EquipmentSlot.OFF_HAND
+                    
+                    if not self.equipped_items.get(target_slot):
+                        self._equip_item(item, target_slot)
+                    else:
+                        # Both weapon slots occupied, treat as consumable
+                        self.item_used.emit(item)
+                        
+                elif item_type == 'armor':
+                    # Equip to armor slot
+                    target_slot = EquipmentSlot.ARMOR
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type == 'shield':
+                    # Equip to off hand
+                    target_slot = EquipmentSlot.OFF_HAND
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type in ['helmet', 'hat']:
+                    target_slot = EquipmentSlot.HELMET
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type in ['gloves', 'gauntlets']:
+                    target_slot = EquipmentSlot.GLOVES
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type in ['boots', 'shoes']:
+                    target_slot = EquipmentSlot.BOOTS
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type in ['cloak', 'cape']:
+                    target_slot = EquipmentSlot.CLOAK
+                    self._equip_item(item, target_slot)
+                    
+                elif item_type == 'ring':
+                    # Try ring slot 1 first, then ring slot 2
+                    target_slot = EquipmentSlot.RING_1
+                    if self.equipped_items.get(target_slot):
+                        target_slot = EquipmentSlot.RING_2
+                    
+                    if not self.equipped_items.get(target_slot):
+                        self._equip_item(item, target_slot)
+                    else:
+                        # Both ring slots occupied, treat as consumable
+                        self.item_used.emit(item)
+                        
+                elif item_type in ['amulet', 'necklace']:
+                    target_slot = EquipmentSlot.AMULET
+                    self._equip_item(item, target_slot)
+                    
+                else:
+                    # Not equipment, treat as consumable
+                    self.item_used.emit(item)
     
     def _use_selected_item(self):
         """Use the currently selected inventory item."""
