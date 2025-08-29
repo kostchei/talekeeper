@@ -150,6 +150,10 @@ class MainWindow(QMainWindow):
             self.setStyleSheet(stylesheet)
             self.current_theme = theme_name
             
+            # Update action panel theme
+            if hasattr(self, 'action_panel'):
+                self.action_panel.update_theme(theme_name)
+            
             # Update toggle button text/icon based on current theme
             if hasattr(self, 'theme_toggle_button'):
                 if theme_name == 'light':
@@ -321,6 +325,18 @@ class MainWindow(QMainWindow):
                 item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_shield)
                 equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_shield, 'weight_lb': 0}
             self.equipment_panel.load_equipment_data(equipped_items, [], saved_character.strength)
+            
+            # Load character data into action panel for weapon cards
+            character_stats = {
+                'strength': saved_character.strength,
+                'dexterity': saved_character.dexterity,
+                'constitution': saved_character.constitution,
+                'intelligence': saved_character.intelligence,
+                'wisdom': saved_character.wisdom,
+                'charisma': saved_character.charisma,
+                'level': saved_character.level
+            }
+            self.action_panel.load_character_equipment(equipped_items, character_stats)
 
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
@@ -445,6 +461,18 @@ class MainWindow(QMainWindow):
             equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
         inventory_items = self.game_engine.get_character_inventory_sync(character.id)
         self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character.strength)
+        
+        # Load character data into action panel for weapon cards
+        character_stats = {
+            'strength': character.strength,
+            'dexterity': character.dexterity,
+            'constitution': character.constitution,
+            'intelligence': character.intelligence,
+            'wisdom': character.wisdom,
+            'charisma': character.charisma,
+            'level': character.level
+        }
+        self.action_panel.load_character_equipment(equipped_items, character_stats)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     

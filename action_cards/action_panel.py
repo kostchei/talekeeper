@@ -2,9 +2,9 @@
 Action Cards Widget - Bottom panel for character actions
 
 PyQt6 widget that provides quick access to character actions:
-- Combat actions (Attack, Cast Spell, Use Item)
-- Movement actions (Move, Dash, Dodge)
-- Utility actions (Help, Search, Hide)
+- Combat actions (Attack, Cast Spell, Use Item, Dodge)
+- Movement actions (Move, Dash, Hide)
+- Utility actions (Search, Investigate, Interact, Rest)
 - Customizable action cards
 - Context-sensitive action availability
 
@@ -26,13 +26,13 @@ from enum import Enum
 
 class ActionType(Enum):
     """Types of character actions."""
-    ATTACK = "attack"
+    ATTACK_MAIN_HAND = "attack_main_hand"
+    ATTACK_OFF_HAND = "attack_off_hand"
     CAST_SPELL = "cast_spell"
     USE_ITEM = "use_item"
     MOVE = "move"
     DASH = "dash"
     DODGE = "dodge"
-    HELP = "help"
     SEARCH = "search"
     HIDE = "hide"
     REST = "rest"
@@ -69,6 +69,7 @@ class ActionPanel(QWidget):
         self.action_cards = {}  # ActionType -> ActionCard mapping
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
+        self.equipped_weapons = {}  # Store equipped weapon data
         
         # Set fixed size (center + right columns only)
         self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
@@ -153,14 +154,12 @@ class ActionPanel(QWidget):
     
     def _create_action_cards(self):
         """Create action cards for different action types."""
-        # Define actions by category
-        actions_by_category = {
+        # Create non-weapon action cards first
+        static_actions = {
             ActionCategory.COMBAT: [
-                (ActionType.ATTACK, "⚔️", "Attack", "Make a melee or ranged attack"),
                 (ActionType.CAST_SPELL, "✨", "Cast Spell", "Cast a spell from your repertoire"),
                 (ActionType.USE_ITEM, "🧪", "Use Item", "Use an item from your inventory"),
                 (ActionType.DODGE, "🛡️", "Dodge", "Gain advantage on Dexterity saves"),
-                (ActionType.HELP, "🤝", "Help", "Give an ally advantage on their next action"),
             ],
             ActionCategory.MOVEMENT: [
                 (ActionType.MOVE, "👟", "Move", "Move up to your speed"),
@@ -175,16 +174,108 @@ class ActionPanel(QWidget):
             ]
         }
         
-        # Create cards for all actions
-        for category, actions in actions_by_category.items():
+        # Create cards for static actions
+        for category, actions in static_actions.items():
             for action_type, icon, name, description in actions:
                 card = ActionCard(action_type, icon, name, description)
                 card.action_triggered.connect(self._trigger_action)
                 card.action_hovered.connect(self._action_hovered)
                 self.action_cards[action_type] = card
         
+        # Create placeholder weapon cards (will be updated when equipment is loaded)
+        self._create_weapon_cards()
+        
         # Show initial category
         self._update_visible_cards()
+    
+    def _create_weapon_cards(self):
+        """Create weapon attack cards based on equipped weapons."""
+        # Remove existing weapon cards
+        for action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+            if action_type in self.action_cards:
+                self.action_cards[action_type].deleteLater()
+                del self.action_cards[action_type]
+        
+        # Create main hand weapon card
+        main_hand = self.equipped_weapons.get('main_hand')
+        if main_hand:
+            weapon_name = main_hand.get('name', 'Weapon')
+            hit_bonus = self._calculate_hit_bonus(main_hand, 'main_hand')
+            damage = self._format_damage(main_hand)
+            description = f"+{hit_bonus} to hit, {damage} damage"
+            
+            card = ActionCard(ActionType.ATTACK_MAIN_HAND, weapon_name, weapon_name, description)
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
+        
+        # Create off-hand weapon card
+        off_hand = self.equipped_weapons.get('off_hand')
+        if off_hand and off_hand.get('item_type') == 'weapon':
+            weapon_name = off_hand.get('name', 'Off-hand')
+            hit_bonus = self._calculate_hit_bonus(off_hand, 'off_hand')
+            damage = self._format_damage(off_hand, is_off_hand=True)
+            description = f"+{hit_bonus} to hit, {damage} damage"
+            
+            card = ActionCard(ActionType.ATTACK_OFF_HAND, weapon_name, f"{weapon_name} (Off)", description)
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.ATTACK_OFF_HAND] = card
+    
+    def _calculate_hit_bonus(self, weapon: Dict[str, Any], hand: str) -> int:
+        """Calculate attack bonus for a weapon."""
+        # Base proficiency bonus (assume level 1 = +2 for now)
+        prof_bonus = 2
+        
+        # Get relevant ability modifier (Str for most weapons, Dex for finesse)
+        weapon_props = weapon.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            # Use higher of Str or Dex for finesse weapons
+            str_mod = (self.character_context.get('strength', 10) - 10) // 2
+            dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        elif 'ranged' in weapon_props or weapon.get('damage_type') == 'ranged':
+            # Ranged weapons use Dex
+            ability_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+        else:
+            # Melee weapons use Str
+            ability_mod = (self.character_context.get('strength', 10) - 10) // 2
+        
+        # Magic weapon bonus
+        magic_bonus = weapon.get('attack_bonus', 0)
+        
+        return prof_bonus + ability_mod + magic_bonus
+    
+    def _format_damage(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> str:
+        """Format weapon damage string."""
+        damage_dice = weapon.get('damage_dice', '1d4')
+        damage_type = weapon.get('damage_type', 'slashing')
+        
+        # Get ability modifier for damage
+        weapon_props = weapon.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            str_mod = (self.character_context.get('strength', 10) - 10) // 2
+            dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        elif 'ranged' in weapon_props or weapon.get('damage_type') == 'ranged':
+            ability_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+        else:
+            ability_mod = (self.character_context.get('strength', 10) - 10) // 2
+        
+        # Off-hand attacks don't add ability modifier to damage (unless Two Weapon Fighting)
+        if is_off_hand:
+            ability_mod = 0  # Simplified - would check for Two Weapon Fighting feat
+        
+        # Magic weapon damage bonus
+        magic_bonus = weapon.get('damage_bonus', 0)
+        total_bonus = ability_mod + magic_bonus
+        
+        if total_bonus > 0:
+            return f"{damage_dice}+{total_bonus} {damage_type}"
+        elif total_bonus < 0:
+            return f"{damage_dice}{total_bonus} {damage_type}"
+        else:
+            return f"{damage_dice} {damage_type}"
     
     def _apply_styles(self):
         """Apply dark theme styling to action panel components."""
@@ -284,21 +375,40 @@ class ActionPanel(QWidget):
                 child.setParent(None)
         
         # Add cards for current category
-        actions_by_category = {
-            ActionCategory.COMBAT: [ActionType.ATTACK, ActionType.CAST_SPELL, ActionType.USE_ITEM, 
-                                  ActionType.DODGE, ActionType.HELP],
-            ActionCategory.MOVEMENT: [ActionType.MOVE, ActionType.DASH, ActionType.HIDE],
-            ActionCategory.UTILITY: [ActionType.SEARCH, ActionType.INVESTIGATE, 
-                                   ActionType.INTERACT, ActionType.REST]
-        }
-        
-        category_actions = actions_by_category.get(self.current_category, [])
-        
-        for action_type in category_actions:
-            if action_type in self.action_cards:
-                card = self.action_cards[action_type]
-                self.cards_layout.addWidget(card)
-                card.show()
+        if self.current_category == ActionCategory.COMBAT:
+            # Combat: weapon attacks + other combat actions
+            combat_actions = []
+            
+            # Add weapon attacks if they exist
+            if ActionType.ATTACK_MAIN_HAND in self.action_cards:
+                combat_actions.append(ActionType.ATTACK_MAIN_HAND)
+            if ActionType.ATTACK_OFF_HAND in self.action_cards:
+                combat_actions.append(ActionType.ATTACK_OFF_HAND)
+            
+            # Add other combat actions
+            combat_actions.extend([ActionType.CAST_SPELL, ActionType.USE_ITEM, ActionType.DODGE])
+            
+            for action_type in combat_actions:
+                if action_type in self.action_cards:
+                    card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+                    
+        elif self.current_category == ActionCategory.MOVEMENT:
+            movement_actions = [ActionType.MOVE, ActionType.DASH, ActionType.HIDE]
+            for action_type in movement_actions:
+                if action_type in self.action_cards:
+                    card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+                    
+        elif self.current_category == ActionCategory.UTILITY:
+            utility_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.INTERACT, ActionType.REST]
+            for action_type in utility_actions:
+                if action_type in self.action_cards:
+                    card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
         
         # Add stretch to push cards to left
         self.cards_layout.addStretch()
@@ -342,13 +452,13 @@ class ActionPanel(QWidget):
         
         # Check action economy (simplified)
         action_costs = {
-            ActionType.ATTACK: "action",
+            ActionType.ATTACK_MAIN_HAND: "action",
+            ActionType.ATTACK_OFF_HAND: "bonus_action",
             ActionType.CAST_SPELL: "action", 
             ActionType.USE_ITEM: "action",
             ActionType.MOVE: "movement",
             ActionType.DASH: "action",
             ActionType.DODGE: "action",
-            ActionType.HELP: "action",
             ActionType.SEARCH: "action",
             ActionType.INVESTIGATE: "action",
             ActionType.INTERACT: "action",
@@ -427,6 +537,29 @@ class ActionPanel(QWidget):
         """Reset action economy for a new turn."""
         # This would reset available actions, bonus actions, reactions
         self.action_economy_label.setText("Action: Available | Bonus: Available | Reaction: Available")
+    
+    def update_theme(self, theme_name: str):
+        """Update all action cards to use the specified theme."""
+        for card in self.action_cards.values():
+            card.update_theme_styles(theme_name)
+    
+    def load_character_equipment(self, equipped_items: Dict[str, Any], character_stats: Dict[str, Any]):
+        """Load character equipment and stats to create weapon cards."""
+        self.equipped_weapons = equipped_items.copy()
+        self.character_context.update(character_stats)
+        
+        # Recreate weapon cards with new equipment
+        self._create_weapon_cards()
+        
+        # Update current theme for new cards
+        if hasattr(self.parent(), 'current_theme'):
+            theme = getattr(self.parent(), 'current_theme', 'dark')
+            for action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+                if action_type in self.action_cards:
+                    self.action_cards[action_type].update_theme_styles(theme)
+        
+        # Refresh visible cards
+        self._update_visible_cards()
 
 
 class ActionCard(QWidget):
@@ -489,71 +622,111 @@ class ActionCard(QWidget):
     
     def _apply_styles(self):
         """Apply styling to the action card."""
-        self.setStyleSheet("""
-        ActionCard {
-            background-color: #2d2d2d;
-            border: 2px solid #555555;
+        # Default to dark theme styles
+        self.update_theme_styles("dark")
+    
+    def update_theme_styles(self, theme_name: str):
+        """Update styling based on theme."""
+        if theme_name == "light":
+            # Light theme colors
+            card_bg = "#d4b896"        # surface color from light theme
+            card_border = "#a0673f"    # button color from light theme
+            card_border_hover = "#5c8b7a"  # accent_tertiary from light theme
+            icon_bg = "#e8c5a0"        # background color from light theme
+            name_color = "#4a3528"     # Very dark text from light theme
+            desc_color = "#6b4d3a"     # Secondary text from light theme
+            button_bg = "#a0673f"      # button color from light theme
+            button_hover = "#b8784a"   # button_hover from light theme
+            button_pressed = "#8b5a3c" # accent_primary from light theme
+            button_text = "#ffffff"    # White text on colored buttons
+            button_disabled_bg = "#c4a484"  # Lighter surface color
+            button_disabled_text = "#8b7355"  # Darker secondary text
+            cooldown_border = "#a0673f"
+            cooldown_bg = "#e8c5a0"
+            cooldown_chunk = "#d4956b"  # accent_quaternary from light theme
+        else:
+            # Dark theme colors (original)
+            card_bg = "#2d2d2d"
+            card_border = "#555555"
+            card_border_hover = "#4a90e2"
+            icon_bg = "#333333"
+            name_color = "#ffffff"
+            desc_color = "#cccccc"
+            button_bg = "#4a90e2"
+            button_hover = "#6ab0ff"
+            button_pressed = "#3a80d2"
+            button_text = "#ffffff"
+            button_disabled_bg = "#555555"
+            button_disabled_text = "#888888"
+            cooldown_border = "#666666"
+            cooldown_bg = "#1a1a1a"
+            cooldown_chunk = "#ff6b6b"
+        
+        self.setStyleSheet(f"""
+        ActionCard {{
+            background-color: {card_bg};
+            border: 2px solid {card_border};
             border-radius: 8px;
-        }
+        }}
         
-        ActionCard:hover {
-            border-color: #4a90e2;
-        }
+        ActionCard:hover {{
+            border-color: {card_border_hover};
+        }}
         
-        QLabel#iconLabel {
+        QLabel#iconLabel {{
             font-size: 32px;
-            background-color: #333333;
+            background-color: {icon_bg};
             border-radius: 20px;
             min-height: 40px;
             max-height: 40px;
-        }
+        }}
         
-        QLabel#nameLabel {
-            color: #ffffff;
+        QLabel#nameLabel {{
+            color: {name_color};
             font-size: 12px;
             font-weight: bold;
-        }
+        }}
         
-        QLabel#descLabel {
-            color: #cccccc;
+        QLabel#descLabel {{
+            color: {desc_color};
             font-size: 10px;
-        }
+        }}
         
-        QPushButton#actionButton {
-            background-color: #4a90e2;
-            color: #ffffff;
+        QPushButton#actionButton {{
+            background-color: {button_bg};
+            color: {button_text};
             border: none;
             border-radius: 4px;
             padding: 6px;
             font-weight: bold;
             font-size: 11px;
-        }
+        }}
         
-        QPushButton#actionButton:hover {
-            background-color: #6ab0ff;
-        }
+        QPushButton#actionButton:hover {{
+            background-color: {button_hover};
+        }}
         
-        QPushButton#actionButton:pressed {
-            background-color: #3a80d2;
-        }
+        QPushButton#actionButton:pressed {{
+            background-color: {button_pressed};
+        }}
         
-        QPushButton#actionButton:disabled {
-            background-color: #555555;
-            color: #888888;
-        }
+        QPushButton#actionButton:disabled {{
+            background-color: {button_disabled_bg};
+            color: {button_disabled_text};
+        }}
         
-        QProgressBar#cooldownBar {
-            border: 1px solid #666666;
+        QProgressBar#cooldownBar {{
+            border: 1px solid {cooldown_border};
             border-radius: 2px;
             text-align: center;
-            background-color: #1a1a1a;
+            background-color: {cooldown_bg};
             max-height: 12px;
-        }
+        }}
         
-        QProgressBar#cooldownBar::chunk {
-            background-color: #ff6b6b;
+        QProgressBar#cooldownBar::chunk {{
+            background-color: {cooldown_chunk};
             border-radius: 1px;
-        }
+        }}
         """)
     
     def _trigger_action(self):
