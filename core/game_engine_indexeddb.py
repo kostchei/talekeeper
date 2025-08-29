@@ -339,7 +339,11 @@ class GameEngineIndexedDB:
             intelligence=character_data.get("intelligence", 10),
             wisdom=character_data.get("wisdom", 10),
             charisma=character_data.get("charisma", 10),
-            notes=character_data.get("notes", "")
+            notes=character_data.get("notes", ""),
+            equipment_main_hand=character_data.get("equipment_main_hand"),
+            equipment_off_hand=character_data.get("equipment_off_hand"),
+            equipment_armor=character_data.get("equipment_armor"),
+            equipment_shield=character_data.get("equipment_shield")
         )
         
         # Calculate derived stats
