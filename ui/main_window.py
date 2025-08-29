@@ -59,8 +59,8 @@ class MainWindow(QMainWindow):
         self._apply_theme(self.current_theme)
         self._connect_signals()
         
-        # Try to load last character after 1 second, otherwise load test data
-        QTimer.singleShot(1000, self._try_load_last_character)
+        # Try to load last character immediately on startup
+        self._try_load_last_character()
     
     def _setup_ui(self):
         """Setup fixed position UI layout - no splitters, no animations"""

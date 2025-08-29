@@ -804,17 +804,160 @@
       "auto_increment": false
     },
     "characters": {
-      "data": {},
+      "data": {
+        "55e73669-bb3f-467a-b341-b3acb892ca31": {
+          "id": "55e73669-bb3f-467a-b341-b3acb892ca31",
+          "save_slot_id": "e99d217b-f294-4afb-8489-8009e953ca82",
+          "name": "Joan",
+          "race_id": "Human",
+          "class_id": "Fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 12,
+          "constitution": 15,
+          "intelligence": 6,
+          "wisdom": 14,
+          "charisma": 17,
+          "armor_class": 11,
+          "hit_points_max": 8,
+          "hit_points_current": 8,
+          "hit_points_temporary": 0,
+          "max_hit_points": 8,
+          "current_hit_points": 8,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-29T11:10:19.494786",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51": {
+          "id": "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51",
+          "save_slot_id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
+          "name": "Skell",
+          "race_id": "Dwarf",
+          "class_id": "Rogue",
+          "subclass_id": null,
+          "background_id": "Farmer",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 18,
+          "dexterity": 13,
+          "constitution": 16,
+          "intelligence": 13,
+          "wisdom": 11,
+          "charisma": 8,
+          "armor_class": 11,
+          "hit_points_max": 8,
+          "hit_points_current": 8,
+          "hit_points_temporary": 0,
+          "max_hit_points": 8,
+          "current_hit_points": 8,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-29T11:14:16.895447",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        }
+      },
       "key_path": "id",
       "auto_increment": false
     },
     "save_slots": {
-      "data": {},
+      "data": {
+        "e99d217b-f294-4afb-8489-8009e953ca82": {
+          "id": "e99d217b-f294-4afb-8489-8009e953ca82",
+          "slot_number": 1,
+          "is_occupied": true,
+          "save_name": "Joan - Level 1",
+          "last_played": "2025-08-29T11:10:19.497850",
+          "play_time_minutes": 0,
+          "character_name": "Joan",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-29T11:10:19.492785",
+          "updated_at": "2025-08-29T11:10:19.497850"
+        },
+        "4db7615f-df95-4523-b6b7-57ef5247d1db": {
+          "id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
+          "slot_number": 1,
+          "is_occupied": true,
+          "save_name": "Skell - Level 1",
+          "last_played": "2025-08-29T11:14:16.899448",
+          "play_time_minutes": 0,
+          "character_name": "Skell",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-29T11:14:16.893054",
+          "updated_at": "2025-08-29T11:14:16.899448"
+        }
+      },
       "key_path": "id",
       "auto_increment": false
     },
     "game_states": {
-      "data": {},
+      "data": {
+        "a50cbf82-a5fa-470f-9973-8d2c6a3bd4f6": {
+          "id": "a50cbf82-a5fa-470f-9973-8d2c6a3bd4f6",
+          "character_id": "55e73669-bb3f-467a-b341-b3acb892ca31",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-29T11:10:19.496851",
+          "updated_at": null
+        },
+        "1ed5b287-4b21-4de0-bc6b-fd586b8bab8a": {
+          "id": "1ed5b287-4b21-4de0-bc6b-fd586b8bab8a",
+          "character_id": "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-29T11:14:16.897447",
+          "updated_at": null
+        }
+      },
       "key_path": "id",
       "auto_increment": false
     },
@@ -844,19 +987,31 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Dwarf": [
+          "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51"
+        ]
+      }
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Rogue": [
+          "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51"
+        ]
+      }
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Skell": [
+          "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51"
+        ]
+      }
     },
     "monsters.challenge_rating": {
       "store": "monsters",
