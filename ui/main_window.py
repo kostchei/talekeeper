@@ -480,9 +480,11 @@ class MainWindow(QMainWindow):
                 char_list.addItem(item)
             
             layout.addWidget(char_list)
-            
+
             # Buttons
             button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            delete_button = button_box.addButton("Delete", QDialogButtonBox.ButtonRole.DestructiveRole)
+            delete_button.clicked.connect(lambda: self._delete_selected_character(char_list, dialog))
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
             layout.addWidget(button_box)
@@ -518,6 +520,42 @@ class MainWindow(QMainWindow):
                 self.log_panel.log_error(f"Failed to load character from slot {slot_number}")
         except Exception as e:
             self.log_panel.log_error(f"Error loading character from slot {slot_number}: {e}")
+
+    def _delete_selected_character(self, char_list, dialog):
+        """Delete the currently selected character from the dialog list."""
+        from PyQt6.QtWidgets import QMessageBox
+
+        current_item = char_list.currentItem()
+        if not current_item:
+            self.log_panel.log_info("No character selected to delete")
+            return
+
+        slot_number = current_item.data(Qt.ItemDataRole.UserRole)
+        confirm = QMessageBox.question(
+            self,
+            "Delete Character",
+            f"Delete character in slot {slot_number}? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if confirm == QMessageBox.StandardButton.Yes:
+            try:
+                if self.game_engine.delete_character_sync(slot_number):
+                    char_list.takeItem(char_list.row(current_item))
+                    self.log_panel.log_info(f"Deleted character from slot {slot_number}")
+
+                    # If no characters remain, close dialog
+                    if char_list.count() == 0:
+                        dialog.reject()
+
+                    if not self.game_engine.current_character:
+                        self.character_sheet.clear_character_data()
+                        self.menu.set_character_loaded(False)
+                else:
+                    self.log_panel.log_error(f"No character found in slot {slot_number}")
+            except Exception as e:
+                self.log_panel.log_error(f"Error deleting character from slot {slot_number}: {e}")
     
     def _format_character_for_display(self, character_data):
         """Convert character creation data to display format."""

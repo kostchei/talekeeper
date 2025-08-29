@@ -433,10 +433,74 @@ class GameEngineIndexedDB:
         
         logger.info(f"Loaded character: {character_dto.name} from slot {save_slot}")
         return character_dto
-    
+
     def load_character_sync(self, save_slot: int) -> Optional[CharacterDTO]:
         """Synchronous version of load_character."""
         return asyncio.run(self.load_character(save_slot))
+
+    async def delete_character(self, save_slot: int) -> bool:
+        """Delete a character and associated data from a save slot.
+
+        Args:
+            save_slot: Save slot number (1-10)
+
+        Returns:
+            bool indicating whether a character was deleted
+        """
+        await self._ensure_connected()
+
+        # Locate the save slot
+        slot_data_list = await indexeddb.query_index('save_slots', 'slot_number', save_slot)
+        if not slot_data_list:
+            return False
+
+        slot = SaveSlot.from_dict(slot_data_list[0])
+
+        # Find the character associated with this slot
+        characters_data = await indexeddb.get_all('characters')
+        character_id = None
+        for char_data in characters_data:
+            if char_data.get('save_slot_id') == slot.id:
+                character_id = char_data.get('id')
+                break
+
+        # Delete character and game state if they exist
+        if character_id:
+            await indexeddb.delete('characters', character_id)
+
+            game_states_data = await indexeddb.get_all('game_states')
+            for gs_data in game_states_data:
+                if gs_data.get('character_id') == character_id:
+                    await indexeddb.delete('game_states', gs_data.get('id'))
+                    break
+
+        # Reset save slot
+        slot.is_occupied = False
+        slot.character_name = None
+        slot.character_level = None
+        slot.current_location = None
+        slot.last_played = None
+        slot.save_name = None
+        slot.updated_at = datetime.now().isoformat()
+        await indexeddb.put('save_slots', slot.to_dict(), slot.id)
+
+        # Clear current references if deleting active slot
+        if self.current_save_slot and self.current_save_slot.slot_number == save_slot:
+            self.current_character = None
+            self.current_save_slot = None
+            self.game_state = None
+
+        # Update settings if last slot was removed
+        if self.settings.get('last_character_slot') == save_slot:
+            self.settings['last_character_slot'] = None
+            self.save_settings()
+
+        logger.info(f"Deleted character from slot {save_slot}")
+        return True
+
+    def delete_character_sync(self, save_slot: int) -> bool:
+        """Synchronous version of delete_character."""
+        return asyncio.run(self.delete_character(save_slot))
     
     async def save_game(self):
         """Save current game state."""
