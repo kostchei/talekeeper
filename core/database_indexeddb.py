@@ -340,6 +340,7 @@ def init_indexeddb_database():
         indexeddb.create_index('monsters', 'challenge_rating', 'challenge_rating')
         indexeddb.create_index('items', 'item_type', 'item_type')
         indexeddb.create_index('items', 'rarity', 'rarity')
+        indexeddb.create_index('save_slots', 'slot_number', 'slot_number', unique=True)
         
         logger.info("IndexedDB object stores created successfully")
         

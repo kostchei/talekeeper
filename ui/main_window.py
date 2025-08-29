@@ -284,14 +284,21 @@ class MainWindow(QMainWindow):
         species_name = character_data.get('species_data', {}).get('name', 'Unknown')
         
         self.log_panel.log_system(f"Character created: {name} ({species_name} {class_name})")
-        
+
         try:
-            # Save character to database first
+            # Determine next available save slot
+            save_slots = self.game_engine.get_save_slots_sync()
+            occupied_numbers = {slot.slot_number for slot in save_slots if slot.is_occupied}
+            save_slot = 1
+            while save_slot in occupied_numbers:
+                save_slot += 1
+
+            # Save character to database
             save_character_data = self._prepare_character_for_save(character_data)
-            saved_character = self.game_engine.create_new_character_sync(save_character_data, save_slot=1)
-            
+            saved_character = self.game_engine.create_new_character_sync(save_character_data, save_slot=save_slot)
+
             # Store the last used slot for auto-loading
-            self.game_engine.settings['last_character_slot'] = 1
+            self.game_engine.settings['last_character_slot'] = save_slot
             self.game_engine.save_settings()
             
             # Load the saved character into the character sheet
@@ -304,7 +311,9 @@ class MainWindow(QMainWindow):
             
             # Provide definitive feedback that character was saved
             self.log_panel.log_info(f"✓ Character '{name}' successfully created and saved!")
-            self.log_panel.log_system(f"Saved to slot 1 - Level {saved_character.level} {species_name} {class_name}")
+            self.log_panel.log_system(
+                f"Saved to slot {save_slot} - Level {saved_character.level} {species_name} {class_name}"
+            )
             self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
             
         except Exception as e:
