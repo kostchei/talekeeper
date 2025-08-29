@@ -433,7 +433,8 @@ class MainWindow(QMainWindow):
             equipped_items['armor'] = {'name': character.equipment_armor}
         if character.equipment_shield and 'off_hand' not in equipped_items:
             equipped_items['off_hand'] = {'name': character.equipment_shield}
-        self.equipment_panel.load_equipment_data(equipped_items, [])
+        inventory_items = self.game_engine.get_character_inventory_sync(character.id)
+        self.equipment_panel.load_equipment_data(equipped_items, inventory_items)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     

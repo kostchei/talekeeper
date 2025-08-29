@@ -442,6 +442,41 @@ class GameEngineIndexedDB:
         """Synchronous version of load_character."""
         return asyncio.run(self.load_character(save_slot))
 
+    async def get_character_inventory(self, character_id: str) -> List[Dict[str, Any]]:
+        """Get inventory items for a character.
+
+        Args:
+            character_id: Character identifier
+
+        Returns:
+            List of inventory item dictionaries with name, type, quantity and weight
+        """
+        await self._ensure_connected()
+
+        inventory_records = await indexeddb.get_all('character_inventory')
+        items: List[Dict[str, Any]] = []
+
+        for record in inventory_records:
+            if record.get('character_id') != character_id:
+                continue
+
+            item_data = await indexeddb.get('items', record.get('item_id'))
+            if not item_data:
+                continue
+
+            items.append({
+                'name': item_data.get('name', 'Unknown Item'),
+                'type': item_data.get('item_type', ''),
+                'quantity': record.get('quantity', 1),
+                'weight': item_data.get('weight', 0)
+            })
+
+        return items
+
+    def get_character_inventory_sync(self, character_id: str) -> List[Dict[str, Any]]:
+        """Synchronous version of get_character_inventory."""
+        return asyncio.run(self.get_character_inventory(character_id))
+
     async def delete_character(self, save_slot: int) -> bool:
         """Delete a character and associated data from a save slot.
 
