@@ -1,25 +1,21 @@
 """
-File: core/database_indexeddb.py
-Path: /core/database_indexeddb.py
+IndexedDB Database System for TaleKeeper Desktop
 
-IndexedDB database setup and management for TaleKeeper Desktop.
-Provides more complex database operations while maintaining compatibility
-with the existing SQLite-based models and patterns.
+JSON-based database simulation providing structured data storage for D&D game data.
+Replaces SQLAlchemy with a simpler dataclass-based approach.
 
-This implementation uses a Python IndexedDB wrapper to provide:
-- Advanced indexing and querying capabilities
-- Better performance for complex searches
-- Transaction support with ACID properties
-- Asynchronous operations support
+Features:
+- Object stores (tables) for characters, monsters, items, game state
+- Index support for efficient querying
+- Async/sync operation support
+- SQLite migration utilities
+- JSON persistence to disk
 
-Pseudo Code:
-1. Configure IndexedDB connection and object stores
-2. Create database session factory compatible with SQLAlchemy patterns
-3. Initialize all database object stores on first run
-4. Provide migration utilities from SQLite
-5. Maintain compatibility with existing model interfaces
-
-AI Agents: IndexedDB configuration and migration utilities. More complex than SQLite version.
+Database Structure:
+1. Object stores: races, classes, backgrounds, monsters, items, characters, save_slots
+2. Indexes: character lookups, monster CR, item types
+3. Data loading: D&D 2024 content from JSON files
+4. Persistence: talekeeper.idb JSON file
 """
 
 import os
@@ -324,6 +320,7 @@ def init_indexeddb_database():
             'backgrounds': 'name',
             'monsters': 'name',
             'items': 'name',
+            'feats': 'name',
             'characters': 'id',
             'save_slots': 'id',
             'game_states': 'id',
@@ -382,6 +379,9 @@ def load_initial_indexeddb_data():
         
         # Load equipment
         _load_indexeddb_equipment(data_dir / "equipment.json")
+        
+        # Load feats
+        _load_indexeddb_feats(data_dir / "feats.json")
         
         logger.info("Initial data loaded successfully into IndexedDB")
         
@@ -503,6 +503,26 @@ def _load_indexeddb_equipment(file_path: Path):
     indexeddb._persist_sync()
     
     logger.info(f"Loaded {len(equipment_data)} equipment items into IndexedDB")
+
+
+def _load_indexeddb_feats(file_path: Path):
+    """Load feats data into IndexedDB."""
+    if not file_path.exists():
+        logger.warning(f"Feats data file not found: {file_path}")
+        return
+    
+    with open(file_path, 'r') as f:
+        feats_data = json.load(f)
+    
+    for feat_data in feats_data:
+        store = indexeddb.object_stores['feats']
+        key = feat_data.get('name', '').lower().replace(' ', '_')
+        feat_data['name'] = feat_data.get('name', key)
+        store['data'][key] = feat_data
+    
+    indexeddb._persist_sync()
+    
+    logger.info(f"Loaded {len(feats_data)} feats into IndexedDB")
 
 
 def migrate_from_sqlite(sqlite_path: str):

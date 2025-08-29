@@ -1,18 +1,21 @@
 """
-File: core/game_engine_indexeddb.py
-Path: /core/game_engine_indexeddb.py
+Game Engine - Central Coordinator for TaleKeeper Desktop
 
-IndexedDB-compatible game engine for TaleKeeper Desktop.
-Coordinates all game systems using IndexedDB instead of SQLite/SQLAlchemy.
+Manages all game systems and coordinates between UI and data layers.
+Uses IndexedDB for data persistence with dataclass models.
 
-Pseudo Code:
-1. Initialize all game services (combat, character, dice) with IndexedDB
-2. Manage active game state and current character using dataclasses
-3. Coordinate between UI and game logic without ORM dependencies
-4. Handle save/load operations with IndexedDB async operations
-5. Process game events and state transitions
+Core Functions:
+1. Character management: creation, loading, saving, progression
+2. Save slot management: multiple character saves with metadata
+3. Game data access: races, classes, backgrounds, monsters, equipment
+4. Settings management: user preferences and configuration
+5. State coordination: current character, active save slot, game state
 
-AI Agents: Central hub for all game mechanics coordination using IndexedDB.
+Architecture:
+- Controller layer between PyQt6 UI and IndexedDB data
+- Synchronous and asynchronous operation support
+- DTO pattern for data transfer to UI components
+- Centralized game logic and business rules
 """
 
 import os
@@ -58,6 +61,15 @@ class GameEngineIndexedDB:
     
     def _character_to_dto(self, character: Character) -> CharacterDTO:
         """Convert Character dataclass to CharacterDTO."""
+        # Resolve names from IDs
+        race_name = self._get_race_name_by_id(character.race_id)
+        class_name = self._get_class_name_by_id(character.class_id)
+        background_name = self._get_background_name_by_id(character.background_id)
+        subclass_name = self._get_subclass_name_by_id(character.subclass_id) if character.subclass_id else None
+        
+        # Recalculate armor class to ensure it's current
+        character.armor_class = self._calculate_armor_class(character)
+        
         return CharacterDTO(
             # Core Identity
             id=character.id,
@@ -67,13 +79,13 @@ class GameEngineIndexedDB:
             
             # Character Build
             race_id=character.race_id,
-            race_name="Unknown",  # Will be resolved separately
+            race_name=race_name,
             class_id=character.class_id,
-            class_name="Unknown",  # Will be resolved separately
+            class_name=class_name,
             subclass_id=character.subclass_id,
-            subclass_name=None,  # Will be resolved separately
+            subclass_name=subclass_name,
             background_id=character.background_id,
-            background_name="Unknown",  # Will be resolved separately
+            background_name=background_name,
             
             # Ability Scores
             strength=character.strength,
@@ -612,8 +624,8 @@ class GameEngineIndexedDB:
                     current_score = getattr(character, ability.lower(), 10)
                     setattr(character, ability.lower(), current_score + bonus)
         
-        # Calculate AC (10 + Dex modifier)
-        character.armor_class = 10 + character.dexterity_modifier
+        # Calculate AC with equipped armor
+        character.armor_class = self._calculate_armor_class(character)
         
         # Calculate HP (class hit die + con modifier)
         if class_data:
@@ -651,6 +663,267 @@ class GameEngineIndexedDB:
         """Perform automatic save if enough time has passed."""
         if self.current_character and self.current_save_slot:
             self.save_game_sync()
+    
+    def _get_race_name_by_id(self, race_id: str) -> str:
+        """Get race name by ID from database."""
+        try:
+            # Direct access to avoid async issues
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return race_id if race_id else "Human"
+                
+            races_store = indexeddb.object_stores.get('races', {})
+            race_key = race_id.lower().replace(' ', '_')
+            race_data = races_store.get('data', {}).get(race_key)
+            
+            if race_data:
+                return race_data.get('name', race_id)
+            return race_id if race_id else "Human"  # Use the ID as fallback
+        except:
+            return race_id if race_id else "Human"  # Safe fallback
+    
+    def _get_class_name_by_id(self, class_id: str) -> str:
+        """Get class name by ID from database.""" 
+        try:
+            # Direct access to avoid async issues
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return class_id if class_id else "Fighter"
+                
+            classes_store = indexeddb.object_stores.get('classes', {})
+            class_key = class_id.lower().replace(' ', '_')
+            class_data = classes_store.get('data', {}).get(class_key)
+            
+            if class_data:
+                return class_data.get('name', class_id)
+            return class_id if class_id else "Fighter"  # Use the ID as fallback
+        except:
+            return class_id if class_id else "Fighter"  # Safe fallback
+    
+    def _get_background_name_by_id(self, background_id: str) -> str:
+        """Get background name by ID from database."""
+        try:
+            # Direct access to avoid async issues
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return background_id if background_id else "Folk Hero"
+                
+            backgrounds_store = indexeddb.object_stores.get('backgrounds', {})
+            background_key = background_id.lower().replace(' ', '_').replace('-', '_')
+            background_data = backgrounds_store.get('data', {}).get(background_key)
+            
+            if background_data:
+                return background_data.get('name', background_id)
+            return background_id if background_id else "Folk Hero"  # Use the ID as fallback
+        except:
+            return background_id if background_id else "Folk Hero"  # Safe fallback
+    
+    def _get_subclass_name_by_id(self, subclass_id: str) -> str:
+        """Get subclass name by ID from database."""
+        try:
+            # Direct access to subclasses data
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return "Unknown"
+                
+            subclasses_store = indexeddb.object_stores.get('subclasses', {})
+            subclass_data = subclasses_store.get('data', {}).get(subclass_id)
+            
+            if subclass_data:
+                return subclass_data.get('name', 'Unknown')
+            return "Unknown"
+        except:
+            return "Unknown"  # Safe fallback
+    
+    def _is_proficient_with_armor(self, character, armor_type: str) -> bool:
+        """Check if character is proficient with a specific armor type."""
+        try:
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return True  # Default to allowing armor
+            
+            classes_store = indexeddb.object_stores.get('classes', {})
+            class_key = character.class_id.lower().replace(' ', '_')
+            class_data = classes_store.get('data', {}).get(class_key)
+            
+            if class_data:
+                armor_proficiencies = class_data.get('armor_proficiencies', [])
+                # Handle shield special case
+                if armor_type == 'shield':
+                    return 'shields' in armor_proficiencies
+                else:
+                    return armor_type in armor_proficiencies
+            
+            return True  # Default to allowing armor if class not found
+        except:
+            return True  # Safe fallback
+    
+    def _has_feat(self, character, feat_name: str) -> bool:
+        """Check if character has a specific feat."""
+        return feat_name in getattr(character, 'feats', [])
+    
+    def _get_feat_data(self, feat_name: str) -> Dict[str, Any]:
+        """Get feat data by name."""
+        try:
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return {}
+            
+            feats_store = indexeddb.object_stores.get('feats', {})
+            feat_data = None
+            
+            # Find feat by name
+            for feat_key, feat_info in feats_store.get('data', {}).items():
+                if feat_info.get('name', '').lower() == feat_name.lower():
+                    feat_data = feat_info
+                    break
+            
+            return feat_data or {}
+        except:
+            return {}
+    
+    def can_equip_item(self, character, item_name: str) -> tuple[bool, str]:
+        """Check if character can equip a specific item. Returns (can_equip, reason)."""
+        try:
+            if not indexeddb.is_connected or not indexeddb.object_stores:
+                return True, ""
+            
+            items_store = indexeddb.object_stores.get('items', {})
+            item_data = None
+            
+            # Find item by name
+            for item_key, item_info in items_store.get('data', {}).items():
+                if item_info.get('name', '').lower() == item_name.lower():
+                    item_data = item_info
+                    break
+            
+            if not item_data:
+                return False, f"Item '{item_name}' not found"
+            
+            item_type = item_data.get('item_type', '')
+            
+            if item_type == 'armor':
+                # Handle both old flat structure and new nested structure
+                armor_props = item_data.get('armor_properties', {})
+                if armor_props:
+                    armor_type = armor_props.get('armor_type', 'light')
+                else:
+                    armor_type = item_data.get('armor_type', 'light')
+                
+                if not self._is_proficient_with_armor(character, armor_type):
+                    return False, f"Not proficient with {armor_type} armor"
+                
+                # Check Strength requirement
+                strength_req = armor_props.get('strength_requirement') if armor_props else item_data.get('strength_requirement')
+                if strength_req and character.strength < strength_req:
+                    return False, f"Requires Strength {strength_req} (you have {character.strength})"
+            elif item_type == 'shield':
+                if not self._is_proficient_with_armor(character, 'shield'):
+                    return False, "Not proficient with shields"
+            
+            return True, ""
+            
+        except Exception as e:
+            logger.error(f"Error checking equipment proficiency: {e}")
+            return False, "Error checking proficiency"
+    
+    def _calculate_armor_class(self, character) -> int:
+        """Calculate armor class based on equipped armor and dexterity."""
+        base_ac = 10  # Unarmored AC
+        dex_modifier = character.dexterity_modifier
+        shield_bonus = 0
+        
+        try:
+            # Check for equipped armor
+            if character.equipment_armor:
+                if not indexeddb.is_connected or not indexeddb.object_stores:
+                    return base_ac + dex_modifier
+                
+                equipment_store = indexeddb.object_stores.get('items', {})
+                armor_data = None
+                
+                # Try to find armor by name (case-insensitive)
+                for item_key, item_data in equipment_store.get('data', {}).items():
+                    if item_data.get('name', '').lower() == character.equipment_armor.lower():
+                        armor_data = item_data
+                        break
+                
+                if armor_data and armor_data.get('item_type') == 'armor':
+                    # Handle both old flat structure and new nested structure
+                    armor_props = armor_data.get('armor_properties', {})
+                    if armor_props:
+                        # New nested structure
+                        armor_ac = armor_props.get('armor_class', 10)
+                        armor_type = armor_props.get('armor_type', 'light')
+                        dex_max = armor_props.get('dex_bonus_max')
+                    else:
+                        # Old flat structure (backward compatibility)
+                        armor_ac = armor_data.get('armor_class', 10)
+                        armor_type = armor_data.get('armor_type', 'light')
+                        dex_max = armor_data.get('dex_bonus_max')
+                    
+                    # Check if character is proficient with this armor type
+                    is_proficient = self._is_proficient_with_armor(character, armor_type)
+                    
+                    if armor_type == 'light':
+                        # Light armor: full dex bonus
+                        base_ac = armor_ac + dex_modifier
+                    elif armor_type == 'medium':
+                        # Medium armor: dex bonus max +2 (or +3 with Medium Armor Master feat)
+                        base_dex_max = dex_max if dex_max is not None else 2
+                        
+                        # Check for Medium Armor Master feat
+                        if self._has_feat(character, "Medium Armor Master"):
+                            feat_data = self._get_feat_data("Medium Armor Master")
+                            feat_mechanics = feat_data.get('mechanics', {}).get('armor_bonuses', {})
+                            dex_requirement = feat_mechanics.get('medium_armor_dex_requirement', 16)
+                            feat_dex_max = feat_mechanics.get('medium_armor_dex_max', 2)
+                            
+                            if character.dexterity >= dex_requirement:
+                                base_dex_max = feat_dex_max
+                        
+                        dex_bonus = min(dex_modifier, base_dex_max)
+                        base_ac = armor_ac + dex_bonus
+                    elif armor_type == 'heavy':
+                        # Heavy armor: no dex bonus
+                        base_ac = armor_ac
+                    
+                    # Prevent equipping non-proficient armor
+                    if not is_proficient:
+                        logger.warning(f"Character {character.name} cannot equip {armor_type} armor - not proficient")
+                        # Remove the armor from equipment
+                        character.equipment_armor = None
+                        # Use unarmored AC
+                        base_ac = 10 + dex_modifier
+                else:
+                    # No armor or armor not found, use base AC + dex
+                    base_ac = 10 + dex_modifier
+            else:
+                # No armor equipped
+                base_ac = 10 + dex_modifier
+            
+            # Check for equipped shield
+            if character.equipment_shield:
+                equipment_store = indexeddb.object_stores.get('items', {})
+                shield_data = None
+                
+                # Try to find shield by name (case-insensitive)
+                for item_key, item_data in equipment_store.get('data', {}).items():
+                    if item_data.get('name', '').lower() == character.equipment_shield.lower():
+                        shield_data = item_data
+                        break
+                
+                if shield_data and shield_data.get('item_type') == 'shield':
+                    shield_bonus = shield_data.get('armor_class', 0)
+                    
+                    # Check shield proficiency
+                    is_shield_proficient = self._is_proficient_with_armor(character, 'shield')
+                    if not is_shield_proficient:
+                        logger.warning(f"Character {character.name} cannot equip shield - not proficient")
+                        # Remove the shield from equipment
+                        character.equipment_shield = None
+                        shield_bonus = 0
+            
+            return base_ac + shield_bonus
+            
+        except Exception as e:
+            logger.warning(f"Error calculating armor class: {e}")
+            # Fallback to base calculation
+            return 10 + dex_modifier
     
     def shutdown(self):
         """Clean shutdown of game engine."""

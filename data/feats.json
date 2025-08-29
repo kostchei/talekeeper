@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Medium Armor Master",
+    "description": "You have practiced moving in medium armor to gain the following benefits:",
+    "prerequisites": {
+      "armor_proficiency": "medium"
+    },
+    "benefits": [
+      "Wearing medium armor doesn't impose disadvantage on your Dexterity (Stealth) checks.",
+      "When you wear medium armor, you can add 3, rather than 2, to your AC if you have a Dexterity score of 16 or higher."
+    ],
+    "mechanics": {
+      "armor_bonuses": {
+        "medium_armor_dex_max": 3,
+        "medium_armor_dex_requirement": 16,
+        "remove_stealth_disadvantage": true
+      }
+    }
+  },
+  {
+    "name": "Heavy Armor Master",
+    "description": "You can use your armor to deflect strikes that would kill others.",
+    "prerequisites": {
+      "armor_proficiency": "heavy"
+    },
+    "benefits": [
+      "Increase your Strength score by 1, to a maximum of 20.",
+      "While you are wearing heavy armor, bludgeoning, piercing, and slashing damage that you take from non-magical attacks is reduced by 3."
+    ],
+    "mechanics": {
+      "ability_increases": {
+        "strength": 1
+      },
+      "damage_reduction": {
+        "types": ["bludgeoning", "piercing", "slashing"],
+        "amount": 3,
+        "condition": "wearing_heavy_armor"
+      }
+    }
+  },
+  {
+    "name": "Lightly Armored",
+    "description": "You have trained to master the use of light armor.",
+    "prerequisites": {},
+    "benefits": [
+      "Increase your Strength or Dexterity score by 1, to a maximum of 20.",
+      "You gain proficiency with light armor."
+    ],
+    "mechanics": {
+      "ability_increases": {
+        "choice": ["strength", "dexterity"],
+        "amount": 1
+      },
+      "armor_proficiencies": ["light"]
+    }
+  }
+]

@@ -1,4 +1,24 @@
 
-Add encumberance
-use the "vast in the dark" navigation process for stealth and getting lost. The more things you have the more sneaky you are
-"noisy armour" , "dex bonus", "torch"-2, "padded shoes" +2, "light armour"+2, "proficient stealth","profiecient perception", "un-encumbered , less than 10%" +2, "encumbered, more than 50%"-4, "intentionally scouting"+2. Results- ambushed 0 or less, disadvantage initiative 5 or less, normal, advantage initaitve 15 or more, can retreat without being noticed or attack with a round of suprise (you have the invisible condition)20 or more 
+# TaleKeeper Development TODO
+
+## Current Architecture (Post-Cleanup)
+✅ **Completed**: Cleaned production codebase with 33 unused files archived
+
+## Potential Future Enhancements
+
+### Stealth and Exploration System
+- **Encumbrance System**: Track carrying capacity and movement penalties
+- **Stealth Mechanics**: 
+  - Modifiers: armor noise, dexterity bonus, torch penalty, padded shoes bonus
+  - Results based on stealth rolls: ambush avoidance, initiative advantages, surprise rounds
+  - "Vast in the Dark" style navigation for getting lost mechanics
+
+### Combat Enhancements
+- **Environmental Factors**: Lighting, terrain, weather effects
+- **Advanced Monster AI**: Tactical behavior patterns
+- **Status Effects**: More comprehensive condition tracking
+
+### Character Progression
+- **Multi-classing Support**: Advanced character build options
+- **Feat System**: Character customization beyond basic leveling
+- **Equipment Upgrades**: Magic items and enchantments

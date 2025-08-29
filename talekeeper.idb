@@ -197,7 +197,7 @@
     },
     "subclasses": {
       "data": {
-        "8d39b9a0-faff-487c-9f16-af6e857cdec0": {
+        "b01de394-d732-430e-8471-d01a4baa19d1": {
           "name": "Champion",
           "description": "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.",
           "features": {
@@ -218,9 +218,9 @@
             ]
           },
           "class_id": "Fighter",
-          "id": "8d39b9a0-faff-487c-9f16-af6e857cdec0"
+          "id": "b01de394-d732-430e-8471-d01a4baa19d1"
         },
-        "5676b109-c149-4754-9aa1-c7012a68f96a": {
+        "49dc7247-ddc9-4be1-b175-982c48cb077a": {
           "name": "Battle Master",
           "description": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
           "features": {
@@ -242,9 +242,9 @@
             ]
           },
           "class_id": "Fighter",
-          "id": "5676b109-c149-4754-9aa1-c7012a68f96a"
+          "id": "49dc7247-ddc9-4be1-b175-982c48cb077a"
         },
-        "de3f641c-6edf-4e9d-b147-06fd567f1369": {
+        "dfec7a89-d6bd-458d-94ba-391228311552": {
           "name": "Thief",
           "description": "You hone your skills in the larcenous arts.",
           "features": {
@@ -263,9 +263,9 @@
             ]
           },
           "class_id": "Rogue",
-          "id": "de3f641c-6edf-4e9d-b147-06fd567f1369"
+          "id": "dfec7a89-d6bd-458d-94ba-391228311552"
         },
-        "c2ad082e-570e-40e4-94b6-8639b3daab69": {
+        "52a01f6f-bb2d-40c0-b22d-66f59b0d9034": {
           "name": "Assassin",
           "description": "You focus your training on the grim art of death.",
           "features": {
@@ -284,7 +284,7 @@
             ]
           },
           "class_id": "Rogue",
-          "id": "c2ad082e-570e-40e4-94b6-8639b3daab69"
+          "id": "52a01f6f-bb2d-40c0-b22d-66f59b0d9034"
         }
       },
       "key_path": "id",
@@ -575,7 +575,11 @@
           "rarity": "common",
           "cost_gp": 10,
           "weight_lb": 10.0,
-          "armor_class": 11
+          "armor_properties": {
+            "armor_class": 11,
+            "armor_type": "light",
+            "dex_bonus_max": null
+          }
         },
         "chain_mail": {
           "name": "Chain Mail",
@@ -584,7 +588,13 @@
           "rarity": "common",
           "cost_gp": 75,
           "weight_lb": 55.0,
-          "armor_class": 16
+          "armor_properties": {
+            "armor_class": 16,
+            "armor_type": "heavy",
+            "dex_bonus_max": null,
+            "strength_requirement": 13,
+            "stealth_disadvantage": true
+          }
         },
         "shield": {
           "name": "Shield",
@@ -618,8 +628,11 @@
           "rarity": "common",
           "cost_gp": 45,
           "weight_lb": 13.0,
-          "armor_class": 12,
-          "armor_type": "light"
+          "armor_properties": {
+            "armor_class": 12,
+            "armor_type": "light",
+            "dex_bonus_max": null
+          }
         },
         "breastplate": {
           "name": "Breastplate",
@@ -628,167 +641,180 @@
           "rarity": "common",
           "cost_gp": 400,
           "weight_lb": 20.0,
-          "armor_class": 14,
-          "armor_type": "medium",
-          "dex_bonus_max": 2
+          "armor_properties": {
+            "armor_class": 14,
+            "armor_type": "medium",
+            "dex_bonus_max": 2,
+            "strength_requirement": null,
+            "stealth_disadvantage": false
+          }
+        },
+        "chain_shirt": {
+          "name": "Chain Shirt",
+          "description": "Made of interlocking metal rings, a chain shirt is worn between layers of clothing or leather.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 50,
+          "weight_lb": 20.0,
+          "armor_properties": {
+            "armor_class": 13,
+            "armor_type": "medium",
+            "dex_bonus_max": 2,
+            "strength_requirement": null,
+            "stealth_disadvantage": false
+          }
+        },
+        "scale_mail": {
+          "name": "Scale Mail",
+          "description": "This armor consists of a coat and leggings of leather covered with overlapping pieces of metal.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 50,
+          "weight_lb": 45.0,
+          "armor_properties": {
+            "armor_class": 14,
+            "armor_type": "medium",
+            "dex_bonus_max": 2,
+            "strength_requirement": null,
+            "stealth_disadvantage": true
+          }
+        },
+        "half_plate": {
+          "name": "Half Plate",
+          "description": "Half plate consists of shaped metal plates that cover most of the wearer's body.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 750,
+          "weight_lb": 40.0,
+          "armor_properties": {
+            "armor_class": 15,
+            "armor_type": "medium",
+            "dex_bonus_max": 2,
+            "strength_requirement": null,
+            "stealth_disadvantage": true
+          }
+        },
+        "plate_armor": {
+          "name": "Plate Armor",
+          "description": "Plate consists of shaped, interlocking metal plates to cover the entire body.",
+          "item_type": "armor",
+          "rarity": "common",
+          "cost_gp": 1500,
+          "weight_lb": 65.0,
+          "armor_properties": {
+            "armor_class": 18,
+            "armor_type": "heavy",
+            "dex_bonus_max": null,
+            "strength_requirement": 15,
+            "stealth_disadvantage": true
+          }
+        },
+        "mithral_chain_mail": {
+          "name": "Mithral Chain Mail",
+          "description": "This fine chain mail is made of mithral, removing its normal restrictions.",
+          "item_type": "armor",
+          "rarity": "uncommon",
+          "cost_gp": 4075,
+          "weight_lb": 27.5,
+          "is_magical": true,
+          "armor_properties": {
+            "armor_class": 16,
+            "armor_type": "heavy",
+            "dex_bonus_max": null,
+            "strength_requirement": null,
+            "stealth_disadvantage": false
+          },
+          "magical_properties": {
+            "mithral": true,
+            "description": "Mithral removes Strength requirements and stealth disadvantage"
+          }
+        }
+      },
+      "key_path": "name",
+      "auto_increment": false
+    },
+    "feats": {
+      "data": {
+        "medium_armor_master": {
+          "name": "Medium Armor Master",
+          "description": "You have practiced moving in medium armor to gain the following benefits:",
+          "prerequisites": {
+            "armor_proficiency": "medium"
+          },
+          "benefits": [
+            "Wearing medium armor doesn't impose disadvantage on your Dexterity (Stealth) checks.",
+            "When you wear medium armor, you can add 3, rather than 2, to your AC if you have a Dexterity score of 16 or higher."
+          ],
+          "mechanics": {
+            "armor_bonuses": {
+              "medium_armor_dex_max": 3,
+              "medium_armor_dex_requirement": 16,
+              "remove_stealth_disadvantage": true
+            }
+          }
+        },
+        "heavy_armor_master": {
+          "name": "Heavy Armor Master",
+          "description": "You can use your armor to deflect strikes that would kill others.",
+          "prerequisites": {
+            "armor_proficiency": "heavy"
+          },
+          "benefits": [
+            "Increase your Strength score by 1, to a maximum of 20.",
+            "While you are wearing heavy armor, bludgeoning, piercing, and slashing damage that you take from non-magical attacks is reduced by 3."
+          ],
+          "mechanics": {
+            "ability_increases": {
+              "strength": 1
+            },
+            "damage_reduction": {
+              "types": [
+                "bludgeoning",
+                "piercing",
+                "slashing"
+              ],
+              "amount": 3,
+              "condition": "wearing_heavy_armor"
+            }
+          }
+        },
+        "lightly_armored": {
+          "name": "Lightly Armored",
+          "description": "You have trained to master the use of light armor.",
+          "prerequisites": {},
+          "benefits": [
+            "Increase your Strength or Dexterity score by 1, to a maximum of 20.",
+            "You gain proficiency with light armor."
+          ],
+          "mechanics": {
+            "ability_increases": {
+              "choice": [
+                "strength",
+                "dexterity"
+              ],
+              "amount": 1
+            },
+            "armor_proficiencies": [
+              "light"
+            ]
+          }
         }
       },
       "key_path": "name",
       "auto_increment": false
     },
     "characters": {
-      "data": {
-        "1cf4d27c-b618-43f8-8bcb-3bc7dfa9825c": {
-          "id": "1cf4d27c-b618-43f8-8bcb-3bc7dfa9825c",
-          "save_slot_id": "6aacc1ab-98a9-4bae-a8d7-a132fb0ad29a",
-          "name": "Adventurer",
-          "race_id": "Human",
-          "class_id": "Fighter",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 10,
-          "dexterity": 14,
-          "constitution": 13,
-          "intelligence": 7,
-          "wisdom": 10,
-          "charisma": 11,
-          "armor_class": 12,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
-          "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "equipment_main_hand": null,
-          "equipment_off_hand": null,
-          "equipment_armor": null,
-          "equipment_shield": null,
-          "created_at": "2025-08-29T01:56:24.582138",
-          "updated_at": null,
-          "notes": "Created via character creator. Final scores include racial bonuses."
-        },
-        "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec": {
-          "id": "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec",
-          "save_slot_id": "c3372dc6-af9e-40b3-9599-0887ba84bd75",
-          "name": "Adventurer",
-          "race_id": "Human",
-          "class_id": "Fighter",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 14,
-          "dexterity": 17,
-          "constitution": 8,
-          "intelligence": 7,
-          "wisdom": 8,
-          "charisma": 14,
-          "armor_class": 13,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
-          "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "equipment_main_hand": null,
-          "equipment_off_hand": null,
-          "equipment_armor": null,
-          "equipment_shield": null,
-          "created_at": "2025-08-29T01:59:08.029938",
-          "updated_at": null,
-          "notes": "Created via character creator. Final scores include racial bonuses."
-        }
-      },
+      "data": {},
       "key_path": "id",
       "auto_increment": false
     },
     "save_slots": {
-      "data": {
-        "6aacc1ab-98a9-4bae-a8d7-a132fb0ad29a": {
-          "id": "6aacc1ab-98a9-4bae-a8d7-a132fb0ad29a",
-          "slot_number": 1,
-          "is_occupied": true,
-          "save_name": "Adventurer - Level 1",
-          "last_played": "2025-08-29T01:56:24.582138",
-          "play_time_minutes": 0,
-          "character_name": "Adventurer",
-          "character_level": 1,
-          "current_location": "Starting Town",
-          "created_at": "2025-08-29T01:56:24.582138",
-          "updated_at": "2025-08-29T01:56:24.582138"
-        },
-        "c3372dc6-af9e-40b3-9599-0887ba84bd75": {
-          "id": "c3372dc6-af9e-40b3-9599-0887ba84bd75",
-          "slot_number": 1,
-          "is_occupied": true,
-          "save_name": "Adventurer - Level 1",
-          "last_played": "2025-08-29T01:59:08.029938",
-          "play_time_minutes": 0,
-          "character_name": "Adventurer",
-          "character_level": 1,
-          "current_location": "Starting Town",
-          "created_at": "2025-08-29T01:59:08.029938",
-          "updated_at": "2025-08-29T01:59:08.029938"
-        }
-      },
+      "data": {},
       "key_path": "id",
       "auto_increment": false
     },
     "game_states": {
-      "data": {
-        "d055ee8a-7519-4f6c-8597-3b40507dc793": {
-          "id": "d055ee8a-7519-4f6c-8597-3b40507dc793",
-          "character_id": "1cf4d27c-b618-43f8-8bcb-3bc7dfa9825c",
-          "current_location": "Starting Town",
-          "location_type": "town",
-          "discovered_locations": [],
-          "completed_quests": [],
-          "quest_flags": {},
-          "world_events": {},
-          "encounter_bag_remaining": {},
-          "encounter_bag_history": {},
-          "total_play_time_minutes": 0,
-          "encounters_won": 0,
-          "encounters_fled": 0,
-          "total_damage_dealt": 0,
-          "total_damage_taken": 0,
-          "created_at": "2025-08-29T01:56:24.582138",
-          "updated_at": null
-        },
-        "4caff3cd-3ce8-499a-9327-5c933073df9a": {
-          "id": "4caff3cd-3ce8-499a-9327-5c933073df9a",
-          "character_id": "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec",
-          "current_location": "Starting Town",
-          "location_type": "town",
-          "discovered_locations": [],
-          "completed_quests": [],
-          "quest_flags": {},
-          "world_events": {},
-          "encounter_bag_remaining": {},
-          "encounter_bag_history": {},
-          "total_play_time_minutes": 0,
-          "encounters_won": 0,
-          "encounters_fled": 0,
-          "total_damage_dealt": 0,
-          "total_damage_taken": 0,
-          "created_at": "2025-08-29T01:59:08.029938",
-          "updated_at": null
-        }
-      },
+      "data": {},
       "key_path": "id",
       "auto_increment": false
     },
@@ -818,31 +844,19 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {
-        "Human": [
-          "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec"
-        ]
-      }
+      "index_data": {}
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {
-        "Fighter": [
-          "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec"
-        ]
-      }
+      "index_data": {}
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {
-        "Adventurer": [
-          "b28dc51b-207c-4a07-8a4a-cd002a9ad8ec"
-        ]
-      }
+      "index_data": {}
     },
     "monsters.challenge_rating": {
       "store": "monsters",

@@ -61,16 +61,22 @@ flake8
 - **`talekeeper.idb`** - IndexedDB JSON file created automatically on first run
 
 ### User Interface
-- **`ui/main_window.py`** - Main PyQt6 application window and navigation
-- **`ui/character_creator.py`** - Character creation interface with D&D 2024 rules
-- **`ui/combat_screen.py`** - Turn-based combat interface
-- **`ui/game_screen.py`** - Main gameplay and exploration interface
+- **`ui/main_window.py`** - Main PyQt6 application window with integrated component panels
+- **`ui/themes.py`** - Light/dark theme system with CSS styling
+- **`menu/game_menu.py`** - Game menu component for character/save management
+- **`character_sheet/character_panel.py`** - Character statistics and information panel
+- **`encounter_pane/encounter_panel.py`** - Exploration and combat encounter interface
+- **`log/log_panel.py`** - System message and event logging panel
+- **`equipment_layout/equipment_panel.py`** - Equipment and inventory management panel
+- **`action_cards/action_panel.py`** - Combat action selection interface
 
 ### Application Flow
-1. `main.py` initializes logging, IndexedDB database, and starts the GUI
-2. `core/game_engine_indexeddb.py` coordinates all game systems and state management
-3. UI components interact with the game engine to perform game operations
-4. All game data is persisted to IndexedDB JSON file via dataclass models
+1. `main.py` initializes logging system and creates PyQt6 application
+2. IndexedDB database setup with D&D 2024 game data loading from JSON files
+3. `core/game_engine_indexeddb.py` coordinates all game systems and state management
+4. `ui/main_window.py` creates integrated UI with all component panels
+5. UI components communicate via signals to game engine for operations
+6. All game data persisted to `talekeeper.idb` JSON file via dataclass models
 
 ### Key Design Patterns
 - **MVC Architecture**: UI components (View) → GameEngineIndexedDB (Controller) → Dataclass Models/IndexedDB (Model)
@@ -89,6 +95,43 @@ flake8
 - **`build.bat`** - Windows batch script for automated building
 - Bundles all dependencies, data files, and assets into single `.exe`
 - Uses UPX compression and excludes unnecessary modules to reduce size
+
+## Clean Production Architecture (2025-08-29)
+
+After codebase cleanup, TaleKeeper now consists of **20 core Python files** organized as:
+
+### Core System (4 files)
+- `main.py` - Application entry point with PyQt6 setup
+- `run_game.py` - Safe launcher with dependency validation
+- `core/database_indexeddb.py` - JSON-based database system
+- `core/game_engine_indexeddb.py` - Central game coordinator
+
+### Data Models (5 files)
+All use dataclasses for IndexedDB storage:
+- `models/character_indexeddb.py` - Character stats and progression
+- `models/combat_indexeddb.py` - Combat sessions and actions
+- `models/game_indexeddb.py` - Game state and save slots
+- `models/items_indexeddb.py` - Equipment and inventory
+- `models/monsters_indexeddb.py` - Creatures and NPCs
+
+### Services (1 file)
+- `services/dice.py` - D&D dice mechanics and probability
+
+### User Interface (8 files)
+All use PyQt6 with signal-based communication:
+- `ui/main_window.py` + `ui/themes.py` - Main window and theming
+- `menu/game_menu.py` - Character/save management
+- `character_sheet/character_panel.py` - Character display
+- `encounter_pane/encounter_panel.py` - Exploration/combat
+- `log/log_panel.py` - System messages
+- `equipment_layout/equipment_panel.py` - Inventory
+- `action_cards/action_panel.py` - Combat actions
+
+### Support (2 files)
+- `core/dtos.py` - Data transfer objects
+- All `__init__.py` files - Python package structure
+
+**33 legacy files** (62% of original codebase) archived to `archive/` directory.
 
 ## UI Styling Notes
 

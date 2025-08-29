@@ -56,7 +56,7 @@ TaleKeeper/
 ├── equipment_layout/    # Equipment UI component
 ├── action_cards/        # Action cards UI component
 ├── menu/                # Game menu component
-└── tests_demo/          # Test and demo scripts
+└── archive/             # Archived legacy files
 ```
 
 ### Key Technologies

@@ -1,22 +1,23 @@
 """
-File: services/dice.py
-Path: /services/dice.py
+Dice Rolling System for D&D 2024 Mechanics
 
-Dice rolling system for D&D Desktop 2024.
-Handles all dice notation parsing and rolling with modifiers.
+Comprehensive dice system supporting all standard D&D dice notation and mechanics.
+Handles advantage/disadvantage, complex expressions, and specialized rolls.
 
-Pseudo Code:
-1. Parse dice notation using regex (e.g., "2d6+3", "1d20")
-2. Roll individual dice with random number generation
-3. Apply advantage/disadvantage by rolling twice and taking best/worst
-4. Handle complex expressions with multiple dice types
-5. Return detailed results with individual rolls and totals
-
-AI Agents: Supported formats:
-- Simple: "1d20", "2d6", "3d4"
-- With modifiers: "1d20+5", "2d6-2"
-- Multiple dice: "1d8+1d6+3"
+Supported Formats:
+- Basic: "1d20", "2d6", "3d4" 
+- Modifiers: "1d20+5", "2d6-2"
+- Complex: "1d8+1d6+3"
 - Advantage/Disadvantage: roll("1d20", advantage=True)
+
+Features:
+- Regex-based notation parsing
+- Advantage/disadvantage for d20 rolls
+- Ability score generation (4d6 drop lowest, etc.)
+- Hit point calculation
+- Initiative and skill check utilities
+- Exploding dice and reroll mechanics
+- Weighted table rolling
 """
 
 import random

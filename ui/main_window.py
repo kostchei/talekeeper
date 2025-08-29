@@ -1,12 +1,23 @@
 """
-File: ui/main_window.py
-Path: /ui/main_window.py
+Main Application Window for TaleKeeper Desktop
 
-Main application window for TaleKeeper Desktop.
-PyQt6 window with the complete UI as specified in ui_plan.md
+PyQt6-based main window integrating all game UI components in fixed positions.
+Coordinates character management, exploration, combat, and inventory systems.
 
-This is the main application window - identical to FullUITestWindow
-but serves as the production main window.
+UI Components:
+- Game menu (top-left): Character/save management  
+- Character panel (left): Stats and character information
+- Encounter panel (center): Exploration and combat interface
+- Log panel (top-right): System messages and event logs
+- Equipment panel (bottom-right): Inventory and equipment management
+- Action panel (bottom-left): Combat actions and abilities
+
+Features:
+- Light/dark theme switching
+- Auto-load last played character
+- Signal-based component communication
+- Character creation integration
+- Save/load game state management
 """
 
 import sys

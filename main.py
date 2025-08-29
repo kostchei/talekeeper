@@ -1,21 +1,16 @@
 """
-File: main.py
-Path: /main.py
+TaleKeeper Desktop - Main Entry Point
 
-TaleKeeper Desktop - Entry Point
-Single-player D&D 2024 tactical RPG for Windows with IndexedDB backend.
+Single-player D&D 2024 tactical RPG for Windows built with PyQt6 and IndexedDB.
 
-This version uses IndexedDB through a Python wrapper for more complex
-database operations while maintaining compatibility with the existing codebase.
-
-Pseudo Code:
-1. Initialize logging and configuration
-2. Setup IndexedDB database and migrate from SQLite if needed
-3. Load game data (races, classes, monsters) from JSON files
-4. Initialize and start the main GUI application
-5. Handle graceful shutdown and save state
-
-AI Agents: This is the main entry point. Uses IndexedDB for enhanced database operations.
+Application Flow:
+1. Initialize logging system
+2. Create PyQt6 application with custom fonts
+3. Setup IndexedDB database (migrate from SQLite if needed)
+4. Load D&D 2024 game data from JSON files
+5. Initialize game engine coordinator
+6. Create and display main GUI window
+7. Start event loop and handle graceful shutdown
 """
 
 import sys

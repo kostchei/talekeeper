@@ -1,18 +1,22 @@
 """
-File: models/character_indexeddb.py
-Path: /models/character_indexeddb.py
+Character Data Models for TaleKeeper Desktop
 
-IndexedDB-compatible character models for TaleKeeper Desktop.
-Replaces SQLAlchemy models with plain Python classes that work with IndexedDB.
+Dataclass-based character models for IndexedDB storage.
+Implements D&D 2024 character rules and statistics.
 
-Pseudo Code:
-1. Define Character dataclass with all D&D stats and properties
-2. Add validation and computed properties (AC, modifiers, spell save DC)
-3. Handle character progression (leveling, XP, HP increases)
-4. Provide serialization methods for IndexedDB storage
-5. Maintain compatibility with existing character operations
+Models:
+- Character: Player character with stats, equipment, and progression
+- Race: Character species with traits and bonuses
+- Class: Character class with features and progression
+- Subclass: Specialized class variants
+- Background: Character background with proficiencies
 
-AI Agents: IndexedDB character data models with D&D 2024 rules integration.
+Features:
+- Computed ability modifiers
+- JSON serialization/deserialization
+- D&D 2024 rule compliance
+- Equipment slot management
+- Character progression tracking
 """
 
 from dataclasses import dataclass, field, asdict
@@ -68,6 +72,7 @@ class Character:
     # Proficiencies and Features
     proficiencies: List[str] = field(default_factory=list)  # Skills, tools, languages
     features: Dict[str, Any] = field(default_factory=dict)  # Class and racial features
+    feats: List[str] = field(default_factory=list)  # Character feats by name
     
     # Equipment slots
     equipment_main_hand: Optional[str] = None

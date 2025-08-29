@@ -50,7 +50,11 @@
     "rarity": "common",
     "cost_gp": 10,
     "weight_lb": 10.0,
-    "armor_class": 11
+    "armor_properties": {
+      "armor_class": 11,
+      "armor_type": "light",
+      "dex_bonus_max": null
+    }
   },
   {
     "name": "Chain Mail",
@@ -59,7 +63,13 @@
     "rarity": "common",
     "cost_gp": 75,
     "weight_lb": 55.0,
-    "armor_class": 16
+    "armor_properties": {
+      "armor_class": 16,
+      "armor_type": "heavy",
+      "dex_bonus_max": null,
+      "strength_requirement": 13,
+      "stealth_disadvantage": true
+    }
   },
   {
     "name": "Shield",
@@ -89,8 +99,11 @@
     "rarity": "common",
     "cost_gp": 45,
     "weight_lb": 13.0,
-    "armor_class": 12,
-    "armor_type": "light"
+    "armor_properties": {
+      "armor_class": 12,
+      "armor_type": "light",
+      "dex_bonus_max": null
+    }
   },
   {
     "name": "Breastplate",
@@ -99,8 +112,92 @@
     "rarity": "common",
     "cost_gp": 400,
     "weight_lb": 20.0,
-    "armor_class": 14,
-    "armor_type": "medium",
-    "dex_bonus_max": 2
+    "armor_properties": {
+      "armor_class": 14,
+      "armor_type": "medium",
+      "dex_bonus_max": 2,
+      "strength_requirement": null,
+      "stealth_disadvantage": false
+    }
+  },
+  {
+    "name": "Chain Shirt",
+    "description": "Made of interlocking metal rings, a chain shirt is worn between layers of clothing or leather.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 50,
+    "weight_lb": 20.0,
+    "armor_properties": {
+      "armor_class": 13,
+      "armor_type": "medium",
+      "dex_bonus_max": 2,
+      "strength_requirement": null,
+      "stealth_disadvantage": false
+    }
+  },
+  {
+    "name": "Scale Mail",
+    "description": "This armor consists of a coat and leggings of leather covered with overlapping pieces of metal.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 50,
+    "weight_lb": 45.0,
+    "armor_properties": {
+      "armor_class": 14,
+      "armor_type": "medium",
+      "dex_bonus_max": 2,
+      "strength_requirement": null,
+      "stealth_disadvantage": true
+    }
+  },
+  {
+    "name": "Half Plate",
+    "description": "Half plate consists of shaped metal plates that cover most of the wearer's body.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 750,
+    "weight_lb": 40.0,
+    "armor_properties": {
+      "armor_class": 15,
+      "armor_type": "medium",
+      "dex_bonus_max": 2,
+      "strength_requirement": null,
+      "stealth_disadvantage": true
+    }
+  },
+  {
+    "name": "Plate Armor",
+    "description": "Plate consists of shaped, interlocking metal plates to cover the entire body.",
+    "item_type": "armor",
+    "rarity": "common",
+    "cost_gp": 1500,
+    "weight_lb": 65.0,
+    "armor_properties": {
+      "armor_class": 18,
+      "armor_type": "heavy",
+      "dex_bonus_max": null,
+      "strength_requirement": 15,
+      "stealth_disadvantage": true
+    }
+  },
+  {
+    "name": "Mithral Chain Mail",
+    "description": "This fine chain mail is made of mithral, removing its normal restrictions.",
+    "item_type": "armor",
+    "rarity": "uncommon",
+    "cost_gp": 4075,
+    "weight_lb": 27.5,
+    "is_magical": true,
+    "armor_properties": {
+      "armor_class": 16,
+      "armor_type": "heavy",
+      "dex_bonus_max": null,
+      "strength_requirement": null,
+      "stealth_disadvantage": false
+    },
+    "magical_properties": {
+      "mithral": true,
+      "description": "Mithral removes Strength requirements and stealth disadvantage"
+    }
   }
 ]

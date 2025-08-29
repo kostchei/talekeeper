@@ -47,7 +47,10 @@ class Item:
     weight_lb: float = 0.0
     
     # Equipment properties
-    armor_class: Optional[int] = None  # For armor/shields
+    armor_class: Optional[int] = None  # For armor/shields (backward compatibility)
+    armor_type: Optional[str] = None  # light, medium, heavy (backward compatibility)
+    dex_bonus_max: Optional[int] = None  # Maximum dex bonus for medium armor (backward compatibility)
+    armor_properties: Optional[Dict[str, Any]] = None  # Nested armor properties
     damage_dice: Optional[str] = None  # For weapons (e.g., "1d8")
     damage_type: Optional[str] = None  # slashing, piercing, etc.
     weapon_properties: List[str] = field(default_factory=list)  # finesse, versatile, etc.
