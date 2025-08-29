@@ -62,26 +62,6 @@ class EncounterPanel(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         
-        # === HEADER SECTION ===
-        self.header_frame = QFrame()
-        self.header_frame.setObjectName("headerFrame")
-        self.header_frame.setFixedHeight(60)
-        
-        header_layout = QHBoxLayout(self.header_frame)
-        header_layout.setContentsMargins(10, 5, 10, 5)
-        
-        # Title
-        self.title_label = QLabel("Exploration")
-        self.title_label.setObjectName("titleLabel")
-        header_layout.addWidget(self.title_label)
-        
-        header_layout.addStretch()
-        
-        # Mode indicator
-        self.mode_label = QLabel("Exploring")
-        self.mode_label.setObjectName("modeLabel")
-        header_layout.addWidget(self.mode_label)
-        
         # === CONTENT TABS ===
         self.content_tabs = QTabWidget()
         self.content_tabs.setObjectName("contentTabs")
@@ -217,41 +197,14 @@ class EncounterPanel(QWidget):
         
         self._setup_character_creation_steps()
         
-        # === STATUS BAR ===
-        self.status_frame = QFrame()
-        self.status_frame.setObjectName("statusFrame")
-        self.status_frame.setFixedHeight(40)
-        
-        status_layout = QHBoxLayout(self.status_frame)
-        status_layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.status_label = QLabel("Ready for adventure")
-        self.status_label.setObjectName("statusLabel")
-        status_layout.addWidget(self.status_label)
-        
-        status_layout.addStretch()
-        
-        # Difficulty indicator
-        self.difficulty_label = QLabel("Normal")
-        self.difficulty_label.setObjectName("difficultyLabel")
-        status_layout.addWidget(self.difficulty_label)
-        
         # Add components to main layout
-        self.main_layout.addWidget(self.header_frame)
         self.main_layout.addWidget(self.content_tabs, 1)
-        self.main_layout.addWidget(self.status_frame)
     
     def _apply_styles(self):
         """Apply dark theme styling to encounter panel components."""
         style_sheet = """
         EncounterPanel {
             background-color: #101010;
-        }
-        
-        QFrame#headerFrame {
-            background-color: #1a1a1a;
-            border: 1px solid #444444;
-            border-radius: 6px;
         }
         
         QFrame#actionButtonsFrame, QFrame#combatControlsFrame {
@@ -261,47 +214,11 @@ class EncounterPanel(QWidget):
             padding: 5px;
         }
         
-        QFrame#statusFrame {
-            background-color: #1a1a1a;
-            border: 1px solid #444444;
-            border-radius: 6px;
-        }
-        
-        QLabel#titleLabel {
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        
-        QLabel#modeLabel {
-            color: #4a90e2;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 4px 8px;
-            border: 1px solid #4a90e2;
-            border-radius: 3px;
-        }
-        
         QLabel#sectionLabel {
             color: #ffffff;
             font-size: 14px;
             font-weight: bold;
             padding: 5px;
-        }
-        
-        QLabel#statusLabel {
-            color: #cccccc;
-            font-size: 12px;
-        }
-        
-        QLabel#difficultyLabel {
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border: 1px solid #666666;
-            border-radius: 3px;
-            background-color: #2a2a2a;
         }
         
         QTabWidget#contentTabs {
@@ -499,31 +416,10 @@ class EncounterPanel(QWidget):
             border-radius: 8px;
         }}
         
-        QFrame#headerFrame {{
-            background-color: {palette['surface']};
-            border: 1px solid {palette['border']};
-            border-radius: 4px;
-        }}
-        
         QFrame#contentFrame {{
             background-color: {palette['background']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-        }}
-        
-        QLabel#titleLabel {{
-            color: {palette['text']};
-            font-size: 16px;
-            font-weight: bold;
-        }}
-        
-        QLabel#modeLabel {{
-            color: {palette['accent_tertiary']};
-            font-size: 11px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border: 1px solid {palette['accent_tertiary']};
-            border-radius: 3px;
         }}
         
         QTabWidget::pane {{
@@ -613,27 +509,27 @@ class EncounterPanel(QWidget):
     def set_exploration_mode(self):
         """Switch to exploration mode."""
         self.encounter_mode = "exploration"
-        self.title_label.setText("Exploration")
-        self.mode_label.setText("Exploring")
-        self.mode_label.setStyleSheet("color: #4a90e2; border-color: #4a90e2;")
+        # self.title_label.setText("Exploration")
+        # self.mode_label.setText("Exploring")
+        # self.mode_label.setStyleSheet("color: #4a90e2; border-color: #4a90e2;")
         self.content_tabs.setCurrentIndex(0)  # Scene tab
         self._update_action_buttons()
     
     def set_encounter_mode(self):
         """Switch to encounter mode."""
         self.encounter_mode = "encounter"
-        self.title_label.setText("Encounter")
-        self.mode_label.setText("Encounter")
-        self.mode_label.setStyleSheet("color: #ff9500; border-color: #ff9500;")
+        # self.title_label.setText("Encounter")
+        # self.mode_label.setText("Encounter")
+        # self.mode_label.setStyleSheet("color: #ff9500; border-color: #ff9500;")
         self.content_tabs.setCurrentIndex(1)  # Encounters tab
         self._update_action_buttons()
     
     def set_combat_mode(self):
         """Switch to combat mode."""
         self.encounter_mode = "combat"
-        self.title_label.setText("Combat")
-        self.mode_label.setText("In Combat")
-        self.mode_label.setStyleSheet("color: #ff4444; border-color: #ff4444;")
+        # self.title_label.setText("Combat")
+        # self.mode_label.setText("In Combat")
+        # self.mode_label.setStyleSheet("color: #ff4444; border-color: #ff4444;")
         self.content_tabs.setCurrentIndex(1)  # Encounters tab
         self._update_action_buttons()
     
@@ -696,23 +592,25 @@ class EncounterPanel(QWidget):
     
     def update_status(self, status: str):
         """Update the status message."""
-        self.status_label.setText(status)
+        # self.status_label.setText(status)
+        pass
     
     def set_difficulty(self, difficulty: str):
         """Set the difficulty indicator."""
-        self.difficulty_label.setText(difficulty)
-        
-        # Color code difficulty
-        color_map = {
-            "Easy": "#4a9",
-            "Normal": "#ffffff", 
-            "Hard": "#ff9500",
-            "Deadly": "#ff4444"
-        }
-        color = color_map.get(difficulty, "#ffffff")
-        self.difficulty_label.setStyleSheet(
-            f"color: {color}; border-color: {color}; background-color: #2a2a2a;"
-        )
+        # self.difficulty_label.setText(difficulty)
+        # 
+        # # Color code difficulty
+        # color_map = {
+        #     "Easy": "#4a9",
+        #     "Normal": "#ffffff", 
+        #     "Hard": "#ff9500",
+        #     "Deadly": "#ff4444"
+        # }
+        # color = color_map.get(difficulty, "#ffffff")
+        # self.difficulty_label.setStyleSheet(
+        #     f"color: {color}; border-color: {color}; background-color: #2a2a2a;"
+        # )
+        pass
     
     def get_current_mode(self) -> str:
         """Get the current encounter mode."""
@@ -730,9 +628,9 @@ class EncounterPanel(QWidget):
     def set_character_creation_mode(self):
         """Switch to character creation mode."""
         self.encounter_mode = "character_creation"
-        self.title_label.setText("Create Character")
-        self.mode_label.setText("Character Creation")
-        self.mode_label.setStyleSheet("color: #50c878; border-color: #50c878;")
+        # self.title_label.setText("Create Character")
+        # self.mode_label.setText("Character Creation")
+        # self.mode_label.setStyleSheet("color: #50c878; border-color: #50c878;")
         self.content_tabs.setTabVisible(3, True)  # Show character creation tab
         self.content_tabs.setCurrentIndex(3)  # Switch to character creation tab
         self.creation_step = 0

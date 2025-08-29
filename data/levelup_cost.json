@@ -1,0 +1,24 @@
+{
+  "training_schedule": [
+    {
+      "level_range": "2-4",
+      "training_days": 10,
+      "training_cost_gp": 20
+    },
+    {
+      "level_range": "5-10",
+      "training_days": 20,
+      "training_cost_gp": 40
+    },
+    {
+      "level_range": "11-16",
+      "training_days": 30,
+      "training_cost_gp": 60
+    },
+    {
+      "level_range": "17-20",
+      "training_days": 40,
+      "training_cost_gp": 80
+    }
+  ]
+}
