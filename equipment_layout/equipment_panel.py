@@ -63,6 +63,7 @@ class EquipmentPanel(QWidget):
         self.animation = None
         self.equipped_items = {}  # slot -> item mapping
         self.inventory_items = []  # list of inventory items
+        self.character_strength = 10  # Default strength for carrying capacity
         
         # Set initial size (extends to bottom of window)
         self.setFixedSize(432, 486)
@@ -475,10 +476,16 @@ class EquipmentPanel(QWidget):
     
     def _use_item(self, item_widget: QListWidgetItem):
         """Use an item from inventory."""
-        item_index = self.inventory_list.row(item_widget)
-        if 0 <= item_index < len(self.inventory_items):
-            item = self.inventory_items[item_index]
-            self.item_used.emit(item)
+        item_data = item_widget.data(Qt.ItemDataRole.UserRole)
+        if item_data:
+            if item_data['equipped']:
+                # Unequip the item
+                slot = item_data['slot']
+                self._unequip_item(slot)
+            else:
+                # Use/consume the item
+                item = item_data['item']
+                self.item_used.emit(item)
     
     def _use_selected_item(self):
         """Use the currently selected inventory item."""
@@ -490,16 +497,45 @@ class EquipmentPanel(QWidget):
         """Drop the currently selected inventory item."""
         current_item = self.inventory_list.currentItem()
         if current_item:
-            item_index = self.inventory_list.row(current_item)
-            if 0 <= item_index < len(self.inventory_items):
-                item = self.inventory_items.pop(item_index)
-                self._update_inventory_display()
-                self.inventory_changed.emit()
+            item_data = current_item.data(Qt.ItemDataRole.UserRole)
+            if item_data:
+                if item_data['equipped']:
+                    # Unequip and remove the item
+                    slot = item_data['slot']
+                    if slot in self.equipped_items:
+                        self.equipped_items.pop(slot)
+                        self.slot_widgets[slot].clear_item()
+                        self._update_inventory_display()
+                        self._update_stats_display()
+                        self.item_unequipped.emit(slot)
+                        self.inventory_changed.emit()
+                else:
+                    # Remove from unequipped inventory
+                    item = item_data['item']
+                    if item in self.inventory_items:
+                        self.inventory_items.remove(item)
+                        self._update_inventory_display()
+                        self.inventory_changed.emit()
     
     def _update_inventory_display(self):
         """Update the inventory list display."""
         self.inventory_list.clear()
         
+        # Add equipped items first (marked as equipped)
+        for slot, item in self.equipped_items.items():
+            item_name = item.get('name', 'Unknown Item')
+            item_type = item.get('type', '')
+            slot_name = slot.value.replace('_', ' ').title()
+            
+            display_text = f"⚔️ {item_name} [Equipped - {slot_name}]"
+            if item_type:
+                display_text += f" ({item_type})"
+            
+            list_item = QListWidgetItem(display_text)
+            list_item.setData(Qt.ItemDataRole.UserRole, {'item': item, 'equipped': True, 'slot': slot})
+            self.inventory_list.addItem(list_item)
+        
+        # Add unequipped inventory items
         for item in self.inventory_items:
             item_name = item.get('name', 'Unknown Item')
             item_type = item.get('type', '')
@@ -512,18 +548,35 @@ class EquipmentPanel(QWidget):
                 display_text += f" [{item_type}]"
             
             list_item = QListWidgetItem(display_text)
-            list_item.setData(Qt.ItemDataRole.UserRole, item)
+            list_item.setData(Qt.ItemDataRole.UserRole, {'item': item, 'equipped': False, 'slot': None})
             self.inventory_list.addItem(list_item)
         
-        # Update weight
-        total_weight = sum(item.get('weight', 0) * item.get('quantity', 1) 
-                          for item in self.inventory_items)
-        max_weight = 100  # This would come from character strength
+        # Update weight - include both equipped and unequipped items
+        equipped_weight = sum(item.get('weight_lb', 0) for item in self.equipped_items.values())
+        inventory_weight = sum(item.get('weight_lb', 0) * item.get('quantity', 1) 
+                              for item in self.inventory_items)
+        total_weight = equipped_weight + inventory_weight
         
-        # Convert to int for progress bar
-        weight_value = int(min(total_weight, max_weight))
-        self.weight_bar.setValue(weight_value)
-        self.weight_label.setText(f"{int(total_weight)}/{max_weight}")
+        # D&D 5e carrying capacity rules
+        max_weight = self.character_strength * 15  # Maximum carrying capacity
+        encumbered_threshold = self.character_strength * 5   # Speed -10 ft
+        heavily_encumbered_threshold = self.character_strength * 10  # Speed -20 ft, disadvantage
+        
+        # Determine encumbrance status
+        encumbrance_status = ""
+        if total_weight > heavily_encumbered_threshold:
+            encumbrance_status = " [Heavily Encumbered]"
+            self.weight_bar.setStyleSheet("QProgressBar::chunk { background-color: #cc4444; }")
+        elif total_weight > encumbered_threshold:
+            encumbrance_status = " [Encumbered]"
+            self.weight_bar.setStyleSheet("QProgressBar::chunk { background-color: #ccaa44; }")
+        else:
+            self.weight_bar.setStyleSheet("QProgressBar::chunk { background-color: #44aa44; }")
+        
+        # Update progress bar (0-100 scale)
+        weight_percentage = int(min(100, (total_weight / max_weight) * 100))
+        self.weight_bar.setValue(weight_percentage)
+        self.weight_label.setText(f"{total_weight:.1f}/{max_weight} lb{encumbrance_status}")
     
     def _update_stats_display(self):
         """Update the stats display based on equipped items."""
@@ -553,8 +606,11 @@ class EquipmentPanel(QWidget):
             self._update_inventory_display()
             self.inventory_changed.emit()
     
-    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]]):
+    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]], character_strength: int = 10):
         """Load equipment and inventory data."""
+        # Store character's strength for carrying capacity calculations
+        self.character_strength = character_strength
+        
         # Load equipped items
         self.equipped_items.clear()
         for slot_name, item in equipped_items.items():

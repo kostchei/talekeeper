@@ -249,17 +249,19 @@ class MainWindow(QMainWindow):
         
         # Add test equipment
         test_equipment = {
-            'main_hand': {'name': 'Orcrist', 'type': 'Longsword', 'attack_bonus': 2},
-            'armor': {'name': 'Chain Mail', 'armor_class': 16}
+            'main_hand': {'name': 'Orcrist', 'type': 'Longsword', 'attack_bonus': 2, 'weight_lb': 3.0},
+            'armor': {'name': 'Chain Mail', 'armor_class': 16, 'weight_lb': 55.0}
         }
         
         test_inventory = [
-            {'name': 'Healing Potion', 'type': 'Consumable', 'quantity': 3, 'weight': 0.5},
-            {'name': 'Rope (50 ft)', 'type': 'Gear', 'quantity': 1, 'weight': 10},
-            {'name': 'Rations', 'type': 'Food', 'quantity': 5, 'weight': 2}
+            {'name': 'Healing Potion', 'type': 'Consumable', 'quantity': 3, 'weight_lb': 0.5},
+            {'name': 'Rope (50 ft)', 'type': 'Gear', 'quantity': 1, 'weight_lb': 10},
+            {'name': 'Rations', 'type': 'Food', 'quantity': 5, 'weight_lb': 2}
         ]
         
-        self.equipment_panel.load_equipment_data(test_equipment, test_inventory)
+        # Use demo character's strength (15) for carrying capacity
+        demo_strength = demo_character['strength']
+        self.equipment_panel.load_equipment_data(test_equipment, test_inventory, demo_strength)
         
         # Set encounter scene
         self.encounter_pane.update_scene_description(
@@ -307,14 +309,18 @@ class MainWindow(QMainWindow):
 
             equipped_items = {}
             if saved_character.equipment_main_hand:
-                equipped_items['main_hand'] = {'name': saved_character.equipment_main_hand}
+                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_main_hand)
+                equipped_items['main_hand'] = item_data if item_data else {'name': saved_character.equipment_main_hand, 'weight_lb': 0}
             if saved_character.equipment_off_hand:
-                equipped_items['off_hand'] = {'name': saved_character.equipment_off_hand}
+                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_off_hand)
+                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_off_hand, 'weight_lb': 0}
             if saved_character.equipment_armor:
-                equipped_items['armor'] = {'name': saved_character.equipment_armor}
+                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_armor)
+                equipped_items['armor'] = item_data if item_data else {'name': saved_character.equipment_armor, 'weight_lb': 0}
             if saved_character.equipment_shield and 'off_hand' not in equipped_items:
-                equipped_items['off_hand'] = {'name': saved_character.equipment_shield}
-            self.equipment_panel.load_equipment_data(equipped_items, [])
+                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_shield)
+                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_shield, 'weight_lb': 0}
+            self.equipment_panel.load_equipment_data(equipped_items, [], saved_character.strength)
 
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
@@ -426,15 +432,19 @@ class MainWindow(QMainWindow):
 
         equipped_items = {}
         if character.equipment_main_hand:
-            equipped_items['main_hand'] = {'name': character.equipment_main_hand}
+            item_data = self.game_engine.get_equipment_item_sync(character.equipment_main_hand)
+            equipped_items['main_hand'] = item_data if item_data else {'name': character.equipment_main_hand, 'weight_lb': 0}
         if character.equipment_off_hand:
-            equipped_items['off_hand'] = {'name': character.equipment_off_hand}
+            item_data = self.game_engine.get_equipment_item_sync(character.equipment_off_hand)
+            equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_off_hand, 'weight_lb': 0}
         if character.equipment_armor:
-            equipped_items['armor'] = {'name': character.equipment_armor}
+            item_data = self.game_engine.get_equipment_item_sync(character.equipment_armor)
+            equipped_items['armor'] = item_data if item_data else {'name': character.equipment_armor, 'weight_lb': 0}
         if character.equipment_shield and 'off_hand' not in equipped_items:
-            equipped_items['off_hand'] = {'name': character.equipment_shield}
+            item_data = self.game_engine.get_equipment_item_sync(character.equipment_shield)
+            equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
         inventory_items = self.game_engine.get_character_inventory_sync(character.id)
-        self.equipment_panel.load_equipment_data(equipped_items, inventory_items)
+        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character.strength)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     

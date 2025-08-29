@@ -916,6 +916,44 @@
           "equipment_armor": null,
           "equipment_shield": null,
           "created_at": "2025-08-29T11:54:48.004645",
+          "updated_at": "2025-08-29T13:52:56.962849",
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d": {
+          "id": "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d",
+          "save_slot_id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
+          "name": "Templar",
+          "race_id": "Human",
+          "class_id": "Fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 11,
+          "constitution": 15,
+          "intelligence": 13,
+          "wisdom": 14,
+          "charisma": 15,
+          "armor_class": 16,
+          "hit_points_max": 8,
+          "hit_points_current": 8,
+          "hit_points_temporary": 0,
+          "max_hit_points": 8,
+          "current_hit_points": 8,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-29T13:50:30.750949",
           "updated_at": null,
           "notes": "Created via character creator. Final scores include racial bonuses."
         }
@@ -925,25 +963,12 @@
     },
     "save_slots": {
       "data": {
-        "e99d217b-f294-4afb-8489-8009e953ca82": {
-          "id": "e99d217b-f294-4afb-8489-8009e953ca82",
-          "slot_number": 1,
-          "is_occupied": false,
-          "save_name": null,
-          "last_played": null,
-          "play_time_minutes": 0,
-          "character_name": null,
-          "character_level": null,
-          "current_location": null,
-          "created_at": "2025-08-29T11:10:19.492785",
-          "updated_at": "2025-08-29T11:53:48.125229"
-        },
         "4db7615f-df95-4523-b6b7-57ef5247d1db": {
           "id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
           "slot_number": 1,
           "is_occupied": true,
           "save_name": "Skell - Level 1",
-          "last_played": "2025-08-29T11:14:16.899448",
+          "last_played": "2025-08-29T14:14:42.185375",
           "play_time_minutes": 0,
           "character_name": "Skell",
           "character_level": 1,
@@ -956,7 +981,7 @@
           "slot_number": 2,
           "is_occupied": true,
           "save_name": "Throwrim - Level 1",
-          "last_played": "2025-08-29T11:55:04.912754",
+          "last_played": "2025-08-29T14:14:42.188889",
           "play_time_minutes": 0,
           "character_name": "Throwrim",
           "character_level": 1,
@@ -969,13 +994,26 @@
           "slot_number": 3,
           "is_occupied": true,
           "save_name": "Templus - Level 1",
-          "last_played": "2025-08-29T13:02:01.623896",
+          "last_played": "2025-08-29T14:14:42.190894",
           "play_time_minutes": 0,
           "character_name": "Templus",
           "character_level": 1,
           "current_location": "Starting Town",
           "created_at": "2025-08-29T11:54:47.999640",
-          "updated_at": "2025-08-29T11:54:48.010126"
+          "updated_at": "2025-08-29T13:52:56.956638"
+        },
+        "03978361-13f2-40bb-afce-d1cf5a125d3d": {
+          "id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
+          "slot_number": 4,
+          "is_occupied": true,
+          "save_name": "Templar - Level 1",
+          "last_played": "2025-08-29T14:52:54.128863",
+          "play_time_minutes": 0,
+          "character_name": "Templar",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-29T13:50:30.750949",
+          "updated_at": "2025-08-29T13:50:30.750949"
         }
       },
       "key_path": "id",
@@ -1038,6 +1076,25 @@
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
           "created_at": "2025-08-29T11:54:48.007128",
+          "updated_at": "2025-08-29T13:52:56.964853"
+        },
+        "4d7a5e6f-d1e5-4036-a7d3-38d913411fcc": {
+          "id": "4d7a5e6f-d1e5-4036-a7d3-38d913411fcc",
+          "character_id": "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-29T13:50:30.750949",
           "updated_at": null
         }
       },
@@ -1107,8 +1164,8 @@
       "key_path": "slot_number",
       "unique": true,
       "index_data": {
-        "3": [
-          "236aca00-8007-4f8b-952e-c75d16b21415"
+        "4": [
+          "03978361-13f2-40bb-afce-d1cf5a125d3d"
         ]
       }
     }
