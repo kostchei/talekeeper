@@ -805,136 +805,22 @@
     },
     "characters": {
       "data": {
-        "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51": {
-          "id": "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51",
-          "save_slot_id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
-          "name": "Skell",
+        "fc66da17-00d2-42b0-959f-e636e81a6dbe": {
+          "id": "fc66da17-00d2-42b0-959f-e636e81a6dbe",
+          "save_slot_id": "e4ce02d3-18f4-403f-a0f6-dcb549bf0492",
+          "name": "Bill",
           "race_id": "Dwarf",
-          "class_id": "Rogue",
+          "class_id": "Fighter",
           "subclass_id": null,
           "background_id": "Farmer",
           "level": 1,
           "experience_points": 0,
-          "strength": 18,
+          "strength": 15,
           "dexterity": 13,
-          "constitution": 16,
+          "constitution": 15,
           "intelligence": 13,
-          "wisdom": 11,
-          "charisma": 8,
-          "armor_class": 11,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
-          "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "feats": [],
-          "equipment_main_hand": null,
-          "equipment_off_hand": null,
-          "equipment_armor": null,
-          "equipment_shield": null,
-          "created_at": "2025-08-29T11:14:16.895447",
-          "updated_at": null,
-          "notes": "Created via character creator. Final scores include racial bonuses."
-        },
-        "28d21ded-518a-4f6a-b328-af547f161c6b": {
-          "id": "28d21ded-518a-4f6a-b328-af547f161c6b",
-          "save_slot_id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
-          "name": "Throwrim",
-          "race_id": "Dwarf",
-          "class_id": "Rogue",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 10,
-          "dexterity": 15,
-          "constitution": 11,
-          "intelligence": 14,
           "wisdom": 15,
-          "charisma": 13,
-          "armor_class": 12,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
-          "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "feats": [],
-          "equipment_main_hand": null,
-          "equipment_off_hand": null,
-          "equipment_armor": null,
-          "equipment_shield": null,
-          "created_at": "2025-08-29T11:32:06.294457",
-          "updated_at": "2025-08-29T11:55:04.916355",
-          "notes": "Created via character creator. Final scores include racial bonuses."
-        },
-        "5ef12b5e-51a9-4e31-837a-cffa5f558d37": {
-          "id": "5ef12b5e-51a9-4e31-837a-cffa5f558d37",
-          "save_slot_id": "236aca00-8007-4f8b-952e-c75d16b21415",
-          "name": "Templus",
-          "race_id": "Human",
-          "class_id": "Fighter",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 15,
-          "dexterity": 13,
-          "constitution": 15,
-          "intelligence": 7,
-          "wisdom": 14,
-          "charisma": 11,
-          "armor_class": 11,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
-          "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
-          "hit_dice_max": 1,
-          "hit_dice_current": 1,
-          "death_saves_successes": 0,
-          "death_saves_failures": 0,
-          "conditions": [],
-          "proficiencies": [],
-          "features": {},
-          "feats": [],
-          "equipment_main_hand": null,
-          "equipment_off_hand": null,
-          "equipment_armor": null,
-          "equipment_shield": null,
-          "created_at": "2025-08-29T11:54:48.004645",
-          "updated_at": "2025-08-29T13:52:56.962849",
-          "notes": "Created via character creator. Final scores include racial bonuses."
-        },
-        "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d": {
-          "id": "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d",
-          "save_slot_id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
-          "name": "Templar",
-          "race_id": "Human",
-          "class_id": "Fighter",
-          "subclass_id": null,
-          "background_id": "Soldier",
-          "level": 1,
-          "experience_points": 0,
-          "strength": 15,
-          "dexterity": 11,
-          "constitution": 15,
-          "intelligence": 13,
-          "wisdom": 14,
-          "charisma": 15,
+          "charisma": 9,
           "armor_class": 16,
           "hit_points_max": 8,
           "hit_points_current": 8,
@@ -953,7 +839,45 @@
           "equipment_off_hand": null,
           "equipment_armor": "Chain Mail",
           "equipment_shield": null,
-          "created_at": "2025-08-29T13:50:30.750949",
+          "created_at": "2025-08-29T15:55:30.279372",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "28f2ec11-d342-4523-8016-a0b85ec6c89c": {
+          "id": "28f2ec11-d342-4523-8016-a0b85ec6c89c",
+          "save_slot_id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
+          "name": "Yarl",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 18,
+          "constitution": 15,
+          "intelligence": 16,
+          "wisdom": 10,
+          "charisma": 8,
+          "armor_class": 16,
+          "hit_points_max": 12,
+          "hit_points_current": 12,
+          "hit_points_temporary": 0,
+          "max_hit_points": 12,
+          "current_hit_points": 12,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-29T16:06:45.309073",
           "updated_at": null,
           "notes": "Created via character creator. Final scores include racial bonuses."
         }
@@ -967,53 +891,66 @@
           "id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
           "slot_number": 1,
           "is_occupied": true,
-          "save_name": "Skell - Level 1",
-          "last_played": "2025-08-29T14:14:42.185375",
+          "save_name": "Yarl - Level 1",
+          "last_played": "2025-08-29T16:06:45.313580",
           "play_time_minutes": 0,
-          "character_name": "Skell",
+          "character_name": "Yarl",
           "character_level": 1,
           "current_location": "Starting Town",
           "created_at": "2025-08-29T11:14:16.893054",
-          "updated_at": "2025-08-29T11:14:16.899448"
+          "updated_at": "2025-08-29T16:06:45.313580"
         },
         "a98d3bfe-e6d0-491f-bb60-b25f2960c772": {
           "id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
           "slot_number": 2,
-          "is_occupied": true,
-          "save_name": "Throwrim - Level 1",
-          "last_played": "2025-08-29T14:14:42.188889",
+          "is_occupied": false,
+          "save_name": null,
+          "last_played": null,
           "play_time_minutes": 0,
-          "character_name": "Throwrim",
-          "character_level": 1,
-          "current_location": "Starting Town",
+          "character_name": null,
+          "character_level": null,
+          "current_location": null,
           "created_at": "2025-08-29T11:32:06.294457",
-          "updated_at": "2025-08-29T11:55:04.912754"
+          "updated_at": "2025-08-29T16:05:54.335811"
         },
         "236aca00-8007-4f8b-952e-c75d16b21415": {
           "id": "236aca00-8007-4f8b-952e-c75d16b21415",
           "slot_number": 3,
-          "is_occupied": true,
-          "save_name": "Templus - Level 1",
-          "last_played": "2025-08-29T14:14:42.190894",
+          "is_occupied": false,
+          "save_name": null,
+          "last_played": null,
           "play_time_minutes": 0,
-          "character_name": "Templus",
-          "character_level": 1,
-          "current_location": "Starting Town",
+          "character_name": null,
+          "character_level": null,
+          "current_location": null,
           "created_at": "2025-08-29T11:54:47.999640",
-          "updated_at": "2025-08-29T13:52:56.956638"
+          "updated_at": "2025-08-29T16:05:56.483664"
         },
         "03978361-13f2-40bb-afce-d1cf5a125d3d": {
           "id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
           "slot_number": 4,
-          "is_occupied": true,
-          "save_name": "Templar - Level 1",
-          "last_played": "2025-08-29T15:27:29.587696",
+          "is_occupied": false,
+          "save_name": null,
+          "last_played": null,
           "play_time_minutes": 0,
-          "character_name": "Templar",
+          "character_name": null,
+          "character_level": null,
+          "current_location": null,
+          "created_at": "2025-08-29T13:50:30.750949",
+          "updated_at": "2025-08-29T16:05:58.706547"
+        },
+        "e4ce02d3-18f4-403f-a0f6-dcb549bf0492": {
+          "id": "e4ce02d3-18f4-403f-a0f6-dcb549bf0492",
+          "slot_number": 5,
+          "is_occupied": true,
+          "save_name": "Bill - Level 1",
+          "last_played": "2025-08-29T16:06:00.136912",
+          "play_time_minutes": 0,
+          "character_name": "Bill",
           "character_level": 1,
           "current_location": "Starting Town",
-          "created_at": "2025-08-29T13:50:30.750949",
-          "updated_at": "2025-08-29T13:50:30.750949"
+          "created_at": "2025-08-29T15:55:30.276365",
+          "updated_at": "2025-08-29T15:55:30.283336"
         }
       },
       "key_path": "id",
@@ -1021,9 +958,9 @@
     },
     "game_states": {
       "data": {
-        "1ed5b287-4b21-4de0-bc6b-fd586b8bab8a": {
-          "id": "1ed5b287-4b21-4de0-bc6b-fd586b8bab8a",
-          "character_id": "c2ce19e1-4551-45d2-9a3a-b4163f8d5d51",
+        "f5024e61-7270-4792-936a-743386da4680": {
+          "id": "f5024e61-7270-4792-936a-743386da4680",
+          "character_id": "fc66da17-00d2-42b0-959f-e636e81a6dbe",
           "current_location": "Starting Town",
           "location_type": "town",
           "discovered_locations": [],
@@ -1037,12 +974,12 @@
           "encounters_fled": 0,
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
-          "created_at": "2025-08-29T11:14:16.897447",
+          "created_at": "2025-08-29T15:55:30.280876",
           "updated_at": null
         },
-        "83dca927-3938-4a34-b100-546708e0afb2": {
-          "id": "83dca927-3938-4a34-b100-546708e0afb2",
-          "character_id": "28d21ded-518a-4f6a-b328-af547f161c6b",
+        "f69b7504-a4f8-4cd7-9767-b56885f7747c": {
+          "id": "f69b7504-a4f8-4cd7-9767-b56885f7747c",
+          "character_id": "28f2ec11-d342-4523-8016-a0b85ec6c89c",
           "current_location": "Starting Town",
           "location_type": "town",
           "discovered_locations": [],
@@ -1056,45 +993,7 @@
           "encounters_fled": 0,
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
-          "created_at": "2025-08-29T11:32:06.294457",
-          "updated_at": "2025-08-29T11:55:04.920351"
-        },
-        "5af75c55-8ef4-4bcf-8d2a-92429d9337a3": {
-          "id": "5af75c55-8ef4-4bcf-8d2a-92429d9337a3",
-          "character_id": "5ef12b5e-51a9-4e31-837a-cffa5f558d37",
-          "current_location": "Starting Town",
-          "location_type": "town",
-          "discovered_locations": [],
-          "completed_quests": [],
-          "quest_flags": {},
-          "world_events": {},
-          "encounter_bag_remaining": {},
-          "encounter_bag_history": {},
-          "total_play_time_minutes": 0,
-          "encounters_won": 0,
-          "encounters_fled": 0,
-          "total_damage_dealt": 0,
-          "total_damage_taken": 0,
-          "created_at": "2025-08-29T11:54:48.007128",
-          "updated_at": "2025-08-29T13:52:56.964853"
-        },
-        "4d7a5e6f-d1e5-4036-a7d3-38d913411fcc": {
-          "id": "4d7a5e6f-d1e5-4036-a7d3-38d913411fcc",
-          "character_id": "a8e6e01b-af3b-4cc6-9cc9-b282ab875c9d",
-          "current_location": "Starting Town",
-          "location_type": "town",
-          "discovered_locations": [],
-          "completed_quests": [],
-          "quest_flags": {},
-          "world_events": {},
-          "encounter_bag_remaining": {},
-          "encounter_bag_history": {},
-          "total_play_time_minutes": 0,
-          "encounters_won": 0,
-          "encounters_fled": 0,
-          "total_damage_dealt": 0,
-          "total_damage_taken": 0,
-          "created_at": "2025-08-29T13:50:30.750949",
+          "created_at": "2025-08-29T16:06:45.311580",
           "updated_at": null
         }
       },
@@ -1127,19 +1026,31 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Human": [
+          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
+        ]
+      }
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "fighter": [
+          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
+        ]
+      }
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Yarl": [
+          "28f2ec11-d342-4523-8016-a0b85ec6c89c"
+        ]
+      }
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -1164,6 +1075,18 @@
       "key_path": "slot_number",
       "unique": true,
       "index_data": {
+        "5": [
+          "e4ce02d3-18f4-403f-a0f6-dcb549bf0492"
+        ],
+        "1": [
+          "4db7615f-df95-4523-b6b7-57ef5247d1db"
+        ],
+        "2": [
+          "a98d3bfe-e6d0-491f-bb60-b25f2960c772"
+        ],
+        "3": [
+          "236aca00-8007-4f8b-952e-c75d16b21415"
+        ],
         "4": [
           "03978361-13f2-40bb-afce-d1cf5a125d3d"
         ]

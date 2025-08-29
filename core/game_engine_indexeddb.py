@@ -730,10 +730,24 @@ class GameEngineIndexedDB:
         # Calculate AC with equipped armor
         character.armor_class = self._calculate_armor_class(character)
         
-        # Calculate HP (class hit die + con modifier)
+        # Calculate HP using D&D 2024 rules
         if class_data:
             char_class = Class.from_dict(class_data)
-            character.hit_points_max = char_class.hit_die + character.constitution_modifier
+            # Level 1: Max hit die + Con modifier
+            # Level 2+: Previous HP + (average of hit die + 1) + Con modifier
+            # For d10: Level 1 = 10 + Con, Level 2+ = previous + 6 + Con
+            if character.level == 1:
+                # Level 1: Full hit die value + Con modifier
+                character.hit_points_max = char_class.hit_die + character.constitution_modifier
+            else:
+                # Level 2+: Level 1 HP + ((level-1) * (average + Con modifier))
+                # For d10: average is (10+1)/2 = 5.5, rounded up to 6
+                hit_die_average = (char_class.hit_die + 1) // 2 + 1  # Average rounded up
+                level_1_hp = char_class.hit_die + character.constitution_modifier
+                additional_levels = character.level - 1
+                additional_hp = additional_levels * (hit_die_average + character.constitution_modifier)
+                character.hit_points_max = level_1_hp + additional_hp
+            
             character.hit_points_current = character.hit_points_max
             character.max_hit_points = character.hit_points_max  # Alternative field
             character.current_hit_points = character.hit_points_max

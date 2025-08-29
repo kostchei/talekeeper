@@ -263,9 +263,10 @@ class MainWindow(QMainWindow):
             {'name': 'Rations', 'type': 'Food', 'quantity': 5, 'weight_lb': 2}
         ]
         
-        # Use demo character's strength (15) for carrying capacity
+        # Use demo character's stats for calculations
         demo_strength = demo_character['strength']
-        self.equipment_panel.load_equipment_data(test_equipment, test_inventory, demo_strength)
+        demo_dexterity = demo_character['dexterity']
+        self.equipment_panel.load_equipment_data(test_equipment, test_inventory, demo_strength, demo_dexterity)
         
         # Set encounter scene
         self.encounter_pane.update_scene_description(
@@ -324,7 +325,7 @@ class MainWindow(QMainWindow):
             if saved_character.equipment_shield and 'off_hand' not in equipped_items:
                 item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_shield)
                 equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_shield, 'weight_lb': 0}
-            self.equipment_panel.load_equipment_data(equipped_items, [], saved_character.strength)
+            self.equipment_panel.load_equipment_data(equipped_items, [], saved_character.strength, saved_character.dexterity)
             
             # Load character data into action panel for weapon cards
             character_stats = {
@@ -460,7 +461,7 @@ class MainWindow(QMainWindow):
             item_data = self.game_engine.get_equipment_item_sync(character.equipment_shield)
             equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
         inventory_items = self.game_engine.get_character_inventory_sync(character.id)
-        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character.strength)
+        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character.strength, character.dexterity)
         
         # Load character data into action panel for weapon cards
         character_stats = {
@@ -636,6 +637,8 @@ class MainWindow(QMainWindow):
         con_mod = (final_scores.get('constitution', 10) - 10) // 2
         dex_mod = (final_scores.get('dexterity', 10) - 10) // 2
         hit_die = class_data.get('hit_die', 8)
+        
+        # D&D 2024 HP rules: Level 1 gets max hit die + Con modifier
         max_hp = hit_die + con_mod
         
         return {
@@ -710,8 +713,8 @@ class MainWindow(QMainWindow):
             classes = self.game_engine.get_available_classes_sync()
             for cls in classes:
                 if cls.name == name:
-                    return cls.id
-            return classes[0].id if classes else 'fighter'  # Fallback to first class or default
+                    return cls.id.lower().replace(' ', '_')  # Convert to database key format
+            return classes[0].id.lower().replace(' ', '_') if classes else 'fighter'  # Fallback to first class or default
         except:
             return 'fighter'  # Safe fallback
     

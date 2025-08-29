@@ -64,6 +64,7 @@ class EquipmentPanel(QWidget):
         self.equipped_items = {}  # slot -> item mapping
         self.inventory_items = []  # list of inventory items
         self.character_strength = 10  # Default strength for carrying capacity
+        self.character_dexterity = 10  # Default dexterity for AC calculation
         
         # Set initial size (extends to bottom of window)
         self.setFixedSize(432, 486)
@@ -580,18 +581,88 @@ class EquipmentPanel(QWidget):
     
     def _update_stats_display(self):
         """Update the stats display based on equipped items."""
-        # Calculate AC, attack bonuses, etc. from equipped items
-        base_ac = 10
-        attack_bonus = 0
+        # Calculate AC using D&D 2024 rules
+        ac = self._calculate_armor_class()
         
-        for slot, item in self.equipped_items.items():
-            if item.get('armor_class'):
-                base_ac = max(base_ac, item['armor_class'])
-            if item.get('attack_bonus'):
-                attack_bonus += item['attack_bonus']
+        # Calculate attack bonus from main hand weapon
+        attack_bonus = self._calculate_main_hand_attack_bonus()
         
-        self.ac_label.setText(str(base_ac))
+        self.ac_label.setText(str(ac))
         self.attack_label.setText(f"+{attack_bonus}" if attack_bonus >= 0 else str(attack_bonus))
+    
+    def _calculate_armor_class(self):
+        """Calculate total AC from equipped armor, shield, and dexterity."""
+        base_ac = 10
+        dex_mod = (self.character_dexterity - 10) // 2
+        
+        # Find equipped armor
+        armor = None
+        for slot, item in self.equipped_items.items():
+            if slot == EquipmentSlot.ARMOR and item.get('armor_properties'):
+                armor = item
+                break
+        
+        if armor:
+            armor_props = armor.get('armor_properties', {})
+            base_ac = armor_props.get('armor_class', 10)
+            armor_type = armor_props.get('armor_type', 'light')
+            dex_max = armor_props.get('dex_bonus_max')
+            
+            # Apply Dex modifier based on armor type
+            if armor_type == 'light':
+                # Light armor: full Dex modifier
+                ac = base_ac + dex_mod
+            elif armor_type == 'medium':
+                # Medium armor: Dex modifier capped at +2 (or dex_bonus_max)
+                max_dex = dex_max if dex_max is not None else 2
+                ac = base_ac + min(dex_mod, max_dex)
+            else:  # heavy armor
+                # Heavy armor: no Dex modifier (unless dex_bonus_max specified)
+                if dex_max is not None:
+                    ac = base_ac + min(dex_mod, dex_max)
+                else:
+                    ac = base_ac
+        else:
+            # No armor: 10 + Dex modifier
+            ac = base_ac + dex_mod
+        
+        # Add shield AC if equipped
+        shield = None
+        for slot, item in self.equipped_items.items():
+            if slot == EquipmentSlot.OFF_HAND and item.get('item_type') == 'shield':
+                shield = item
+                break
+        
+        if shield:
+            shield_ac = shield.get('armor_class', 0)
+            ac += shield_ac
+        
+        return max(ac, 1)  # AC can't be less than 1
+    
+    def _calculate_main_hand_attack_bonus(self):
+        """Calculate attack bonus for main hand weapon."""
+        main_hand = self.equipped_items.get(EquipmentSlot.MAIN_HAND)
+        if not main_hand:
+            return 0
+        
+        # Base proficiency bonus (assume level 1 = +2 for now)
+        prof_bonus = 2
+        
+        # Get ability modifier
+        weapon_props = main_hand.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            # Finesse: use higher of Str or Dex
+            str_mod = (self.character_strength - 10) // 2
+            dex_mod = (self.character_dexterity - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        else:
+            # Most melee weapons use Str
+            ability_mod = (self.character_strength - 10) // 2
+        
+        # Magic weapon bonus
+        magic_bonus = main_hand.get('attack_bonus', 0)
+        
+        return prof_bonus + ability_mod + magic_bonus
     
     def add_item_to_inventory(self, item: Dict[str, Any]):
         """Add an item to the inventory."""
@@ -606,10 +677,11 @@ class EquipmentPanel(QWidget):
             self._update_inventory_display()
             self.inventory_changed.emit()
     
-    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]], character_strength: int = 10):
+    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]], character_strength: int = 10, character_dexterity: int = 10):
         """Load equipment and inventory data."""
-        # Store character's strength for carrying capacity calculations
+        # Store character's stats for calculations
         self.character_strength = character_strength
+        self.character_dexterity = character_dexterity
         
         # Load equipped items
         self.equipped_items.clear()
