@@ -17,3 +17,6 @@ pyglet>=2.1.0
 
 # Build tool for creating executable
 pyinstaller>=5.13.0
+
+# Image processing
+Pillow>=10.0.0
