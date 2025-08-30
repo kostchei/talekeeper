@@ -209,7 +209,7 @@ class EncounterPanel(QWidget):
         
         creation_nav_layout.addStretch()
         
-        self.creation_step_label = QLabel("Step 1 of 5")
+        self.creation_step_label = QLabel("Step 1 of 6")
         creation_nav_layout.addWidget(self.creation_step_label)
         
         creation_nav_layout.addStretch()
@@ -735,19 +735,23 @@ class EncounterPanel(QWidget):
         self.class_step = self._create_class_selection_step()
         self.creation_stack.addWidget(self.class_step)
         
-        # Step 2: Background & Species
+        # Step 2: Class Features (Fighter-specific features)
+        self.class_features_step = self._create_class_features_step()
+        self.creation_stack.addWidget(self.class_features_step)
+        
+        # Step 3: Background & Species
         self.bg_species_step = self._create_background_species_step()
         self.creation_stack.addWidget(self.bg_species_step)
         
-        # Step 3: Ability Scores
+        # Step 4: Ability Scores
         self.abilities_step = self._create_abilities_step()
         self.creation_stack.addWidget(self.abilities_step)
         
-        # Step 4: Equipment
+        # Step 5: Equipment
         self.equipment_step = self._create_equipment_step()
         self.creation_stack.addWidget(self.equipment_step)
         
-        # Step 5: Final Review
+        # Step 6: Final Review
         self.review_step = self._create_review_step()
         self.creation_stack.addWidget(self.review_step)
     
@@ -779,6 +783,31 @@ class EncounterPanel(QWidget):
         
         # Connect selection change
         self.class_list.currentItemChanged.connect(self._on_class_selected)
+        
+        return widget
+    
+    def _create_class_features_step(self) -> QWidget:
+        """Create the class features selection step."""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # Title
+        title = QLabel("Class Features")
+        title.setObjectName("creationStepTitle")
+        layout.addWidget(title)
+        
+        # Info text
+        info_label = QLabel("Configure your class-specific features.")
+        info_label.setObjectName("stepDescription")
+        layout.addWidget(info_label)
+        
+        # Class features container (will be populated based on selected class)
+        self.class_features_container = QWidget()
+        self.class_features_layout = QVBoxLayout(self.class_features_container)
+        layout.addWidget(self.class_features_container)
+        
+        # Spacer
+        layout.addStretch()
         
         return widget
     
@@ -1055,6 +1084,138 @@ class EncounterPanel(QWidget):
             
             self.equipment_choices_layout.addWidget(choice_group)
     
+    def _populate_class_features(self):
+        """Populate class-specific features based on selected class."""
+        # Clear existing class features
+        for i in reversed(range(self.class_features_layout.count())):
+            child = self.class_features_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        # Check if class is selected
+        selected_class_data = self.character_creation_data.get('class')
+        if not selected_class_data:
+            info_label = QLabel("Please select a class first.")
+            info_label.setStyleSheet("color: #ff6b6b;")
+            self.class_features_layout.addWidget(info_label)
+            return
+        
+        # Get class name
+        selected_class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
+        
+        # Handle Fighter-specific features
+        if selected_class_name == "Fighter":
+            self._setup_fighter_features()
+        else:
+            # For non-Fighter classes, show placeholder text
+            info_label = QLabel(f"{selected_class_name} class features will be implemented soon.")
+            info_label.setStyleSheet("color: #888;")
+            self.class_features_layout.addWidget(info_label)
+    
+    def _setup_fighter_features(self):
+        """Setup Fighter Level 1 class features."""
+        # Fighting Style selection
+        fighting_style_group = QGroupBox("Fighting Style (Level 1)")
+        fs_layout = QVBoxLayout(fighting_style_group)
+        
+        fs_description = QLabel("Choose a Fighting Style feat. This represents your martial training specialty.")
+        fs_description.setWordWrap(True)
+        fs_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        fs_layout.addWidget(fs_description)
+        
+        self.fighting_style_combo = QComboBox()
+        self.fighting_style_combo.addItem("Select a Fighting Style...", None)
+        
+        # Load Fighting Style feats from feats_srd.json  
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            feats_file = os.path.join(project_root, "data", "feats_srd.json")
+            
+            with open(feats_file, 'r') as f:
+                feats_data = json.load(f)
+            
+            feats = feats_data.get('feat', [])
+            
+            # Filter for Fighting Style feats (those that require "Fighting Style" feature)
+            fighting_style_feats = []
+            for feat in feats:
+                prereqs = feat.get('prerequisite', [])
+                for prereq in prereqs:
+                    if isinstance(prereq, dict) and 'feature' in prereq:
+                        if 'Fighting Style' in prereq['feature']:
+                            fighting_style_feats.append(feat)
+                            break
+            
+            # Add Fighting Style feats to combo box
+            for feat in fighting_style_feats:
+                feat_name = feat.get('name', 'Unknown Feat')
+                self.fighting_style_combo.addItem(feat_name, feat)
+                
+        except Exception as e:
+            print(f"Error loading Fighting Style feats: {e}")
+            # Add fallback options
+            fallback_styles = ["Archery", "Defense", "Dueling", "Great Weapon Fighting", "Protection", "Two-Weapon Fighting"]
+            for style in fallback_styles:
+                self.fighting_style_combo.addItem(style, {"name": style})
+        
+        fs_layout.addWidget(self.fighting_style_combo)
+        
+        # Fighting Style description
+        self.fighting_style_description = QTextEdit()
+        self.fighting_style_description.setMaximumHeight(100)
+        self.fighting_style_description.setReadOnly(True)
+        self.fighting_style_description.setHtml("<i>Select a Fighting Style to see its description.</i>")
+        fs_layout.addWidget(self.fighting_style_description)
+        
+        # Connect selection handler
+        self.fighting_style_combo.currentIndexChanged.connect(self._on_fighting_style_selected)
+        
+        self.class_features_layout.addWidget(fighting_style_group)
+        
+        # Second Wind feature (informational only)
+        second_wind_group = QGroupBox("Second Wind (Level 1)")
+        sw_layout = QVBoxLayout(second_wind_group)
+        
+        sw_description = QLabel(
+            "You gain the ability to use Second Wind as a Bonus Action. "
+            "Regain 1d10 + Fighter level hit points. Usable twice per Short/Long Rest."
+        )
+        sw_description.setWordWrap(True)
+        sw_description.setStyleSheet("color: #333;")
+        sw_layout.addWidget(sw_description)
+        
+        self.class_features_layout.addWidget(second_wind_group)
+        
+        # Weapon Mastery feature (informational only) 
+        weapon_mastery_group = QGroupBox("Weapon Mastery (Level 1)")
+        wm_layout = QVBoxLayout(weapon_mastery_group)
+        
+        wm_description = QLabel(
+            "You can use the mastery properties of 3 Simple or Martial weapons of your choice. "
+            "You can change these weapon choices when you finish a Long Rest."
+        )
+        wm_description.setWordWrap(True)
+        wm_description.setStyleSheet("color: #333;")
+        wm_layout.addWidget(wm_description)
+        
+        self.class_features_layout.addWidget(weapon_mastery_group)
+    
+    def _on_fighting_style_selected(self):
+        """Handle Fighting Style selection change."""
+        fighting_style_data = self.fighting_style_combo.currentData()
+        if fighting_style_data:
+            # Update description
+            entries = fighting_style_data.get('entries', [])
+            if entries:
+                description = f"<b>{fighting_style_data.get('name', 'Fighting Style')}</b><br><br>"
+                description += "<br>".join(entries)
+                self.fighting_style_description.setHtml(description)
+            else:
+                self.fighting_style_description.setHtml(f"<b>{fighting_style_data.get('name', 'Fighting Style')}</b><br><br>Description not available.")
+        else:
+            self.fighting_style_description.setHtml("<i>Select a Fighting Style to see its description.</i>")
+    
     def _create_review_step(self) -> QWidget:
         """Create final review and confirmation step."""
         widget = QWidget()
@@ -1263,6 +1424,9 @@ class EncounterPanel(QWidget):
             # Update equipment choices
             self._populate_equipment_choices()
             
+            # Update class features
+            self._populate_class_features()
+            
             self.class_description.setPlainText(description)
             
             # Automatically apply class defaults when class is selected
@@ -1401,7 +1565,7 @@ class EncounterPanel(QWidget):
     
     def _creation_next_step(self):
         """Move to next character creation step."""
-        if self.creation_step < 4:  # 5 steps total (0-4)
+        if self.creation_step < 5:  # 6 steps total (0-5)
             self.creation_step += 1
             self._update_creation_step()
     
@@ -1414,13 +1578,13 @@ class EncounterPanel(QWidget):
     def _update_creation_step(self):
         """Update the current creation step display and navigation."""
         self.creation_stack.setCurrentIndex(self.creation_step)
-        self.creation_step_label.setText(f"Step {self.creation_step + 1} of 5")
+        self.creation_step_label.setText(f"Step {self.creation_step + 1} of 6")
         
         # Update button states
         self.creation_back_btn.setEnabled(self.creation_step > 0)
         
         # Check if current step is valid for next button
-        if self.creation_step == 4:  # Final step
+        if self.creation_step == 5:  # Final step
             self.creation_next_btn.setText("Complete")
         else:
             self.creation_next_btn.setText("Next")
@@ -1451,6 +1615,45 @@ class EncounterPanel(QWidget):
             if species_feat_data:
                 selected_feats.append(species_feat_data.get('name', ''))
         
+        # Class-specific feats (Fighter Fighting Style)
+        class_data = self.character_creation_data.get('class')
+        if class_data and class_data.get('name') == 'Fighter':
+            if hasattr(self, 'fighting_style_combo'):
+                fighting_style_data = self.fighting_style_combo.currentData()
+                if fighting_style_data:
+                    selected_feats.append(fighting_style_data.get('name', ''))
+        
+        # Collect class features
+        class_features = {}
+        if class_data and class_data.get('name') == 'Fighter':
+            class_features['Second Wind'] = {
+                'type': 'bonus_action',
+                'usage': 'short_rest',
+                'recharge': 2,  # 2 uses per short rest
+                'description': 'Regain 1d10 + Fighter level hit points',
+                'level_acquired': 1
+            }
+            class_features['Weapon Mastery'] = {
+                'type': 'passive',
+                'usage': 'permanent',
+                'count': 3,  # 3 weapon masteries
+                'description': 'Use mastery properties of 3 Simple or Martial weapons',
+                'level_acquired': 1
+            }
+            
+            # Add Fighting Style as a feature if selected
+            if hasattr(self, 'fighting_style_combo'):
+                fighting_style_data = self.fighting_style_combo.currentData()
+                if fighting_style_data:
+                    fighting_style_name = fighting_style_data.get('name', '')
+                    class_features['Fighting Style'] = {
+                        'type': 'passive',
+                        'usage': 'permanent',
+                        'style': fighting_style_name,
+                        'description': f'Selected Fighting Style: {fighting_style_name}',
+                        'level_acquired': 1
+                    }
+        
         # Compile final character data
         final_character = {
             'name': self.character_name_input.currentText(),
@@ -1461,6 +1664,7 @@ class EncounterPanel(QWidget):
             'point_buy_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
             'rolled_scores': rolled_scores,
             'selected_feats': selected_feats,
+            'class_features': class_features,
             'level': 1,
             'experience_points': 0,
             'equipment_choices': {}

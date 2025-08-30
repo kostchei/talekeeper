@@ -1020,8 +1020,8 @@ class CharacterPanel(QWidget):
         self.init_widget.value_label.setText(init_text)
         
         # Hit Points
-        current_hp = character_data.get('current_hit_points', 0)
-        max_hp = character_data.get('hit_points', 0)
+        current_hp = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+        max_hp = character_data.get('max_hit_points', character_data.get('hit_points_max', character_data.get('hit_points', 0)))
         self.hp_widget.value_label.setText(f"{current_hp}/{max_hp}")
         
         # Speed
@@ -1092,15 +1092,27 @@ class CharacterPanel(QWidget):
         race_name = self.character_data.get('race_name', 'Unknown')
         class_name = self.character_data.get('class_name', 'Unknown') 
         level = self.character_data.get('level', 1)
+        character_features = self.character_data.get('features', {})
         
-        features_text = f"=== Racial Traits ({race_name}) ===\n"
+        features_text = f"=== Class Features ({class_name}) ===\n"
+        
+        # Display actual class features
+        if character_features:
+            for feature_name, feature_data in character_features.items():
+                features_text += f"• {feature_name} (Level {feature_data.get('level_gained', 1)})\n"
+                if feature_data.get('type') in ['bonus_action', 'action', 'reaction']:
+                    features_text += f"  {feature_data['type'].replace('_', ' ').title()}"
+                    if feature_data.get('usage') != 'permanent':
+                        features_text += f" • {feature_data.get('usage', 'unknown').replace('_', ' ').title()} Recharge"
+                    features_text += "\n"
+                features_text += f"  {feature_data.get('description', 'No description available.')}\n\n"
+        else:
+            features_text += f"• Level {level} class abilities and features\n"
+            features_text += "• Features will appear here as character gains levels\n\n"
+        
+        features_text += f"=== Racial Traits ({race_name}) ===\n"
         features_text += "• Racial abilities and traits based on character race\n"
         features_text += "• Special resistances or bonuses\n\n"
-        
-        features_text += f"=== Class Features ({class_name}) ===\n"
-        features_text += f"• Level {level} class abilities and features\n"
-        features_text += "• Subclass specialization\n"
-        features_text += "• Fighting style or specialization\n\n"
         
         features_text += "=== Background Features ===\n"
         if self.character_data.get('background_name'):
@@ -1153,8 +1165,12 @@ class CharacterPanel(QWidget):
         self.hp_widget.value_label.setText(f"{current_hp}/{max_hp}")
         
         if self.character_data:
+            # Update all HP field variants for compatibility
             self.character_data['current_hit_points'] = current_hp
-            self.character_data['hit_points'] = max_hp
+            self.character_data['hit_points_current'] = current_hp
+            self.character_data['max_hit_points'] = max_hp
+            self.character_data['hit_points_max'] = max_hp
+            self.character_data['hit_points'] = max_hp  # Legacy field
             self._update_details_text()
     
     def is_expanded(self) -> bool:

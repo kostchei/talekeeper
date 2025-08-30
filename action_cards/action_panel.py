@@ -39,6 +39,11 @@ class ActionType(Enum):
     INVESTIGATE = "investigate"
     INTERACT = "interact"
     OPPORTUNITY = "opportunity"
+    
+    # Class Feature Actions
+    SECOND_WIND = "second_wind"
+    ACTION_SURGE = "action_surge"
+    FIGHTING_STYLE = "fighting_style"
 
 
 class ActionCategory(Enum):
@@ -220,6 +225,127 @@ class ActionPanel(QWidget):
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ATTACK_OFF_HAND] = card
     
+    def _create_feature_cards(self):
+        """Create action cards for character features like Second Wind."""
+        if not hasattr(self, 'character_features') or not self.character_features:
+            return
+        
+        # Remove existing feature cards
+        feature_action_types = [ActionType.SECOND_WIND, 1001, 1002, 1003, 1004, 1005, 1006]
+        for action_id in feature_action_types:
+            if action_id in self.action_cards:
+                self.action_cards[action_id].deleteLater()
+                del self.action_cards[action_id]
+        
+        # Create Second Wind card if character has it
+        if 'Second Wind' in self.character_features:
+            feature = self.character_features['Second Wind']
+            level = self.character_context.get('level', 1)
+            healing = f"1d10+{level}"
+            description = f"Regain {healing} hit points (Short Rest recharge)"
+            
+            card = ActionCard(ActionType.SECOND_WIND, "❤️", "Second Wind", description)
+            card.feature_data = feature
+            card.action_triggered.connect(self._trigger_feature_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.SECOND_WIND] = card
+        
+        # Create Fighting Style selection cards if character has that feature
+        if 'Fighting Style' in self.character_features:
+            fighting_styles = [
+                ("Archery", "+2 attack with ranged weapons"),
+                ("Defense", "+1 AC while wearing armor"),  
+                ("Dueling", "+2 damage with one-handed weapons"),
+                ("Great Weapon Fighting", "Reroll 1s and 2s on damage"),
+                ("Protection", "Use reaction to impose disadvantage"),
+                ("Two-Weapon Fighting", "Add ability mod to off-hand damage")
+            ]
+            
+            for i, (style_name, style_desc) in enumerate(fighting_styles):
+                card = ActionCard(1001 + i, "⚔️", style_name, style_desc)
+                card.feature_data = {'type': 'fighting_style', 'name': style_name}
+                card.action_triggered.connect(self._trigger_feature_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[1001 + i] = card
+        
+        # Create Weapon Mastery selection cards if character has that feature
+        if 'Weapon Mastery' in self.character_features:
+            weapon_masteries = [
+                ("Cleave", "Attack second creature within 5 feet"),
+                ("Graze", "Deal ability mod damage on miss"),
+                ("Nick", "Make additional attack with same weapon"),
+                ("Push", "Push target up to 10 feet away"),
+                ("Sap", "Target has disadvantage on next attack"),
+                ("Slow", "Reduce target's speed by 10 feet"),
+                ("Topple", "Force Constitution save or prone"),
+                ("Vex", "Gain advantage on next attack vs target")
+            ]
+            
+            # Only show first 3 masteries (fighter gets 3 at level 1)
+            for i, (mastery_name, mastery_desc) in enumerate(weapon_masteries[:3]):
+                card = ActionCard(2000 + i, "🗡️", mastery_name, mastery_desc)
+                card.feature_data = {'type': 'weapon_mastery', 'name': mastery_name}
+                card.action_triggered.connect(self._trigger_feature_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[2000 + i] = card
+    
+    def _trigger_feature_action(self, action_type):
+        """Handle feature-based action triggers."""
+        if action_type == ActionType.SECOND_WIND or action_type == 1000:  # Handle both enum and legacy ID
+            level = self.character_context.get('level', 1)
+            healing_roll = f"1d10+{level}"
+            
+            # Find parent with log_panel for logging
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"🩹 Used Second Wind: Rolling {healing_roll} for healing")
+                    break
+                parent = parent.parent()
+            
+            # Import dice service for rolling
+            from services.dice import DiceRoller
+            dice_roller = DiceRoller()
+            healing = dice_roller.roll(healing_roll)
+            
+            # Apply healing to character
+            self._apply_healing_to_player(healing)
+            
+            # Log the healing result
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"❤️ Second Wind heals for {healing} hit points")
+                    break
+                parent = parent.parent()
+            
+            # Set cooldown (would be until short rest in real game)
+            self.action_cooldowns[action_type] = 10
+        
+        elif action_type >= 1001 and action_type <= 1006:  # Fighting Style selection
+            card = self.action_cards.get(action_type)
+            if card and hasattr(card, 'feature_data'):
+                style_name = card.feature_data.get('name')
+                # Find parent with log_panel for logging
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_info(f"⚔️ Selected Fighting Style: {style_name}")
+                        break
+                    parent = parent.parent()
+        
+        elif action_type >= 2000 and action_type <= 2007:  # Weapon Mastery selection
+            card = self.action_cards.get(action_type)
+            if card and hasattr(card, 'feature_data'):
+                mastery_name = card.feature_data.get('name')
+                # Find parent with log_panel for logging
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_info(f"🗡️ Selected Weapon Mastery: {mastery_name}")
+                        break
+                    parent = parent.parent()
+    
     def _calculate_hit_bonus(self, weapon: Dict[str, Any], hand: str) -> int:
         """Calculate attack bonus for a weapon."""
         # Base proficiency bonus (assume level 1 = +2 for now)
@@ -387,12 +513,32 @@ class ActionPanel(QWidget):
                     card = self.action_cards[action_type]
                     self.cards_layout.addWidget(card)
                     card.show()
+            
+            # Add feature cards that are bonus actions (like Second Wind)
+            if ActionType.SECOND_WIND in self.action_cards:  # Second Wind
+                card = self.action_cards[ActionType.SECOND_WIND]
+                self.cards_layout.addWidget(card)
+                card.show()
                     
         elif self.current_category == ActionCategory.FREE:
             free_actions = [ActionType.INTERACT]
             for action_type in free_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+            
+            # Add fighting style selection cards
+            for action_id in range(1001, 1007):  # Fighting Style cards
+                if action_id in self.action_cards:
+                    card = self.action_cards[action_id]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+            
+            # Add weapon mastery selection cards  
+            for action_id in range(2000, 2008):  # Weapon Mastery cards
+                if action_id in self.action_cards:
+                    card = self.action_cards[action_id]
                     self.cards_layout.addWidget(card)
                     card.show()
                     
@@ -1116,6 +1262,79 @@ class ActionPanel(QWidget):
             print(f"Error applying damage to player: {e}")
             return 0
     
+    def _apply_healing_to_player(self, healing: int):
+        """Apply healing to the player character."""
+        try:
+            # Get character data from main window
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_sheet'):
+                    if parent.character_sheet.character_data:
+                        character_data = parent.character_sheet.character_data
+                    else:
+                        parent = parent.parent()
+                        continue
+                    
+                    # Get current and max HP from database fields
+                    current_hp = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+                    max_hp = character_data.get('max_hit_points', character_data.get('hit_points_max', 0))
+                    
+                    # If HP fields are missing, try to extract from character sheet display
+                    if max_hp == 0:
+                        hp_display = parent.character_sheet.hp_widget.value_label.text()
+                        
+                        # Try to parse "9/14" format
+                        if '/' in hp_display:
+                            try:
+                                current_str, max_str = hp_display.split('/')
+                                current_hp = int(current_str.strip())
+                                max_hp = int(max_str.strip())
+                                
+                                # Update character_data with the parsed values
+                                character_data['current_hit_points'] = current_hp
+                                character_data['max_hit_points'] = max_hp
+                                character_data['hit_points_current'] = current_hp
+                                character_data['hit_points_max'] = max_hp
+                                
+                            except (ValueError, AttributeError):
+                                return 0
+                        else:
+                            return 0
+                    
+                    # Apply healing but don't exceed max HP
+                    old_hp = current_hp
+                    new_hp = min(max_hp, current_hp + healing)
+                    
+                    # Update both field name variants for compatibility
+                    character_data['current_hit_points'] = new_hp
+                    character_data['hit_points_current'] = new_hp
+                    
+                    # Update character sheet display
+                    parent.character_sheet.load_character_data(character_data)
+                    
+                    # Log the HP change
+                    actual_healing = new_hp - old_hp
+                    parent_with_log = self.parent()
+                    while parent_with_log:
+                        if hasattr(parent_with_log, 'log_panel'):
+                            if actual_healing < healing:
+                                # Hit max HP
+                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+                            else:
+                                # Normal healing
+                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {healing})")
+                            break
+                        parent_with_log = parent_with_log.parent()
+                    
+                    return new_hp
+                parent = parent.parent()
+            
+            return 0
+                
+        except Exception as e:
+            print(f"Error applying healing to player: {e}")
+            return 0
+    
     def _log_monster_attack_result(self, hit: bool, monster_name: str, action_name: str, 
                                   attack_roll: int, player_ac: int, damage: int, attack_info: dict):
         """Log monster attack results."""
@@ -1257,6 +1476,16 @@ class ActionPanel(QWidget):
         # Refresh visible cards
         self._update_visible_cards()
     
+    def load_character_features(self, character_features: Dict[str, Any]):
+        """Load character features and create feature-based action cards."""
+        self.character_features = character_features or {}
+        
+        # Create feature-based action cards
+        self._create_feature_cards()
+        
+        # Refresh visible cards
+        self._update_visible_cards()
+    
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
         self.target_monster_id = monster_id
@@ -1271,10 +1500,15 @@ class ActionCard(QWidget):
     action_triggered = pyqtSignal(ActionType, dict)  # action_type, context
     action_hovered = pyqtSignal(ActionType, str)  # action_type, description
     
-    def __init__(self, action_type: ActionType, icon: str, name: str, description: str,
+    def __init__(self, action_type, icon: str, name: str, description: str,
                  parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self.action_type = action_type
+        # Handle both ActionType enums and integers for backwards compatibility
+        if isinstance(action_type, ActionType):
+            self.action_type = action_type
+        else:
+            # For integer IDs, store as is for now (legacy feature cards)
+            self.action_type = action_type
         self.icon = icon
         self.name = name
         self.description = description
@@ -1440,7 +1674,17 @@ class ActionCard(QWidget):
                 "name": self.name,
                 "description": self.description
             }
-            self.action_triggered.emit(self.action_type, context)
+            # Handle both ActionType enums and legacy integer IDs
+            if isinstance(self.action_type, ActionType):
+                self.action_triggered.emit(self.action_type, context)
+            else:
+                # For legacy integer IDs, we need a different approach
+                # Find parent ActionPanel and call feature trigger directly
+                parent = self.parent()
+                while parent and not hasattr(parent, '_trigger_feature_action'):
+                    parent = parent.parent()
+                if parent and hasattr(parent, '_trigger_feature_action'):
+                    parent._trigger_feature_action(self.action_type)
     
     def set_available(self, available: bool):
         """Set whether the action is available."""
@@ -1471,5 +1715,7 @@ class ActionCard(QWidget):
     
     def enterEvent(self, event):
         """Handle mouse enter for hover effect."""
-        self.action_hovered.emit(self.action_type, self.description)
+        # Only emit for ActionType enums, skip for legacy integer IDs
+        if isinstance(self.action_type, ActionType):
+            self.action_hovered.emit(self.action_type, self.description)
         super().enterEvent(event)

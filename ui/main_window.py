@@ -426,6 +426,10 @@ class MainWindow(QMainWindow):
             }
             self.action_panel.load_character_equipment(equipped_items, character_stats)
 
+            # Load class features into action panel
+            class_features = character_data.get('class_features', {})
+            self.action_panel.load_character_features(class_features)
+
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
             self.menu.set_character_loaded(True)
@@ -562,6 +566,10 @@ class MainWindow(QMainWindow):
             'level': character.level
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)
+
+        # Load class features into action panel
+        class_features = character.features or {}
+        self.action_panel.load_character_features(class_features)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     
@@ -761,8 +769,9 @@ class MainWindow(QMainWindow):
         class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
         background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
 
-        # Get selected feats
+        # Get selected feats and class features
         selected_feats = character_data.get('selected_feats', [])
+        class_features = character_data.get('class_features', {})
         
         save_data = {
             'name': character_data.get('name', 'Adventurer'),
@@ -776,9 +785,37 @@ class MainWindow(QMainWindow):
             'wisdom': ability_scores.get('wisdom', 10),
             'charisma': ability_scores.get('charisma', 10),
             'feats': selected_feats,  # Store selected feats
+            'features': class_features,  # Store class features
             'level': 1,  # Ensure level is set for feat calculations
             'notes': f"Created via character creator. Final scores include racial bonuses.",
         }
+        
+        # Calculate hit points based on class, level, and Constitution
+        constitution = ability_scores.get('constitution', 10)
+        con_modifier = (constitution - 10) // 2
+        class_name = class_data.get('name', 'Fighter')
+        
+        # Get hit die for class (default to d10 for Fighter)
+        hit_die_map = {
+            'Fighter': 10, 'Paladin': 10, 'Ranger': 10, 'Barbarian': 12,
+            'Rogue': 8, 'Monk': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Warlock': 8,
+            'Artificer': 8, 'Sorcerer': 6, 'Wizard': 6
+        }
+        hit_die = hit_die_map.get(class_name, 10)
+        
+        # Calculate max HP: full hit die at level 1 + Con modifier
+        max_hp = hit_die + con_modifier
+        current_hp = max_hp  # Start at full health
+        
+        # Add HP fields to save data
+        save_data.update({
+            'hit_points_max': max_hp,
+            'hit_points_current': current_hp,
+            'max_hit_points': max_hp,  # Alternative field name for combat system
+            'current_hit_points': current_hp,  # Alternative field name for combat system
+            'hit_dice_max': 1,  # Level 1 = 1 hit die
+            'hit_dice_current': 1
+        })
         
         # Apply feat effects to character stats
         if selected_feats:
@@ -858,5 +895,6 @@ class MainWindow(QMainWindow):
             'wisdom': character_dto.wisdom,
             'charisma': character_dto.charisma,
             'experience_points': character_dto.experience_points,
+            'features': character_dto.features,
             'speed': 30  # Default speed for now
         }

@@ -752,6 +752,9 @@ class GameEngineIndexedDB:
             # Apply feat effects to character stats
             character = self._apply_character_feat_effects(character)
             
+            # Apply class features
+            character = await self._apply_class_features(character, char_class)
+            
             character.hit_points_current = character.hit_points_max
             character.max_hit_points = character.hit_points_max  # Alternative field
             character.current_hit_points = character.hit_points_max
@@ -799,6 +802,47 @@ class GameEngineIndexedDB:
         except Exception as e:
             print(f"Error applying feat effects: {e}")
             return character  # Return unmodified character on error
+    
+    async def _apply_class_features(self, character, char_class):
+        """Apply class features to character based on class and level."""
+        try:
+            # Load class features data
+            import json
+            import os
+            
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            features_file = os.path.join(project_root, "data", "class_features.json")
+            
+            with open(features_file, 'r', encoding='utf-8') as f:
+                features_data = json.load(f)
+            
+            # Get available features for this class/level
+            available_features = []
+            for feature in features_data['features']:
+                if (feature['class'] == char_class.name and 
+                    feature['level'] <= character.level):
+                    available_features.append(feature)
+            
+            # Initialize features dict if not exists
+            if not character.features:
+                character.features = {}
+            
+            # Add features to character
+            for feature in available_features:
+                character.features[feature['name']] = {
+                    'description': feature['description'],
+                    'type': feature['type'],
+                    'usage': feature['usage'],
+                    'mechanics': feature.get('mechanics', {}),
+                    'level_gained': feature['level']
+                }
+            
+            return character
+            
+        except Exception as e:
+            print(f"Error applying class features: {e}")
+            return character
     
     def roll_dice(self, notation: str, advantage: bool = False, disadvantage: bool = False) -> int:
         """Roll dice using the game's dice roller."""
