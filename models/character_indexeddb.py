@@ -73,6 +73,7 @@ class Character:
     proficiencies: List[str] = field(default_factory=list)  # Skills, tools, languages
     features: Dict[str, Any] = field(default_factory=dict)  # Class and racial features
     feats: List[str] = field(default_factory=list)  # Character feats by name
+    weapon_masteries: List[str] = field(default_factory=list)  # Weapon mastery selections
     
     # Equipment slots
     equipment_main_hand: Optional[str] = None

@@ -85,7 +85,7 @@ class EncounterPanel(QWidget):
         self.content_tabs.addTab(self.main_content_tab, "Scene")
         
         main_content_layout = QVBoxLayout(self.main_content_tab)
-        main_content_layout.setContentsMargins(5, 5, 5, 5)
+        main_content_layout.setContentsMargins(1, 1, 1, 1)
         
         # Scene description area
         self.scene_text = QTextEdit()
@@ -118,7 +118,7 @@ class EncounterPanel(QWidget):
         self.content_tabs.addTab(self.encounters_tab, "Encounters")
         
         encounters_layout = QVBoxLayout(self.encounters_tab)
-        encounters_layout.setContentsMargins(5, 5, 5, 5)
+        encounters_layout.setContentsMargins(1, 1, 1, 1)
         
         # Active encounters list
         self.encounters_label = QLabel("Active Encounters")
@@ -135,7 +135,7 @@ class EncounterPanel(QWidget):
         self.monsters_frame.setObjectName("monstersFrame")
         from PyQt6.QtWidgets import QGridLayout
         self.monsters_layout = QGridLayout(self.monsters_frame)
-        self.monsters_layout.setContentsMargins(5, 5, 5, 5)
+        self.monsters_layout.setContentsMargins(1, 1, 1, 1)
         self.monsters_layout.setSpacing(5)
         self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         encounters_layout.addWidget(self.monsters_frame)
@@ -160,7 +160,7 @@ class EncounterPanel(QWidget):
         self.content_tabs.addTab(self.environment_tab, "Environment")
         
         env_layout = QVBoxLayout(self.environment_tab)
-        env_layout.setContentsMargins(5, 5, 5, 5)
+        env_layout.setContentsMargins(1, 1, 1, 1)
         
         # Environment details
         self.environment_text = QTextEdit()
@@ -193,7 +193,7 @@ class EncounterPanel(QWidget):
         self.content_tabs.setTabVisible(3, False)  # Hidden initially
         
         creation_layout = QVBoxLayout(self.character_creation_tab)
-        creation_layout.setContentsMargins(5, 5, 5, 5)
+        creation_layout.setContentsMargins(1, 1, 1, 1)
         
         # Character creation stacked widget for different steps
         self.creation_stack = QStackedWidget()
@@ -1173,31 +1173,65 @@ class EncounterPanel(QWidget):
         
         self.class_features_layout.addWidget(fighting_style_group)
         
-        # Second Wind feature (informational only)
-        second_wind_group = QGroupBox("Second Wind (Level 1)")
-        sw_layout = QVBoxLayout(second_wind_group)
         
-        sw_description = QLabel(
-            "You gain the ability to use Second Wind as a Bonus Action. "
-            "Regain 1d10 + Fighter level hit points. Usable twice per Short/Long Rest."
-        )
-        sw_description.setWordWrap(True)
-        sw_description.setStyleSheet("color: #333;")
-        sw_layout.addWidget(sw_description)
-        
-        self.class_features_layout.addWidget(second_wind_group)
-        
-        # Weapon Mastery feature (informational only) 
-        weapon_mastery_group = QGroupBox("Weapon Mastery (Level 1)")
+        # Weapon Mastery selection
+        weapon_mastery_group = QGroupBox("Weapon Mastery")
         wm_layout = QVBoxLayout(weapon_mastery_group)
+        wm_layout.setContentsMargins(1, 1, 1, 1)
+        wm_layout.setSpacing(3)
         
-        wm_description = QLabel(
-            "You can use the mastery properties of 3 Simple or Martial weapons of your choice. "
-            "You can change these weapon choices when you finish a Long Rest."
-        )
+        wm_description = QLabel("Choose 3:")
         wm_description.setWordWrap(True)
-        wm_description.setStyleSheet("color: #333;")
+        wm_description.setStyleSheet("color: #666; font-size: 11px; margin: 1px;")
         wm_layout.addWidget(wm_description)
+        
+        # Create checkboxes for weapon masteries
+        self.weapon_mastery_checkboxes = {}
+        mastery_weapons = [
+            ("Dagger", "Nick"), ("Handaxe", "Vex"), ("Javelin", "Slow"),
+            ("Light Hammer", "Nick"), ("Scimitar", "Nick"), ("Shortsword", "Vex"),
+            ("Battleaxe", "Topple"), ("Flail", "Sap"), ("Glaive", "Graze"),
+            ("Greataxe", "Cleave"), ("Greatsword", "Graze"), ("Halberd", "Cleave"),
+            ("Lance", "Topple"), ("Longsword", "Sap"), ("Maul", "Topple"),
+            ("Morningstar", "Sap"), ("Pike", "Push"), ("Rapier", "Vex"),
+            ("Scimitar", "Nick"), ("Shortsword", "Vex"), ("Trident", "Topple"),
+            ("War Pick", "Sap"), ("Warhammer", "Push"), ("Whip", "Slow")
+        ]
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_weapons = []
+        for weapon, mastery in mastery_weapons:
+            if weapon not in seen:
+                unique_weapons.append((weapon, mastery))
+                seen.add(weapon)
+        
+        # Create grid layout for checkboxes
+        checkbox_widget = QWidget()
+        checkbox_layout = QGridLayout(checkbox_widget)
+        checkbox_layout.setContentsMargins(1, 1, 1, 1)
+        checkbox_layout.setSpacing(2)
+        
+        for i, (weapon, mastery) in enumerate(unique_weapons):
+            checkbox = QCheckBox(f"{weapon} ({mastery})")
+            checkbox.weapon_name = weapon
+            checkbox.mastery = mastery
+            checkbox.toggled.connect(self._on_weapon_mastery_changed)
+            checkbox.setStyleSheet("font-size: 10px; margin: 1px;")
+            
+            # Add to layout (3 columns)
+            row = i // 3
+            col = i % 3
+            checkbox_layout.addWidget(checkbox, row, col)
+            
+            self.weapon_mastery_checkboxes[weapon] = checkbox
+        
+        wm_layout.addWidget(checkbox_widget)
+        
+        # Add selection counter
+        self.mastery_counter_label = QLabel("Selected: 0/3")
+        self.mastery_counter_label.setStyleSheet("color: #888; font-weight: bold; font-size: 10px; margin: 1px;")
+        wm_layout.addWidget(self.mastery_counter_label)
         
         self.class_features_layout.addWidget(weapon_mastery_group)
     
@@ -1215,6 +1249,35 @@ class EncounterPanel(QWidget):
                 self.fighting_style_description.setHtml(f"<b>{fighting_style_data.get('name', 'Fighting Style')}</b><br><br>Description not available.")
         else:
             self.fighting_style_description.setHtml("<i>Select a Fighting Style to see its description.</i>")
+    
+    def _on_weapon_mastery_changed(self):
+        """Handle weapon mastery checkbox selection changes."""
+        if not hasattr(self, 'weapon_mastery_checkboxes'):
+            return
+            
+        # Count selected masteries
+        selected_count = sum(1 for checkbox in self.weapon_mastery_checkboxes.values() if checkbox.isChecked())
+        
+        # Update counter label
+        self.mastery_counter_label.setText(f"Selected: {selected_count}/3")
+        
+        # Update label color based on selection
+        if selected_count > 3:
+            self.mastery_counter_label.setStyleSheet("color: #ff4444; font-weight: bold;")
+        elif selected_count == 3:
+            self.mastery_counter_label.setStyleSheet("color: #44aa44; font-weight: bold;")
+        else:
+            self.mastery_counter_label.setStyleSheet("color: #888; font-weight: bold;")
+        
+        # Disable unchecked boxes if 3 are already selected
+        if selected_count >= 3:
+            for checkbox in self.weapon_mastery_checkboxes.values():
+                if not checkbox.isChecked():
+                    checkbox.setEnabled(False)
+        else:
+            # Re-enable all checkboxes
+            for checkbox in self.weapon_mastery_checkboxes.values():
+                checkbox.setEnabled(True)
     
     def _create_review_step(self) -> QWidget:
         """Create final review and confirmation step."""
@@ -1625,6 +1688,8 @@ class EncounterPanel(QWidget):
         
         # Collect class features
         class_features = {}
+        selected_weapon_masteries = []
+        
         if class_data and class_data.get('name') == 'Fighter':
             class_features['Second Wind'] = {
                 'type': 'bonus_action',
@@ -1633,11 +1698,20 @@ class EncounterPanel(QWidget):
                 'description': 'Regain 1d10 + Fighter level hit points',
                 'level_acquired': 1
             }
+            
+            # Collect selected weapon masteries
+            if hasattr(self, 'weapon_mastery_checkboxes'):
+                selected_weapon_masteries = [
+                    checkbox.weapon_name for checkbox in self.weapon_mastery_checkboxes.values() 
+                    if checkbox.isChecked()
+                ]
+            
             class_features['Weapon Mastery'] = {
                 'type': 'passive',
                 'usage': 'permanent',
                 'count': 3,  # 3 weapon masteries
-                'description': 'Use mastery properties of 3 Simple or Martial weapons',
+                'selected_weapons': selected_weapon_masteries,
+                'description': f'Use mastery properties of {len(selected_weapon_masteries)} weapons: {", ".join(selected_weapon_masteries)}',
                 'level_acquired': 1
             }
         
@@ -1652,6 +1726,7 @@ class EncounterPanel(QWidget):
             'rolled_scores': rolled_scores,
             'selected_feats': selected_feats,
             'class_features': class_features,
+            'weapon_masteries': selected_weapon_masteries,  # Add weapon masteries for action panel
             'level': 1,
             'experience_points': 0,
             'equipment_choices': {}
@@ -1982,7 +2057,7 @@ class EncounterPanel(QWidget):
         card.setProperty("selected", False)  # Track selection state
         
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(1, 1, 1, 1)
         layout.setSpacing(2)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         

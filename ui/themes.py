@@ -82,7 +82,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         background-color: {palette['surface']};
         border: 1px solid {palette['border']};
         border-radius: 4px;
-        padding: 4px;
+        padding: 1px;
     }}
     
     QScrollArea {{
@@ -111,7 +111,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 2px solid {palette['border']};
         border-radius: 6px;
-        padding: 6px 12px;
+        padding: 1px 2px;
         font-weight: bold;
         font-size: 11pt;
     }}
@@ -138,7 +138,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 2px solid {palette['border']};
         border-radius: 4px;
-        padding: 4px;
+        padding: 1px;
         selection-background-color: {palette['selection']};
     }}
     
@@ -156,7 +156,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         font-size: 14pt;
         font-weight: bold;
         color: {palette['accent_primary']};
-        margin: 4px 0px;
+        margin: 1px 0px;
     }}
     
     /* Lists and Tables */
@@ -170,7 +170,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     }}
     
     QListWidget::item, QTreeWidget::item, QTableWidget::item {{
-        padding: 4px;
+        padding: 1px;
         border-bottom: 1px solid {palette['border']};
     }}
     
@@ -182,7 +182,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     QHeaderView::section {{
         background-color: {palette['accent_primary']};
         color: {palette['text']};
-        padding: 6px;
+        padding: 1px;
         border: 1px solid {palette['border']};
         font-weight: bold;
     }}
@@ -193,7 +193,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 2px solid {palette['border']};
         border-radius: 4px;
-        padding: 4px 8px;
+        padding: 1px 2px;
     }}
     
     QComboBox:hover {{
@@ -226,7 +226,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 2px solid {palette['border']};
         border-radius: 4px;
-        padding: 2px;
+        padding: 1px;
     }}
     
     QSpinBox:focus, QDoubleSpinBox:focus {{
@@ -303,7 +303,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     QTabBar::tab {{
         background-color: {palette['accent_primary']};
         color: {palette['text']};
-        padding: 6px 12px;
+        padding: 1px 2px;
         margin-right: 2px;
         border-top-left-radius: 4px;
         border-top-right-radius: 4px;
@@ -370,7 +370,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     }}
     
     QMenuBar::item {{
-        padding: 4px 8px;
+        padding: 1px 2px;
         background-color: transparent;
     }}
     
@@ -385,7 +385,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     }}
     
     QMenu::item {{
-        padding: 4px 16px;
+        padding: 1px 2px;
     }}
     
     QMenu::item:selected {{
@@ -398,7 +398,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 1px solid {palette['border']};
         border-radius: 4px;
-        padding: 4px;
+        padding: 1px;
     }}
     
     /* Status Bar */
@@ -544,7 +544,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     QFrame#abilityRow {{
         background-color: transparent;
         border-bottom: 1px solid {palette['border']};
-        margin: 2px 0px;
+        margin: 1px 0px;
     }}
     
     QFrame#detailHeader {{
@@ -556,7 +556,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         font-size: 14px;
         font-weight: bold;
-        padding: 5px;
+        padding: 1px;
     }}
     
     QTextEdit#featuresText, QTextEdit#spellsText {{
@@ -564,7 +564,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 1px solid {palette['border']};
         border-radius: 0px;
-        padding: 5px;
+        padding: 1px;
         font-size: 11px;
     }}
     
@@ -578,13 +578,13 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         font-size: 18px;
         font-weight: bold;
-        padding: 5px;
+        padding: 1px;
     }}
     
     QLabel#charDetailsLabel {{
         color: {palette['text_secondary']};
         font-size: 12px;
-        padding: 2px;
+        padding: 1px;
     }}
     
     QLabel#hpLabel {{
@@ -596,7 +596,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     QLabel#abilityValue {{
         color: {palette['text_secondary']};
         font-size: 11px;
-        padding: 2px;
+        padding: 1px;
     }}
     
     QPushButton#expandButton {{
@@ -604,7 +604,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         color: {palette['text']};
         border: 1px solid {palette['border']};
         border-radius: 0px;
-        padding: 6px 12px;
+        padding: 1px 2px;
         font-weight: bold;
     }}
     

@@ -648,8 +648,8 @@ class ActionPanel(QWidget):
             # Roll damage
             damage_total, damage_breakdown = self._roll_damage(context)
             
-            # Apply weapon mastery on-hit effects
-            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, target_monster, attack_total, damage_total, hit=True)
+            # Apply weapon mastery effects on hit
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=damage_total, context=context)
             
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, damage_total)
@@ -663,10 +663,10 @@ class ActionPanel(QWidget):
             
         else:
             # Attack missed - check for Graze mastery
-            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, target_monster, attack_total, 0, hit=False)
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=False, damage_total=0, context=context)
             
             # Apply any miss-based damage (like Graze)
-            graze_damage = mastery_effects.get('additional_damage', 0)
+            graze_damage = mastery_effects.get('graze_damage', {}).get('damage', 0)
             if graze_damage > 0:
                 encounter_panel._apply_damage_to_monster(target_id, graze_damage)
             
@@ -1525,6 +1525,14 @@ class ActionPanel(QWidget):
         self.character_context['feats'] = character_feats or []
         self.character_feats = character_feats or []  # Also store directly for easy access
     
+    def load_weapon_masteries(self, weapon_masteries: List[str]):
+        """Load character weapon masteries."""
+        self.character_weapon_masteries = weapon_masteries or []
+        # Also store in character context for easy access
+        if not hasattr(self, 'character_context'):
+            self.character_context = {}
+        self.character_context['weapon_masteries'] = weapon_masteries or []
+    
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
         self.target_monster_id = monster_id
@@ -1623,6 +1631,122 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         
         return modified_rolls
+    
+    def _apply_weapon_mastery_effects(self, weapon_name: str, attack_total: int, target_ac: int, hit: bool, damage_total: int, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply weapon mastery effects based on attack result."""
+        if not self.character_context:
+            return {}
+        
+        # Get character's weapon masteries
+        weapon_masteries = getattr(self, 'character_weapon_masteries', [])
+        if not weapon_masteries:
+            # Check if stored in character context
+            weapon_masteries = self.character_context.get('weapon_masteries', [])
+        
+        if weapon_name not in weapon_masteries:
+            return {}
+        
+        # Get weapon's mastery property from equipment data
+        weapon_mastery_map = {
+            "Dagger": "Nick", "Handaxe": "Vex", "Javelin": "Slow",
+            "Light Hammer": "Nick", "Scimitar": "Nick", "Shortsword": "Vex",
+            "Battleaxe": "Topple", "Flail": "Sap", "Glaive": "Graze",
+            "Greataxe": "Cleave", "Greatsword": "Graze", "Halberd": "Cleave",
+            "Lance": "Topple", "Longsword": "Sap", "Maul": "Topple",
+            "Morningstar": "Sap", "Pike": "Push", "Rapier": "Vex",
+            "Trident": "Topple", "War Pick": "Sap", "Warhammer": "Push", "Whip": "Slow"
+        }
+        
+        mastery = weapon_mastery_map.get(weapon_name)
+        if not mastery:
+            return {}
+        
+        effects = {}
+        
+        # Apply mastery effects based on type
+        if mastery == "Graze" and not hit:
+            # Graze: On miss, deal ability modifier damage
+            ability_mod = context.get('strength', 10)
+            ability_mod = (ability_mod - 10) // 2
+            if ability_mod > 0:
+                effects['graze_damage'] = {
+                    'damage': ability_mod,
+                    'description': f"Graze: {ability_mod} damage on miss"
+                }
+        
+        elif mastery == "Topple" and hit:
+            # Topple: On hit, target must make Constitution save or be knocked prone
+            dc = 8 + 2 + ((context.get('strength', 10) - 10) // 2)  # 8 + prof + ability mod
+            effects['topple'] = {
+                'save_dc': dc,
+                'description': f"Topple: Constitution save DC {dc} or prone"
+            }
+        
+        elif mastery == "Sap" and hit:
+            # Sap: On hit, target has disadvantage on next attack
+            effects['sap'] = {
+                'description': "Sap: Target has disadvantage on next attack"
+            }
+        
+        elif mastery == "Push" and hit:
+            # Push: On hit, push target up to 10 feet
+            effects['push'] = {
+                'distance': 10,
+                'description': "Push: Target pushed up to 10 feet away"
+            }
+        
+        elif mastery == "Slow" and hit:
+            # Slow: On hit, reduce target's speed by 10 feet
+            effects['slow'] = {
+                'speed_reduction': 10,
+                'description': "Slow: Target's speed reduced by 10 feet until start of your next turn"
+            }
+        
+        elif mastery == "Vex" and hit:
+            # Vex: On hit, advantage on next attack against this target
+            effects['vex'] = {
+                'description': "Vex: Advantage on next attack against this target"
+            }
+        
+        elif mastery == "Cleave" and hit:
+            # Cleave: On hit, can make bonus action attack against second target
+            effects['cleave'] = {
+                'description': "Cleave: Can make bonus action attack against second target within 5 feet"
+            }
+        
+        elif mastery == "Nick" and hit:
+            # Nick: When attacking with only this weapon, can make additional attack
+            effects['nick'] = {
+                'description': "Nick: Can make additional attack with this weapon as part of Attack action"
+            }
+        
+        return effects
+    
+    def _log_weapon_mastery_effects(self, mastery_effects: Dict[str, Any]):
+        """Log weapon mastery effects to combat log."""
+        if not mastery_effects:
+            return
+            
+        try:
+            # Find parent with log_panel for logging
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    for effect_name, effect_data in mastery_effects.items():
+                        description = effect_data.get('description', 'Unknown mastery effect')
+                        
+                        if effect_name == 'graze_damage':
+                            parent.log_panel.log_combat(f"🗡️ {description}")
+                        elif effect_name in ['topple', 'sap', 'push', 'slow', 'vex']:
+                            parent.log_panel.log_combat(f"🗡️ {description}")
+                        elif effect_name in ['cleave', 'nick']:
+                            parent.log_panel.log_combat(f"🗡️ {description}")
+                        else:
+                            parent.log_panel.log_combat(f"🗡️ {description}")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging mastery effects: {e}")
 
 
 class ActionCard(QWidget):

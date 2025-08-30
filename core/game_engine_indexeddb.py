@@ -118,6 +118,7 @@ class GameEngineIndexedDB:
             proficiencies=character.proficiencies or [],
             features=character.features or {},
             feats=character.feats or [],
+            weapon_masteries=character.weapon_masteries or [],
             
             # Equipment
             equipment_main_hand=character.equipment_main_hand,

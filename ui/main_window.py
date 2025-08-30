@@ -433,6 +433,10 @@ class MainWindow(QMainWindow):
             # Load character feats into action panel (for fighting styles, etc.)
             character_feats = saved_character.feats or []
             self.action_panel.load_character_feats(character_feats)
+            
+            # Load weapon masteries into action panel
+            weapon_masteries = getattr(saved_character, 'weapon_masteries', []) or []
+            self.action_panel.load_weapon_masteries(weapon_masteries)
 
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
@@ -578,6 +582,10 @@ class MainWindow(QMainWindow):
         # Load character feats into action panel (for fighting styles, etc.)
         character_feats = getattr(character, 'feats', []) or []
         self.action_panel.load_character_feats(character_feats)
+        
+        # Load weapon masteries into action panel  
+        weapon_masteries = getattr(character, 'weapon_masteries', []) or []
+        self.action_panel.load_weapon_masteries(weapon_masteries)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     
