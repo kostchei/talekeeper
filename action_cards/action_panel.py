@@ -199,6 +199,8 @@ class ActionPanel(QWidget):
             description = f"+{hit_bonus} to hit, {damage} damage"
             
             card = ActionCard(ActionType.ATTACK_MAIN_HAND, weapon_name, weapon_name, description)
+            # Store weapon data in the card for damage calculations
+            card.weapon_data = main_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
@@ -212,6 +214,8 @@ class ActionPanel(QWidget):
             description = f"+{hit_bonus} to hit, {damage} damage"
             
             card = ActionCard(ActionType.ATTACK_OFF_HAND, weapon_name, f"{weapon_name} (Off)", description)
+            # Store weapon data in the card for damage calculations
+            card.weapon_data = off_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ATTACK_OFF_HAND] = card
@@ -410,8 +414,14 @@ class ActionPanel(QWidget):
             # Add character context
             full_context = {**context, **self.character_context}
             
-            # For attack actions, add target monster if available
+            # For attack actions, add target monster and weapon data if available
             if action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+                # Add weapon data to context
+                if action_type in self.action_cards:
+                    weapon_data = getattr(self.action_cards[action_type], 'weapon_data', None)
+                    if weapon_data:
+                        full_context.update(weapon_data)
+                
                 if self.target_monster_id:
                     full_context['target_monster_id'] = self.target_monster_id
                     
@@ -455,25 +465,25 @@ class ActionPanel(QWidget):
         # For now, just proceed with the attack
         
         # Make attack roll
-        attack_roll = self._roll_attack(context)
+        attack_total, attack_breakdown = self._roll_attack(context)
         target_ac = 12  # TODO: Get from monster data, for now assume AC 12
         
-        hit = attack_roll >= target_ac
+        hit = attack_total >= target_ac
         
         if hit:
             # Roll damage
-            damage = self._roll_damage(context)
+            damage_total, damage_breakdown = self._roll_damage(context)
             
             # Apply damage to monster
-            encounter_panel._apply_damage_to_monster(target_id, damage)
+            encounter_panel._apply_damage_to_monster(target_id, damage_total)
             
-            # Log the attack
+            # Log the attack with detailed breakdown
             self._log_attack_result(True, weapon_name, target_monster.monster_name, 
-                                  attack_roll, target_ac, damage)
+                                  attack_breakdown, target_ac, damage_breakdown)
         else:
-            # Attack missed
+            # Attack missed - still show attack roll breakdown
             self._log_attack_result(False, weapon_name, target_monster.monster_name, 
-                                  attack_roll, target_ac, 0)
+                                  attack_breakdown, target_ac, None)
         
         # Start cooldown and update action economy
         cooldown = self._get_action_cooldown(action_type)
@@ -496,54 +506,198 @@ class ActionPanel(QWidget):
             print(f"Error finding encounter panel: {e}")
             return None
     
-    def _roll_attack(self, context: Dict[str, Any]) -> int:
-        """Roll an attack roll (d20 + modifiers)."""
+    def _roll_attack(self, context: Dict[str, Any]) -> tuple[int, dict]:
+        """Roll an attack roll (d20 + modifiers). Returns (total, breakdown)."""
         import random
         base_roll = random.randint(1, 20)
         
-        # Get attack bonus from context or calculate it
-        attack_bonus = context.get('attack_bonus', 2)  # Default +2 for level 1
+        # Calculate attack bonus components
+        prof_bonus = 2  # TODO: Get from character level
         
-        return base_roll + attack_bonus
+        # Get ability modifier
+        weapon_props = context.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            str_mod = (context.get('strength', 10) - 10) // 2
+            dex_mod = (context.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+            ability_name = "STR" if str_mod >= dex_mod else "DEX"
+        elif 'ranged' in weapon_props or context.get('damage_type') == 'ranged':
+            ability_mod = (context.get('dexterity', 10) - 10) // 2
+            ability_name = "DEX"
+        else:
+            ability_mod = (context.get('strength', 10) - 10) // 2
+            ability_name = "STR"
+        
+        magic_bonus = context.get('attack_bonus', 0)
+        total_bonus = prof_bonus + ability_mod + magic_bonus
+        total = base_roll + total_bonus
+        
+        # Create breakdown for logging
+        breakdown = {
+            'd20_roll': base_roll,
+            'proficiency': prof_bonus,
+            'ability_mod': ability_mod,
+            'ability_name': ability_name,
+            'magic_bonus': magic_bonus,
+            'total_bonus': total_bonus,
+            'total': total
+        }
+        
+        return total, breakdown
     
-    def _roll_damage(self, context: Dict[str, Any]) -> int:
-        """Roll damage dice."""
+    def _roll_damage(self, context: Dict[str, Any]) -> tuple[int, dict]:
+        """Roll damage dice with ability modifier. Returns (total, breakdown)."""
         import random
         
-        # Get damage from context or use default
+        # Get damage dice from context or use default
         damage_dice = context.get('damage_dice', '1d6')  # Default 1d6
         
-        # Simple damage parsing - just handle basic cases like "1d6+2"
+        # Calculate ability modifier for damage
+        weapon_props = context.get('weapon_properties', [])
+        if 'finesse' in weapon_props:
+            str_mod = (context.get('strength', 10) - 10) // 2
+            dex_mod = (context.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+            ability_name = "STR" if str_mod >= dex_mod else "DEX"
+        elif 'ranged' in weapon_props or context.get('damage_type') == 'ranged':
+            ability_mod = (context.get('dexterity', 10) - 10) // 2
+            ability_name = "DEX"
+        else:
+            ability_mod = (context.get('strength', 10) - 10) // 2
+            ability_name = "STR"
+        
+        # Magic weapon damage bonus
+        magic_bonus = context.get('damage_bonus', 0)
+        total_modifier = ability_mod + magic_bonus
+        
+        # Parse damage dice - just handle basic cases like "1d6", "2d6", etc
         if 'd' in damage_dice:
-            if '+' in damage_dice:
-                dice_part, bonus_part = damage_dice.split('+')
-                bonus = int(bonus_part.strip())
+            # Handle cases like "1d6+2" (though we calculate our own modifier)
+            if '+' in damage_dice or '-' in damage_dice:
+                # Strip any existing modifier from dice string
+                import re
+                dice_part = re.split(r'[+-]', damage_dice)[0].strip()
             else:
                 dice_part = damage_dice
-                bonus = 0
             
-            num_dice, die_size = dice_part.split('d')
-            num_dice = int(num_dice)
-            die_size = int(die_size)
-            
-            total = sum(random.randint(1, die_size) for _ in range(num_dice)) + bonus
-            return max(1, total)  # Minimum 1 damage
+            try:
+                num_dice, die_size = dice_part.split('d')
+                num_dice = int(num_dice)
+                die_size = int(die_size)
+                
+                # Roll individual dice for breakdown
+                dice_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+                dice_total = sum(dice_rolls)
+                total = dice_total + total_modifier
+                
+                # Create breakdown for logging
+                breakdown = {
+                    'damage_dice': damage_dice,
+                    'num_dice': num_dice,
+                    'die_size': die_size,
+                    'dice_rolls': dice_rolls,
+                    'dice_total': dice_total,
+                    'ability_mod': ability_mod,
+                    'ability_name': ability_name,
+                    'magic_bonus': magic_bonus,
+                    'total_modifier': total_modifier,
+                    'total': max(1, total)  # Minimum 1 damage
+                }
+                
+                return max(1, total), breakdown
+            except (ValueError, IndexError):
+                # Fallback if parsing fails
+                fallback_total = max(1, total_modifier) if total_modifier > 0 else 1
+                breakdown = {
+                    'damage_dice': damage_dice,
+                    'dice_rolls': [],
+                    'dice_total': 0,
+                    'ability_mod': ability_mod,
+                    'ability_name': ability_name,
+                    'magic_bonus': magic_bonus,
+                    'total_modifier': total_modifier,
+                    'total': fallback_total,
+                    'error': 'Failed to parse damage dice'
+                }
+                return fallback_total, breakdown
         else:
-            return int(damage_dice) if damage_dice.isdigit() else 1
+            # Static damage value
+            static_damage = int(damage_dice) if damage_dice.isdigit() else 1
+            breakdown = {
+                'damage_dice': damage_dice,
+                'dice_rolls': [],
+                'dice_total': static_damage,
+                'ability_mod': 0,
+                'ability_name': '',
+                'magic_bonus': 0,
+                'total_modifier': 0,
+                'total': static_damage
+            }
+            return static_damage, breakdown
     
-    def _log_attack_result(self, hit: bool, weapon: str, target: str, attack_roll: int, target_ac: int, damage: int):
-        """Log the result of an attack."""
+    def _log_attack_result(self, hit: bool, weapon: str, target: str, attack_breakdown: dict, target_ac: int, damage_breakdown: dict = None):
+        """Log the result of an attack with detailed dice breakdown."""
         try:
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    if hit:
-                        parent.log_panel.log_combat(
-                            f"⚔️ {weapon} hits {target}! (rolled {attack_roll} vs AC {target_ac}) for {damage} damage"
-                        )
+                    # Build attack roll breakdown
+                    d20 = attack_breakdown['d20_roll']
+                    prof = attack_breakdown['proficiency']
+                    ability = attack_breakdown['ability_mod']
+                    ability_name = attack_breakdown['ability_name']
+                    magic = attack_breakdown['magic_bonus']
+                    total = attack_breakdown['total']
+                    
+                    # Build attack roll details
+                    bonus_parts = []
+                    if prof > 0:
+                        bonus_parts.append(f"+{prof} prof")
+                    if ability != 0:
+                        sign = "+" if ability >= 0 else ""
+                        bonus_parts.append(f"{sign}{ability} {ability_name}")
+                    if magic != 0:
+                        sign = "+" if magic >= 0 else ""
+                        bonus_parts.append(f"{sign}{magic} magic")
+                    
+                    bonus_str = f" ({' '.join(bonus_parts)})" if bonus_parts else ""
+                    
+                    if hit and damage_breakdown:
+                        # Build damage roll breakdown
+                        dice_rolls = damage_breakdown['dice_rolls']
+                        dice_total = damage_breakdown['dice_total']
+                        dam_ability = damage_breakdown['ability_mod']
+                        dam_ability_name = damage_breakdown['ability_name']
+                        dam_magic = damage_breakdown['magic_bonus']
+                        damage_total = damage_breakdown['total']
+                        
+                        # Format individual dice rolls
+                        if dice_rolls:
+                            dice_str = f"[{', '.join(map(str, dice_rolls))}]"
+                            damage_parts = []
+                            if dam_ability != 0:
+                                sign = "+" if dam_ability >= 0 else ""
+                                damage_parts.append(f"{sign}{dam_ability} {dam_ability_name}")
+                            if dam_magic != 0:
+                                sign = "+" if dam_magic >= 0 else ""
+                                damage_parts.append(f"{sign}{dam_magic} magic")
+                            
+                            damage_bonus_str = f" ({' '.join(damage_parts)})" if damage_parts else ""
+                            
+                            parent.log_panel.log_combat(
+                                f"⚔️ {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
+                            )
+                            parent.log_panel.log_combat(
+                                f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str} = {damage_total} damage"
+                            )
+                        else:
+                            parent.log_panel.log_combat(
+                                f"⚔️ {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac} for {damage_total} damage"
+                            )
                     else:
+                        # Miss - just show attack roll
                         parent.log_panel.log_combat(
-                            f"⚔️ {weapon} misses {target}! (rolled {attack_roll} vs AC {target_ac})"
+                            f"⚔️ {weapon} misses {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
                         )
                     break
                 parent = parent.parent()

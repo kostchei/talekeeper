@@ -215,6 +215,10 @@ class MainWindow(QMainWindow):
         self.equipment_panel.item_used.connect(
             lambda item: self.log_panel.log_info(f"Used item: {item.get('name', 'Unknown')}")
         )
+        # Equipment change signals - update action panel when weapons/items are equipped/unequipped
+        # NOTE: When spell system is added, spell changes will need similar handling for magic actions
+        self.equipment_panel.item_equipped.connect(self._on_item_equipped)
+        self.equipment_panel.item_unequipped.connect(self._on_item_unequipped)
         
         # Action panel signals
         self.action_panel.action_triggered.connect(
@@ -234,6 +238,55 @@ class MainWindow(QMainWindow):
         selected_monster = self.encounter_pane.get_selected_monster()
         if selected_monster:
             self.log_panel.log_combat(f"Selected target: {selected_monster.monster_name}")
+    
+    def _on_item_equipped(self, item, slot):
+        """Handle item equipped - update action panel with new equipment."""
+        # Get current character stats
+        if not hasattr(self, 'character_sheet') or not self.character_sheet.character_data:
+            return  # No character loaded yet
+        
+        character_data = self.character_sheet.character_data
+        character_stats = {
+            'strength': character_data.get('strength', 10),
+            'dexterity': character_data.get('dexterity', 10),
+            'constitution': character_data.get('constitution', 10),
+            'intelligence': character_data.get('intelligence', 10),
+            'wisdom': character_data.get('wisdom', 10),
+            'charisma': character_data.get('charisma', 10),
+            'level': character_data.get('level', 1)
+        }
+        
+        # Update action panel with new equipment
+        equipped_items = self.equipment_panel.get_equipped_items_dict()
+        self.action_panel.load_character_equipment(equipped_items, character_stats)
+        
+        # Log the equipment change
+        item_name = item.get('name', 'Unknown Item')
+        self.log_panel.log_info(f"Equipped {item_name} in {slot.value} slot")
+    
+    def _on_item_unequipped(self, slot):
+        """Handle item unequipped - update action panel with new equipment."""
+        # Get current character stats
+        if not hasattr(self, 'character_sheet') or not self.character_sheet.character_data:
+            return  # No character loaded yet
+        
+        character_data = self.character_sheet.character_data
+        character_stats = {
+            'strength': character_data.get('strength', 10),
+            'dexterity': character_data.get('dexterity', 10),
+            'constitution': character_data.get('constitution', 10),
+            'intelligence': character_data.get('intelligence', 10),
+            'wisdom': character_data.get('wisdom', 10),
+            'charisma': character_data.get('charisma', 10),
+            'level': character_data.get('level', 1)
+        }
+        
+        # Update action panel with new equipment
+        equipped_items = self.equipment_panel.get_equipped_items_dict()
+        self.action_panel.load_character_equipment(equipped_items, character_stats)
+        
+        # Log the equipment change
+        self.log_panel.log_info(f"Unequipped item from {slot.value} slot")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
