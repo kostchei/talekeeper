@@ -961,12 +961,6 @@ class EncounterPanel(QWidget):
         # Control buttons
         controls_layout = QHBoxLayout()
         
-        # Set class defaults button
-        self.set_class_defaults_btn = QPushButton("Apply Class Defaults")
-        self.set_class_defaults_btn.clicked.connect(self._apply_class_defaults)
-        self.set_class_defaults_btn.setEnabled(False)
-        controls_layout.addWidget(self.set_class_defaults_btn)
-        
         controls_layout.addStretch()
         
         # Roll 4d6 button
@@ -1478,15 +1472,11 @@ class EncounterPanel(QWidget):
             # Automatically apply class defaults when class is selected
             self._apply_class_defaults_auto()
             
-            # Enable class defaults button if we have ability controls
-            if hasattr(self, 'set_class_defaults_btn'):
-                self.set_class_defaults_btn.setEnabled(True)
-                
-                # Update class info
-                class_name = class_data['name'].lower()
-                dump_stats = self._get_class_dump_stats(class_name)
-                info_text = f"{class_data['name']} dump stat: {dump_stats['dump_stat'].title()} = 3 (auto-applied)"
-                self.class_stats_info.setText(info_text)
+            # Update class info
+            class_name = class_data['name'].lower()
+            dump_stats = self._get_class_dump_stats(class_name)
+            info_text = f"{class_data['name']} dump stat: {dump_stats['dump_stat'].title()} = 3 (auto-applied)"
+            self.class_stats_info.setText(info_text)
     
     def _on_background_selected(self, current, previous):
         """Handle background selection change."""
