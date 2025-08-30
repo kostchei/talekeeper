@@ -348,3 +348,107 @@ class EncounterInstance:
             conditions=[],
             initiative=None
         )
+
+
+@dataclass
+class Encounter:
+    """
+    A complete encounter with multiple monsters and metadata.
+    Tracks the encounter as a whole for XP rewards and progression.
+    """
+    # Primary key
+    id: str = field(default_factory=lambda: str(uuid4()))
+    character_id: str = ""  # Which character is in this encounter
+    
+    # Encounter metadata
+    encounter_level: int = 1  # Character level when encounter was generated
+    difficulty: str = "low"  # low, moderate, high
+    total_xp_budget: int = 0  # Expected XP for this encounter
+    
+    # Status tracking
+    status: str = "active"  # active, completed, abandoned
+    is_combat: bool = False  # Whether combat has started
+    rounds_elapsed: int = 0  # Combat rounds if applicable
+    
+    # XP and rewards
+    xp_awarded: int = 0  # XP actually awarded (defeated monsters)
+    xp_pending: int = 0  # XP from monsters still alive
+    monsters_defeated: int = 0  # Count of defeated monsters
+    monsters_total: int = 0  # Total monsters in encounter
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    started_combat_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    
+    def start_combat(self):
+        """Mark encounter as entering combat."""
+        self.is_combat = True
+        self.started_combat_at = datetime.now().isoformat()
+    
+    def complete_encounter(self):
+        """Mark encounter as completed."""
+        self.status = "completed"
+        self.completed_at = datetime.now().isoformat()
+    
+    def add_defeated_monster(self, xp_value: int):
+        """Add a defeated monster to the encounter."""
+        self.monsters_defeated += 1
+        self.xp_awarded += xp_value
+        self.xp_pending -= xp_value
+        
+        # Check if encounter is complete
+        if self.monsters_defeated >= self.monsters_total:
+            self.complete_encounter()
+    
+    @property
+    def completion_percentage(self) -> float:
+        """Get encounter completion percentage."""
+        if self.monsters_total == 0:
+            return 0.0
+        return (self.monsters_defeated / self.monsters_total) * 100.0
+    
+    @property
+    def is_complete(self) -> bool:
+        """Check if encounter is completed."""
+        return self.status == "completed" or self.monsters_defeated >= self.monsters_total
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for IndexedDB storage."""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'Encounter':
+        """Create encounter from dictionary from IndexedDB."""
+        defaults = {
+            'created_at': datetime.now().isoformat()
+        }
+        
+        for key, default_value in defaults.items():
+            if key not in data:
+                data[key] = default_value
+        
+        # Remove unexpected fields
+        expected_fields = set(cls.__dataclass_fields__.keys())
+        filtered_data = {k: v for k, v in data.items() if k in expected_fields}
+        
+        return cls(**filtered_data)
+    
+    @classmethod
+    def from_encounter_data(cls, encounter_data: Dict[str, Any], character_id: str) -> 'Encounter':
+        """Create encounter from generator encounter data."""
+        total_xp = sum(m.get('xp', 0) for m in encounter_data.get('monsters', []))
+        monster_count = len(encounter_data.get('monsters', []))
+        
+        return cls(
+            character_id=character_id,
+            encounter_level=encounter_data.get('level', 1),
+            difficulty=encounter_data.get('difficulty', 'low'),
+            total_xp_budget=encounter_data.get('total_xp', total_xp),
+            status="active",
+            is_combat=False,
+            xp_awarded=0,
+            xp_pending=total_xp,
+            monsters_defeated=0,
+            monsters_total=monster_count
+        )

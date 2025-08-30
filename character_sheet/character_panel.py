@@ -190,55 +190,84 @@ class CharacterPanel(QWidget):
         detail_header_layout.addWidget(self.detail_title)
         detail_header_layout.addStretch()
         
-        # === SKILLS SECTION ===
-        self.skills_frame = QFrame()
-        self.skills_frame.setObjectName("skillsFrame")
-        skills_layout = QVBoxLayout(self.skills_frame)
-        skills_layout.setContentsMargins(5, 5, 5, 5)
+        # === EXPERIENCE & PROGRESSION SECTION ===
+        self.xp_frame = QFrame()
+        self.xp_frame.setObjectName("xpFrame")
+        xp_layout = QVBoxLayout(self.xp_frame)
+        xp_layout.setContentsMargins(5, 5, 5, 5)
         
-        skills_label = QLabel("Skills & Proficiencies")
-        skills_label.setObjectName("sectionTitle")
-        skills_layout.addWidget(skills_label)
+        xp_label = QLabel("Experience & Progression")
+        xp_label.setObjectName("sectionTitle")
+        xp_layout.addWidget(xp_label)
         
-        # Skills scroll area
-        self.skills_scroll = QScrollArea()
-        self.skills_scroll.setWidgetResizable(True)
-        self.skills_scroll.setObjectName("skillsScroll")
+        # Current XP display
+        self.current_xp_frame = QFrame()
+        self.current_xp_frame.setObjectName("xpStatFrame")
+        current_xp_layout = QHBoxLayout(self.current_xp_frame)
+        current_xp_layout.setContentsMargins(8, 8, 8, 8)
         
-        self.skills_widget = QWidget()
-        self.skills_layout = QVBoxLayout(self.skills_widget)
+        current_xp_title = QLabel("Current XP:")
+        current_xp_title.setObjectName("xpLabel")
+        current_xp_layout.addWidget(current_xp_title)
         
-        # Create skill entries (will be populated with character data)
-        self.skill_labels = {}
-        skills = [
-            'Acrobatics (Dex)', 'Animal Handling (Wis)', 'Arcana (Int)', 'Athletics (Str)',
-            'Deception (Cha)', 'History (Int)', 'Insight (Wis)', 'Intimidation (Cha)',
-            'Investigation (Int)', 'Medicine (Wis)', 'Nature (Int)', 'Perception (Wis)',
-            'Performance (Cha)', 'Persuasion (Cha)', 'Religion (Int)', 'Sleight of Hand (Dex)',
-            'Stealth (Dex)', 'Survival (Wis)'
-        ]
+        current_xp_layout.addStretch()
         
-        for skill in skills:
-            skill_frame = QFrame()
-            skill_frame.setObjectName("skillEntry")
-            skill_layout = QHBoxLayout(skill_frame)
-            skill_layout.setContentsMargins(5, 2, 5, 2)
-            
-            skill_name = QLabel(skill)
-            skill_name.setObjectName("skillName")
-            skill_layout.addWidget(skill_name)
-            
-            skill_layout.addStretch()
-            
-            skill_bonus = QLabel("+0")
-            skill_bonus.setObjectName("skillBonus")
-            self.skill_labels[skill] = skill_bonus
-            skill_layout.addWidget(skill_bonus)
-            
-            self.skills_layout.addWidget(skill_frame)
+        self.current_xp_value = QLabel("0")
+        self.current_xp_value.setObjectName("xpValue")
+        current_xp_layout.addWidget(self.current_xp_value)
         
-        self.skills_scroll.setWidget(self.skills_widget)
-        skills_layout.addWidget(self.skills_scroll, 1)
+        xp_layout.addWidget(self.current_xp_frame)
+        
+        # XP Progress Bar
+        self.xp_progress_frame = QFrame()
+        self.xp_progress_frame.setObjectName("xpProgressFrame")
+        progress_layout = QVBoxLayout(self.xp_progress_frame)
+        progress_layout.setContentsMargins(8, 5, 8, 5)
+        
+        # Progress to next level
+        progress_title = QLabel("Progress to Next Level")
+        progress_title.setObjectName("xpProgressTitle")
+        progress_layout.addWidget(progress_title)
+        
+        self.xp_progress_bar = QProgressBar()
+        self.xp_progress_bar.setObjectName("xpProgressBar")
+        self.xp_progress_bar.setTextVisible(False)
+        self.xp_progress_bar.setFixedHeight(20)
+        progress_layout.addWidget(self.xp_progress_bar)
+        
+        # XP needed for next level
+        self.xp_needed_label = QLabel("XP needed for level 2: 300")
+        self.xp_needed_label.setObjectName("xpNeededLabel")
+        progress_layout.addWidget(self.xp_needed_label)
+        
+        xp_layout.addWidget(self.xp_progress_frame)
+        
+        # Level history (recent XP gains)
+        self.xp_history_frame = QFrame()
+        self.xp_history_frame.setObjectName("xpHistoryFrame")
+        history_layout = QVBoxLayout(self.xp_history_frame)
+        history_layout.setContentsMargins(8, 5, 8, 5)
+        
+        history_title = QLabel("Recent XP Gains")
+        history_title.setObjectName("xpHistoryTitle")
+        history_layout.addWidget(history_title)
+        
+        self.xp_history_list = QWidget()
+        self.xp_history_layout = QVBoxLayout(self.xp_history_list)
+        self.xp_history_layout.setContentsMargins(0, 0, 0, 0)
+        self.xp_history_layout.setSpacing(2)
+        
+        # Add some placeholder entries
+        self._add_xp_history_entry("Session start", 0)
+        
+        history_scroll = QScrollArea()
+        history_scroll.setWidgetResizable(True)
+        history_scroll.setObjectName("xpHistoryScroll")
+        history_scroll.setWidget(self.xp_history_list)
+        history_scroll.setMaximumHeight(120)
+        
+        history_layout.addWidget(history_scroll)
+        xp_layout.addWidget(self.xp_history_frame, 1)
         
         # === FEATURES & TRAITS SECTION ===
         self.features_frame = QFrame()
@@ -274,7 +303,7 @@ class CharacterPanel(QWidget):
         
         # Add all sections to detail panel
         self.detail_layout.addWidget(self.detail_header)
-        self.detail_layout.addWidget(self.skills_frame, 1)
+        self.detail_layout.addWidget(self.xp_frame, 1)  # Replaced skills with XP section
         self.detail_layout.addWidget(self.features_frame, 1)
         self.detail_layout.addWidget(self.spells_frame, 1)
     
@@ -415,6 +444,91 @@ class CharacterPanel(QWidget):
         
         return row_frame
     
+    def _add_xp_history_entry(self, description: str, xp_gain: int):
+        """Add an entry to the XP history list."""
+        entry_frame = QFrame()
+        entry_frame.setObjectName("xpHistoryEntry")
+        entry_layout = QHBoxLayout(entry_frame)
+        entry_layout.setContentsMargins(5, 3, 5, 3)
+        
+        desc_label = QLabel(description)
+        desc_label.setObjectName("xpHistoryDesc")
+        entry_layout.addWidget(desc_label)
+        
+        entry_layout.addStretch()
+        
+        if xp_gain > 0:
+            xp_label = QLabel(f"+{xp_gain} XP")
+            xp_label.setObjectName("xpHistoryGain")
+        else:
+            xp_label = QLabel("—")
+            xp_label.setObjectName("xpHistoryNone")
+        
+        entry_layout.addWidget(xp_label)
+        
+        # Insert at the top of the history
+        self.xp_history_layout.insertWidget(0, entry_frame)
+        
+        # Keep only the last 10 entries
+        if self.xp_history_layout.count() > 10:
+            old_item = self.xp_history_layout.takeAt(10)
+            if old_item and old_item.widget():
+                old_item.widget().deleteLater()
+    
+    def add_xp_gain(self, description: str, xp_gain: int):
+        """Public method to add XP gain and update displays."""
+        if xp_gain > 0:
+            # Add to history
+            self._add_xp_history_entry(description, xp_gain)
+            
+            # Update character data if available
+            if self.character_data:
+                old_xp = self.character_data.get('experience_points', 0)
+                new_xp = old_xp + xp_gain
+                self.character_data['experience_points'] = new_xp
+                
+                # Update XP displays
+                self._update_xp_displays()
+    
+    def _update_xp_displays(self):
+        """Update all XP-related displays."""
+        if not self.character_data:
+            return
+        
+        current_xp = self.character_data.get('experience_points', 0)
+        current_level = self.character_data.get('level', 1)
+        
+        # D&D 5e XP thresholds
+        xp_thresholds = [
+            0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000,
+            100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000
+        ]
+        
+        # Update current XP display
+        self.current_xp_value.setText(f"{current_xp:,}")
+        
+        # Calculate progress to next level
+        if current_level >= 20:
+            # Max level
+            self.xp_needed_label.setText("Maximum level reached!")
+            self.xp_progress_bar.setValue(100)
+        else:
+            current_level_xp = xp_thresholds[current_level - 1] if current_level <= len(xp_thresholds) else 0
+            next_level_xp = xp_thresholds[current_level] if current_level < len(xp_thresholds) else xp_thresholds[-1]
+            
+            xp_needed = next_level_xp - current_xp
+            xp_progress = current_xp - current_level_xp
+            xp_level_range = next_level_xp - current_level_xp
+            
+            if xp_needed <= 0:
+                # Level up available!
+                self.xp_needed_label.setText("LEVEL UP AVAILABLE!")
+                self.xp_progress_bar.setValue(100)
+            else:
+                progress_percent = int((xp_progress / xp_level_range) * 100) if xp_level_range > 0 else 0
+                self.xp_needed_label.setText(f"XP needed for level {current_level + 1}: {xp_needed:,}")
+                self.xp_progress_bar.setValue(progress_percent)
+    
     def _create_ability_row_with_stats(self, short_name: str, full_name: str) -> QWidget:
         """Create Constitution row with secondary stats instead of skills."""
         row_frame = QFrame()
@@ -508,7 +622,7 @@ class CharacterPanel(QWidget):
             background-color: #2a2a2a;
         }
         
-        QFrame#abilitiesFrame, QFrame#secondaryFrame, QFrame#skillsFrame,
+        QFrame#abilitiesFrame, QFrame#secondaryFrame, QFrame#xpFrame,
         QFrame#featuresFrame, QFrame#spellsFrame {
             background-color: #252525;
             border: 1px solid #404040;
@@ -776,6 +890,71 @@ class CharacterPanel(QWidget):
         QScrollArea QScrollBar::handle:vertical:hover {
             background-color: #666666;
         }
+        
+        /* XP Section Styles */
+        QFrame#xpStatFrame, QFrame#xpProgressFrame, QFrame#xpHistoryFrame {
+            background-color: #2a2a2a;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            margin: 3px;
+        }
+        
+        QLabel#xpLabel, QLabel#xpProgressTitle, QLabel#xpHistoryTitle {
+            color: #cccccc;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        QLabel#xpValue {
+            color: #ffcc00;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        QLabel#xpNeededLabel {
+            color: #cccccc;
+            font-size: 11px;
+        }
+        
+        QProgressBar#xpProgressBar {
+            border: 1px solid #404040;
+            border-radius: 8px;
+            background-color: #1a1a1a;
+            text-align: center;
+        }
+        
+        QProgressBar#xpProgressBar::chunk {
+            background-color: #4CAF50;
+            border-radius: 7px;
+        }
+        
+        QFrame#xpHistoryEntry {
+            background-color: #333333;
+            border: 1px solid #404040;
+            border-radius: 3px;
+            margin: 1px;
+        }
+        
+        QLabel#xpHistoryDesc {
+            color: #cccccc;
+            font-size: 10px;
+        }
+        
+        QLabel#xpHistoryGain {
+            color: #4CAF50;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        QLabel#xpHistoryNone {
+            color: #666666;
+            font-size: 10px;
+        }
+        
+        QScrollArea#xpHistoryScroll {
+            background-color: transparent;
+            border: none;
+        }
         """
         self.setStyleSheet(style_sheet)
     
@@ -818,6 +997,10 @@ class CharacterPanel(QWidget):
         char_class = character_data.get('class_name', 'Unknown Class')
         
         self.char_name_title.setText(f"{name} - Level {level} {race} {char_class}")
+        self.detail_title.setText(f"Character Details - {name}")
+        
+        # Update XP displays
+        self._update_xp_displays()
         
         # Update ability scores with D&D layout (modifier prominent, score below)
         abilities = {
@@ -914,14 +1097,7 @@ class CharacterPanel(QWidget):
         # Calculate and display skill bonuses
         proficiency_bonus = 2 + ((self.character_data.get('level', 1) - 1) // 4)  # D&D 5e proficiency scaling
         
-        for skill, ability_score in base_abilities.items():
-            ability_mod = (ability_score - 10) // 2
-            # For now, assume no skill proficiencies (could be enhanced later)
-            skill_bonus = ability_mod
-            
-            bonus_text = f"+{skill_bonus}" if skill_bonus >= 0 else str(skill_bonus)
-            if skill in self.skill_labels:
-                self.skill_labels[skill].setText(bonus_text)
+        # Skill calculations removed - skills are displayed in main view only
         
         # Update features and traits
         race_name = self.character_data.get('race_name', 'Unknown')

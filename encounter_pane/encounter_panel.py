@@ -28,7 +28,7 @@ import os
 import random
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
-from models.monsters_indexeddb import EncounterInstance
+from models.monsters_indexeddb import EncounterInstance, Encounter
 
 
 class EncounterPanel(QWidget):
@@ -62,6 +62,7 @@ class EncounterPanel(QWidget):
         self.current_encounter_id = None
         self.encounter_instances = {}  # instance_id -> EncounterInstance
         self.selected_monster_id = None  # Currently selected monster for targeting
+        self.current_encounter = None  # Current Encounter object for database tracking
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -652,6 +653,8 @@ class EncounterPanel(QWidget):
         self._clear_monster_cards()
         self.encounter_instances = {}
         self.current_encounter_id = None
+        self.current_encounter = None  # Clear encounter tracking
+        self.selected_monster_id = None  # Clear selection
         if self.encounter_mode in ["encounter", "combat"]:
             self.set_exploration_mode()
     
@@ -1516,6 +1519,16 @@ class EncounterPanel(QWidget):
             # Create new encounter ID
             self.current_encounter_id = str(uuid4())
             
+            # Get current character ID for encounter tracking
+            character_id = self._get_current_character_id()
+            
+            # Create encounter tracking object
+            self.current_encounter = Encounter.from_encounter_data(encounter_data, character_id)
+            self.current_encounter.id = self.current_encounter_id  # Use the same ID
+            
+            # Save encounter to database
+            self._save_encounter_to_db()
+            
             # Create encounter instances with rolled HP and add monster cards
             for i, monster in enumerate(encounter_data['monsters']):
                 # Roll HP for this instance
@@ -1572,6 +1585,24 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"Error getting character level: {e}")
             return None
+    
+    def _get_current_character_id(self) -> str:
+        """Get the ID of the current active character."""
+        try:
+            # Access main window through parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and hasattr(parent.game_engine, 'current_character'):
+                    character = parent.game_engine.current_character
+                    if character:
+                        return character.id
+                    break
+                parent = parent.parent()
+            
+            return "unknown-character"  # Fallback
+        except Exception as e:
+            print(f"Error getting character ID: {e}")
+            return "unknown-character"
     
     def _create_monster_card(self, instance: EncounterInstance) -> QWidget:
         """Create a compact monster card using action card styling."""
@@ -1746,6 +1777,9 @@ class EncounterPanel(QWidget):
         # Check if monster died
         if not instance.is_alive:
             self._log_monster_action(f"{instance.monster_name} has been defeated!")
+            
+            # Award XP for defeated monster
+            self._award_xp_for_defeated_monster(instance)
     
     def _heal_monster(self, instance_id: str, healing: int):
         """Heal a specific monster instance and update UI."""
@@ -1835,7 +1869,107 @@ class EncounterPanel(QWidget):
             print(f"Could not log message: {e}")
             print(f"Message was: {message}")
     
+    def _award_xp_for_defeated_monster(self, instance: EncounterInstance):
+        """Award XP to character for defeating a monster."""
+        try:
+            xp_value = instance.monster_xp
+            
+            # Update encounter tracking
+            if self.current_encounter:
+                self.current_encounter.add_defeated_monster(xp_value)
+                self._save_encounter_to_db()
+            
+            # Award XP to character
+            self._add_xp_to_character(xp_value)
+            
+            # Update character sheet XP display
+            self._update_character_sheet_xp(instance.monster_name, xp_value)
+            
+            # Log XP gain
+            self._log_xp_gain(instance.monster_name, xp_value)
+            
+            # Check if encounter is complete
+            if self.current_encounter and self.current_encounter.is_complete:
+                self._log_monster_action(f"Encounter completed! Total XP gained: {self.current_encounter.xp_awarded}")
+                
+        except Exception as e:
+            print(f"Error awarding XP: {e}")
+    
+    def _add_xp_to_character(self, xp_value: int):
+        """Add XP to the current character."""
+        try:
+            # Get game engine from parent for character update
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    
+                    if character:
+                        # Add XP to character
+                        old_xp = character.experience_points
+                        character.experience_points += xp_value
+                        
+                        # TODO: Check for level up
+                        # level_up_xp = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 
+                        #                100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000]
+                        
+                        # Save character to database
+                        # TODO: Add character save method to game engine
+                        print(f"Character XP updated: {old_xp} -> {character.experience_points} (+{xp_value})")
+                        
+                        return
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error adding XP to character: {e}")
+    
+    def _log_xp_gain(self, monster_name: str, xp_value: int):
+        """Log XP gain to the combat log."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"💰 Gained {xp_value} XP for defeating {monster_name}")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Could not log XP gain: {e}")
+    
+    def _update_character_sheet_xp(self, monster_name: str, xp_value: int):
+        """Update the character sheet XP display."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_sheet'):
+                    parent.character_sheet.add_xp_gain(f"Defeated {monster_name}", xp_value)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Could not update character sheet XP: {e}")
+    
     # === DATABASE PERSISTENCE METHODS ===
+    
+    def _save_encounter_to_db(self):
+        """Save the current encounter to the database."""
+        try:
+            if not self.current_encounter:
+                return
+                
+            # Get game engine from parent for database access
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    # For now, just print what we would save
+                    # TODO: Add encounter persistence to game engine
+                    print(f"Would save encounter {self.current_encounter.id} to database")
+                    print(f"Status: {self.current_encounter.status}, XP awarded: {self.current_encounter.xp_awarded}")
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error saving encounter: {e}")
     
     def _save_encounter_instances_to_db(self):
         """Save current encounter instances to the database."""
