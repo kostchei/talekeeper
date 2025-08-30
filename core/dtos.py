@@ -72,6 +72,7 @@ class CharacterDTO:
     # Character Features
     proficiencies: List[str]
     features: Dict[str, Any]
+    feats: List[str]
     
     # Equipment (item IDs)
     equipment_main_hand: Optional[str]

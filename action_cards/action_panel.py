@@ -236,7 +236,7 @@ class ActionPanel(QWidget):
             return
         
         # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND, 1001, 1002, 1003, 1004, 1005, 1006]
+        feature_action_types = [ActionType.SECOND_WIND]
         for action_id in feature_action_types:
             if action_id in self.action_cards:
                 self.action_cards[action_id].deleteLater()
@@ -255,23 +255,6 @@ class ActionPanel(QWidget):
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.SECOND_WIND] = card
         
-        # Create Fighting Style selection cards if character has that feature
-        if 'Fighting Style' in self.character_features:
-            fighting_styles = [
-                ("Archery", "+2 attack with ranged weapons"),
-                ("Defense", "+1 AC while wearing armor"),  
-                ("Dueling", "+2 damage with one-handed weapons"),
-                ("Great Weapon Fighting", "Reroll 1s and 2s on damage"),
-                ("Protection", "Use reaction to impose disadvantage"),
-                ("Two-Weapon Fighting", "Add ability mod to off-hand damage")
-            ]
-            
-            for i, (style_name, style_desc) in enumerate(fighting_styles):
-                card = ActionCard(1001 + i, "⚔️", style_name, style_desc)
-                card.feature_data = {'type': 'fighting_style', 'name': style_name}
-                card.action_triggered.connect(self._trigger_feature_action)
-                card.action_hovered.connect(self._action_hovered)
-                self.action_cards[1001 + i] = card
         
         # Create Weapon Mastery cards based on character's selected masteries
         selected_masteries = self.character_context.get('weapon_masteries', [])
@@ -352,18 +335,6 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat(f"🗡️ Used Cleave Mastery: Making bonus action attack on second target")
                     break
                 parent = parent.parent()
-        
-        elif action_type >= 1001 and action_type <= 1006:  # Fighting Style selection
-            card = self.action_cards.get(action_type)
-            if card and hasattr(card, 'feature_data'):
-                style_name = card.feature_data.get('name')
-                # Find parent with log_panel for logging
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_info(f"⚔️ Selected Fighting Style: {style_name}")
-                        break
-                    parent = parent.parent()
         
         elif action_type >= 2000 and action_type <= 2007:  # Weapon Mastery selection
             card = self.action_cards.get(action_type)
@@ -567,13 +538,6 @@ class ActionPanel(QWidget):
             for action_type in free_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
-                    self.cards_layout.addWidget(card)
-                    card.show()
-            
-            # Add fighting style selection cards
-            for action_id in range(1001, 1007):  # Fighting Style cards
-                if action_id in self.action_cards:
-                    card = self.action_cards[action_id]
                     self.cards_layout.addWidget(card)
                     card.show()
             
@@ -1559,7 +1523,7 @@ class ActionPanel(QWidget):
             self.character_context = {}
         
         self.character_context['feats'] = character_feats or []
-        print(f"DEBUG: Loaded feats into character context: {self.character_context['feats']}")
+        self.character_feats = character_feats or []  # Also store directly for easy access
     
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
@@ -1620,23 +1584,10 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return dice_rolls
         
-        # Check if character has Great Weapon Fighting style (stored in 'Fighting Style' feature)
-        character_features = self.character_features or {}
+        # Check if character has Great Weapon Fighting style (stored in feats array)
+        character_feats = getattr(self, 'character_feats', [])
         
-        fighting_style_feature = character_features.get('Fighting Style')
-        if not fighting_style_feature:
-            # Log to combat to see what features we have
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"🔧 No Fighting Style feature found. Available: {list(character_features.keys())}")
-                    break
-                parent = parent.parent()
-            return dice_rolls
-        
-        # Check if it's Great Weapon Fighting (stored in 'style' field)
-        style_name = fighting_style_feature.get('style', '')
-        if style_name != "Great Weapon Fighting":
+        if "Great Weapon Fighting" not in character_feats:
             return dice_rolls
         
         # Check if weapon qualifies for Great Weapon Fighting
@@ -1646,11 +1597,7 @@ class ActionPanel(QWidget):
         is_two_handed = 'two-handed' in weapon_props_lower
         is_versatile = 'versatile' in weapon_props_lower
         
-        print(f"DEBUG: Weapon properties: {weapon_props}")
-        print(f"DEBUG: Two-handed: {is_two_handed}, Versatile: {is_versatile}")
-        
         if not (is_two_handed or is_versatile):
-            print("DEBUG: Weapon doesn't qualify for Great Weapon Fighting")
             return dice_rolls
         
         # Apply Great Weapon Fighting: treat 1s and 2s as 3s

@@ -427,11 +427,11 @@ class MainWindow(QMainWindow):
             self.action_panel.load_character_equipment(equipped_items, character_stats)
 
             # Load class features into action panel
-            class_features = character_data.get('class_features', {})
+            class_features = saved_character.features or {}
             self.action_panel.load_character_features(class_features)
             
             # Load character feats into action panel (for fighting styles, etc.)
-            character_feats = character_data.get('feats', [])
+            character_feats = saved_character.feats or []
             self.action_panel.load_character_feats(character_feats)
 
             # Update menu

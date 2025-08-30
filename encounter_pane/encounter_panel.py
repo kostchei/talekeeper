@@ -1343,9 +1343,8 @@ class EncounterPanel(QWidget):
                 feat_name = feat.get('name', 'Unknown Feat')
                 feat_category = feat.get('category', '')
                 
-                # Include Origin feats (O), Fighting Style feats (FS, FS:P, FS:R),
-                # and uncategorized feats that have no prerequisites
-                if feat_category in ['O', 'FS', 'FS:P', 'FS:R']:
+                # Include only Origin feats (O) - Fighting Styles are class features, not origin feats
+                if feat_category == 'O':
                     self.background_feat_combo.addItem(feat_name, feat)
                     self.species_feat_combo.addItem(feat_name, feat)
                 elif not feat_category:  # Handle feats with no category
@@ -1641,19 +1640,6 @@ class EncounterPanel(QWidget):
                 'description': 'Use mastery properties of 3 Simple or Martial weapons',
                 'level_acquired': 1
             }
-            
-            # Add Fighting Style as a feature if selected
-            if hasattr(self, 'fighting_style_combo'):
-                fighting_style_data = self.fighting_style_combo.currentData()
-                if fighting_style_data:
-                    fighting_style_name = fighting_style_data.get('name', '')
-                    class_features['Fighting Style'] = {
-                        'type': 'passive',
-                        'usage': 'permanent',
-                        'style': fighting_style_name,
-                        'description': f'Selected Fighting Style: {fighting_style_name}',
-                        'level_acquired': 1
-                    }
         
         # Compile final character data
         final_character = {
@@ -1885,6 +1871,11 @@ class EncounterPanel(QWidget):
             
             # Clear existing encounters and instances
             self._clear_monster_cards()
+            
+            # Process pending widget deletions to prevent memory leaks
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+            
             self.encounter_instances = {}
             self.selected_monster_id = None  # Clear selection
             
@@ -1903,24 +1894,31 @@ class EncounterPanel(QWidget):
             
             # Create encounter instances with rolled HP and add monster cards
             for i, monster in enumerate(encounter_data['monsters']):
-                # Roll HP for this instance
-                rolled_hp = roll_monster_hp(monster['hp_formula'])
-                
-                # Create encounter instance
-                instance = EncounterInstance.from_monster_data(
-                    monster_data=monster,
-                    encounter_id=self.current_encounter_id,
-                    rolled_hp=rolled_hp
-                )
-                
-                # Store instance
-                self.encounter_instances[instance.id] = instance
-                
-                # Create monster card widget and add to grid layout (3 cards per row)
-                monster_widget = self._create_monster_card(instance)
-                row = i // 3  # Integer division to get row
-                col = i % 3   # Modulo to get column
-                self.monsters_layout.addWidget(monster_widget, row, col)
+                try:
+                    # Roll HP for this instance
+                    rolled_hp = roll_monster_hp(monster['hp_formula'])
+                    
+                    # Create encounter instance
+                    instance = EncounterInstance.from_monster_data(
+                        monster_data=monster,
+                        encounter_id=self.current_encounter_id,
+                        rolled_hp=rolled_hp
+                    )
+                    
+                    # Store instance
+                    self.encounter_instances[instance.id] = instance
+                    
+                    # Create monster card widget and add to grid layout (3 cards per row)
+                    monster_widget = self._create_monster_card(instance)
+                    row = i // 3  # Integer division to get row
+                    col = i % 3   # Modulo to get column
+                    self.monsters_layout.addWidget(monster_widget, row, col)
+                    
+                except Exception as e:
+                    print(f"Error creating monster card for {monster.get('name', 'Unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
             
             # Update scene description
             difficulty_desc = encounter_data['difficulty'].capitalize()
@@ -2082,8 +2080,8 @@ class EncounterPanel(QWidget):
         card.hp_bar = hp_bar
         card.image_label = image_label
         
-        # Add click handler for selection
-        card.mousePressEvent = lambda event: self._select_monster_card(instance.id)
+        # Add click handler for selection (use default argument to capture instance.id)
+        card.mousePressEvent = lambda event, iid=instance.id: self._select_monster_card(iid)
         
         return card
     
@@ -2154,11 +2152,22 @@ class EncounterPanel(QWidget):
     
     def _clear_monster_cards(self):
         """Clear all monster cards from the grid layout."""
-        # Remove all widgets from the monsters layout
-        while self.monsters_layout.count():
-            child = self.monsters_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+        try:
+            # Remove all widgets from the monsters layout
+            widgets_to_delete = []
+            while self.monsters_layout.count():
+                child = self.monsters_layout.takeAt(0)
+                if child and child.widget():
+                    widgets_to_delete.append(child.widget())
+            
+            # Delete widgets after removing from layout
+            for widget in widgets_to_delete:
+                widget.deleteLater()
+                
+        except Exception as e:
+            print(f"Error clearing monster cards: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _apply_damage_to_monster(self, instance_id: str, damage: int):
         """Apply damage to a specific monster instance and update UI."""

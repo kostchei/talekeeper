@@ -58,11 +58,21 @@ class FeatEffectsProcessor:
     
     def get_feat_effects(self, feat_name: str) -> List[FeatEffect]:
         """Get all mechanical effects for a given feat."""
+        effects = []
+        
+        # Handle Tough feat directly (common case)
+        if feat_name == 'Tough':
+            effects.append(FeatEffect(
+                feat_name='Tough',
+                effect_type='hit_points',
+                value={'per_level': 2, 'initial_bonus': True},
+                description='Hit Point maximum increases by 2 per character level'
+            ))
+            return effects
+        
         feat_data = self.feats_data.get(feat_name)
         if not feat_data:
             return []
-        
-        effects = []
         
         # Hit point bonuses (like Tough)
         hp_effect = self._get_hit_point_effect(feat_data)
