@@ -120,10 +120,6 @@ class EncounterPanel(QWidget):
         encounters_layout = QVBoxLayout(self.encounters_tab)
         encounters_layout.setContentsMargins(1, 1, 1, 1)
         
-        # Active encounters list
-        self.encounters_label = QLabel("Active Encounters")
-        self.encounters_label.setObjectName("sectionLabel")
-        encounters_layout.addWidget(self.encounters_label)
         
         # Generate encounter button
         self.generate_encounter_btn = QPushButton("Generate Random Encounter")
@@ -140,20 +136,6 @@ class EncounterPanel(QWidget):
         self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         encounters_layout.addWidget(self.monsters_frame)
         
-        # Combat controls
-        self.combat_controls_frame = QFrame()
-        self.combat_controls_frame.setObjectName("combatControlsFrame")
-        combat_layout = QHBoxLayout(self.combat_controls_frame)
-        
-        self.initiative_btn = QPushButton("Roll Initiative")
-        self.initiative_btn.clicked.connect(lambda: self.encounter_action_requested.emit("initiative"))
-        combat_layout.addWidget(self.initiative_btn)
-        
-        self.start_combat_btn = QPushButton("Start Combat")
-        self.start_combat_btn.clicked.connect(self._start_combat)
-        combat_layout.addWidget(self.start_combat_btn)
-        
-        encounters_layout.addWidget(self.combat_controls_frame)
         
         # --- ENVIRONMENT TAB ---
         self.environment_tab = QWidget()

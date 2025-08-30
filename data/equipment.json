@@ -681,5 +681,46 @@
       "mithral": true,
       "description": "Mithral removes Strength requirements and stealth disadvantage"
     }
+  },
+  {
+    "name": "Backpack",
+    "description": "A leather backpack that can hold up to 30 pounds of gear.",
+    "item_type": "gear",
+    "rarity": "common",
+    "cost_gp": 2,
+    "weight_lb": 5.0,
+    "capacity_lb": 30.0,
+    "gear_properties": {
+      "container": true,
+      "description": "Essential for carrying adventuring equipment"
+    }
+  },
+  {
+    "name": "Potion of Healing",
+    "description": "This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.",
+    "item_type": "consumable",
+    "rarity": "common",
+    "cost_gp": 50,
+    "weight_lb": 0.5,
+    "is_magical": true,
+    "consumable_properties": {
+      "action_type": "bonus_action",
+      "healing": "2d4+2",
+      "single_use": true,
+      "administration_range": 5
+    }
+  },
+  {
+    "name": "Rations (5 days)",
+    "description": "These are required to gain the benefits of a long rest. Each day's ration provides enough sustenance for one creature for 24 hours.",
+    "item_type": "consumable",
+    "rarity": "common", 
+    "cost_gp": 5,
+    "weight_lb": 10.0,
+    "consumable_properties": {
+      "duration_days": 5,
+      "required_for_long_rest": true,
+      "description": "Essential for wilderness survival and proper rest"
+    }
   }
 ]

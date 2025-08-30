@@ -6,7 +6,7 @@
     "language_proficiencies": [],
     "tool_proficiencies": ["Carpenter's Tools", "Vehicles (land)"],
     "starting_equipment": {
-      "equipment": ["carpenter_tools", "shovel", "common_clothes", "belt_pouch"],
+      "equipment": ["carpenter_tools", "shovel", "common_clothes", "belt_pouch", "backpack", "potion_of_healing", "rations_5"],
       "gold": 10
     },
     "feature_name": "Rustic Hospitality",
@@ -19,7 +19,7 @@
     "language_proficiencies": [],
     "tool_proficiencies": ["Gaming Set", "Vehicles (land)"],
     "starting_equipment": {
-      "equipment": ["rank_insignia", "trophy", "deck_of_cards", "common_clothes", "belt_pouch"],
+      "equipment": ["rank_insignia", "trophy", "deck_of_cards", "common_clothes", "belt_pouch", "backpack", "potion_of_healing", "rations_5"],
       "gold": 10
     },
     "feature_name": "Military Rank",
