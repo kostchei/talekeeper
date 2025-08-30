@@ -1643,6 +1643,7 @@ class ActionPanel(QWidget):
             # Check if stored in character context
             weapon_masteries = self.character_context.get('weapon_masteries', [])
         
+        
         if weapon_name not in weapon_masteries:
             return {}
         

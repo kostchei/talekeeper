@@ -773,8 +773,11 @@ class MainWindow(QMainWindow):
         }
     
     def _prepare_character_for_save(self, character_data):
-        """Convert character creation data to format expected by game engine."""
-        # Get data with defaults
+        """Convert character creation data to format expected by game engine.
+        
+        Bulletproof method that preserves ALL character creation data without loss.
+        """
+        # Get data with robust defaults
         species_data = character_data.get('species_data') or {}
         class_data = character_data.get('class_data') or {}
         background_data = character_data.get('background_data') or {}
@@ -785,26 +788,51 @@ class MainWindow(QMainWindow):
         class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
         background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
 
-        # Get selected feats and class features
-        selected_feats = character_data.get('selected_feats', [])
-        class_features = character_data.get('class_features', {})
+        # BULLETPROOF: Extract all selection data with comprehensive fallbacks
+        selected_feats = character_data.get('selected_feats', []) or []
+        class_features = character_data.get('class_features', {}) or {}
+        weapon_masteries = character_data.get('weapon_masteries', []) or []
+        proficiencies = character_data.get('proficiencies', []) or []
+        spells = character_data.get('spells', []) or []
+        equipment_choices = character_data.get('equipment_choices', {}) or {}
         
-        
+        # Build comprehensive save data - every field that might be needed
         save_data = {
+            # Core identity
             'name': character_data.get('name', 'Adventurer'),
             'race_id': race_id,
             'class_id': class_id,
             'background_id': background_id,
+            'level': character_data.get('level', 1),
+            'experience_points': character_data.get('experience_points', 0),
+            
+            # Ability scores
             'strength': ability_scores.get('strength', 10),
             'dexterity': ability_scores.get('dexterity', 10),
             'constitution': ability_scores.get('constitution', 10),
             'intelligence': ability_scores.get('intelligence', 10),
             'wisdom': ability_scores.get('wisdom', 10),
             'charisma': ability_scores.get('charisma', 10),
-            'feats': selected_feats,  # Store selected feats
-            'features': class_features,  # Store class features
-            'level': 1,  # Ensure level is set for feat calculations
+            
+            # Character features - PRESERVE EVERYTHING
+            'feats': selected_feats,
+            'features': class_features,
+            'weapon_masteries': weapon_masteries,
+            'proficiencies': proficiencies,
+            
+            # Spells and magic
+            'spells': spells,
+            'spell_slots': character_data.get('spell_slots', {}),
+            'cantrips': character_data.get('cantrips', []),
+            
+            # Equipment and inventory
+            'equipment_choices': equipment_choices,
+            'starting_equipment': character_data.get('starting_equipment', {}),
+            
+            # Metadata
             'notes': f"Created via character creator. Final scores include racial bonuses.",
+            'subclass_id': character_data.get('subclass_id'),
+            'background_features': character_data.get('background_features', {}),
         }
         
         # Calculate hit points based on class, level, and Constitution

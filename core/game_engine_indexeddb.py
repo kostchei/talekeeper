@@ -327,7 +327,7 @@ class GameEngineIndexedDB:
             slot = SaveSlot(slot_number=save_slot)
             await indexeddb.put('save_slots', slot.to_dict(), slot.id)
         
-        # Create character
+        # Create character - BULLETPROOF: Include ALL possible fields
         character = Character(
             save_slot_id=slot.id,
             name=character_data["name"],
@@ -335,6 +335,8 @@ class GameEngineIndexedDB:
             class_id=character_data["class_id"],
             background_id=character_data["background_id"],
             subclass_id=character_data.get("subclass_id"),
+            level=character_data.get("level", 1),
+            experience_points=character_data.get("experience_points", 0),
             strength=character_data.get("strength", 10),
             dexterity=character_data.get("dexterity", 10),
             constitution=character_data.get("constitution", 10),
@@ -342,6 +344,9 @@ class GameEngineIndexedDB:
             wisdom=character_data.get("wisdom", 10),
             charisma=character_data.get("charisma", 10),
             feats=character_data.get("feats", []),
+            weapon_masteries=character_data.get("weapon_masteries", []),
+            features=character_data.get("features", {}),
+            proficiencies=character_data.get("proficiencies", []),
             notes=character_data.get("notes", ""),
             equipment_main_hand=character_data.get("equipment_main_hand"),
             equipment_off_hand=character_data.get("equipment_off_hand"),
