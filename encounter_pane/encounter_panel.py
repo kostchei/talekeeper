@@ -597,9 +597,7 @@ class EncounterPanel(QWidget):
         self.rest_btn.setEnabled(not combat_mode)
         self.search_btn.setEnabled(exploration_mode)
         
-        # Combat buttons
-        self.initiative_btn.setEnabled(encounter_mode)
-        self.start_combat_btn.setEnabled(encounter_mode)
+        # Combat buttons (removed - combat now starts automatically)
         
         # Environment buttons
         self.climb_btn.setEnabled(not combat_mode)
@@ -915,7 +913,7 @@ class EncounterPanel(QWidget):
         # Add column headers
         abilities_layout.addWidget(QLabel("Stat"), 0, 0)
         abilities_layout.addWidget(QLabel("Point Buy"), 0, 1)
-        abilities_layout.addWidget(QLabel("Racial"), 0, 2) 
+        abilities_layout.addWidget(QLabel("Background"), 0, 2) 
         abilities_layout.addWidget(QLabel("Rolled"), 0, 3)
         abilities_layout.addWidget(QLabel("Final"), 0, 4)
         
@@ -936,11 +934,15 @@ class EncounterPanel(QWidget):
             self.ability_spinboxes[ability_lower] = spinbox
             abilities_layout.addWidget(spinbox, row, 1)
             
-            # Show racial bonus
-            bonus_label = QLabel("+0")
-            bonus_label.setObjectName("racialBonus")
-            self.racial_bonus_labels[ability_lower] = bonus_label
-            abilities_layout.addWidget(bonus_label, row, 2)
+            # Show background bonus (D&D 2024)
+            bonus_spinbox = QSpinBox()
+            bonus_spinbox.setMinimum(0)
+            bonus_spinbox.setMaximum(2)
+            bonus_spinbox.setValue(0)
+            bonus_spinbox.setObjectName("backgroundBonus")
+            bonus_spinbox.valueChanged.connect(self._update_background_bonuses)
+            self.racial_bonus_labels[ability_lower] = bonus_spinbox
+            abilities_layout.addWidget(bonus_spinbox, row, 2)
             
             # Show rolled score (4d6 drop lowest)
             rolled_label = QLabel("-")
@@ -1526,23 +1528,31 @@ class EncounterPanel(QWidget):
         
         self.bg_species_description.setPlainText(description)
     
-    def _update_racial_bonuses(self):
-        """Update racial bonuses display in abilities step."""
-        if 'species' not in self.character_creation_data:
-            return
-        
-        bonuses = self.character_creation_data['species'].get('ability_score_increases', {})
-        
-        # Update bonus and final score labels
+    def _update_background_bonuses(self):
+        """D&D 2024: Background provides up to 3 points distributed as +1/+1/+1 or +2/+1."""
+        # Calculate total points used
+        total_points = 0
         for ability in self.ability_spinboxes:
-            bonus = bonuses.get(ability, 0)
-            base_score = self.ability_spinboxes[ability].value()
-            final_score = base_score + bonus
+            bonus_spinbox = self.racial_bonus_labels[ability]
+            total_points += bonus_spinbox.value()
+        
+        # Disable spinboxes if we've used all 3 points
+        for ability in self.ability_spinboxes:
+            bonus_spinbox = self.racial_bonus_labels[ability]
+            current_value = bonus_spinbox.value()
             
-            # Update displays
-            bonus_text = f"+{bonus}" if bonus > 0 else f"{bonus}" if bonus < 0 else "+0"
-            self.racial_bonus_labels[ability].setText(bonus_text)
-            self.final_score_labels[ability].setText(str(final_score))
+            # If at max points (3), disable increasing any more
+            if total_points >= 3 and current_value == 0:
+                bonus_spinbox.setEnabled(False)
+            else:
+                bonus_spinbox.setEnabled(True)
+        
+        # Update final scores
+        self._update_final_scores()
+    
+    def _update_racial_bonuses(self):
+        """Legacy method - now calls background bonuses."""
+        self._update_background_bonuses()
     
     def _update_point_buy(self):
         """Update point buy calculations."""
@@ -1582,18 +1592,13 @@ class EncounterPanel(QWidget):
         self._update_final_scores()
     
     def _update_final_scores(self):
-        """Update final ability scores using higher of point buy or rolled + racial bonuses."""
+        """Update final ability scores with point buy/rolled + background bonuses (D&D 2024)."""
         if not hasattr(self, 'racial_bonus_labels'):
             return
             
-        bonuses = {}
-        if 'species' in self.character_creation_data:
-            bonuses = self.character_creation_data['species'].get('ability_score_increases', {})
-        
         rolled_scores = self.character_creation_data.get('rolled_scores', {})
         
         for ability in self.ability_spinboxes:
-            racial_bonus = bonuses.get(ability, 0)
             point_buy_score = self.ability_spinboxes[ability].value()
             
             # Get rolled score if available
@@ -1601,9 +1606,12 @@ class EncounterPanel(QWidget):
             if ability in rolled_scores:
                 rolled_score = rolled_scores[ability]['total']
             
-            # Take higher of point buy or rolled, then add racial bonus
+            # Get background bonus
+            background_bonus = self.racial_bonus_labels[ability].value()
+            
+            # D&D 2024: Take higher of point buy or rolled, then add background bonus
             base_score = max(point_buy_score, rolled_score)
-            final_score = base_score + racial_bonus
+            final_score = base_score + background_bonus
             
             self.final_score_labels[ability].setText(str(final_score))
     
@@ -1635,15 +1643,18 @@ class EncounterPanel(QWidget):
     
     def _finish_character_creation(self):
         """Complete character creation and emit the character data."""
-        # Calculate final ability scores using "take higher" logic
+        # Calculate final ability scores with background bonuses (D&D 2024)
         final_ability_scores = {}
         rolled_scores = self.character_creation_data.get('rolled_scores', {})
         
         for ability, spinbox in self.ability_spinboxes.items():
             point_buy_score = spinbox.value()
             rolled_score = rolled_scores.get(ability, {}).get('total', 0)
-            # Take higher of the two
-            final_ability_scores[ability] = max(point_buy_score, rolled_score)
+            background_bonus = self.racial_bonus_labels[ability].value()
+            
+            # Take higher of point buy or rolled, then add background bonus
+            base_score = max(point_buy_score, rolled_score)
+            final_ability_scores[ability] = base_score + background_bonus
         
         # Collect selected feats
         selected_feats = []

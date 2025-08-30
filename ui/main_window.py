@@ -738,12 +738,8 @@ class MainWindow(QMainWindow):
         species_data = character_data.get('species_data') or {}
         class_data = character_data.get('class_data') or {}
         
-        # Apply racial bonuses
-        racial_bonuses = species_data.get('ability_score_increases', {})
-        final_scores = {}
-        for ability, base_score in ability_scores.items():
-            bonus = racial_bonuses.get(ability, 0)
-            final_scores[ability] = base_score + bonus
+        # D&D 2024: No racial bonuses to ability scores
+        final_scores = ability_scores.copy()
         
         # Calculate derived stats
         con_mod = (final_scores.get('constitution', 10) - 10) // 2
@@ -830,7 +826,7 @@ class MainWindow(QMainWindow):
             'starting_equipment': character_data.get('starting_equipment', {}),
             
             # Metadata
-            'notes': f"Created via character creator. Final scores include racial bonuses.",
+            'notes': f"Created via character creator. D&D 2024 rules applied.",
             'subclass_id': character_data.get('subclass_id'),
             'background_features': character_data.get('background_features', {}),
         }
