@@ -69,6 +69,20 @@ class Character:
     death_saves_failures: int = 0
     conditions: List[str] = field(default_factory=list)
     
+    # Resource Tracking
+    spell_slots_current: Dict[int, int] = field(default_factory=dict)  # {level: current_slots}
+    spell_slots_max: Dict[int, int] = field(default_factory=dict)      # {level: max_slots}
+    class_resources: Dict[str, int] = field(default_factory=dict)      # {resource_name: current}
+    class_resources_max: Dict[str, int] = field(default_factory=dict)  # {resource_name: max}
+    
+    # Rest Tracking
+    last_short_rest: Optional[str] = None  # ISO timestamp
+    last_long_rest: Optional[str] = None   # ISO timestamp
+    
+    # Ability Usage
+    ability_uses: Dict[str, int] = field(default_factory=dict)  # {ability_name: uses_remaining}
+    ability_uses_max: Dict[str, int] = field(default_factory=dict)  # {ability_name: max_uses}
+    
     # Proficiencies and Features
     proficiencies: List[str] = field(default_factory=list)  # Skills, tools, languages
     features: Dict[str, Any] = field(default_factory=dict)  # Class and racial features
@@ -127,6 +141,12 @@ class Character:
             'conditions': [],
             'proficiencies': [],
             'features': {},
+            'spell_slots_current': {},
+            'spell_slots_max': {},
+            'class_resources': {},
+            'class_resources_max': {},
+            'ability_uses': {},
+            'ability_uses_max': {},
             'created_at': datetime.now().isoformat()
         }
         

@@ -120,6 +120,20 @@ class GameEngineIndexedDB:
             feats=character.feats or [],
             weapon_masteries=character.weapon_masteries or [],
             
+            # Resource Tracking
+            spell_slots_current=character.spell_slots_current or {},
+            spell_slots_max=character.spell_slots_max or {},
+            class_resources=character.class_resources or {},
+            class_resources_max=character.class_resources_max or {},
+            
+            # Rest Tracking
+            last_short_rest=character.last_short_rest,
+            last_long_rest=character.last_long_rest,
+            
+            # Ability Usage
+            ability_uses=character.ability_uses or {},
+            ability_uses_max=character.ability_uses_max or {},
+            
             # Equipment
             equipment_main_hand=character.equipment_main_hand,
             equipment_off_hand=character.equipment_off_hand,

@@ -829,6 +829,14 @@ class MainWindow(QMainWindow):
             'notes': f"Created via character creator. D&D 2024 rules applied.",
             'subclass_id': character_data.get('subclass_id'),
             'background_features': character_data.get('background_features', {}),
+            
+            # Resource tracking - initialize Fighter abilities
+            'spell_slots_current': {},
+            'spell_slots_max': {},
+            'class_resources': {},
+            'class_resources_max': {},
+            'ability_uses': {},
+            'ability_uses_max': {},
         }
         
         # Calculate hit points based on class, level, and Constitution
@@ -857,6 +865,18 @@ class MainWindow(QMainWindow):
             'hit_dice_max': 1,  # Level 1 = 1 hit die
             'hit_dice_current': 1
         })
+        
+        # Initialize class-specific abilities
+        level = character_data.get('level', 1)
+        if class_name == 'Fighter':
+            # Second Wind - available at level 1
+            save_data['ability_uses']['Second Wind'] = 1  # Start with 1 use
+            save_data['ability_uses_max']['Second Wind'] = 1  # 1 use per short rest
+            
+            # Action Surge - available at level 2+
+            if level >= 2:
+                save_data['ability_uses']['Action Surge'] = 1  # Start with 1 use
+                save_data['ability_uses_max']['Action Surge'] = 1  # 1 use per short rest
         
         # Apply feat effects to character stats
         if selected_feats:

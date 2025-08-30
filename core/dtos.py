@@ -75,6 +75,20 @@ class CharacterDTO:
     feats: List[str]
     weapon_masteries: List[str]
     
+    # Resource Tracking
+    spell_slots_current: Dict[int, int]
+    spell_slots_max: Dict[int, int]
+    class_resources: Dict[str, int]
+    class_resources_max: Dict[str, int]
+    
+    # Rest Tracking
+    last_short_rest: Optional[str]
+    last_long_rest: Optional[str]
+    
+    # Ability Usage
+    ability_uses: Dict[str, int]
+    ability_uses_max: Dict[str, int]
+    
     # Equipment (item IDs)
     equipment_main_hand: Optional[str]
     equipment_off_hand: Optional[str]

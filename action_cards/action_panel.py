@@ -243,6 +243,7 @@ class ActionPanel(QWidget):
                 del self.action_cards[action_id]
         
         # Create Second Wind card if character has it
+        print(f"DEBUG: Character features for Second Wind check: {list(self.character_features.keys())}")
         if 'Second Wind' in self.character_features:
             feature = self.character_features['Second Wind']
             level = self.character_context.get('level', 1)
@@ -315,8 +316,9 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
             
-            # Set cooldown (would be until short rest in real game)
-            self.action_cooldowns[action_type] = 10
+            # Use ability - decrement uses remaining
+            print("DEBUG: Using Second Wind")
+            self._use_ability("Second Wind")
         
         elif action_type == ActionType.NICK_MASTERY:
             # Find parent with log_panel for logging
@@ -585,11 +587,10 @@ class ActionPanel(QWidget):
                     return
             else:
                 # Non-attack actions proceed normally
-                # Start cooldown if applicable
-                cooldown = self._get_action_cooldown(action_type)
-                if cooldown > 0:
-                    self.action_cooldowns[action_type] = cooldown
-                    self.action_cards[action_type].set_cooldown(cooldown)
+                # Use ability if it's a limited-use ability
+                if action_type in [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]:
+                    ability_name = "Second Wind" if action_type == ActionType.SECOND_WIND else "Action Surge"
+                    self._use_ability(ability_name)
                 
                 # Emit signal
                 self.action_triggered.emit(action_type, full_context)
@@ -677,11 +678,10 @@ class ActionPanel(QWidget):
             # Log weapon mastery effects
             self._log_weapon_mastery_effects(mastery_effects)
         
-        # Start cooldown and update action economy
-        cooldown = self._get_action_cooldown(action_type)
-        if cooldown > 0:
-            self.action_cooldowns[action_type] = cooldown
-            self.action_cards[action_type].set_cooldown(cooldown)
+        # Use ability if it's a limited-use ability
+        if action_type in [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]:
+            ability_name = "Second Wind" if action_type == ActionType.SECOND_WIND else "Action Surge"
+            self._use_ability(ability_name)
         
         self._update_action_economy(action_type)
         
@@ -1394,7 +1394,7 @@ class ActionPanel(QWidget):
     
     def _is_action_available(self, action_type: ActionType) -> bool:
         """Check if an action is currently available."""
-        # Check cooldowns
+        # Check cooldowns (original system)
         if action_type in self.action_cooldowns and self.action_cooldowns[action_type] > 0:
             return False
         
@@ -1428,11 +1428,83 @@ class ActionPanel(QWidget):
         """Get reasons why an action is unavailable."""
         reasons = []
         
-        if action_type in self.action_cooldowns and self.action_cooldowns[action_type] > 0:
-            turns = self.action_cooldowns[action_type]
-            reasons.append(f"Cooldown ({turns} turn{'s' if turns != 1 else ''})")
+        # Check ability uses for rest-based abilities
+        if action_type == ActionType.SECOND_WIND:
+            uses = self._get_ability_uses_remaining("Second Wind")
+            if uses <= 0:
+                reasons.append("No uses remaining (requires Short Rest)")
+        elif action_type == ActionType.ACTION_SURGE:
+            uses = self._get_ability_uses_remaining("Action Surge")
+            if uses <= 0:
+                reasons.append("No uses remaining (requires Short Rest)")
         
         return reasons
+    
+    def _get_ability_uses_remaining(self, ability_name: str) -> int:
+        """Get remaining uses for an ability."""
+        # Get current character from parent
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'game_engine'):
+                game_engine = parent.game_engine
+                character = game_engine.current_character
+                if character:
+                    uses = character.ability_uses.get(ability_name, 0)
+                    return uses
+                break
+            parent = parent.parent()
+        return 0
+    
+    def _use_ability(self, ability_name: str):
+        """Use an ability - decrement uses remaining."""
+        print(f"DEBUG: _use_ability called for {ability_name}")
+        # Get current character from parent
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'game_engine'):
+                game_engine = parent.game_engine
+                character = game_engine.current_character
+                if character:
+                    print(f"DEBUG: Found character, checking {ability_name}")
+                    if not hasattr(character, 'ability_uses'):
+                        print(f"DEBUG: Character missing ability_uses field, initializing...")
+                        character.ability_uses = {}
+                        character.ability_uses_max = {}
+                    
+                    # Initialize Fighter abilities for existing characters that don't have them
+                    if ability_name == "Second Wind" and ability_name not in character.ability_uses:
+                        print(f"DEBUG: Initializing Second Wind for existing character")
+                        character.ability_uses["Second Wind"] = 1
+                        character.ability_uses_max["Second Wind"] = 1
+                    elif ability_name == "Action Surge" and ability_name not in character.ability_uses:
+                        print(f"DEBUG: Initializing Action Surge for existing character")
+                        character.ability_uses["Action Surge"] = 1  
+                        character.ability_uses_max["Action Surge"] = 1
+                    
+                    current_uses = character.ability_uses.get(ability_name, 0)
+                    print(f"DEBUG: Current uses of {ability_name}: {current_uses}")
+                    
+                    if current_uses > 0:
+                        character.ability_uses[ability_name] = current_uses - 1
+                        print(f"DEBUG: Decremented {ability_name} to {character.ability_uses[ability_name]}")
+                        # Save character (save the whole game state)
+                        try:
+                            game_engine.save_game_sync()
+                            print(f"DEBUG: Game saved successfully")
+                        except Exception as e:
+                            print(f"DEBUG: Save failed: {e}")
+                        # Update action card display
+                        self._refresh_action_availability()
+                    else:
+                        print(f"DEBUG: {ability_name} has no uses remaining ({current_uses})")
+                break
+            parent = parent.parent()
+    
+    def _refresh_action_availability(self):
+        """Refresh the availability state of all action cards."""
+        for action_type, card in self.action_cards.items():
+            available = self._is_action_available(action_type)
+            card.set_available(available)
     
     def _get_action_cooldown(self, action_type: ActionType) -> int:
         """Get the cooldown turns for an action."""
@@ -1507,8 +1579,20 @@ class ActionPanel(QWidget):
         # Refresh visible cards
         self._update_visible_cards()
     
+    def _clear_feature_cards(self):
+        """Clear all feature-based action cards (like Second Wind)."""
+        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]
+        
+        for action_type in feature_action_types:
+            if action_type in self.action_cards:
+                self.action_cards[action_type].deleteLater()
+                del self.action_cards[action_type]
+    
     def load_character_features(self, character_features: Dict[str, Any]):
         """Load character features and create feature-based action cards."""
+        # Clear existing feature cards first
+        self._clear_feature_cards()
+        
         self.character_features = character_features or {}
         
         # Create feature-based action cards

@@ -1014,6 +1014,12 @@ class EquipmentPanel(QWidget):
         
         # Load equipped items
         self.equipped_items.clear()
+        
+        # Clear all slot widgets first
+        for slot_widget in self.slot_widgets.values():
+            slot_widget.clear_item()
+        
+        # Then load new equipped items
         for slot_name, item in equipped_items.items():
             try:
                 slot = EquipmentSlot(slot_name)

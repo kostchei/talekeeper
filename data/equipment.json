@@ -722,5 +722,18 @@
       "required_for_long_rest": true,
       "description": "Essential for wilderness survival and proper rest"
     }
+  },
+  {
+    "name": "Empty Bottle",
+    "description": "A glass bottle that once contained a potion. Can be sold or refilled by an alchemist.",
+    "item_type": "miscellaneous",
+    "rarity": "common",
+    "cost_gp": 0.01,
+    "weight_lb": 0.25,
+    "misc_properties": {
+      "container": true,
+      "sellable": true,
+      "description": "Leftover from consumed potions"
+    }
   }
 ]

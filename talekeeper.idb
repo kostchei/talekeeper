@@ -1471,7 +1471,7 @@
           "subclass_id": null,
           "background_id": "Soldier",
           "level": 1,
-          "experience_points": 0,
+          "experience_points": 225,
           "strength": 16,
           "dexterity": 17,
           "constitution": 15,
@@ -1489,6 +1489,18 @@
           "death_saves_successes": 0,
           "death_saves_failures": 0,
           "conditions": [],
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "last_short_rest": "2025-08-30T23:53:26.011543",
+          "last_long_rest": null,
+          "ability_uses": {
+            "Second Wind": 0
+          },
+          "ability_uses_max": {
+            "Second Wind": 1
+          },
           "proficiencies": [],
           "features": {
             "Second Wind": {
@@ -1624,7 +1636,7 @@
           "equipment_armor": "Chain Mail",
           "equipment_shield": null,
           "created_at": "2025-08-30T21:36:48.351516",
-          "updated_at": null,
+          "updated_at": "2025-08-30T23:53:58.741152",
           "notes": "Created via character creator. Final scores include racial bonuses."
         },
         "ec92c870-f384-4dfe-b8fb-114118558148": {
@@ -2293,7 +2305,593 @@
           "equipment_shield": null,
           "created_at": "2025-08-30T22:17:34.118839",
           "updated_at": null,
-          "notes": "Created via character creator. Final scores include racial bonuses."
+          "notes": "Created via character creator. Final scores include racial bonuses.",
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "ability_uses": {},
+          "ability_uses_max": {}
+        },
+        "1c59143e-a4a7-4c4e-99a7-0b240d76c78c": {
+          "id": "1c59143e-a4a7-4c4e-99a7-0b240d76c78c",
+          "save_slot_id": "e35071a4-00dc-405d-8951-1261c254f4b9",
+          "name": "Adventurer8",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 50,
+          "strength": 16,
+          "dexterity": 17,
+          "constitution": 16,
+          "intelligence": 13,
+          "wisdom": 11,
+          "charisma": 9,
+          "armor_class": 16,
+          "hit_points_max": 15,
+          "hit_points_current": 15,
+          "hit_points_temporary": 0,
+          "max_hit_points": 15,
+          "current_hit_points": 15,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "last_short_rest": "2025-08-30T23:30:21.926426",
+          "last_long_rest": null,
+          "ability_uses": {},
+          "ability_uses_max": {},
+          "proficiencies": [],
+          "features": {
+            "Second Wind": {
+              "description": "You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.",
+              "type": "bonus_action",
+              "usage": "short_rest",
+              "mechanics": {
+                "action_type": "bonus_action",
+                "healing": "1d10 + fighter_level",
+                "recharge": "short_rest"
+              },
+              "level_gained": 1
+            },
+            "Weapon Mastery": {
+              "description": "Your training with weapons allows you to use the mastery property of a number of weapons. Whenever you finish a long rest, you can change the weapons you have mastery with.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "count": 3,
+                "options": [
+                  {
+                    "name": "Cleave",
+                    "description": "If you hit a creature with a melee attack using this weapon, you can make a melee attack with the weapon against a second creature within 5 feet of the first that is also within your reach."
+                  },
+                  {
+                    "name": "Graze",
+                    "description": "If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used to make the attack roll."
+                  },
+                  {
+                    "name": "Nick",
+                    "description": "When you make the Attack action and attack with only this weapon, you can make one additional attack with the weapon as part of the same action."
+                  },
+                  {
+                    "name": "Push",
+                    "description": "If you hit a creature with this weapon, you can push the creature up to 10 feet away from you if it is no more than one size larger than you."
+                  },
+                  {
+                    "name": "Sap",
+                    "description": "If you hit a creature with this weapon, that creature has disadvantage on its next attack roll before the start of your next turn."
+                  },
+                  {
+                    "name": "Slow",
+                    "description": "If you hit a creature with this weapon, you can reduce the creature's speed by 10 feet until the start of your next turn."
+                  },
+                  {
+                    "name": "Topple",
+                    "description": "If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC = 8 + your proficiency bonus + the ability modifier used for the attack roll). On a failed save, the creature has the prone condition."
+                  },
+                  {
+                    "name": "Vex",
+                    "description": "If you hit a creature with this weapon, you have advantage on your next attack roll against that creature before the end of your next turn."
+                  }
+                ]
+              },
+              "level_gained": 1
+            },
+            "Fighting Style": {
+              "description": "You adopt a particular style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "options": [
+                  {
+                    "name": "Archery",
+                    "description": "You gain a +2 bonus to attack rolls you make with ranged weapons.",
+                    "effect": {
+                      "attack_bonus": {
+                        "weapon_type": "ranged",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Defense",
+                    "description": "While you are wearing armor, you gain a +1 bonus to AC.",
+                    "effect": {
+                      "ac_bonus": 1,
+                      "requires_armor": true
+                    }
+                  },
+                  {
+                    "name": "Dueling",
+                    "description": "When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.",
+                    "effect": {
+                      "damage_bonus": {
+                        "condition": "one_handed_melee",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Great Weapon Fighting",
+                    "description": "When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.",
+                    "effect": {
+                      "reroll_damage": {
+                        "weapon_type": "two_handed",
+                        "reroll_on": [
+                          1,
+                          2
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Protection",
+                    "description": "When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.",
+                    "effect": {
+                      "reaction": "impose_disadvantage",
+                      "requires_shield": true
+                    }
+                  },
+                  {
+                    "name": "Two-Weapon Fighting",
+                    "description": "When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.",
+                    "effect": {
+                      "two_weapon_bonus": "ability_modifier"
+                    }
+                  }
+                ]
+              },
+              "level_gained": 1
+            }
+          },
+          "feats": [
+            "Tough",
+            "Great Weapon Fighting"
+          ],
+          "weapon_masteries": [
+            "Scimitar",
+            "Greataxe",
+            "Greatsword"
+          ],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T23:21:14.567793",
+          "updated_at": "2025-08-30T23:37:47.169988",
+          "notes": "Created via character creator. D&D 2024 rules applied."
+        },
+        "4185bf4f-83cf-4bc6-af38-3611d0188648": {
+          "id": "4185bf4f-83cf-4bc6-af38-3611d0188648",
+          "save_slot_id": "917bd801-607e-42bd-9d9a-e85811ca3500",
+          "name": "rogue",
+          "race_id": "Dwarf",
+          "class_id": "rogue",
+          "subclass_id": null,
+          "background_id": "Farmer",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 11,
+          "dexterity": 15,
+          "constitution": 15,
+          "intelligence": 8,
+          "wisdom": 16,
+          "charisma": 16,
+          "armor_class": 12,
+          "hit_points_max": 12,
+          "hit_points_current": 12,
+          "hit_points_temporary": 0,
+          "max_hit_points": 12,
+          "current_hit_points": 12,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "last_short_rest": null,
+          "last_long_rest": null,
+          "ability_uses": {},
+          "ability_uses_max": {},
+          "proficiencies": [],
+          "features": {},
+          "feats": [
+            "Tough"
+          ],
+          "weapon_masteries": [],
+          "equipment_main_hand": null,
+          "equipment_off_hand": null,
+          "equipment_armor": null,
+          "equipment_shield": null,
+          "created_at": "2025-08-30T23:33:57.552453",
+          "updated_at": null,
+          "notes": "Created via character creator. D&D 2024 rules applied."
+        },
+        "fdeee337-7f8b-4600-a1ec-847c36960a58": {
+          "id": "fdeee337-7f8b-4600-a1ec-847c36960a58",
+          "save_slot_id": "64fa88a5-3282-4d1c-b28e-03d6f516bf42",
+          "name": "Adventurer",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Farmer",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 9,
+          "dexterity": 14,
+          "constitution": 8,
+          "intelligence": 8,
+          "wisdom": 13,
+          "charisma": 14,
+          "armor_class": 16,
+          "hit_points_max": 11,
+          "hit_points_current": 11,
+          "hit_points_temporary": 0,
+          "max_hit_points": 11,
+          "current_hit_points": 11,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "last_short_rest": null,
+          "last_long_rest": null,
+          "ability_uses": {},
+          "ability_uses_max": {},
+          "proficiencies": [],
+          "features": {
+            "Second Wind": {
+              "description": "You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.",
+              "type": "bonus_action",
+              "usage": "short_rest",
+              "mechanics": {
+                "action_type": "bonus_action",
+                "healing": "1d10 + fighter_level",
+                "recharge": "short_rest"
+              },
+              "level_gained": 1
+            },
+            "Weapon Mastery": {
+              "description": "Your training with weapons allows you to use the mastery property of a number of weapons. Whenever you finish a long rest, you can change the weapons you have mastery with.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "count": 3,
+                "options": [
+                  {
+                    "name": "Cleave",
+                    "description": "If you hit a creature with a melee attack using this weapon, you can make a melee attack with the weapon against a second creature within 5 feet of the first that is also within your reach."
+                  },
+                  {
+                    "name": "Graze",
+                    "description": "If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used to make the attack roll."
+                  },
+                  {
+                    "name": "Nick",
+                    "description": "When you make the Attack action and attack with only this weapon, you can make one additional attack with the weapon as part of the same action."
+                  },
+                  {
+                    "name": "Push",
+                    "description": "If you hit a creature with this weapon, you can push the creature up to 10 feet away from you if it is no more than one size larger than you."
+                  },
+                  {
+                    "name": "Sap",
+                    "description": "If you hit a creature with this weapon, that creature has disadvantage on its next attack roll before the start of your next turn."
+                  },
+                  {
+                    "name": "Slow",
+                    "description": "If you hit a creature with this weapon, you can reduce the creature's speed by 10 feet until the start of your next turn."
+                  },
+                  {
+                    "name": "Topple",
+                    "description": "If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC = 8 + your proficiency bonus + the ability modifier used for the attack roll). On a failed save, the creature has the prone condition."
+                  },
+                  {
+                    "name": "Vex",
+                    "description": "If you hit a creature with this weapon, you have advantage on your next attack roll against that creature before the end of your next turn."
+                  }
+                ]
+              },
+              "level_gained": 1
+            },
+            "Fighting Style": {
+              "description": "You adopt a particular style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "options": [
+                  {
+                    "name": "Archery",
+                    "description": "You gain a +2 bonus to attack rolls you make with ranged weapons.",
+                    "effect": {
+                      "attack_bonus": {
+                        "weapon_type": "ranged",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Defense",
+                    "description": "While you are wearing armor, you gain a +1 bonus to AC.",
+                    "effect": {
+                      "ac_bonus": 1,
+                      "requires_armor": true
+                    }
+                  },
+                  {
+                    "name": "Dueling",
+                    "description": "When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.",
+                    "effect": {
+                      "damage_bonus": {
+                        "condition": "one_handed_melee",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Great Weapon Fighting",
+                    "description": "When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.",
+                    "effect": {
+                      "reroll_damage": {
+                        "weapon_type": "two_handed",
+                        "reroll_on": [
+                          1,
+                          2
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Protection",
+                    "description": "When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.",
+                    "effect": {
+                      "reaction": "impose_disadvantage",
+                      "requires_shield": true
+                    }
+                  },
+                  {
+                    "name": "Two-Weapon Fighting",
+                    "description": "When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.",
+                    "effect": {
+                      "two_weapon_bonus": "ability_modifier"
+                    }
+                  }
+                ]
+              },
+              "level_gained": 1
+            }
+          },
+          "feats": [
+            "Tough",
+            "Great Weapon Fighting"
+          ],
+          "weapon_masteries": [
+            "Scimitar",
+            "Greataxe",
+            "Greatsword"
+          ],
+          "equipment_main_hand": "Rapier",
+          "equipment_off_hand": null,
+          "equipment_armor": "Breastplate",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T23:43:18.461165",
+          "updated_at": null,
+          "notes": "Created via character creator. D&D 2024 rules applied."
+        },
+        "7b4527b0-c047-40f6-a9dc-5f029d8e687b": {
+          "id": "7b4527b0-c047-40f6-a9dc-5f029d8e687b",
+          "save_slot_id": "e8102970-8c0b-430f-a843-a5976c723099",
+          "name": "Advent",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 17,
+          "dexterity": 16,
+          "constitution": 17,
+          "intelligence": 16,
+          "wisdom": 11,
+          "charisma": 8,
+          "armor_class": 16,
+          "hit_points_max": 15,
+          "hit_points_current": 15,
+          "hit_points_temporary": 0,
+          "max_hit_points": 15,
+          "current_hit_points": 15,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "spell_slots_current": {},
+          "spell_slots_max": {},
+          "class_resources": {},
+          "class_resources_max": {},
+          "last_short_rest": null,
+          "last_long_rest": null,
+          "ability_uses": {},
+          "ability_uses_max": {},
+          "proficiencies": [],
+          "features": {
+            "Second Wind": {
+              "description": "You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.",
+              "type": "bonus_action",
+              "usage": "short_rest",
+              "mechanics": {
+                "action_type": "bonus_action",
+                "healing": "1d10 + fighter_level",
+                "recharge": "short_rest"
+              },
+              "level_gained": 1
+            },
+            "Weapon Mastery": {
+              "description": "Your training with weapons allows you to use the mastery property of a number of weapons. Whenever you finish a long rest, you can change the weapons you have mastery with.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "count": 3,
+                "options": [
+                  {
+                    "name": "Cleave",
+                    "description": "If you hit a creature with a melee attack using this weapon, you can make a melee attack with the weapon against a second creature within 5 feet of the first that is also within your reach."
+                  },
+                  {
+                    "name": "Graze",
+                    "description": "If your attack roll with this weapon misses a creature, you can deal damage to that creature equal to the ability modifier you used to make the attack roll."
+                  },
+                  {
+                    "name": "Nick",
+                    "description": "When you make the Attack action and attack with only this weapon, you can make one additional attack with the weapon as part of the same action."
+                  },
+                  {
+                    "name": "Push",
+                    "description": "If you hit a creature with this weapon, you can push the creature up to 10 feet away from you if it is no more than one size larger than you."
+                  },
+                  {
+                    "name": "Sap",
+                    "description": "If you hit a creature with this weapon, that creature has disadvantage on its next attack roll before the start of your next turn."
+                  },
+                  {
+                    "name": "Slow",
+                    "description": "If you hit a creature with this weapon, you can reduce the creature's speed by 10 feet until the start of your next turn."
+                  },
+                  {
+                    "name": "Topple",
+                    "description": "If you hit a creature with this weapon, you can force the creature to make a Constitution saving throw (DC = 8 + your proficiency bonus + the ability modifier used for the attack roll). On a failed save, the creature has the prone condition."
+                  },
+                  {
+                    "name": "Vex",
+                    "description": "If you hit a creature with this weapon, you have advantage on your next attack roll against that creature before the end of your next turn."
+                  }
+                ]
+              },
+              "level_gained": 1
+            },
+            "Fighting Style": {
+              "description": "You adopt a particular style of fighting as your specialty. Choose one of the following options. You can't take a Fighting Style option more than once, even if you later get to choose again.",
+              "type": "passive",
+              "usage": "permanent",
+              "mechanics": {
+                "type": "choice",
+                "options": [
+                  {
+                    "name": "Archery",
+                    "description": "You gain a +2 bonus to attack rolls you make with ranged weapons.",
+                    "effect": {
+                      "attack_bonus": {
+                        "weapon_type": "ranged",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Defense",
+                    "description": "While you are wearing armor, you gain a +1 bonus to AC.",
+                    "effect": {
+                      "ac_bonus": 1,
+                      "requires_armor": true
+                    }
+                  },
+                  {
+                    "name": "Dueling",
+                    "description": "When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.",
+                    "effect": {
+                      "damage_bonus": {
+                        "condition": "one_handed_melee",
+                        "bonus": 2
+                      }
+                    }
+                  },
+                  {
+                    "name": "Great Weapon Fighting",
+                    "description": "When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.",
+                    "effect": {
+                      "reroll_damage": {
+                        "weapon_type": "two_handed",
+                        "reroll_on": [
+                          1,
+                          2
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "Protection",
+                    "description": "When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.",
+                    "effect": {
+                      "reaction": "impose_disadvantage",
+                      "requires_shield": true
+                    }
+                  },
+                  {
+                    "name": "Two-Weapon Fighting",
+                    "description": "When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.",
+                    "effect": {
+                      "two_weapon_bonus": "ability_modifier"
+                    }
+                  }
+                ]
+              },
+              "level_gained": 1
+            }
+          },
+          "feats": [
+            "Tough",
+            "Great Weapon Fighting"
+          ],
+          "weapon_masteries": [
+            "Scimitar",
+            "Greataxe",
+            "Greatsword"
+          ],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T23:53:03.171816",
+          "updated_at": null,
+          "notes": "Created via character creator. D&D 2024 rules applied."
         }
       },
       "key_path": "id",
@@ -2358,13 +2956,13 @@
           "slot_number": 5,
           "is_occupied": true,
           "save_name": "Achillies - Level 1",
-          "last_played": "2025-08-30T21:41:27.795841",
+          "last_played": "2025-08-30T23:53:58.735145",
           "play_time_minutes": 0,
           "character_name": "Achillies",
           "character_level": 1,
           "current_location": "Starting Town",
           "created_at": "2025-08-29T15:55:30.276365",
-          "updated_at": "2025-08-30T21:36:48.360592"
+          "updated_at": "2025-08-30T23:53:58.735145"
         },
         "376edde7-a57d-4b16-8937-979b7c8380ab": {
           "id": "376edde7-a57d-4b16-8937-979b7c8380ab",
@@ -2410,13 +3008,65 @@
           "slot_number": 9,
           "is_occupied": true,
           "save_name": "Adventurer5 - Level 1",
-          "last_played": "2025-08-30T22:25:32.216217",
+          "last_played": "2025-08-30T23:20:16.786728",
           "play_time_minutes": 0,
           "character_name": "Adventurer5",
           "character_level": 1,
           "current_location": "Starting Town",
           "created_at": "2025-08-30T22:17:34.114841",
           "updated_at": "2025-08-30T22:17:34.129839"
+        },
+        "e35071a4-00dc-405d-8951-1261c254f4b9": {
+          "id": "e35071a4-00dc-405d-8951-1261c254f4b9",
+          "slot_number": 10,
+          "is_occupied": true,
+          "save_name": "Adventurer8 - Level 1",
+          "last_played": "2025-08-30T23:38:03.708498",
+          "play_time_minutes": 0,
+          "character_name": "Adventurer8",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-30T23:21:14.561437",
+          "updated_at": "2025-08-30T23:37:47.161646"
+        },
+        "917bd801-607e-42bd-9d9a-e85811ca3500": {
+          "id": "917bd801-607e-42bd-9d9a-e85811ca3500",
+          "slot_number": 11,
+          "is_occupied": true,
+          "save_name": "rogue - Level 1",
+          "last_played": "2025-08-30T23:46:09.663696",
+          "play_time_minutes": 0,
+          "character_name": "rogue",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-30T23:33:57.541814",
+          "updated_at": "2025-08-30T23:33:57.562955"
+        },
+        "64fa88a5-3282-4d1c-b28e-03d6f516bf42": {
+          "id": "64fa88a5-3282-4d1c-b28e-03d6f516bf42",
+          "slot_number": 12,
+          "is_occupied": true,
+          "save_name": "Adventurer - Level 1",
+          "last_played": "2025-08-30T23:43:18.474105",
+          "play_time_minutes": 0,
+          "character_name": "Adventurer",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-30T23:43:18.453891",
+          "updated_at": "2025-08-30T23:43:18.474105"
+        },
+        "e8102970-8c0b-430f-a843-a5976c723099": {
+          "id": "e8102970-8c0b-430f-a843-a5976c723099",
+          "slot_number": 13,
+          "is_occupied": true,
+          "save_name": "Advent - Level 1",
+          "last_played": "2025-08-30T23:53:03.184461",
+          "play_time_minutes": 0,
+          "character_name": "Advent",
+          "character_level": 1,
+          "current_location": "Starting Town",
+          "created_at": "2025-08-30T23:53:03.166818",
+          "updated_at": "2025-08-30T23:53:03.184461"
         }
       },
       "key_path": "id",
@@ -2517,7 +3167,7 @@
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
           "created_at": "2025-08-30T21:36:48.356585",
-          "updated_at": null
+          "updated_at": "2025-08-30T23:53:58.748289"
         },
         "9c5526a8-4499-435e-9c9b-75e1e84cfaf6": {
           "id": "9c5526a8-4499-435e-9c9b-75e1e84cfaf6",
@@ -2594,6 +3244,82 @@
           "total_damage_taken": 0,
           "created_at": "2025-08-30T22:17:34.124838",
           "updated_at": null
+        },
+        "90a56614-f7ef-4f82-95b8-791134307f01": {
+          "id": "90a56614-f7ef-4f82-95b8-791134307f01",
+          "character_id": "1c59143e-a4a7-4c4e-99a7-0b240d76c78c",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T23:21:14.573184",
+          "updated_at": "2025-08-30T23:37:47.175760"
+        },
+        "78ad9665-9793-413a-97fb-d76838ac5e1c": {
+          "id": "78ad9665-9793-413a-97fb-d76838ac5e1c",
+          "character_id": "4185bf4f-83cf-4bc6-af38-3611d0188648",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T23:33:57.557956",
+          "updated_at": null
+        },
+        "33612d8f-d573-45e7-a07f-5d343cc18046": {
+          "id": "33612d8f-d573-45e7-a07f-5d343cc18046",
+          "character_id": "fdeee337-7f8b-4600-a1ec-847c36960a58",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T23:43:18.467537",
+          "updated_at": null
+        },
+        "59f1f3d3-5bac-48bb-8924-d6c83e8e2622": {
+          "id": "59f1f3d3-5bac-48bb-8924-d6c83e8e2622",
+          "character_id": "7b4527b0-c047-40f6-a9dc-5f029d8e687b",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T23:53:03.178171",
+          "updated_at": null
         }
       },
       "key_path": "id",
@@ -2625,19 +3351,36 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Human": [
+          "7b4527b0-c047-40f6-a9dc-5f029d8e687b",
+          "c48ee07f-cb55-489d-beee-756e46f76230"
+        ]
+      }
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "fighter": [
+          "7b4527b0-c047-40f6-a9dc-5f029d8e687b",
+          "c48ee07f-cb55-489d-beee-756e46f76230"
+        ]
+      }
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Advent": [
+          "7b4527b0-c047-40f6-a9dc-5f029d8e687b"
+        ],
+        "Achillies": [
+          "c48ee07f-cb55-489d-beee-756e46f76230"
+        ]
+      }
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -2662,8 +3405,11 @@
       "key_path": "slot_number",
       "unique": true,
       "index_data": {
-        "9": [
-          "a53c9e64-b9aa-4a99-bd5c-f1af8732bacc"
+        "5": [
+          "e4ce02d3-18f4-403f-a0f6-dcb549bf0492"
+        ],
+        "13": [
+          "e8102970-8c0b-430f-a843-a5976c723099"
         ]
       }
     }

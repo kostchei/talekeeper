@@ -1682,6 +1682,17 @@ class EncounterPanel(QWidget):
                 'level_acquired': 1
             }
             
+            # Add Action Surge for level 2+ Fighters
+            level = self.character_creation_data.get('level', 1)
+            if level >= 2:
+                class_features['Action Surge'] = {
+                    'type': 'free_action',
+                    'usage': 'short_rest', 
+                    'recharge': 1,  # 1 use per short rest
+                    'description': 'Take an additional action on your turn',
+                    'level_acquired': 2
+                }
+            
             # Collect selected weapon masteries
             if hasattr(self, 'weapon_mastery_checkboxes'):
                 selected_weapon_masteries = [
@@ -2352,6 +2363,8 @@ class EncounterPanel(QWidget):
             # Check if encounter is complete
             if self.current_encounter and self.current_encounter.is_complete:
                 self._log_monster_action(f"Encounter completed! Total XP gained: {self.current_encounter.xp_awarded}")
+                # Replace defeated monster cards with post-combat action cards
+                self._show_post_combat_actions()
                 
         except Exception as e:
             print(f"Error awarding XP: {e}")
@@ -2465,3 +2478,152 @@ class EncounterPanel(QWidget):
     def is_encounter_complete(self) -> bool:
         """Check if all monsters in the encounter are defeated."""
         return len(self.get_living_monsters()) == 0
+    
+    def _show_post_combat_actions(self):
+        """Add Loot and Short Rest action cards after the monster cards."""
+        try:
+            # Find the next available row (after existing monster cards)
+            next_row = self.monsters_layout.rowCount()
+            
+            # Create action cards
+            loot_card = self._create_loot_action_card()
+            rest_card = self._create_short_rest_action_card()
+            
+            # Add cards to the next row
+            self.monsters_layout.addWidget(loot_card, next_row, 0)
+            self.monsters_layout.addWidget(rest_card, next_row, 1)
+            
+        except Exception as e:
+            print(f"Error showing post-combat actions: {e}")
+    
+    def _create_loot_action_card(self) -> QWidget:
+        """Create the Loot action card for post-combat."""
+        from PyQt6.QtWidgets import QLabel, QVBoxLayout, QPushButton
+        from PyQt6.QtCore import Qt
+        
+        card = QWidget()
+        card.setFixedSize(200, 120)
+        card.setStyleSheet("""
+            QWidget {
+                background-color: #2a4a2a;
+                border: 2px solid #4a6a4a;
+                border-radius: 8px;
+                margin: 1px;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(1, 1, 1, 1)
+        
+        # Title
+        title = QLabel("💰 Loot")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-weight: bold; color: #ffdd44; font-size: 14px;")
+        layout.addWidget(title)
+        
+        # Description
+        desc = QLabel("Search defeated\nenemies for treasure")
+        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        desc.setStyleSheet("color: white; font-size: 10px;")
+        layout.addWidget(desc)
+        
+        # Action button
+        action_btn = QPushButton("Search for Loot")
+        action_btn.clicked.connect(self._handle_loot_action)
+        layout.addWidget(action_btn)
+        
+        return card
+    
+    def _create_short_rest_action_card(self) -> QWidget:
+        """Create the Short Rest action card for post-combat."""
+        from PyQt6.QtWidgets import QLabel, QVBoxLayout, QPushButton
+        from PyQt6.QtCore import Qt
+        
+        card = QWidget()
+        card.setFixedSize(200, 120)
+        card.setStyleSheet("""
+            QWidget {
+                background-color: #4a4a2a;
+                border: 2px solid #6a6a4a;
+                border-radius: 8px;
+                margin: 1px;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(1, 1, 1, 1)
+        
+        # Title
+        title = QLabel("🛡️ Short Rest")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-weight: bold; color: #44ddff; font-size: 14px;")
+        layout.addWidget(title)
+        
+        # Description
+        desc = QLabel("Rest and recover\nabilities & hit dice")
+        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        desc.setStyleSheet("color: white; font-size: 10px;")
+        layout.addWidget(desc)
+        
+        # Action button
+        action_btn = QPushButton("Take Short Rest")
+        action_btn.clicked.connect(self._handle_short_rest_action)
+        layout.addWidget(action_btn)
+        
+        return card
+    
+    def _handle_loot_action(self):
+        """Handle clicking the Loot action card."""
+        self._log_monster_action("🔍 Searching for loot... (dummy loot generation not implemented yet)")
+    
+    def _handle_short_rest_action(self):
+        """Handle clicking the Short Rest action card."""
+        self._log_monster_action("💤 Taking a short rest...")
+        self._perform_short_rest()
+    
+    def _perform_short_rest(self):
+        """Perform short rest - instant ability recovery and optional hit dice spending."""
+        from datetime import datetime
+        
+        try:
+            # Get current character
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    break
+                parent = parent.parent()
+            
+            if not character:
+                self._log_monster_action("❌ No character found for short rest!")
+                return
+            
+            # Update rest timestamp
+            character.last_short_rest = datetime.now().isoformat()
+            
+            # Recover short rest abilities (instant)
+            recovered_abilities = []
+            if "Second Wind" in character.ability_uses:
+                character.ability_uses["Second Wind"] = character.ability_uses_max.get("Second Wind", 1)
+                recovered_abilities.append("Second Wind")
+            
+            if "Action Surge" in character.ability_uses:
+                character.ability_uses["Action Surge"] = character.ability_uses_max.get("Action Surge", 1) 
+                recovered_abilities.append("Action Surge")
+            
+            # Log recovery
+            if recovered_abilities:
+                self._log_monster_action(f"✨ Abilities recovered: {', '.join(recovered_abilities)}")
+            
+            # TODO: Open hit dice spending dialog (optional)
+            self._log_monster_action("🎲 Hit dice spending dialog not implemented yet - auto-recovered abilities")
+            
+            # Save character (save the whole game state)
+            game_engine.save_game_sync()
+            
+            self._log_monster_action("✅ Short rest completed!")
+            
+        except Exception as e:
+            print(f"Error performing short rest: {e}")
+            self._log_monster_action(f"❌ Short rest failed: {e}")
