@@ -370,6 +370,11 @@ class Encounter:
     is_combat: bool = False  # Whether combat has started
     rounds_elapsed: int = 0  # Combat rounds if applicable
     
+    # Initiative tracking
+    initiative_rolled: bool = False  # Whether initiative has been rolled
+    current_turn: int = 0  # Index of current turn in initiative order
+    player_initiative: Optional[int] = None  # Player's initiative roll
+    
     # XP and rewards
     xp_awarded: int = 0  # XP actually awarded (defeated monsters)
     xp_pending: int = 0  # XP from monsters still alive
@@ -385,6 +390,56 @@ class Encounter:
         """Mark encounter as entering combat."""
         self.is_combat = True
         self.started_combat_at = datetime.now().isoformat()
+    
+    def roll_initiative(self, player_dex_modifier: int, monster_instances: List['EncounterInstance'], monster_data: Dict[str, Dict]):
+        """Roll initiative for player and all monsters, establish turn order."""
+        import random
+        
+        # Roll player initiative
+        player_roll = random.randint(1, 20)
+        self.player_initiative = player_roll + player_dex_modifier
+        
+        # Roll monster initiatives
+        for instance in monster_instances:
+            if instance.initiative is None:  # Only roll if not already set
+                # Get monster DEX from monster data
+                monster_stats = monster_data.get(instance.monster_name, {})
+                monster_dex = monster_stats.get('dex', 10)
+                monster_dex_mod = (monster_dex - 10) // 2
+                
+                monster_roll = random.randint(1, 20)
+                instance.initiative = monster_roll + monster_dex_mod
+                instance.updated_at = datetime.now().isoformat()
+        
+        self.initiative_rolled = True
+        return self.player_initiative
+    
+    def get_initiative_order(self, monster_instances: List['EncounterInstance']) -> List[Dict[str, any]]:
+        """Get initiative order with player and monsters sorted by initiative (highest first)."""
+        initiative_list = []
+        
+        # Add player
+        if self.player_initiative is not None:
+            initiative_list.append({
+                'type': 'player',
+                'initiative': self.player_initiative,
+                'name': 'Player',
+                'id': 'player'
+            })
+        
+        # Add monsters
+        for instance in monster_instances:
+            if instance.initiative is not None and instance.is_alive:
+                initiative_list.append({
+                    'type': 'monster',
+                    'initiative': instance.initiative,
+                    'name': instance.monster_name,
+                    'id': instance.id
+                })
+        
+        # Sort by initiative (highest first)
+        initiative_list.sort(key=lambda x: x['initiative'], reverse=True)
+        return initiative_list
     
     def complete_encounter(self):
         """Mark encounter as completed."""

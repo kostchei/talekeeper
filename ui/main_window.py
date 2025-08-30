@@ -253,6 +253,7 @@ class MainWindow(QMainWindow):
             'intelligence': character_data.get('intelligence', 10),
             'wisdom': character_data.get('wisdom', 10),
             'charisma': character_data.get('charisma', 10),
+            'armor_class': character_data.get('armor_class', 10),
             'level': character_data.get('level', 1)
         }
         
@@ -278,6 +279,7 @@ class MainWindow(QMainWindow):
             'intelligence': character_data.get('intelligence', 10),
             'wisdom': character_data.get('wisdom', 10),
             'charisma': character_data.get('charisma', 10),
+            'armor_class': character_data.get('armor_class', 10),
             'level': character_data.get('level', 1)
         }
         
@@ -408,6 +410,7 @@ class MainWindow(QMainWindow):
                 'intelligence': saved_character.intelligence,
                 'wisdom': saved_character.wisdom,
                 'charisma': saved_character.charisma,
+                'armor_class': saved_character.armor_class,
                 'level': saved_character.level
             }
             self.action_panel.load_character_equipment(equipped_items, character_stats)
@@ -544,6 +547,7 @@ class MainWindow(QMainWindow):
             'intelligence': character.intelligence,
             'wisdom': character.wisdom,
             'charisma': character.charisma,
+            'armor_class': character.armor_class,
             'level': character.level
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)

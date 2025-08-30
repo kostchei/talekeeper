@@ -461,8 +461,8 @@ class ActionPanel(QWidget):
             print(f"Target monster {target_id} not found")
             return
         
-        # TODO: Roll initiative first if this is the start of combat
-        # For now, just proceed with the attack
+        # Roll initiative if this is the first attack (start of combat)
+        self._check_and_roll_initiative(encounter_panel, context)
         
         # Make attack roll
         attack_total, attack_breakdown = self._roll_attack(context)
@@ -703,6 +703,283 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"Could not log attack: {e}")
+    
+    def _check_and_roll_initiative(self, encounter_panel, context: Dict[str, Any]):
+        """Check if initiative needs to be rolled and roll it."""
+        try:
+            # Check if encounter has initiative rolled already
+            current_encounter = getattr(encounter_panel, 'current_encounter', None)
+            if not current_encounter or current_encounter.initiative_rolled:
+                return  # Initiative already handled
+            
+            # Get player DEX modifier for initiative
+            player_dex_mod = (context.get('dexterity', 10) - 10) // 2
+            
+            # Get monster instances and monster data
+            monster_instances = list(getattr(encounter_panel, 'encounter_instances', {}).values())
+            
+            # Load monster data from monsters_full.json for DEX stats
+            monster_data = self._load_monster_data()
+            
+            # Roll initiative for everyone
+            player_initiative = current_encounter.roll_initiative(
+                player_dex_mod, monster_instances, monster_data
+            )
+            
+            # Get initiative order
+            initiative_order = current_encounter.get_initiative_order(monster_instances)
+            
+            # Log initiative results
+            self._log_initiative_results(player_initiative, initiative_order, player_dex_mod)
+            
+            # Start combat officially
+            current_encounter.start_combat()
+            
+            # Check if player goes first - if not, execute monster attacks first
+            if initiative_order and initiative_order[0]['type'] == 'monster':
+                self._execute_monster_turns_before_player(encounter_panel, initiative_order, monster_data)
+            
+        except Exception as e:
+            print(f"Error rolling initiative: {e}")
+    
+    def _load_monster_data(self) -> Dict[str, Dict]:
+        """Load monster data from monsters_full.json for stats lookups."""
+        try:
+            import json
+            from pathlib import Path
+            
+            # Get project root and load monster data
+            project_root = Path(__file__).parent.parent
+            monsters_file = project_root / "data" / "monsters_full.json"
+            
+            if monsters_file.exists():
+                with open(monsters_file, 'r') as f:
+                    data = json.load(f)
+                    
+                # Create lookup dict by monster name
+                monster_lookup = {}
+                for monster in data.get('monster', []):
+                    monster_lookup[monster['name']] = monster
+                
+                return monster_lookup
+            else:
+                print(f"Monster data file not found: {monsters_file}")
+                return {}
+                
+        except Exception as e:
+            print(f"Error loading monster data: {e}")
+            return {}
+    
+    def _log_initiative_results(self, player_initiative: int, initiative_order: list, player_dex_mod: int):
+        """Log the initiative results to show turn order."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    # Log initiative rolling
+                    parent.log_panel.log_combat("🎲 Rolling initiative for combat!")
+                    
+                    # Log player initiative
+                    d20_roll = player_initiative - player_dex_mod
+                    dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
+                    parent.log_panel.log_combat(f"🎯 Player initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
+                    
+                    # Log monster initiatives
+                    for entry in initiative_order:
+                        if entry['type'] == 'monster':
+                            parent.log_panel.log_combat(f"👹 {entry['name']} initiative: {entry['initiative']}")
+                    
+                    # Log turn order
+                    turn_order = " → ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
+                    parent.log_panel.log_combat(f"⚡ Turn Order: {turn_order}")
+                    
+                    # Announce who goes first
+                    if initiative_order:
+                        first_actor = initiative_order[0]
+                        if first_actor['type'] == 'player':
+                            parent.log_panel.log_combat("✅ Player goes first!")
+                        else:
+                            parent.log_panel.log_combat(f"⚠️ {first_actor['name']} goes first!")
+                    
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Could not log initiative: {e}")
+    
+    def _execute_monster_turns_before_player(self, encounter_panel, initiative_order: list, monster_data: dict):
+        """Execute monster attacks for all monsters that go before the player."""
+        try:
+            for entry in initiative_order:
+                if entry['type'] == 'player':
+                    break  # Stop when we reach player turn
+                
+                if entry['type'] == 'monster':
+                    monster_id = entry['id']
+                    monster_name = entry['name']
+                    
+                    # Get monster instance and stats
+                    monster_instance = encounter_panel.encounter_instances.get(monster_id)
+                    monster_stats = monster_data.get(monster_name, {})
+                    
+                    if monster_instance and monster_instance.is_alive and monster_stats:
+                        self._execute_monster_attack(monster_instance, monster_stats, encounter_panel)
+                        
+        except Exception as e:
+            print(f"Error executing monster turns: {e}")
+    
+    def _execute_monster_attack(self, monster_instance, monster_stats: dict, encounter_panel):
+        """Execute a single monster's attack against the player."""
+        try:
+            # Get monster's first action (usually their main attack)
+            actions = monster_stats.get('action', [])
+            if not actions:
+                return  # No attacks available
+            
+            main_action = actions[0]  # Use first action
+            action_name = main_action.get('name', 'Attack')
+            
+            # Parse the attack from the action entry
+            attack_info = self._parse_monster_attack(main_action, monster_stats)
+            if not attack_info:
+                return
+            
+            # Roll monster's attack
+            import random
+            attack_roll = random.randint(1, 20) + attack_info['hit_bonus']
+            
+            # Get player's actual AC from character data
+            player_ac = self.character_context.get('armor_class', 10)
+            
+            hit = attack_roll >= player_ac
+            
+            if hit:
+                # Roll damage
+                damage_total = self._roll_monster_damage(attack_info['damage_dice'], attack_info['damage_bonus'])
+                
+                # Apply damage to player
+                self._apply_damage_to_player(damage_total, encounter_panel)
+                
+                # Log the attack
+                self._log_monster_attack_result(True, monster_instance.monster_name, action_name, 
+                                              attack_roll, player_ac, damage_total, attack_info)
+            else:
+                # Attack missed
+                self._log_monster_attack_result(False, monster_instance.monster_name, action_name, 
+                                              attack_roll, player_ac, 0, attack_info)
+                
+        except Exception as e:
+            print(f"Error executing monster attack: {e}")
+    
+    def _parse_monster_attack(self, action: dict, monster_stats: dict) -> dict:
+        """Parse monster attack info from action entry."""
+        try:
+            entries = action.get('entries', [])
+            if not entries:
+                return None
+            
+            # Parse the attack string like "{@atk mw,rw} {@hit 3} to hit, reach 5 ft. or range 20/60 ft., one target. {@h}4 ({@damage 1d6 + 1}) piercing damage"
+            attack_str = entries[0]
+            
+            # Extract hit bonus
+            hit_bonus = 0
+            if '{@hit ' in attack_str:
+                import re
+                hit_match = re.search(r'\{@hit (\d+)\}', attack_str)
+                if hit_match:
+                    hit_bonus = int(hit_match.group(1))
+            
+            # Extract damage
+            damage_dice = "1d6"
+            damage_bonus = 0
+            if '{@damage ' in attack_str:
+                import re
+                damage_match = re.search(r'\{@damage ([^}]+)\}', attack_str)
+                if damage_match:
+                    damage_str = damage_match.group(1)
+                    # Parse "1d6 + 1" or "1d8 + 1"
+                    if ' + ' in damage_str:
+                        parts = damage_str.split(' + ')
+                        damage_dice = parts[0]
+                        damage_bonus = int(parts[1])
+                    elif ' - ' in damage_str:
+                        parts = damage_str.split(' - ')
+                        damage_dice = parts[0]
+                        damage_bonus = -int(parts[1])
+                    else:
+                        damage_dice = damage_str
+            
+            return {
+                'hit_bonus': hit_bonus,
+                'damage_dice': damage_dice,
+                'damage_bonus': damage_bonus
+            }
+            
+        except Exception as e:
+            print(f"Error parsing monster attack: {e}")
+            return None
+    
+    def _roll_monster_damage(self, damage_dice: str, damage_bonus: int) -> int:
+        """Roll damage for monster attack."""
+        import random
+        
+        try:
+            # Parse damage dice like "1d6", "1d8", "2d6"
+            if 'd' in damage_dice:
+                num_dice, die_size = damage_dice.split('d')
+                num_dice = int(num_dice)
+                die_size = int(die_size)
+                
+                dice_total = sum(random.randint(1, die_size) for _ in range(num_dice))
+                total = dice_total + damage_bonus
+                return max(1, total)  # Minimum 1 damage
+            else:
+                return max(1, damage_bonus) if damage_bonus > 0 else 1
+                
+        except Exception as e:
+            print(f"Error rolling monster damage: {e}")
+            return 1
+    
+    def _apply_damage_to_player(self, damage: int, encounter_panel):
+        """Apply damage to the player character."""
+        try:
+            # Get character data from encounter panel or main window
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_sheet') and parent.character_sheet.character_data:
+                    character_data = parent.character_sheet.character_data
+                    
+                    # Apply damage to current HP
+                    current_hp = character_data.get('current_hit_points', 0)
+                    new_hp = max(0, current_hp - damage)
+                    character_data['current_hit_points'] = new_hp
+                    
+                    # Update character sheet display
+                    parent.character_sheet.load_character_data(character_data)
+                    
+                    return new_hp
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error applying damage to player: {e}")
+            return 0
+    
+    def _log_monster_attack_result(self, hit: bool, monster_name: str, action_name: str, 
+                                  attack_roll: int, player_ac: int, damage: int, attack_info: dict):
+        """Log monster attack results."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    if hit:
+                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} hits! Attack: {attack_roll} vs AC {player_ac} for {damage} damage")
+                    else:
+                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} misses! Attack: {attack_roll} vs AC {player_ac}")
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Could not log monster attack: {e}")
     
     def _action_hovered(self, action_type: ActionType, description: str):
         """Handle action hover from card."""

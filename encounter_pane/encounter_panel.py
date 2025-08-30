@@ -465,15 +465,12 @@ class EncounterPanel(QWidget):
             font-size: 9px;
         }
         
-        QLabel#hpText {
-            color: #ffffff;
+        QLabel#monsterImage {
+            background-color: #1a1a1a;
+            border: 1px solid #444444;
+            border-radius: 4px;
+            color: #666666;
             font-size: 9px;
-            font-weight: bold;
-        }
-        
-        QLabel#monsterXP {
-            color: #ffcc00;
-            font-size: 8px;
         }
         """
         self.setStyleSheet(style_sheet)
@@ -1616,6 +1613,43 @@ class EncounterPanel(QWidget):
         layout.setSpacing(2)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
+        # Monster image
+        image_label = QLabel()
+        image_label.setObjectName("monsterImage")
+        image_label.setFixedSize(80, 60)
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        image_label.setStyleSheet("""
+            QLabel#monsterImage {
+                background-color: #1a1a1a;
+                border: 1px solid #444444;
+                border-radius: 4px;
+            }
+        """)
+        
+        # Try to load monster image from data/images directory
+        image_path = self._get_monster_image_path(instance.monster_name)
+        if image_path and os.path.exists(image_path):
+            from PyQt6.QtGui import QPixmap
+            pixmap = QPixmap(image_path)
+            if not pixmap.isNull():
+                # Scale pixmap to fit while maintaining aspect ratio
+                scaled_pixmap = pixmap.scaled(80, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                image_label.setPixmap(scaled_pixmap)
+        else:
+            # Show placeholder text if no image found
+            image_label.setText("No Image")
+            image_label.setStyleSheet("""
+                QLabel#monsterImage {
+                    background-color: #1a1a1a;
+                    border: 1px solid #444444;
+                    border-radius: 4px;
+                    color: #666666;
+                    font-size: 9px;
+                }
+            """)
+        
+        layout.addWidget(image_label)
+        
         # Monster name (truncated if too long)
         name = instance.monster_name
         if len(name) > 12:
@@ -1638,18 +1672,7 @@ class EncounterPanel(QWidget):
         type_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(type_label)
         
-        # HP text (compact format)
-        hp_text = f"{instance.current_hit_points}"
-        if instance.temporary_hit_points > 0:
-            hp_text = f"{instance.current_hit_points} (+{instance.temporary_hit_points})"
-        hp_text += f"/{instance.max_hit_points}"
-        
-        hp_label = QLabel(hp_text)
-        hp_label.setObjectName("hpText")
-        hp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(hp_label)
-        
-        # Compact HP progress bar
+        # HP progress bar only (no text display)
         hp_bar = QProgressBar()
         hp_bar.setRange(0, 100)
         hp_bar.setValue(int(instance.hp_percentage))
@@ -1679,37 +1702,40 @@ class EncounterPanel(QWidget):
         layout.addWidget(hp_bar)
         layout.addStretch()
         
-        # XP value at bottom
-        xp_label = QLabel(f"{instance.monster_xp} XP")
-        xp_label.setObjectName("monsterXP")
-        xp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(xp_label)
-        
-        # Test damage buttons (will be removed when combat system is integrated)
-        test_layout = QHBoxLayout()
-        damage_btn = QPushButton("-5")
-        damage_btn.setFixedSize(25, 16)
-        damage_btn.setStyleSheet("font-size: 8px; padding: 1px; background-color: #ff6b6b; border: 1px solid #444; border-radius: 2px;")
-        damage_btn.clicked.connect(lambda: self._apply_damage_to_monster(instance.id, 5))
-        
-        heal_btn = QPushButton("+5")
-        heal_btn.setFixedSize(25, 16)
-        heal_btn.setStyleSheet("font-size: 8px; padding: 1px; background-color: #4CAF50; border: 1px solid #444; border-radius: 2px;")
-        heal_btn.clicked.connect(lambda: self._heal_monster(instance.id, 5))
-        
-        test_layout.addWidget(damage_btn)
-        test_layout.addWidget(heal_btn)
-        layout.addLayout(test_layout)
-        
         # Store instance reference in the card for updates
         card.instance_id = instance.id
         card.hp_bar = hp_bar
-        card.hp_label = hp_label
+        card.image_label = image_label
         
         # Add click handler for selection
         card.mousePressEvent = lambda event: self._select_monster_card(instance.id)
         
         return card
+    
+    def _get_monster_image_path(self, monster_name: str) -> Optional[str]:
+        """Get the path to a monster's image file."""
+        try:
+            # Get the absolute path to the data/images directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            images_dir = os.path.join(project_root, "data", "images")
+            
+            # Try common image extensions
+            for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                # Replace spaces and special characters with underscores for filename
+                safe_name = monster_name.lower().replace(' ', '_').replace('-', '_')
+                # Remove any other special characters
+                import re
+                safe_name = re.sub(r'[^a-z0-9_]', '', safe_name)
+                
+                image_path = os.path.join(images_dir, f"{safe_name}{ext}")
+                if os.path.exists(image_path):
+                    return image_path
+            
+            return None
+        except Exception as e:
+            print(f"Error getting monster image path for {monster_name}: {e}")
+            return None
     
     def _select_monster_card(self, instance_id: str):
         """Select a monster card for targeting."""
@@ -1811,13 +1837,6 @@ class EncounterPanel(QWidget):
                 widget = item.widget()
                 
                 if hasattr(widget, 'instance_id') and widget.instance_id == instance_id:
-                    # Update HP text
-                    hp_text = f"{instance.current_hit_points}"
-                    if instance.temporary_hit_points > 0:
-                        hp_text = f"{instance.current_hit_points} (+{instance.temporary_hit_points})"
-                    hp_text += f"/{instance.max_hit_points}"
-                    widget.hp_label.setText(hp_text)
-                    
                     # Update HP bar value and color
                     widget.hp_bar.setValue(int(instance.hp_percentage))
                     

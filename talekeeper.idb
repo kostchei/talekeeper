@@ -805,28 +805,28 @@
     },
     "characters": {
       "data": {
-        "fc66da17-00d2-42b0-959f-e636e81a6dbe": {
-          "id": "fc66da17-00d2-42b0-959f-e636e81a6dbe",
-          "save_slot_id": "e4ce02d3-18f4-403f-a0f6-dcb549bf0492",
-          "name": "Bill",
-          "race_id": "Dwarf",
-          "class_id": "Fighter",
+        "c94c0a6f-ef52-42ec-8010-dad43199a856": {
+          "id": "c94c0a6f-ef52-42ec-8010-dad43199a856",
+          "save_slot_id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
+          "name": "Tempelton",
+          "race_id": "Human",
+          "class_id": "fighter",
           "subclass_id": null,
-          "background_id": "Farmer",
+          "background_id": "Soldier",
           "level": 1,
-          "experience_points": 35,
+          "experience_points": 0,
           "strength": 15,
-          "dexterity": 13,
+          "dexterity": 15,
           "constitution": 15,
-          "intelligence": 13,
-          "wisdom": 15,
-          "charisma": 9,
+          "intelligence": 11,
+          "wisdom": 14,
+          "charisma": 13,
           "armor_class": 16,
-          "hit_points_max": 8,
-          "hit_points_current": 8,
+          "hit_points_max": 12,
+          "hit_points_current": 12,
           "hit_points_temporary": 0,
-          "max_hit_points": 8,
-          "current_hit_points": 8,
+          "max_hit_points": 12,
+          "current_hit_points": 12,
           "hit_dice_max": 1,
           "hit_dice_current": 1,
           "death_saves_successes": 0,
@@ -839,8 +839,8 @@
           "equipment_off_hand": null,
           "equipment_armor": "Chain Mail",
           "equipment_shield": null,
-          "created_at": "2025-08-29T15:55:30.279372",
-          "updated_at": "2025-08-30T12:01:34.157131",
+          "created_at": "2025-08-30T16:30:39.707070",
+          "updated_at": null,
           "notes": "Created via character creator. Final scores include racial bonuses."
         }
       },
@@ -852,15 +852,15 @@
         "4db7615f-df95-4523-b6b7-57ef5247d1db": {
           "id": "4db7615f-df95-4523-b6b7-57ef5247d1db",
           "slot_number": 1,
-          "is_occupied": false,
-          "save_name": null,
-          "last_played": null,
+          "is_occupied": true,
+          "save_name": "Tempelton - Level 1",
+          "last_played": "2025-08-30T16:30:39.707070",
           "play_time_minutes": 0,
-          "character_name": null,
-          "character_level": null,
-          "current_location": null,
+          "character_name": "Tempelton",
+          "character_level": 1,
+          "current_location": "Starting Town",
           "created_at": "2025-08-29T11:14:16.893054",
-          "updated_at": "2025-08-29T17:05:02.357229"
+          "updated_at": "2025-08-30T16:30:39.707070"
         },
         "a98d3bfe-e6d0-491f-bb60-b25f2960c772": {
           "id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
@@ -904,15 +904,15 @@
         "e4ce02d3-18f4-403f-a0f6-dcb549bf0492": {
           "id": "e4ce02d3-18f4-403f-a0f6-dcb549bf0492",
           "slot_number": 5,
-          "is_occupied": true,
-          "save_name": "Bill - Level 1",
-          "last_played": "2025-08-30T12:01:38.623506",
+          "is_occupied": false,
+          "save_name": null,
+          "last_played": null,
           "play_time_minutes": 0,
-          "character_name": "Bill",
-          "character_level": 1,
-          "current_location": "Starting Town",
+          "character_name": null,
+          "character_level": null,
+          "current_location": null,
           "created_at": "2025-08-29T15:55:30.276365",
-          "updated_at": "2025-08-30T12:01:34.153124"
+          "updated_at": "2025-08-30T16:29:50.669629"
         }
       },
       "key_path": "id",
@@ -920,9 +920,9 @@
     },
     "game_states": {
       "data": {
-        "f5024e61-7270-4792-936a-743386da4680": {
-          "id": "f5024e61-7270-4792-936a-743386da4680",
-          "character_id": "fc66da17-00d2-42b0-959f-e636e81a6dbe",
+        "31db749b-616f-4482-b4ce-42260c4c6ae3": {
+          "id": "31db749b-616f-4482-b4ce-42260c4c6ae3",
+          "character_id": "c94c0a6f-ef52-42ec-8010-dad43199a856",
           "current_location": "Starting Town",
           "location_type": "town",
           "discovered_locations": [],
@@ -936,8 +936,8 @@
           "encounters_fled": 0,
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
-          "created_at": "2025-08-29T15:55:30.280876",
-          "updated_at": "2025-08-30T12:01:34.159631"
+          "created_at": "2025-08-30T16:30:39.707070",
+          "updated_at": null
         }
       },
       "key_path": "id",
@@ -969,19 +969,31 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Human": [
+          "c94c0a6f-ef52-42ec-8010-dad43199a856"
+        ]
+      }
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "fighter": [
+          "c94c0a6f-ef52-42ec-8010-dad43199a856"
+        ]
+      }
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Tempelton": [
+          "c94c0a6f-ef52-42ec-8010-dad43199a856"
+        ]
+      }
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -1006,6 +1018,9 @@
       "key_path": "slot_number",
       "unique": true,
       "index_data": {
+        "1": [
+          "4db7615f-df95-4523-b6b7-57ef5247d1db"
+        ],
         "5": [
           "e4ce02d3-18f4-403f-a0f6-dcb549bf0492"
         ]
