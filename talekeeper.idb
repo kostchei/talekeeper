@@ -854,7 +854,7 @@
           "slot_number": 1,
           "is_occupied": true,
           "save_name": "Tempelton - Level 1",
-          "last_played": "2025-08-30T16:30:39.707070",
+          "last_played": "2025-08-30T17:03:29.244063",
           "play_time_minutes": 0,
           "character_name": "Tempelton",
           "character_level": 1,
@@ -969,31 +969,19 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {
-        "Human": [
-          "c94c0a6f-ef52-42ec-8010-dad43199a856"
-        ]
-      }
+      "index_data": {}
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {
-        "fighter": [
-          "c94c0a6f-ef52-42ec-8010-dad43199a856"
-        ]
-      }
+      "index_data": {}
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {
-        "Tempelton": [
-          "c94c0a6f-ef52-42ec-8010-dad43199a856"
-        ]
-      }
+      "index_data": {}
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -1020,9 +1008,6 @@
       "index_data": {
         "1": [
           "4db7615f-df95-4523-b6b7-57ef5247d1db"
-        ],
-        "5": [
-          "e4ce02d3-18f4-403f-a0f6-dcb549bf0492"
         ]
       }
     }

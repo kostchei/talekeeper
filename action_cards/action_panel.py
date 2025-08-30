@@ -444,11 +444,33 @@ class ActionPanel(QWidget):
                 
                 # Update action economy
                 self._update_action_economy(action_type)
+                
+                # For combat actions, trigger monster counter-attacks after player's turn
+                if self._is_combat_action(action_type):
+                    encounter_panel = self._get_encounter_panel()
+                    if encounter_panel:
+                        self._trigger_monster_counter_attacks(encounter_panel)
+    
+    def _is_combat_action(self, action_type: ActionType) -> bool:
+        """Check if an action is a combat action that should trigger monster retaliation."""
+        combat_actions = {
+            ActionType.CAST_SPELL,   # Casting spells in combat
+            ActionType.USE_ITEM,     # Using items in combat  
+            ActionType.DODGE,        # Dodging is a combat action
+            ActionType.DASH,         # Dashing in combat
+            ActionType.SEARCH,       # Searching in combat
+            ActionType.HIDE,         # Hiding in combat
+            # Note: MOVE, INVESTIGATE, INTERACT, REST are not typically combat actions
+            # that would provoke attacks, but can be added if desired
+        }
+        return action_type in combat_actions
     
     def _execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
         """Execute an attack against the targeted monster."""
+        print(f"DEBUG: _execute_attack called with action_type: {action_type}")
         target_id = context.get('target_monster_id')
         weapon_name = context.get('name', 'weapon')
+        print(f"DEBUG: target_id: {target_id}, weapon_name: {weapon_name}")
         
         # Get encounter panel to access the monster
         encounter_panel = self._get_encounter_panel()
@@ -492,6 +514,133 @@ class ActionPanel(QWidget):
             self.action_cards[action_type].set_cooldown(cooldown)
         
         self._update_action_economy(action_type)
+        
+        # Check if all monsters are defeated after this attack
+        living_monsters_after_attack = encounter_panel.get_living_monsters()
+        print(f"DEBUG: After attack, {len(living_monsters_after_attack)} monsters remaining")
+        
+        if not living_monsters_after_attack:
+            # All monsters defeated - end combat immediately
+            print(f"DEBUG: All monsters defeated, ending combat")
+            self._end_combat(encounter_panel)
+        else:
+            # Monsters still alive, trigger counter-attacks
+            print(f"DEBUG: About to trigger counter-attacks after player attack")
+            self._trigger_monster_counter_attacks(encounter_panel)
+    
+    def _trigger_monster_counter_attacks(self, encounter_panel):
+        """Trigger counter-attacks from all living monsters after player's action."""
+        try:
+            print(f"DEBUG: _trigger_monster_counter_attacks called, encounter_mode: {encounter_panel.encounter_mode}")
+            
+            # Check if we're in combat mode and have living monsters
+            if encounter_panel.encounter_mode != "combat":
+                print(f"DEBUG: Not in combat mode, returning")
+                return
+            
+            living_monsters = encounter_panel.get_living_monsters()
+            print(f"DEBUG: Found {len(living_monsters)} living monsters")
+            for monster in living_monsters:
+                print(f"DEBUG: Living monster: {monster.monster_name} ({monster.current_hit_points}/{monster.max_hit_points} HP, is_alive: {monster.is_alive})")
+            
+            if not living_monsters:
+                # All monsters defeated - end combat
+                print(f"DEBUG: No living monsters, ending combat")
+                self._end_combat(encounter_panel)
+                return
+            
+            # Load monster data for attack stats
+            monster_data = self._load_monster_data()
+            
+            # Execute attacks from all living monsters with a small delay for readability
+            if living_monsters:
+                self._execute_monster_attacks_with_delay(living_monsters, monster_data, encounter_panel)
+            else:
+                # No monsters left - end combat immediately
+                self._end_combat(encounter_panel)
+            
+        except Exception as e:
+            print(f"Error triggering monster counter-attacks: {e}")
+    
+    def _execute_monster_attacks_with_delay(self, living_monsters, monster_data, encounter_panel):
+        """Execute monster attacks with a small delay between each attack."""
+        try:
+            # Execute first monster attack immediately
+            if living_monsters:
+                monster_instance = living_monsters[0]
+                if monster_instance.is_alive:
+                    monster_stats = monster_data.get(monster_instance.monster_name, {})
+                    if monster_stats:
+                        self._execute_monster_attack(monster_instance, monster_stats, encounter_panel)
+                
+                # Queue remaining attacks with delay
+                remaining_monsters = living_monsters[1:]
+                if remaining_monsters:
+                    # Use QTimer to schedule the next attack with a 500ms delay
+                    QTimer.singleShot(500, lambda: self._continue_monster_attacks(remaining_monsters, monster_data, encounter_panel))
+                else:
+                    # All attacks done, start player's turn
+                    QTimer.singleShot(300, self._log_player_turn_start)
+            
+        except Exception as e:
+            print(f"Error executing monster attacks with delay: {e}")
+    
+    def _continue_monster_attacks(self, remaining_monsters, monster_data, encounter_panel):
+        """Continue executing remaining monster attacks."""
+        try:
+            if remaining_monsters:
+                monster_instance = remaining_monsters[0]
+                if monster_instance.is_alive:
+                    monster_stats = monster_data.get(monster_instance.monster_name, {})
+                    if monster_stats:
+                        self._execute_monster_attack(monster_instance, monster_stats, encounter_panel)
+                
+                # Continue with next monster
+                further_remaining = remaining_monsters[1:]
+                if further_remaining:
+                    QTimer.singleShot(500, lambda: self._continue_monster_attacks(further_remaining, monster_data, encounter_panel))
+                else:
+                    # All monster attacks completed, start player's turn
+                    QTimer.singleShot(300, self._log_player_turn_start)
+        except Exception as e:
+            print(f"Error continuing monster attacks: {e}")
+    
+    def _end_combat(self, encounter_panel):
+        """End combat when all monsters are defeated."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("🏆 Victory! All monsters have been defeated!")
+                    parent.log_panel.log_combat("⚔️ Combat has ended. You may now rest or explore.")
+                    break
+                parent = parent.parent()
+            
+            # Clear any active target selection
+            self.target_monster_id = None
+            
+            # Clear action cooldowns (combat is over)
+            self.action_cooldowns.clear()
+            for card in self.action_cards.values():
+                card.set_cooldown(0)
+            
+            # Switch encounter panel back to exploration mode
+            encounter_panel.set_exploration_mode()
+            
+        except Exception as e:
+            print(f"Error ending combat: {e}")
+    
+    def _log_player_turn_start(self):
+        """Log that it's the player's turn again."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("⚡ Your turn! Choose your next action.")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Could not log player turn start: {e}")
     
     def _get_encounter_panel(self):
         """Get the encounter panel from the main window."""
@@ -734,6 +883,9 @@ class ActionPanel(QWidget):
             
             # Start combat officially
             current_encounter.start_combat()
+            
+            # Switch encounter panel to combat mode
+            encounter_panel.set_combat_mode()
             
             # Check if player goes first - if not, execute monster attacks first
             if initiative_order and initiative_order[0]['type'] == 'monster':
