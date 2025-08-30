@@ -822,7 +822,41 @@ class EncounterPanel(QWidget):
         content_layout.addWidget(species_frame)
         layout.addLayout(content_layout)
         
-        # Description area
+        # Feat selection section
+        feat_frame = QFrame()
+        feat_layout = QVBoxLayout(feat_frame)
+        
+        # Background origin feat
+        bg_feat_label = QLabel("Background Origin Feat")
+        bg_feat_label.setObjectName("sectionLabel")
+        feat_layout.addWidget(bg_feat_label)
+        
+        self.background_feat_combo = QComboBox()
+        self.background_feat_combo.setObjectName("backgroundFeatCombo")
+        feat_layout.addWidget(self.background_feat_combo)
+        
+        # Species bonus feat (shown only for humans)
+        self.species_feat_label = QLabel("Species Bonus Feat")
+        self.species_feat_label.setObjectName("sectionLabel")
+        self.species_feat_label.hide()  # Initially hidden
+        feat_layout.addWidget(self.species_feat_label)
+        
+        self.species_feat_combo = QComboBox()
+        self.species_feat_combo.setObjectName("speciesFeatCombo")
+        self.species_feat_combo.hide()  # Initially hidden
+        feat_layout.addWidget(self.species_feat_combo)
+        
+        # Feat description area
+        self.feat_description = QTextEdit()
+        self.feat_description.setObjectName("featDescription")
+        self.feat_description.setMaximumHeight(120)
+        self.feat_description.setReadOnly(True)
+        self.feat_description.setPlaceholderText("Select a feat to see its description...")
+        feat_layout.addWidget(self.feat_description)
+        
+        content_layout.addWidget(feat_frame)
+        
+        # Description area (for background/species)
         self.bg_species_description = QTextEdit()
         self.bg_species_description.setObjectName("bgSpeciesDescription")
         self.bg_species_description.setMaximumHeight(100)
@@ -831,6 +865,7 @@ class EncounterPanel(QWidget):
         
         # Load data
         self._load_background_species_data()
+        self._populate_feat_lists()
         
         # Connect signals
         self.background_list.currentItemChanged.connect(self._on_background_selected)
@@ -1104,6 +1139,115 @@ class EncounterPanel(QWidget):
             import traceback
             traceback.print_exc()
     
+    def _load_feats_data(self):
+        """Load available feats from feats_srd.json."""
+        try:
+            # Get the absolute path to the scripts directory 
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            feats_file = os.path.join(project_root, "scripts", "feats_srd.json")
+            
+            with open(feats_file, 'r', encoding='utf-8') as f:
+                feats_data = json.load(f)
+            
+            if 'feat' in feats_data:
+                return feats_data['feat']
+            else:
+                print("No 'feat' key found in feats_srd.json")
+                return []
+                
+        except Exception as e:
+            print(f"Error loading feats data: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _populate_feat_lists(self):
+        """Populate the feat selection dropdowns with available feats."""
+        try:
+            feats = self._load_feats_data()
+            if not feats:
+                return
+            
+            # Clear existing items
+            self.background_feat_combo.clear()
+            self.species_feat_combo.clear()
+            
+            # Add placeholder option
+            self.background_feat_combo.addItem("Select an origin feat...", None)
+            self.species_feat_combo.addItem("Select a bonus feat...", None)
+            
+            # Filter and add origin-appropriate feats using category field
+            for feat in feats:
+                feat_name = feat.get('name', 'Unknown Feat')
+                feat_category = feat.get('category', '')
+                
+                # Include Origin feats (O), Fighting Style feats (FS, FS:P, FS:R),
+                # and uncategorized feats that have no prerequisites
+                if feat_category in ['O', 'FS', 'FS:P', 'FS:R']:
+                    self.background_feat_combo.addItem(feat_name, feat)
+                    self.species_feat_combo.addItem(feat_name, feat)
+                elif not feat_category:  # Handle feats with no category
+                    # Check if they have level prerequisites
+                    prereqs = feat.get('prerequisite', [])
+                    has_level_req = any('level' in req for req in prereqs if isinstance(req, dict))
+                    if not has_level_req:
+                        self.background_feat_combo.addItem(feat_name, feat)
+                        self.species_feat_combo.addItem(feat_name, feat)
+            
+            # Connect selection handlers
+            self.background_feat_combo.currentIndexChanged.connect(self._on_feat_selected)
+            self.species_feat_combo.currentIndexChanged.connect(self._on_feat_selected)
+            
+        except Exception as e:
+            print(f"Error populating feat lists: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _on_feat_selected(self):
+        """Handle feat selection and update description."""
+        sender = self.sender()
+        if not sender:
+            return
+            
+        feat_data = sender.currentData()
+        if not feat_data:
+            self.feat_description.clear()
+            return
+        
+        # Format feat description
+        feat_name = feat_data.get('name', 'Unknown Feat')
+        feat_source = feat_data.get('source', 'Unknown')
+        feat_category = feat_data.get('category', '')
+        feat_entries = feat_data.get('entries', [])
+        
+        description = f"<h3>{feat_name}</h3>"
+        description += f"<p><i>Source: {feat_source}</i></p>"
+        
+        # Show mechanical effects preview
+        if feat_name == 'Tough':
+            description += f"<p><b>Effect:</b> +2 hit points per character level</p>"
+        elif feat_name == 'Linguist':
+            description += f"<p><b>Effect:</b> +1 Intelligence, +3 languages</p>"
+        elif feat_category == 'FS':
+            description += f"<p><b>Effect:</b> Fighting style for combat</p>"
+        elif feat_category == 'O':
+            description += f"<p><b>Effect:</b> Origin feat with special abilities</p>"
+        
+        # Add feat description
+        for entry in feat_entries:
+            if isinstance(entry, str):
+                description += f"<p>{entry}</p>"
+            elif isinstance(entry, dict) and entry.get('type') == 'list':
+                items = entry.get('items', [])
+                if items:
+                    description += "<ul>"
+                    for item in items:
+                        description += f"<li>{item}</li>"
+                    description += "</ul>"
+        
+        self.feat_description.setHtml(description)
+    
     def _on_class_selected(self, current, previous):
         """Handle class selection change."""
         if current:
@@ -1148,6 +1292,17 @@ class EncounterPanel(QWidget):
             self.character_creation_data['species'] = species_data
             self._update_bg_species_description()
             self._update_racial_bonuses()
+            
+            # Show/hide species bonus feat for humans
+            species_name = species_data.get('name', '').lower()
+            is_human = 'human' in species_name
+            
+            self.species_feat_label.setVisible(is_human)
+            self.species_feat_combo.setVisible(is_human)
+            
+            # Reset species feat selection when changing species
+            if not is_human:
+                self.species_feat_combo.setCurrentIndex(0)
     
     def _update_bg_species_description(self):
         """Update the combined background/species description."""
@@ -1282,6 +1437,20 @@ class EncounterPanel(QWidget):
             # Take higher of the two
             final_ability_scores[ability] = max(point_buy_score, rolled_score)
         
+        # Collect selected feats
+        selected_feats = []
+        
+        # Background origin feat (required)
+        bg_feat_data = self.background_feat_combo.currentData()
+        if bg_feat_data:
+            selected_feats.append(bg_feat_data.get('name', ''))
+        
+        # Species bonus feat (only for humans)
+        if self.species_feat_combo.isVisible():
+            species_feat_data = self.species_feat_combo.currentData()
+            if species_feat_data:
+                selected_feats.append(species_feat_data.get('name', ''))
+        
         # Compile final character data
         final_character = {
             'name': self.character_name_input.currentText(),
@@ -1291,6 +1460,7 @@ class EncounterPanel(QWidget):
             'ability_scores': final_ability_scores,
             'point_buy_scores': {ability: spinbox.value() for ability, spinbox in self.ability_spinboxes.items()},
             'rolled_scores': rolled_scores,
+            'selected_feats': selected_feats,
             'level': 1,
             'experience_points': 0,
             'equipment_choices': {}

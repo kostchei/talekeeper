@@ -842,6 +842,122 @@
           "created_at": "2025-08-30T16:30:39.707070",
           "updated_at": null,
           "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "529a03cb-c39f-4102-8f61-0fb1561775c9": {
+          "id": "529a03cb-c39f-4102-8f61-0fb1561775c9",
+          "save_slot_id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
+          "name": "Yargl",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 15,
+          "constitution": 15,
+          "intelligence": 11,
+          "wisdom": 9,
+          "charisma": 8,
+          "armor_class": 16,
+          "hit_points_max": 12,
+          "hit_points_current": 12,
+          "hit_points_temporary": 0,
+          "max_hit_points": 12,
+          "current_hit_points": 12,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T17:33:25.956851",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "96bbe0f7-7c6f-44db-8b5a-25576bf1195e": {
+          "id": "96bbe0f7-7c6f-44db-8b5a-25576bf1195e",
+          "save_slot_id": "236aca00-8007-4f8b-952e-c75d16b21415",
+          "name": "Anduin",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 15,
+          "constitution": 15,
+          "intelligence": 12,
+          "wisdom": 8,
+          "charisma": 11,
+          "armor_class": 16,
+          "hit_points_max": 12,
+          "hit_points_current": 12,
+          "hit_points_temporary": 0,
+          "max_hit_points": 12,
+          "current_hit_points": 12,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T17:46:58.282521",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
+        },
+        "f15a4955-a6e1-42c5-b839-7d6007695c99": {
+          "id": "f15a4955-a6e1-42c5-b839-7d6007695c99",
+          "save_slot_id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
+          "name": "Adventurer",
+          "race_id": "Human",
+          "class_id": "fighter",
+          "subclass_id": null,
+          "background_id": "Soldier",
+          "level": 1,
+          "experience_points": 0,
+          "strength": 15,
+          "dexterity": 15,
+          "constitution": 15,
+          "intelligence": 14,
+          "wisdom": 11,
+          "charisma": 15,
+          "armor_class": 16,
+          "hit_points_max": 14,
+          "hit_points_current": 14,
+          "hit_points_temporary": 0,
+          "max_hit_points": 14,
+          "current_hit_points": 14,
+          "hit_dice_max": 1,
+          "hit_dice_current": 1,
+          "death_saves_successes": 0,
+          "death_saves_failures": 0,
+          "conditions": [],
+          "proficiencies": [],
+          "features": {},
+          "feats": [
+            "Tough"
+          ],
+          "equipment_main_hand": "Greatsword",
+          "equipment_off_hand": null,
+          "equipment_armor": "Chain Mail",
+          "equipment_shield": null,
+          "created_at": "2025-08-30T17:51:56.434696",
+          "updated_at": null,
+          "notes": "Created via character creator. Final scores include racial bonuses."
         }
       },
       "key_path": "id",
@@ -854,7 +970,7 @@
           "slot_number": 1,
           "is_occupied": true,
           "save_name": "Tempelton - Level 1",
-          "last_played": "2025-08-30T17:03:29.244063",
+          "last_played": "2025-08-30T17:32:20.637078",
           "play_time_minutes": 0,
           "character_name": "Tempelton",
           "character_level": 1,
@@ -865,41 +981,41 @@
         "a98d3bfe-e6d0-491f-bb60-b25f2960c772": {
           "id": "a98d3bfe-e6d0-491f-bb60-b25f2960c772",
           "slot_number": 2,
-          "is_occupied": false,
-          "save_name": null,
-          "last_played": null,
+          "is_occupied": true,
+          "save_name": "Yargl - Level 1",
+          "last_played": "2025-08-30T17:46:06.204574",
           "play_time_minutes": 0,
-          "character_name": null,
-          "character_level": null,
-          "current_location": null,
+          "character_name": "Yargl",
+          "character_level": 1,
+          "current_location": "Starting Town",
           "created_at": "2025-08-29T11:32:06.294457",
-          "updated_at": "2025-08-29T16:05:54.335811"
+          "updated_at": "2025-08-30T17:33:25.963079"
         },
         "236aca00-8007-4f8b-952e-c75d16b21415": {
           "id": "236aca00-8007-4f8b-952e-c75d16b21415",
           "slot_number": 3,
-          "is_occupied": false,
-          "save_name": null,
-          "last_played": null,
+          "is_occupied": true,
+          "save_name": "Anduin - Level 1",
+          "last_played": "2025-08-30T17:50:58.882909",
           "play_time_minutes": 0,
-          "character_name": null,
-          "character_level": null,
-          "current_location": null,
+          "character_name": "Anduin",
+          "character_level": 1,
+          "current_location": "Starting Town",
           "created_at": "2025-08-29T11:54:47.999640",
-          "updated_at": "2025-08-29T16:05:56.483664"
+          "updated_at": "2025-08-30T17:46:58.289749"
         },
         "03978361-13f2-40bb-afce-d1cf5a125d3d": {
           "id": "03978361-13f2-40bb-afce-d1cf5a125d3d",
           "slot_number": 4,
-          "is_occupied": false,
-          "save_name": null,
-          "last_played": null,
+          "is_occupied": true,
+          "save_name": "Adventurer - Level 1",
+          "last_played": "2025-08-30T17:51:56.441218",
           "play_time_minutes": 0,
-          "character_name": null,
-          "character_level": null,
-          "current_location": null,
+          "character_name": "Adventurer",
+          "character_level": 1,
+          "current_location": "Starting Town",
           "created_at": "2025-08-29T13:50:30.750949",
-          "updated_at": "2025-08-29T16:05:58.706547"
+          "updated_at": "2025-08-30T17:51:56.441218"
         },
         "e4ce02d3-18f4-403f-a0f6-dcb549bf0492": {
           "id": "e4ce02d3-18f4-403f-a0f6-dcb549bf0492",
@@ -938,6 +1054,63 @@
           "total_damage_taken": 0,
           "created_at": "2025-08-30T16:30:39.707070",
           "updated_at": null
+        },
+        "21133ed0-8daa-4481-9389-72c266c622b7": {
+          "id": "21133ed0-8daa-4481-9389-72c266c622b7",
+          "character_id": "529a03cb-c39f-4102-8f61-0fb1561775c9",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T17:33:25.960080",
+          "updated_at": null
+        },
+        "937c18d9-4671-4ff4-b274-1b06b1c1deff": {
+          "id": "937c18d9-4671-4ff4-b274-1b06b1c1deff",
+          "character_id": "96bbe0f7-7c6f-44db-8b5a-25576bf1195e",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T17:46:58.287751",
+          "updated_at": null
+        },
+        "294e4465-15d2-4d14-9016-e604adae3b5e": {
+          "id": "294e4465-15d2-4d14-9016-e604adae3b5e",
+          "character_id": "f15a4955-a6e1-42c5-b839-7d6007695c99",
+          "current_location": "Starting Town",
+          "location_type": "town",
+          "discovered_locations": [],
+          "completed_quests": [],
+          "quest_flags": {},
+          "world_events": {},
+          "encounter_bag_remaining": {},
+          "encounter_bag_history": {},
+          "total_play_time_minutes": 0,
+          "encounters_won": 0,
+          "encounters_fled": 0,
+          "total_damage_dealt": 0,
+          "total_damage_taken": 0,
+          "created_at": "2025-08-30T17:51:56.439218",
+          "updated_at": null
         }
       },
       "key_path": "id",
@@ -969,19 +1142,31 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Human": [
+          "f15a4955-a6e1-42c5-b839-7d6007695c99"
+        ]
+      }
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "fighter": [
+          "f15a4955-a6e1-42c5-b839-7d6007695c99"
+        ]
+      }
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {}
+      "index_data": {
+        "Adventurer": [
+          "f15a4955-a6e1-42c5-b839-7d6007695c99"
+        ]
+      }
     },
     "monsters.challenge_rating": {
       "store": "monsters",
@@ -1006,8 +1191,11 @@
       "key_path": "slot_number",
       "unique": true,
       "index_data": {
-        "1": [
-          "4db7615f-df95-4523-b6b7-57ef5247d1db"
+        "3": [
+          "236aca00-8007-4f8b-952e-c75d16b21415"
+        ],
+        "4": [
+          "03978361-13f2-40bb-afce-d1cf5a125d3d"
         ]
       }
     }

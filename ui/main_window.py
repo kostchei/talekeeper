@@ -22,6 +22,7 @@ Features:
 
 import sys
 import os
+from typing import Dict, List
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSplitter, QMenuBar, QMenu, QPushButton
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
@@ -364,8 +365,18 @@ class MainWindow(QMainWindow):
         name = character_data.get('name', 'Unknown')
         class_name = character_data.get('class_data', {}).get('name', 'Unknown')
         species_name = character_data.get('species_data', {}).get('name', 'Unknown')
+        selected_feats = character_data.get('selected_feats', [])
         
         self.log_panel.log_system(f"Character created: {name} ({species_name} {class_name})")
+        if selected_feats:
+            feat_list = ", ".join(selected_feats)
+            self.log_panel.log_info(f"Origin feats selected: {feat_list}")
+            
+            # Log feat effects applied
+            if "Tough" in selected_feats:
+                self.log_panel.log_info(f"💪 Tough feat: +2 hit points per level applied")
+            if "Linguist" in selected_feats:
+                self.log_panel.log_info(f"📚 Linguist feat: +1 Intelligence, +3 languages applied")
 
         try:
             # Determine next available save slot
@@ -750,6 +761,9 @@ class MainWindow(QMainWindow):
         class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
         background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
 
+        # Get selected feats
+        selected_feats = character_data.get('selected_feats', [])
+        
         save_data = {
             'name': character_data.get('name', 'Adventurer'),
             'race_id': race_id,
@@ -761,8 +775,14 @@ class MainWindow(QMainWindow):
             'intelligence': ability_scores.get('intelligence', 10),
             'wisdom': ability_scores.get('wisdom', 10),
             'charisma': ability_scores.get('charisma', 10),
+            'feats': selected_feats,  # Store selected feats
+            'level': 1,  # Ensure level is set for feat calculations
             'notes': f"Created via character creator. Final scores include racial bonuses.",
         }
+        
+        # Apply feat effects to character stats
+        if selected_feats:
+            save_data = self._apply_feat_effects(save_data, selected_feats)
 
         equipment_choices = character_data.get('equipment_choices') or {}
         if equipment_choices:
@@ -772,6 +792,20 @@ class MainWindow(QMainWindow):
                 pass
 
         return save_data
+    
+    def _apply_feat_effects(self, character_data: Dict, feat_names: List[str]) -> Dict:
+        """Apply mechanical effects from selected feats to character data."""
+        try:
+            from services.feat_effects import FeatEffectsProcessor
+            
+            processor = FeatEffectsProcessor()
+            modified_data = processor.apply_feat_effects_to_character(character_data, feat_names)
+            
+            return modified_data
+            
+        except Exception as e:
+            print(f"Error applying feat effects: {e}")
+            return character_data  # Return unmodified data if error occurs
 
     def _get_race_id_by_name(self, name):
         """Get race ID by name from database."""

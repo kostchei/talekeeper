@@ -339,6 +339,7 @@ class GameEngineIndexedDB:
             intelligence=character_data.get("intelligence", 10),
             wisdom=character_data.get("wisdom", 10),
             charisma=character_data.get("charisma", 10),
+            feats=character_data.get("feats", []),
             notes=character_data.get("notes", ""),
             equipment_main_hand=character_data.get("equipment_main_hand"),
             equipment_off_hand=character_data.get("equipment_off_hand"),
@@ -748,11 +749,56 @@ class GameEngineIndexedDB:
                 additional_hp = additional_levels * (hit_die_average + character.constitution_modifier)
                 character.hit_points_max = level_1_hp + additional_hp
             
+            # Apply feat effects to character stats
+            character = self._apply_character_feat_effects(character)
+            
             character.hit_points_current = character.hit_points_max
             character.max_hit_points = character.hit_points_max  # Alternative field
             character.current_hit_points = character.hit_points_max
             character.hit_dice_max = character.level
             character.hit_dice_current = character.level
+    
+    def _apply_character_feat_effects(self, character):
+        """Apply mechanical effects from character's feats."""
+        try:
+            if not character.feats:
+                return character
+            
+            from services.feat_effects import FeatEffectsProcessor
+            
+            # Convert character to dict for processing
+            char_dict = {
+                'level': character.level,
+                'hit_points_max': character.hit_points_max,
+                'hit_points_current': character.hit_points_current,
+                'strength': character.strength,
+                'dexterity': character.dexterity,
+                'constitution': character.constitution,
+                'intelligence': character.intelligence,
+                'wisdom': character.wisdom,
+                'charisma': character.charisma,
+                'proficiencies': character.proficiencies or []
+            }
+            
+            # Apply feat effects
+            processor = FeatEffectsProcessor()
+            modified_dict = processor.apply_feat_effects_to_character(char_dict, character.feats)
+            
+            # Update character with modified values
+            character.hit_points_max = modified_dict.get('hit_points_max', character.hit_points_max)
+            character.strength = min(20, modified_dict.get('strength', character.strength))
+            character.dexterity = min(20, modified_dict.get('dexterity', character.dexterity))
+            character.constitution = min(20, modified_dict.get('constitution', character.constitution))
+            character.intelligence = min(20, modified_dict.get('intelligence', character.intelligence))
+            character.wisdom = min(20, modified_dict.get('wisdom', character.wisdom))
+            character.charisma = min(20, modified_dict.get('charisma', character.charisma))
+            character.proficiencies = modified_dict.get('proficiencies', character.proficiencies or [])
+            
+            return character
+            
+        except Exception as e:
+            print(f"Error applying feat effects: {e}")
+            return character  # Return unmodified character on error
     
     def roll_dice(self, notation: str, advantage: bool = False, disadvantage: bool = False) -> int:
         """Roll dice using the game's dice roller."""
