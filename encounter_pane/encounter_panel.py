@@ -20,12 +20,15 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QTabWidget, QListWidget, QListWidgetItem,
                             QSplitter, QGroupBox, QGridLayout, QComboBox,
                             QSpinBox, QCheckBox, QStackedWidget, QRadioButton,
-                            QButtonGroup)
+                            QButtonGroup, QProgressBar)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import json
 import os
 import random
+from uuid import uuid4
+from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
+from models.monsters_indexeddb import EncounterInstance
 
 
 class EncounterPanel(QWidget):
@@ -42,6 +45,7 @@ class EncounterPanel(QWidget):
     combat_initiated = pyqtSignal(dict)
     exploration_action = pyqtSignal(str)
     character_created = pyqtSignal(dict)  # Emitted when character creation is complete
+    monster_selected = pyqtSignal(str)  # Emitted when monster card is selected (instance_id)
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -49,6 +53,15 @@ class EncounterPanel(QWidget):
         self.encounter_mode = "exploration"  # exploration, encounter, combat, character_creation
         self.character_creation_data = {}  # Store character creation progress
         self.creation_step = 0  # Track current creation step
+        
+        # Initialize encounter generator
+        self.encounter_generator = None
+        self._load_campaign_frame()
+        
+        # Track current encounter instances
+        self.current_encounter_id = None
+        self.encounter_instances = {}  # instance_id -> EncounterInstance
+        self.selected_monster_id = None  # Currently selected monster for targeting
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -111,9 +124,20 @@ class EncounterPanel(QWidget):
         self.encounters_label.setObjectName("sectionLabel")
         encounters_layout.addWidget(self.encounters_label)
         
-        self.encounters_list = QListWidget()
-        self.encounters_list.setObjectName("encountersList")
-        encounters_layout.addWidget(self.encounters_list)
+        # Generate encounter button
+        self.generate_encounter_btn = QPushButton("Generate Random Encounter")
+        self.generate_encounter_btn.clicked.connect(self._generate_encounter)
+        encounters_layout.addWidget(self.generate_encounter_btn)
+        
+        # Monster cards container (grid layout for multiple rows)
+        self.monsters_frame = QFrame()
+        self.monsters_frame.setObjectName("monstersFrame")
+        from PyQt6.QtWidgets import QGridLayout
+        self.monsters_layout = QGridLayout(self.monsters_frame)
+        self.monsters_layout.setContentsMargins(5, 5, 5, 5)
+        self.monsters_layout.setSpacing(5)
+        self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        encounters_layout.addWidget(self.monsters_frame)
         
         # Combat controls
         self.combat_controls_frame = QFrame()
@@ -401,6 +425,55 @@ class EncounterPanel(QWidget):
         QPushButton#createCharacterBtn:pressed {
             background-color: #3a9954;
         }
+        
+        /* Monster Card Styles - Matching Action Card Aesthetic */
+        QFrame#monsterCard {
+            background-color: #2d2d2d;
+            border: 2px solid #555555;
+            border-radius: 8px;
+        }
+        
+        QFrame#monsterCard:hover {
+            border-color: #4a90e2;
+        }
+        
+        QFrame#monsterCard[selected="true"] {
+            border-color: #4a90e2;
+            border-width: 3px;
+            background-color: #3d3d4d;
+        }
+        
+        QFrame#monstersFrame {
+            background-color: transparent;
+            border: none;
+        }
+        
+        QLabel#monsterName {
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        QLabel#monsterCR {
+            color: #cccccc;
+            font-size: 9px;
+        }
+        
+        QLabel#monsterType {
+            color: #cccccc;
+            font-size: 9px;
+        }
+        
+        QLabel#hpText {
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        QLabel#monsterXP {
+            color: #ffcc00;
+            font-size: 8px;
+        }
         """
         self.setStyleSheet(style_sheet)
     
@@ -575,20 +648,26 @@ class EncounterPanel(QWidget):
             self.set_encounter_mode()
     
     def clear_encounters(self):
-        """Clear all encounters from the list."""
-        self.encounters_list.clear()
+        """Clear all encounters."""
+        self._clear_monster_cards()
+        self.encounter_instances = {}
+        self.current_encounter_id = None
         if self.encounter_mode in ["encounter", "combat"]:
             self.set_exploration_mode()
     
     def _start_combat(self):
-        """Start combat with selected encounter."""
-        current_item = self.encounters_list.currentItem()
-        if current_item:
-            encounter_data = current_item.data(Qt.ItemDataRole.UserRole)
+        """Start combat with current encounter."""
+        if self.encounter_instances and self.current_encounter_id:
+            # Create encounter data from current instances
+            encounter_data = {
+                'encounter_id': self.current_encounter_id,
+                'monsters': [instance.to_dict() for instance in self.encounter_instances.values()],
+                'living_count': len(self.get_living_monsters())
+            }
             self.set_combat_mode()
             self.combat_initiated.emit(encounter_data)
         else:
-            self.update_status("No encounter selected for combat")
+            self.update_status("No active encounter to start combat with")
     
     def update_status(self, status: str):
         """Update the status message."""
@@ -1391,3 +1470,403 @@ class EncounterPanel(QWidget):
                 point_buy = self.ability_spinboxes[ability].value()
                 used = "USED" if data['total'] > point_buy else "not used"
                 log_panel.log_dice(f"{ability.title()}: 4d6 drop lowest = {data['total']} {data['rolls']} ({used})")
+    
+    # === ENCOUNTER GENERATION METHODS ===
+    
+    def _load_campaign_frame(self):
+        """Load campaign frame from conan.json and initialize encounter generator."""
+        try:
+            campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', 'conan.json')
+            with open(campaign_path, 'r', encoding='utf-8') as f:
+                frame_data = json.load(f)
+            
+            campaign_frame = CampaignFrame(frame_data)
+            self.encounter_generator = EncounterGenerator(campaign_frame)
+            
+        except Exception as e:
+            print(f"Error loading campaign frame: {e}")
+            # Fallback to default frame
+            default_frame_data = {
+                'monster_type_weights': {'humanoid': 0.7, 'fiend': 0.2, 'aberration': 0.1},
+                'difficulty_distribution': {'low': 0.5, 'moderate': 0.4, 'high': 0.1}
+            }
+            campaign_frame = CampaignFrame(default_frame_data)
+            self.encounter_generator = EncounterGenerator(campaign_frame)
+    
+    def _generate_encounter(self):
+        """Generate a random encounter based on active character level."""
+        if not self.encounter_generator:
+            self._load_campaign_frame()
+        
+        # Get character level - need to access through parent main window
+        character_level = self._get_character_level()
+        if character_level is None:
+            self.update_scene_description("No active character found. Please create or load a character first.")
+            return
+        
+        try:
+            # Generate encounter
+            encounter_data = self.encounter_generator.generate_encounter(character_level)
+            
+            # Clear existing encounters and instances
+            self._clear_monster_cards()
+            self.encounter_instances = {}
+            self.selected_monster_id = None  # Clear selection
+            
+            # Create new encounter ID
+            self.current_encounter_id = str(uuid4())
+            
+            # Create encounter instances with rolled HP and add monster cards
+            for i, monster in enumerate(encounter_data['monsters']):
+                # Roll HP for this instance
+                rolled_hp = roll_monster_hp(monster['hp_formula'])
+                
+                # Create encounter instance
+                instance = EncounterInstance.from_monster_data(
+                    monster_data=monster,
+                    encounter_id=self.current_encounter_id,
+                    rolled_hp=rolled_hp
+                )
+                
+                # Store instance
+                self.encounter_instances[instance.id] = instance
+                
+                # Create monster card widget and add to grid layout (3 cards per row)
+                monster_widget = self._create_monster_card(instance)
+                row = i // 3  # Integer division to get row
+                col = i % 3   # Modulo to get column
+                self.monsters_layout.addWidget(monster_widget, row, col)
+            
+            # Update scene description
+            difficulty_desc = encounter_data['difficulty'].capitalize()
+            monster_names = [m['name'] for m in encounter_data['monsters']]
+            if len(monster_names) == 1:
+                desc = f"A {difficulty_desc.lower()} encounter appears: {monster_names[0]}!"
+            else:
+                desc = f"A {difficulty_desc.lower()} encounter appears: {', '.join(monster_names)}!"
+            
+            self.update_scene_description(desc)
+            
+            # Switch to encounter mode
+            self.set_encounter_mode()
+            
+        except Exception as e:
+            print(f"Error generating encounter: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def _get_character_level(self) -> Optional[int]:
+        """Get the level of the current active character."""
+        try:
+            # Access main window through parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and hasattr(parent.game_engine, 'current_character'):
+                    character = parent.game_engine.current_character
+                    if character:
+                        return character.level
+                    break
+                parent = parent.parent()
+            
+            return None
+        except Exception as e:
+            print(f"Error getting character level: {e}")
+            return None
+    
+    def _create_monster_card(self, instance: EncounterInstance) -> QWidget:
+        """Create a compact monster card using action card styling."""
+        card = QFrame()
+        card.setObjectName("monsterCard")
+        card.setFixedSize(120, 140)  # Compact size to fit 4-5 cards (648px / 5 = ~130px each)
+        card.setProperty("selected", False)  # Track selection state
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        # Monster name (truncated if too long)
+        name = instance.monster_name
+        if len(name) > 12:
+            name = name[:10] + "..."
+        
+        name_label = QLabel(name)
+        name_label.setObjectName("monsterName")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_label.setWordWrap(True)
+        layout.addWidget(name_label)
+        
+        # CR and Type
+        cr_label = QLabel(f"CR {instance.monster_cr}")
+        cr_label.setObjectName("monsterCR")
+        cr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(cr_label)
+        
+        type_label = QLabel(instance.monster_type.capitalize())
+        type_label.setObjectName("monsterType")
+        type_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(type_label)
+        
+        # HP text (compact format)
+        hp_text = f"{instance.current_hit_points}"
+        if instance.temporary_hit_points > 0:
+            hp_text = f"{instance.current_hit_points} (+{instance.temporary_hit_points})"
+        hp_text += f"/{instance.max_hit_points}"
+        
+        hp_label = QLabel(hp_text)
+        hp_label.setObjectName("hpText")
+        hp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(hp_label)
+        
+        # Compact HP progress bar
+        hp_bar = QProgressBar()
+        hp_bar.setRange(0, 100)
+        hp_bar.setValue(int(instance.hp_percentage))
+        hp_bar.setTextVisible(False)
+        hp_bar.setFixedHeight(8)
+        
+        # Color-code HP bar based on health status
+        if instance.hp_percentage <= 25:
+            bar_color = "#ff6b6b"  # Red for critical (matching action card cooldown)
+        elif instance.hp_percentage <= 50:
+            bar_color = "#ff9500"  # Orange for bloodied
+        else:
+            bar_color = "#4CAF50"  # Green for healthy
+        
+        hp_bar.setStyleSheet(f"""
+            QProgressBar {{
+                border: 1px solid #444444;
+                border-radius: 2px;
+                background-color: #1a1a1a;
+            }}
+            QProgressBar::chunk {{
+                background-color: {bar_color};
+                border-radius: 1px;
+            }}
+        """)
+        
+        layout.addWidget(hp_bar)
+        layout.addStretch()
+        
+        # XP value at bottom
+        xp_label = QLabel(f"{instance.monster_xp} XP")
+        xp_label.setObjectName("monsterXP")
+        xp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(xp_label)
+        
+        # Test damage buttons (will be removed when combat system is integrated)
+        test_layout = QHBoxLayout()
+        damage_btn = QPushButton("-5")
+        damage_btn.setFixedSize(25, 16)
+        damage_btn.setStyleSheet("font-size: 8px; padding: 1px; background-color: #ff6b6b; border: 1px solid #444; border-radius: 2px;")
+        damage_btn.clicked.connect(lambda: self._apply_damage_to_monster(instance.id, 5))
+        
+        heal_btn = QPushButton("+5")
+        heal_btn.setFixedSize(25, 16)
+        heal_btn.setStyleSheet("font-size: 8px; padding: 1px; background-color: #4CAF50; border: 1px solid #444; border-radius: 2px;")
+        heal_btn.clicked.connect(lambda: self._heal_monster(instance.id, 5))
+        
+        test_layout.addWidget(damage_btn)
+        test_layout.addWidget(heal_btn)
+        layout.addLayout(test_layout)
+        
+        # Store instance reference in the card for updates
+        card.instance_id = instance.id
+        card.hp_bar = hp_bar
+        card.hp_label = hp_label
+        
+        # Add click handler for selection
+        card.mousePressEvent = lambda event: self._select_monster_card(instance.id)
+        
+        return card
+    
+    def _select_monster_card(self, instance_id: str):
+        """Select a monster card for targeting."""
+        # Clear previous selection
+        if self.selected_monster_id:
+            self._update_card_selection_display(self.selected_monster_id, False)
+        
+        # Set new selection
+        self.selected_monster_id = instance_id
+        self._update_card_selection_display(instance_id, True)
+        
+        # Emit selection signal
+        self.monster_selected.emit(instance_id)
+        
+        # Log the selection
+        if instance_id in self.encounter_instances:
+            monster_name = self.encounter_instances[instance_id].monster_name
+            self._log_monster_action(f"Targeting {monster_name}")
+    
+    def _update_card_selection_display(self, instance_id: str, selected: bool):
+        """Update the visual display of a monster card's selection state."""
+        # Find the monster card widget in the grid layout
+        for i in range(self.monsters_layout.count()):
+            item = self.monsters_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                
+                if hasattr(widget, 'instance_id') and widget.instance_id == instance_id:
+                    widget.setProperty("selected", selected)
+                    # Force style refresh
+                    widget.style().unpolish(widget)
+                    widget.style().polish(widget)
+                    widget.update()
+                    break
+    
+    def get_selected_monster(self) -> Optional[EncounterInstance]:
+        """Get the currently selected monster instance."""
+        if self.selected_monster_id and self.selected_monster_id in self.encounter_instances:
+            return self.encounter_instances[self.selected_monster_id]
+        return None
+    
+    def _clear_monster_cards(self):
+        """Clear all monster cards from the grid layout."""
+        # Remove all widgets from the monsters layout
+        while self.monsters_layout.count():
+            child = self.monsters_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+    
+    def _apply_damage_to_monster(self, instance_id: str, damage: int):
+        """Apply damage to a specific monster instance and update UI."""
+        if instance_id not in self.encounter_instances:
+            return
+        
+        instance = self.encounter_instances[instance_id]
+        actual_damage = instance.take_damage(damage)
+        
+        # Update the monster card UI
+        self._update_monster_card_display(instance_id)
+        
+        # Log the damage (if log panel is available)
+        self._log_monster_action(f"{instance.monster_name} takes {actual_damage} damage! " +
+                                f"({instance.current_hit_points}/{instance.max_hit_points} HP)")
+        
+        # Check if monster died
+        if not instance.is_alive:
+            self._log_monster_action(f"{instance.monster_name} has been defeated!")
+    
+    def _heal_monster(self, instance_id: str, healing: int):
+        """Heal a specific monster instance and update UI."""
+        if instance_id not in self.encounter_instances:
+            return
+        
+        instance = self.encounter_instances[instance_id]
+        actual_healing = instance.heal(healing)
+        
+        if actual_healing > 0:
+            # Update the monster card UI
+            self._update_monster_card_display(instance_id)
+            
+            # Log the healing
+            self._log_monster_action(f"{instance.monster_name} heals {actual_healing} HP! " +
+                                   f"({instance.current_hit_points}/{instance.max_hit_points} HP)")
+    
+    def _update_monster_card_display(self, instance_id: str):
+        """Update the visual display of a monster card after HP changes."""
+        if instance_id not in self.encounter_instances:
+            return
+        
+        instance = self.encounter_instances[instance_id]
+        
+        # Find the monster card widget in the horizontal layout
+        for i in range(self.monsters_layout.count()):
+            item = self.monsters_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                
+                if hasattr(widget, 'instance_id') and widget.instance_id == instance_id:
+                    # Update HP text
+                    hp_text = f"{instance.current_hit_points}"
+                    if instance.temporary_hit_points > 0:
+                        hp_text = f"{instance.current_hit_points} (+{instance.temporary_hit_points})"
+                    hp_text += f"/{instance.max_hit_points}"
+                    widget.hp_label.setText(hp_text)
+                    
+                    # Update HP bar value and color
+                    widget.hp_bar.setValue(int(instance.hp_percentage))
+                    
+                    # Update HP bar color based on health status
+                    if instance.hp_percentage <= 25:
+                        bar_color = "#ff6b6b"  # Red for critical
+                    elif instance.hp_percentage <= 50:
+                        bar_color = "#ff9500"  # Orange for bloodied  
+                    else:
+                        bar_color = "#4CAF50"  # Green for healthy
+                    
+                    widget.hp_bar.setStyleSheet(f"""
+                        QProgressBar {{
+                            border: 1px solid #444444;
+                            border-radius: 2px;
+                            background-color: #1a1a1a;
+                        }}
+                        QProgressBar::chunk {{
+                            background-color: {bar_color};
+                            border-radius: 1px;
+                        }}
+                    """)
+                    
+                    # Add visual indicator for dead monsters
+                    if not instance.is_alive:
+                        # Use action card styling for dead state
+                        widget.setStyleSheet("""
+                            QFrame#monsterCard {
+                                background-color: #1a1a1a;
+                                border: 2px solid #444444;
+                                border-radius: 8px;
+                                opacity: 0.6;
+                            }
+                        """)
+                    
+                    break
+    
+    def _log_monster_action(self, message: str):
+        """Log monster-related actions to the log panel if available."""
+        try:
+            # Try to find log panel in parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(message)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Could not log message: {e}")
+            print(f"Message was: {message}")
+    
+    # === DATABASE PERSISTENCE METHODS ===
+    
+    def _save_encounter_instances_to_db(self):
+        """Save current encounter instances to the database."""
+        try:
+            # Get game engine from parent for database access
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    
+                    # Save each instance to the database
+                    # (This would require adding methods to the game engine)
+                    # For now, we'll just store in memory
+                    print(f"Would save {len(self.encounter_instances)} encounter instances to DB")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error saving encounter instances: {e}")
+    
+    def get_encounter_instance(self, instance_id: str) -> Optional[EncounterInstance]:
+        """Get an encounter instance by ID."""
+        return self.encounter_instances.get(instance_id)
+    
+    def get_all_encounter_instances(self) -> List[EncounterInstance]:
+        """Get all current encounter instances."""
+        return list(self.encounter_instances.values())
+    
+    def get_living_monsters(self) -> List[EncounterInstance]:
+        """Get all living monsters in the current encounter."""
+        return [instance for instance in self.encounter_instances.values() if instance.is_alive]
+    
+    def is_encounter_complete(self) -> bool:
+        """Check if all monsters in the encounter are defeated."""
+        return len(self.get_living_monsters()) == 0

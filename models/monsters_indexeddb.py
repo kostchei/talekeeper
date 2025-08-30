@@ -219,3 +219,132 @@ class Monster:
             "xp_value": self.xp_value,
             "proficiency_bonus": self.proficiency_bonus
         }
+
+
+@dataclass
+class EncounterInstance:
+    """
+    An instance of a monster in a specific encounter with current HP tracking.
+    Each monster card in an encounter gets its own instance for damage tracking.
+    """
+    # Primary key
+    id: str = field(default_factory=lambda: str(uuid4()))
+    encounter_id: str = ""  # Links multiple monster instances together
+    
+    # Monster reference and current state
+    monster_name: str = ""
+    monster_cr: str = ""
+    monster_type: str = ""
+    monster_xp: int = 0
+    
+    # HP tracking
+    max_hit_points: int = 0
+    current_hit_points: int = 0
+    temporary_hit_points: int = 0
+    
+    # Combat state
+    is_alive: bool = True
+    conditions: List[str] = field(default_factory=list)
+    initiative: Optional[int] = None
+    
+    # Metadata
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: Optional[str] = None
+    
+    @property
+    def hp_percentage(self) -> float:
+        """Calculate HP as percentage for progress bar display."""
+        if self.max_hit_points <= 0:
+            return 0.0
+        return (self.current_hit_points / self.max_hit_points) * 100.0
+    
+    @property
+    def is_bloodied(self) -> bool:
+        """Check if monster is bloodied (below half HP)."""
+        return self.current_hit_points <= (self.max_hit_points // 2)
+    
+    def take_damage(self, damage: int) -> int:
+        """Apply damage to the monster instance. Returns actual damage taken."""
+        if damage <= 0:
+            return 0
+        
+        # Apply to temporary HP first
+        temp_damage = min(damage, self.temporary_hit_points)
+        self.temporary_hit_points -= temp_damage
+        remaining_damage = damage - temp_damage
+        
+        # Apply remaining damage to current HP
+        actual_damage = min(remaining_damage, self.current_hit_points)
+        self.current_hit_points -= actual_damage
+        
+        # Update alive status
+        if self.current_hit_points <= 0:
+            self.is_alive = False
+            self.current_hit_points = 0
+        
+        self.updated_at = datetime.now().isoformat()
+        return temp_damage + actual_damage
+    
+    def heal(self, healing: int) -> int:
+        """Heal the monster instance. Returns actual healing applied."""
+        if healing <= 0 or not self.is_alive:
+            return 0
+        
+        max_healing = self.max_hit_points - self.current_hit_points
+        actual_healing = min(healing, max_healing)
+        self.current_hit_points += actual_healing
+        
+        self.updated_at = datetime.now().isoformat()
+        return actual_healing
+    
+    def add_temporary_hp(self, temp_hp: int):
+        """Add temporary hit points (doesn't stack, takes higher value)."""
+        if temp_hp > self.temporary_hit_points:
+            self.temporary_hit_points = temp_hp
+            self.updated_at = datetime.now().isoformat()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for IndexedDB storage."""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EncounterInstance':
+        """Create instance from dictionary from IndexedDB."""
+        defaults = {
+            'conditions': [],
+            'created_at': datetime.now().isoformat()
+        }
+        
+        for key, default_value in defaults.items():
+            if key not in data:
+                data[key] = default_value
+        
+        # Remove unexpected fields
+        expected_fields = set(cls.__dataclass_fields__.keys())
+        filtered_data = {k: v for k, v in data.items() if k in expected_fields}
+        
+        return cls(**filtered_data)
+    
+    @classmethod
+    def from_monster_data(cls, monster_data: Dict[str, Any], encounter_id: str, rolled_hp: Optional[int] = None) -> 'EncounterInstance':
+        """Create encounter instance from monster generator data."""
+        # Calculate HP from SRD data or use provided rolled HP
+        if rolled_hp is not None:
+            max_hp = rolled_hp
+        else:
+            # Use average HP from SRD data (we'll implement HP rolling later)
+            max_hp = monster_data.get('average_hp', 8)  # Default fallback
+        
+        return cls(
+            encounter_id=encounter_id,
+            monster_name=monster_data['name'],
+            monster_cr=monster_data['cr_str'],
+            monster_type=monster_data['type'],
+            monster_xp=monster_data['xp'],
+            max_hit_points=max_hp,
+            current_hit_points=max_hp,
+            temporary_hit_points=0,
+            is_alive=True,
+            conditions=[],
+            initiative=None
+        )

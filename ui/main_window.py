@@ -204,6 +204,9 @@ class MainWindow(QMainWindow):
         self.encounter_pane.exploration_action.connect(
             lambda action: self.log_panel.log_info(f"Exploration: {action}")
         )
+        self.encounter_pane.monster_selected.connect(
+            lambda monster_id: self._on_monster_selected(monster_id)
+        )
         
         # Equipment panel signals
         self.equipment_panel.expansion_changed.connect(
@@ -220,6 +223,17 @@ class MainWindow(QMainWindow):
         
         # Encounter pane character creation signal
         self.encounter_pane.character_created.connect(self._on_character_created)
+    
+    def _on_monster_selected(self, monster_id: str):
+        """Handle monster selection for targeting."""
+        # Pass the selected monster to the action panel for targeting
+        if hasattr(self.action_panel, 'set_target_monster'):
+            self.action_panel.set_target_monster(monster_id)
+        
+        # Get monster info for logging
+        selected_monster = self.encounter_pane.get_selected_monster()
+        if selected_monster:
+            self.log_panel.log_combat(f"Selected target: {selected_monster.monster_name}")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""

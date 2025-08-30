@@ -71,6 +71,7 @@ class ActionPanel(QWidget):
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
         self.equipped_weapons = {}  # Store equipped weapon data
+        self.target_monster_id = None  # Currently targeted monster for attacks
         
         # Set fixed size (center + right columns only)
         self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
@@ -409,17 +410,145 @@ class ActionPanel(QWidget):
             # Add character context
             full_context = {**context, **self.character_context}
             
-            # Start cooldown if applicable
-            cooldown = self._get_action_cooldown(action_type)
-            if cooldown > 0:
-                self.action_cooldowns[action_type] = cooldown
-                self.action_cards[action_type].set_cooldown(cooldown)
+            # For attack actions, add target monster if available
+            if action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+                if self.target_monster_id:
+                    full_context['target_monster_id'] = self.target_monster_id
+                    
+                    # Trigger the attack flow
+                    self._execute_attack(action_type, full_context)
+                else:
+                    # No target selected, just emit the signal as before
+                    self.action_triggered.emit(action_type, full_context)
+                    return
+            else:
+                # Non-attack actions proceed normally
+                # Start cooldown if applicable
+                cooldown = self._get_action_cooldown(action_type)
+                if cooldown > 0:
+                    self.action_cooldowns[action_type] = cooldown
+                    self.action_cards[action_type].set_cooldown(cooldown)
+                
+                # Emit signal
+                self.action_triggered.emit(action_type, full_context)
+                
+                # Update action economy
+                self._update_action_economy(action_type)
+    
+    def _execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
+        """Execute an attack against the targeted monster."""
+        target_id = context.get('target_monster_id')
+        weapon_name = context.get('name', 'weapon')
+        
+        # Get encounter panel to access the monster
+        encounter_panel = self._get_encounter_panel()
+        if not encounter_panel:
+            print("Could not find encounter panel for attack execution")
+            return
+        
+        target_monster = encounter_panel.get_selected_monster()
+        if not target_monster:
+            print(f"Target monster {target_id} not found")
+            return
+        
+        # TODO: Roll initiative first if this is the start of combat
+        # For now, just proceed with the attack
+        
+        # Make attack roll
+        attack_roll = self._roll_attack(context)
+        target_ac = 12  # TODO: Get from monster data, for now assume AC 12
+        
+        hit = attack_roll >= target_ac
+        
+        if hit:
+            # Roll damage
+            damage = self._roll_damage(context)
             
-            # Emit signal
-            self.action_triggered.emit(action_type, full_context)
+            # Apply damage to monster
+            encounter_panel._apply_damage_to_monster(target_id, damage)
             
-            # Update action economy
-            self._update_action_economy(action_type)
+            # Log the attack
+            self._log_attack_result(True, weapon_name, target_monster.monster_name, 
+                                  attack_roll, target_ac, damage)
+        else:
+            # Attack missed
+            self._log_attack_result(False, weapon_name, target_monster.monster_name, 
+                                  attack_roll, target_ac, 0)
+        
+        # Start cooldown and update action economy
+        cooldown = self._get_action_cooldown(action_type)
+        if cooldown > 0:
+            self.action_cooldowns[action_type] = cooldown
+            self.action_cards[action_type].set_cooldown(cooldown)
+        
+        self._update_action_economy(action_type)
+    
+    def _get_encounter_panel(self):
+        """Get the encounter panel from the main window."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'encounter_pane'):
+                    return parent.encounter_pane
+                parent = parent.parent()
+            return None
+        except Exception as e:
+            print(f"Error finding encounter panel: {e}")
+            return None
+    
+    def _roll_attack(self, context: Dict[str, Any]) -> int:
+        """Roll an attack roll (d20 + modifiers)."""
+        import random
+        base_roll = random.randint(1, 20)
+        
+        # Get attack bonus from context or calculate it
+        attack_bonus = context.get('attack_bonus', 2)  # Default +2 for level 1
+        
+        return base_roll + attack_bonus
+    
+    def _roll_damage(self, context: Dict[str, Any]) -> int:
+        """Roll damage dice."""
+        import random
+        
+        # Get damage from context or use default
+        damage_dice = context.get('damage_dice', '1d6')  # Default 1d6
+        
+        # Simple damage parsing - just handle basic cases like "1d6+2"
+        if 'd' in damage_dice:
+            if '+' in damage_dice:
+                dice_part, bonus_part = damage_dice.split('+')
+                bonus = int(bonus_part.strip())
+            else:
+                dice_part = damage_dice
+                bonus = 0
+            
+            num_dice, die_size = dice_part.split('d')
+            num_dice = int(num_dice)
+            die_size = int(die_size)
+            
+            total = sum(random.randint(1, die_size) for _ in range(num_dice)) + bonus
+            return max(1, total)  # Minimum 1 damage
+        else:
+            return int(damage_dice) if damage_dice.isdigit() else 1
+    
+    def _log_attack_result(self, hit: bool, weapon: str, target: str, attack_roll: int, target_ac: int, damage: int):
+        """Log the result of an attack."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    if hit:
+                        parent.log_panel.log_combat(
+                            f"⚔️ {weapon} hits {target}! (rolled {attack_roll} vs AC {target_ac}) for {damage} damage"
+                        )
+                    else:
+                        parent.log_panel.log_combat(
+                            f"⚔️ {weapon} misses {target}! (rolled {attack_roll} vs AC {target_ac})"
+                        )
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Could not log attack: {e}")
     
     def _action_hovered(self, action_type: ActionType, description: str):
         """Handle action hover from card."""
@@ -544,6 +673,13 @@ class ActionPanel(QWidget):
         
         # Refresh visible cards
         self._update_visible_cards()
+    
+    def set_target_monster(self, monster_id: str):
+        """Set the target monster for attacks."""
+        self.target_monster_id = monster_id
+        
+        # Update action cards to show they have a target
+        self._update_card_availability()
 
 
 class ActionCard(QWidget):
