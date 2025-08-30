@@ -1,0 +1,18 @@
+{
+  "name": "Conan",
+  "monster_type_weights": {
+    "fiend": 0.2,
+    "aberration": 0.1,
+    "humanoid": 0.7
+  },
+  "difficulty_distribution": {
+    "low": 0.5,
+    "moderate": 0.4,
+    "high": 0.1
+  },
+  "rest_rules": {
+    "wilderness_interrupt_chance": 0.1,
+    "town_interrupt_chance": 0.5
+  },
+  "style": "Harsh, grimdark sword & sorcery. Fiends and strange horrors abound; men are treacherous."
+}

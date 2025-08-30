@@ -1,0 +1,22 @@
+[
+  {"Level": 1, "Low": 50, "Moderate": 75, "High": 100},
+  {"Level": 2, "Low": 100, "Moderate": 150, "High": 200},
+  {"Level": 3, "Low": 150, "Moderate": 225, "High": 400},
+  {"Level": 4, "Low": 250, "Moderate": 375, "High": 500},
+  {"Level": 5, "Low": 500, "Moderate": 750, "High": 1100},
+  {"Level": 6, "Low": 600, "Moderate": 1000, "High": 1400},
+  {"Level": 7, "Low": 750, "Moderate": 1300, "High": 1700},
+  {"Level": 8, "Low": 1000, "Moderate": 1700, "High": 2100},
+  {"Level": 9, "Low": 1300, "Moderate": 2000, "High": 2600},
+  {"Level": 10, "Low": 1600, "Moderate": 2300, "High": 3100},
+  {"Level": 11, "Low": 1900, "Moderate": 2900, "High": 4100},
+  {"Level": 12, "Low": 2200, "Moderate": 3700, "High": 4700},
+  {"Level": 13, "Low": 2600, "Moderate": 4200, "High": 5400},
+  {"Level": 14, "Low": 2900, "Moderate": 4900, "High": 6200},
+  {"Level": 15, "Low": 3300, "Moderate": 5400, "High": 7800},
+  {"Level": 16, "Low": 3800, "Moderate": 6100, "High": 9800},
+  {"Level": 17, "Low": 4500, "Moderate": 7200, "High": 11700},
+  {"Level": 18, "Low": 5000, "Moderate": 8700, "High": 14200},
+  {"Level": 19, "Low": 5500, "Moderate": 10700, "High": 17200},
+  {"Level": 20, "Low": 6400, "Moderate": 13200, "High": 22000}
+]

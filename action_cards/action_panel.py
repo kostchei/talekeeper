@@ -136,30 +136,9 @@ class ActionPanel(QWidget):
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
         self.cards_layout.setSpacing(8)
         
-        # === STATUS BAR ===
-        self.status_frame = QFrame()
-        self.status_frame.setObjectName("statusFrame")
-        self.status_frame.setFixedHeight(25)
-        
-        status_layout = QHBoxLayout(self.status_frame)
-        status_layout.setContentsMargins(8, 2, 8, 2)
-        
-        # Action economy display
-        self.action_economy_label = QLabel("Action: Available | Bonus: Available | Reaction: Available")
-        self.action_economy_label.setObjectName("statusLabel")
-        status_layout.addWidget(self.action_economy_label)
-        
-        status_layout.addStretch()
-        
-        # Turn indicator
-        self.turn_label = QLabel("Your Turn")
-        self.turn_label.setObjectName("turnLabel")
-        status_layout.addWidget(self.turn_label)
-        
         # Add sections to main layout
         self.main_layout.addWidget(self.header_frame)
         self.main_layout.addWidget(self.cards_container, 1)
-        self.main_layout.addWidget(self.status_frame)
     
     def _create_action_cards(self):
         """Create action cards for different action types."""
@@ -304,30 +283,10 @@ class ActionPanel(QWidget):
             border-radius: 4px;
         }
         
-        QFrame#statusFrame {
-            background-color: #333333;
-            border: 1px solid #555555;
-            border-radius: 4px;
-        }
-        
         QLabel#titleLabel {
             color: #ffffff;
             font-size: 16px;
             font-weight: bold;
-        }
-        
-        QLabel#statusLabel {
-            color: #cccccc;
-            font-size: 11px;
-        }
-        
-        QLabel#turnLabel {
-            color: #4a90e2;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 2px 6px;
-            border: 1px solid #4a90e2;
-            border-radius: 3px;
         }
         
         QPushButton#categoryButton {
@@ -553,21 +512,15 @@ class ActionPanel(QWidget):
     
     def set_turn_active(self, active: bool):
         """Set whether it's currently the character's turn."""
-        if active:
-            self.turn_label.setText("Your Turn")
-            self.turn_label.setStyleSheet("color: #4a90e2; border-color: #4a90e2;")
-        else:
-            self.turn_label.setText("Wait")
-            self.turn_label.setStyleSheet("color: #888888; border-color: #888888;")
-        
+        # Turn label removed - just enable/disable cards
         # Enable/disable all cards based on turn
         for card in self.action_cards.values():
             card.setEnabled(active)
     
     def reset_action_economy(self):
         """Reset action economy for a new turn."""
-        # This would reset available actions, bonus actions, reactions
-        self.action_economy_label.setText("Action: Available | Bonus: Available | Reaction: Available")
+        # Action economy display removed - just track internally
+        pass
     
     def update_theme(self, theme_name: str):
         """Update all action cards to use the specified theme."""
