@@ -1621,7 +1621,8 @@ class EncounterPanel(QWidget):
             if hasattr(self, 'fighting_style_combo'):
                 fighting_style_data = self.fighting_style_combo.currentData()
                 if fighting_style_data:
-                    selected_feats.append(fighting_style_data.get('name', ''))
+                    feat_name = fighting_style_data.get('name', '')
+                    selected_feats.append(feat_name)
         
         # Collect class features
         class_features = {}

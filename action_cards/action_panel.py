@@ -44,6 +44,10 @@ class ActionType(Enum):
     SECOND_WIND = "second_wind"
     ACTION_SURGE = "action_surge"
     FIGHTING_STYLE = "fighting_style"
+    
+    # Weapon Mastery Actions
+    NICK_MASTERY = "nick_mastery"
+    CLEAVE_MASTERY = "cleave_mastery"
 
 
 class ActionCategory(Enum):
@@ -75,6 +79,7 @@ class ActionPanel(QWidget):
         self.action_cards = {}  # ActionType -> ActionCard mapping
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
+        self.character_features = {}  # Character class features (Fighting Style, etc.)
         self.equipped_weapons = {}  # Store equipped weapon data
         self.target_monster_id = None  # Currently targeted monster for attacks
         
@@ -268,26 +273,34 @@ class ActionPanel(QWidget):
                 card.action_hovered.connect(self._action_hovered)
                 self.action_cards[1001 + i] = card
         
-        # Create Weapon Mastery selection cards if character has that feature
-        if 'Weapon Mastery' in self.character_features:
-            weapon_masteries = [
-                ("Cleave", "Attack second creature within 5 feet"),
-                ("Graze", "Deal ability mod damage on miss"),
-                ("Nick", "Make additional attack with same weapon"),
-                ("Push", "Push target up to 10 feet away"),
-                ("Sap", "Target has disadvantage on next attack"),
-                ("Slow", "Reduce target's speed by 10 feet"),
-                ("Topple", "Force Constitution save or prone"),
-                ("Vex", "Gain advantage on next attack vs target")
-            ]
+        # Create Weapon Mastery cards based on character's selected masteries
+        selected_masteries = self.character_context.get('weapon_masteries', [])
+        if selected_masteries:
+            weapon_mastery_details = {
+                "Cleave": "Attack second creature within 5 feet",
+                "Graze": "Deal ability mod damage on miss",
+                "Nick": "Make additional attack with same weapon",
+                "Push": "Push target up to 10 feet away",
+                "Sap": "Target has disadvantage on next attack",
+                "Slow": "Reduce target's speed by 10 feet",
+                "Topple": "Force Constitution save or prone",
+                "Vex": "Gain advantage on next attack vs target"
+            }
             
-            # Only show first 3 masteries (fighter gets 3 at level 1)
-            for i, (mastery_name, mastery_desc) in enumerate(weapon_masteries[:3]):
-                card = ActionCard(2000 + i, "🗡️", mastery_name, mastery_desc)
-                card.feature_data = {'type': 'weapon_mastery', 'name': mastery_name}
+            # Create cards for Nick and Cleave masteries (bonus actions)
+            if "Nick" in selected_masteries:
+                card = ActionCard(ActionType.NICK_MASTERY, "🗡️", "Nick Mastery", weapon_mastery_details["Nick"])
+                card.feature_data = {'type': 'weapon_mastery', 'name': 'Nick'}
                 card.action_triggered.connect(self._trigger_feature_action)
                 card.action_hovered.connect(self._action_hovered)
-                self.action_cards[2000 + i] = card
+                self.action_cards[ActionType.NICK_MASTERY] = card
+            
+            if "Cleave" in selected_masteries:
+                card = ActionCard(ActionType.CLEAVE_MASTERY, "🗡️", "Cleave Mastery", weapon_mastery_details["Cleave"])
+                card.feature_data = {'type': 'weapon_mastery', 'name': 'Cleave'}
+                card.action_triggered.connect(self._trigger_feature_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[ActionType.CLEAVE_MASTERY] = card
     
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
@@ -321,6 +334,24 @@ class ActionPanel(QWidget):
             
             # Set cooldown (would be until short rest in real game)
             self.action_cooldowns[action_type] = 10
+        
+        elif action_type == ActionType.NICK_MASTERY:
+            # Find parent with log_panel for logging
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"🗡️ Used Nick Mastery: Making bonus action attack with light weapon")
+                    break
+                parent = parent.parent()
+        
+        elif action_type == ActionType.CLEAVE_MASTERY:
+            # Find parent with log_panel for logging
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"🗡️ Used Cleave Mastery: Making bonus action attack on second target")
+                    break
+                parent = parent.parent()
         
         elif action_type >= 1001 and action_type <= 1006:  # Fighting Style selection
             card = self.action_cards.get(action_type)
@@ -519,6 +550,17 @@ class ActionPanel(QWidget):
                 card = self.action_cards[ActionType.SECOND_WIND]
                 self.cards_layout.addWidget(card)
                 card.show()
+            
+            # Add weapon mastery bonus action cards
+            if ActionType.NICK_MASTERY in self.action_cards:  # Nick mastery
+                card = self.action_cards[ActionType.NICK_MASTERY]
+                self.cards_layout.addWidget(card)
+                card.show()
+            
+            if ActionType.CLEAVE_MASTERY in self.action_cards:  # Cleave mastery
+                card = self.action_cards[ActionType.CLEAVE_MASTERY]
+                self.cards_layout.addWidget(card)
+                card.show()
                     
         elif self.current_category == ActionCategory.FREE:
             free_actions = [ActionType.INTERACT]
@@ -642,16 +684,34 @@ class ActionPanel(QWidget):
             # Roll damage
             damage_total, damage_breakdown = self._roll_damage(context)
             
+            # Apply weapon mastery on-hit effects
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, target_monster, attack_total, damage_total, hit=True)
+            
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, damage_total)
             
             # Log the attack with detailed breakdown
             self._log_attack_result(True, weapon_name, target_monster.monster_name, 
                                   attack_breakdown, target_ac, damage_breakdown)
+            
+            # Log weapon mastery effects
+            self._log_weapon_mastery_effects(mastery_effects)
+            
         else:
+            # Attack missed - check for Graze mastery
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, target_monster, attack_total, 0, hit=False)
+            
+            # Apply any miss-based damage (like Graze)
+            graze_damage = mastery_effects.get('additional_damage', 0)
+            if graze_damage > 0:
+                encounter_panel._apply_damage_to_monster(target_id, graze_damage)
+            
             # Attack missed - still show attack roll breakdown
             self._log_attack_result(False, weapon_name, target_monster.monster_name, 
                                   attack_breakdown, target_ac, None)
+            
+            # Log weapon mastery effects
+            self._log_weapon_mastery_effects(mastery_effects)
         
         # Start cooldown and update action economy
         cooldown = self._get_action_cooldown(action_type)
@@ -882,6 +942,10 @@ class ActionPanel(QWidget):
                 
                 # Roll individual dice for breakdown
                 dice_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+                
+                # Apply Great Weapon Fighting style if applicable
+                dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
+                
                 dice_total = sum(dice_rolls)
                 total = dice_total + total_modifier
                 
@@ -1384,7 +1448,10 @@ class ActionPanel(QWidget):
             ActionType.INTERACT: "free",
             ActionType.HIDE: "action",
             ActionType.REST: "special",
-            ActionType.OPPORTUNITY: "reaction"
+            ActionType.OPPORTUNITY: "reaction",
+            ActionType.SECOND_WIND: "bonus_action",
+            ActionType.NICK_MASTERY: "bonus_action",
+            ActionType.CLEAVE_MASTERY: "bonus_action"
         }
         
         cost_type = action_costs.get(action_type, "free")
@@ -1486,12 +1553,129 @@ class ActionPanel(QWidget):
         # Refresh visible cards
         self._update_visible_cards()
     
+    def load_character_feats(self, character_feats: List[str]):
+        """Load character feats for fighting style and other feat-based effects."""
+        if not hasattr(self, 'character_context'):
+            self.character_context = {}
+        
+        self.character_context['feats'] = character_feats or []
+        print(f"DEBUG: Loaded feats into character context: {self.character_context['feats']}")
+    
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
         self.target_monster_id = monster_id
         
         # Update action cards to show they have a target
         self._update_card_availability()
+    
+    def _apply_weapon_mastery_effects(self, weapon_name: str, target_monster, attack_roll: int, damage_roll: int, hit: bool) -> Dict[str, Any]:
+        """Apply weapon mastery effects based on attack result."""
+        if not self.character_context:
+            return {}
+        
+        # Import weapon mastery processor
+        from services.weapon_mastery_effects import WeaponMasteryProcessor
+        processor = WeaponMasteryProcessor()
+        
+        # Create target data from monster
+        target_data = {
+            'name': getattr(target_monster, 'monster_name', 'Unknown'),
+            'id': getattr(target_monster, 'id', 'unknown')
+        }
+        
+        if hit:
+            return processor.apply_on_hit_effects(self.character_context, weapon_name, target_data, attack_roll, damage_roll)
+        else:
+            return processor.apply_on_miss_effects(self.character_context, weapon_name, target_data, attack_roll)
+    
+    def _log_weapon_mastery_effects(self, mastery_effects: Dict[str, Any]):
+        """Log weapon mastery effects to combat log."""
+        if not mastery_effects or not mastery_effects.get('effects'):
+            return
+        
+        # Find parent with log_panel for logging
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                for effect in mastery_effects['effects']:
+                    mastery_name = effect.get('mastery', 'Unknown')
+                    description = effect.get('description', 'Unknown effect')
+                    
+                    if 'damage' in effect:
+                        damage = effect['damage']
+                        damage_type = effect.get('damage_type', 'damage')
+                        parent.log_panel.log_combat(f"🗡️ {mastery_name}: {description} - {damage} {damage_type} damage")
+                    elif 'save_required' in effect:
+                        save_dc = effect.get('save_dc', 10)
+                        save_ability = effect.get('save_ability', 'unknown')
+                        effect_type = effect.get('effect', 'unknown')
+                        parent.log_panel.log_combat(f"🗡️ {mastery_name}: {description} - DC {save_dc} {save_ability.title()} save or {effect_type}")
+                    else:
+                        parent.log_panel.log_combat(f"🗡️ {mastery_name}: {description}")
+                break
+            parent = parent.parent()
+    
+    def _apply_fighting_style_effects(self, dice_rolls: list, context: Dict[str, Any]) -> list:
+        """Apply fighting style effects to damage dice rolls."""
+        if not self.character_context:
+            return dice_rolls
+        
+        # Check if character has Great Weapon Fighting style (stored in 'Fighting Style' feature)
+        character_features = self.character_features or {}
+        
+        fighting_style_feature = character_features.get('Fighting Style')
+        if not fighting_style_feature:
+            # Log to combat to see what features we have
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"🔧 No Fighting Style feature found. Available: {list(character_features.keys())}")
+                    break
+                parent = parent.parent()
+            return dice_rolls
+        
+        # Check if it's Great Weapon Fighting (stored in 'style' field)
+        style_name = fighting_style_feature.get('style', '')
+        if style_name != "Great Weapon Fighting":
+            return dice_rolls
+        
+        # Check if weapon qualifies for Great Weapon Fighting
+        weapon_props = context.get('weapon_properties', [])
+        # Convert to lowercase for comparison
+        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        is_two_handed = 'two-handed' in weapon_props_lower
+        is_versatile = 'versatile' in weapon_props_lower
+        
+        print(f"DEBUG: Weapon properties: {weapon_props}")
+        print(f"DEBUG: Two-handed: {is_two_handed}, Versatile: {is_versatile}")
+        
+        if not (is_two_handed or is_versatile):
+            print("DEBUG: Weapon doesn't qualify for Great Weapon Fighting")
+            return dice_rolls
+        
+        # Apply Great Weapon Fighting: treat 1s and 2s as 3s
+        modified_rolls = []
+        reroll_applied = False
+        
+        for roll in dice_rolls:
+            if roll <= 2:
+                modified_rolls.append(3)
+                reroll_applied = True
+            else:
+                modified_rolls.append(roll)
+        
+        # Log the fighting style effect if applied
+        if reroll_applied:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    original_str = ', '.join(map(str, dice_rolls))
+                    modified_str = ', '.join(map(str, modified_rolls))
+                    parent.log_panel.log_combat(f"⚔️ Great Weapon Fighting: [{original_str}] → [{modified_str}] (1s and 2s become 3s)")
+                    break
+                parent = parent.parent()
+        
+        return modified_rolls
 
 
 class ActionCard(QWidget):

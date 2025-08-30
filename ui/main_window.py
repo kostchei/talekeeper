@@ -429,6 +429,10 @@ class MainWindow(QMainWindow):
             # Load class features into action panel
             class_features = character_data.get('class_features', {})
             self.action_panel.load_character_features(class_features)
+            
+            # Load character feats into action panel (for fighting styles, etc.)
+            character_feats = character_data.get('feats', [])
+            self.action_panel.load_character_feats(character_feats)
 
             # Update menu
             self.menu.update_game_info(saved_character.name, saved_character.level)
@@ -570,6 +574,10 @@ class MainWindow(QMainWindow):
         # Load class features into action panel
         class_features = character.features or {}
         self.action_panel.load_character_features(class_features)
+        
+        # Load character feats into action panel (for fighting styles, etc.)
+        character_feats = getattr(character, 'feats', []) or []
+        self.action_panel.load_character_feats(character_feats)
 
         self.log_panel.log_info(f"Welcome back, {character.name}!")
     
@@ -772,6 +780,7 @@ class MainWindow(QMainWindow):
         # Get selected feats and class features
         selected_feats = character_data.get('selected_feats', [])
         class_features = character_data.get('class_features', {})
+        
         
         save_data = {
             'name': character_data.get('name', 'Adventurer'),
