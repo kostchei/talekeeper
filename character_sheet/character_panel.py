@@ -190,57 +190,46 @@ class CharacterPanel(QWidget):
         detail_header_layout.addWidget(self.detail_title)
         detail_header_layout.addStretch()
         
-        # === EXPERIENCE & PROGRESSION SECTION ===
+        # === EXPERIENCE & PROGRESSION SECTION === Compact design
         self.xp_frame = QFrame()
         self.xp_frame.setObjectName("xpFrame")
         xp_layout = QVBoxLayout(self.xp_frame)
-        xp_layout.setContentsMargins(5, 5, 5, 5)
+        xp_layout.setContentsMargins(8, 4, 8, 4)
+        xp_layout.setSpacing(3)
         
+        # Title
         xp_label = QLabel("Experience & Progression")
         xp_label.setObjectName("sectionTitle")
         xp_layout.addWidget(xp_label)
         
-        # Current XP display
-        self.current_xp_frame = QFrame()
-        self.current_xp_frame.setObjectName("xpStatFrame")
-        current_xp_layout = QHBoxLayout(self.current_xp_frame)
-        current_xp_layout.setContentsMargins(8, 8, 8, 8)
+        # Current XP - single line
+        current_xp_layout = QHBoxLayout()
+        current_xp_layout.setContentsMargins(0, 0, 0, 0)
+        current_xp_layout.setSpacing(5)
         
         current_xp_title = QLabel("Current XP:")
         current_xp_title.setObjectName("xpLabel")
         current_xp_layout.addWidget(current_xp_title)
         
-        current_xp_layout.addStretch()
-        
         self.current_xp_value = QLabel("0")
         self.current_xp_value.setObjectName("xpValue")
         current_xp_layout.addWidget(self.current_xp_value)
         
-        xp_layout.addWidget(self.current_xp_frame)
+        current_xp_layout.addStretch()
         
-        # XP Progress Bar
-        self.xp_progress_frame = QFrame()
-        self.xp_progress_frame.setObjectName("xpProgressFrame")
-        progress_layout = QVBoxLayout(self.xp_progress_frame)
-        progress_layout.setContentsMargins(8, 5, 8, 5)
+        xp_layout.addLayout(current_xp_layout)
         
-        # Progress to next level
-        progress_title = QLabel("Progress to Next Level")
-        progress_title.setObjectName("xpProgressTitle")
-        progress_layout.addWidget(progress_title)
-        
+        # Progress bar
         self.xp_progress_bar = QProgressBar()
         self.xp_progress_bar.setObjectName("xpProgressBar")
         self.xp_progress_bar.setTextVisible(False)
-        self.xp_progress_bar.setFixedHeight(20)
-        progress_layout.addWidget(self.xp_progress_bar)
+        self.xp_progress_bar.setFixedHeight(16)
+        xp_layout.addWidget(self.xp_progress_bar)
         
-        # XP needed for next level
+        # XP needed - single line
         self.xp_needed_label = QLabel("XP needed for level 2: 300")
         self.xp_needed_label.setObjectName("xpNeededLabel")
-        progress_layout.addWidget(self.xp_needed_label)
-        
-        xp_layout.addWidget(self.xp_progress_frame)
+        xp_layout.addWidget(self.xp_needed_label)
         
         # Level history (recent XP gains)
         self.xp_history_frame = QFrame()
@@ -267,7 +256,7 @@ class CharacterPanel(QWidget):
         history_scroll.setMaximumHeight(120)
         
         history_layout.addWidget(history_scroll)
-        xp_layout.addWidget(self.xp_history_frame, 1)
+        # xp_layout.addWidget(self.xp_history_frame, 1)  # Removed bulky history section
         
         # === FEATURES & TRAITS SECTION ===
         self.features_frame = QFrame()
