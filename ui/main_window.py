@@ -885,6 +885,17 @@ class MainWindow(QMainWindow):
             'hit_dice_current': 1
         })
         
+        # Add saving throw proficiencies from character creation
+        saving_throw_profs = character_data.get('saving_throw_proficiencies', {})
+        save_data.update({
+            'str_save_proficient': saving_throw_profs.get('str_save_proficient', 0),
+            'dex_save_proficient': saving_throw_profs.get('dex_save_proficient', 0),
+            'con_save_proficient': saving_throw_profs.get('con_save_proficient', 0),
+            'int_save_proficient': saving_throw_profs.get('int_save_proficient', 0),
+            'wis_save_proficient': saving_throw_profs.get('wis_save_proficient', 0),
+            'cha_save_proficient': saving_throw_profs.get('cha_save_proficient', 0),
+        })
+        
         # Initialize class-specific abilities
         level = character_data.get('level', 1)
         if class_name == 'Fighter':

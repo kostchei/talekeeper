@@ -1337,20 +1337,54 @@ class EncounterPanel(QWidget):
         return widget
     
     def _load_class_data(self):
-        """Load class data from JSON file."""
+        """Load class data from database."""
         try:
-            # Get the absolute path to the data directory
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(current_dir)
-            classes_file = os.path.join(project_root, "data", "classes.json")
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
             
-            with open(classes_file, 'r') as f:
-                classes_data = json.load(f)
+            # Get classes in display order
+            cursor.execute("SELECT * FROM classes ORDER BY display_order, name")
+            classes_data = cursor.fetchall()
             
-            for class_data in classes_data:
+            for class_row in classes_data:
+                class_id = class_row['id']
+                
+                # Get saving throw proficiencies
+                cursor.execute("SELECT ability FROM class_saving_throws WHERE class_id = ?", (class_id,))
+                saving_throws = [row[0] for row in cursor.fetchall()]
+                
+                # Get armor proficiencies
+                cursor.execute("SELECT armor_type FROM class_armor_proficiencies WHERE class_id = ?", (class_id,))
+                armor_profs = [row[0] for row in cursor.fetchall()]
+                
+                # Get weapon proficiencies
+                cursor.execute("SELECT weapon_type FROM class_weapon_proficiencies WHERE class_id = ?", (class_id,))
+                weapon_profs = [row[0] for row in cursor.fetchall()]
+                
+                # Get skill proficiencies
+                cursor.execute("SELECT skill FROM class_skill_proficiencies WHERE class_id = ?", (class_id,))
+                skill_profs = [row[0] for row in cursor.fetchall()]
+                
+                class_data = {
+                    'id': class_row['id'],
+                    'name': class_row['name'],
+                    'description': class_row['description'],
+                    'hit_die': class_row['hit_die'],
+                    'primary_ability': class_row['primary_ability'],
+                    'skill_choices': class_row['skill_choices'],
+                    'saving_throw_proficiencies': saving_throws,
+                    'armor_proficiencies': armor_profs,
+                    'weapon_proficiencies': weapon_profs,
+                    'skill_proficiencies': skill_profs
+                }
+                
                 item = QListWidgetItem(class_data['name'])
                 item.setData(Qt.ItemDataRole.UserRole, class_data)
                 self.class_list.addItem(item)
+            
+            conn.close()
         except Exception as e:
             print(f"Error loading class data: {e}")
             import traceback
@@ -1809,6 +1843,33 @@ class EncounterPanel(QWidget):
                 'level_acquired': 1
             }
         
+        # Calculate saving throw proficiencies
+        saving_throw_profs = {
+            'str_save_proficient': 0,
+            'dex_save_proficient': 0,
+            'con_save_proficient': 0,
+            'int_save_proficient': 0,
+            'wis_save_proficient': 0,
+            'cha_save_proficient': 0
+        }
+        
+        # Add class saving throw proficiencies
+        class_data = self.character_creation_data.get('class')
+        if class_data and 'saving_throw_proficiencies' in class_data:
+            for ability in class_data['saving_throw_proficiencies']:
+                if ability == 'strength':
+                    saving_throw_profs['str_save_proficient'] = 1
+                elif ability == 'dexterity':
+                    saving_throw_profs['dex_save_proficient'] = 1
+                elif ability == 'constitution':
+                    saving_throw_profs['con_save_proficient'] = 1
+                elif ability == 'intelligence':
+                    saving_throw_profs['int_save_proficient'] = 1
+                elif ability == 'wisdom':
+                    saving_throw_profs['wis_save_proficient'] = 1
+                elif ability == 'charisma':
+                    saving_throw_profs['cha_save_proficient'] = 1
+        
         # Compile final character data
         final_character = {
             'name': self.character_name_input.currentText(),
@@ -1823,7 +1884,8 @@ class EncounterPanel(QWidget):
             'weapon_masteries': selected_weapon_masteries,  # Add weapon masteries for action panel
             'level': 1,
             'experience_points': 0,
-            'equipment_choices': {}
+            'equipment_choices': {},
+            'saving_throw_proficiencies': saving_throw_profs
         }
 
         # Record selected equipment options - use group name as key

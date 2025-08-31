@@ -4,110 +4,356 @@
     "description": "A master of martial combat, skilled with a variety of weapons and armor.",
     "hit_die": 10,
     "primary_ability": "Strength or Dexterity",
-    "saving_throw_proficiencies": ["strength", "constitution"],
-    "armor_proficiencies": ["light", "medium", "heavy", "shields"],
-    "weapon_proficiencies": ["simple", "martial"],
+    "saving_throw_proficiencies": [
+      "strength",
+      "constitution"
+    ],
+    "armor_proficiencies": [
+      "light",
+      "medium",
+      "heavy",
+      "shields"
+    ],
+    "weapon_proficiencies": [
+      "simple",
+      "martial"
+    ],
     "skill_proficiencies": [
-      "Acrobatics", "Animal Handling", "Athletics", "History", 
-      "Insight", "Intimidation", "Perception", "Survival"
+      "Acrobatics",
+      "Animal Handling",
+      "Athletics",
+      "History",
+      "Insight",
+      "Intimidation",
+      "Perception",
+      "Survival"
     ],
     "skill_choices": 2,
     "starting_equipment": {
       "armor": "chain_mail",
-      "weapons": ["shield"],
-      "equipment": ["dungeoneer_pack", "javelin_2"]
+      "weapons": [
+        "shield"
+      ],
+      "equipment": [
+        "dungeoneer_pack",
+        "javelin_2"
+      ]
     },
     "equipment_choices": [
       {
         "name": "Martial Weapon",
         "choice_type": "weapon",
-        "options": ["longsword", "greatsword", "rapier"],
+        "options": [
+          "longsword",
+          "greatsword",
+          "rapier"
+        ],
         "max_selections": 1,
         "is_required": true
       },
       {
         "name": "Armor",
         "choice_type": "armor",
-        "options": ["studded leather", "breastplate", "chain mail"],
+        "options": [
+          "studded leather",
+          "breastplate",
+          "chain mail"
+        ],
         "max_selections": 1,
         "is_required": true
       }
     ],
     "class_features": {
-      "1": ["Fighting Style", "Second Wind"],
-      "2": ["Action Surge"],
-      "3": ["Martial Archetype"]
+      "1": [
+        "Fighting Style",
+        "Second Wind"
+      ],
+      "2": [
+        "Action Surge"
+      ],
+      "3": [
+        "Martial Archetype"
+      ]
     },
     "subclasses": [
       {
         "name": "Champion",
         "description": "The archetypal Champion focuses on the development of raw physical power honed to deadly perfection.",
         "features": {
-          "3": ["Improved Critical"],
-          "7": ["Remarkable Athlete"],
-          "10": ["Additional Fighting Style"],
-          "15": ["Superior Critical"],
-          "18": ["Survivor"]
+          "3": [
+            "Improved Critical"
+          ],
+          "7": [
+            "Remarkable Athlete"
+          ],
+          "10": [
+            "Additional Fighting Style"
+          ],
+          "15": [
+            "Superior Critical"
+          ],
+          "18": [
+            "Survivor"
+          ]
         }
       },
       {
         "name": "Battle Master",
         "description": "Those who emulate the archetypal Battle Master employ martial techniques passed down through generations.",
         "features": {
-          "3": ["Combat Superiority", "Maneuvers"],
-          "7": ["Know Your Enemy"],
-          "10": ["Additional Maneuvers"],
-          "15": ["Relentless"],
-          "18": ["Additional Maneuvers"]
+          "3": [
+            "Combat Superiority",
+            "Maneuvers"
+          ],
+          "7": [
+            "Know Your Enemy"
+          ],
+          "10": [
+            "Additional Maneuvers"
+          ],
+          "15": [
+            "Relentless"
+          ],
+          "18": [
+            "Additional Maneuvers"
+          ]
         }
       }
     ]
+  },
+  {
+    "name": "Barbarian",
+    "description": "A fierce warrior of primitive background who can enter a battle rage.",
+    "hit_die": 12,
+    "primary_ability": "Strength",
+    "saving_throw_proficiencies": [
+      "strength",
+      "constitution"
+    ],
+    "armor_proficiencies": [
+      "light",
+      "medium",
+      "shields"
+    ],
+    "weapon_proficiencies": [
+      "simple",
+      "martial"
+    ],
+    "skill_proficiencies": [
+      "Animal Handling",
+      "Athletics",
+      "Intimidation",
+      "Nature",
+      "Perception",
+      "Survival"
+    ],
+    "skill_choices": 2
+  },
+  {
+    "name": "Cleric",
+    "description": "A priestly champion who wields divine magic in service of a higher power.",
+    "hit_die": 8,
+    "primary_ability": "Wisdom",
+    "saving_throw_proficiencies": [
+      "wisdom",
+      "charisma"
+    ],
+    "armor_proficiencies": [
+      "light",
+      "medium",
+      "shields"
+    ],
+    "weapon_proficiencies": [
+      "simple"
+    ],
+    "skill_proficiencies": [
+      "History",
+      "Insight",
+      "Medicine",
+      "Persuasion",
+      "Religion"
+    ],
+    "skill_choices": 2
+  },
+  {
+    "name": "Paladin",
+    "description": "A holy warrior bound to a sacred oath, wielding divine magic.",
+    "hit_die": 10,
+    "primary_ability": "Strength and Charisma",
+    "saving_throw_proficiencies": [
+      "wisdom",
+      "charisma"
+    ],
+    "armor_proficiencies": [
+      "light",
+      "medium",
+      "heavy",
+      "shields"
+    ],
+    "weapon_proficiencies": [
+      "simple",
+      "martial"
+    ],
+    "skill_proficiencies": [
+      "Athletics",
+      "Insight",
+      "Intimidation",
+      "Medicine",
+      "Persuasion",
+      "Religion"
+    ],
+    "skill_choices": 2
   },
   {
     "name": "Rogue",
     "description": "A scoundrel who uses stealth and trickery to overcome obstacles.",
     "hit_die": 8,
     "primary_ability": "Dexterity",
-    "saving_throw_proficiencies": ["dexterity", "intelligence"],
-    "armor_proficiencies": ["light"],
-    "weapon_proficiencies": ["simple", "hand_crossbow", "longsword", "rapier", "shortsword"],
+    "saving_throw_proficiencies": [
+      "dexterity",
+      "intelligence"
+    ],
+    "armor_proficiencies": [
+      "light"
+    ],
+    "weapon_proficiencies": [
+      "simple",
+      "hand_crossbow",
+      "longsword",
+      "rapier",
+      "shortsword"
+    ],
     "skill_proficiencies": [
-      "Acrobatics", "Athletics", "Deception", "Insight", "Intimidation",
-      "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand",
-      "Stealth", "Survival"
+      "Acrobatics",
+      "Athletics",
+      "Deception",
+      "Insight",
+      "Intimidation",
+      "Investigation",
+      "Perception",
+      "Performance",
+      "Persuasion",
+      "Sleight of Hand",
+      "Stealth",
+      "Survival"
     ],
     "skill_choices": 4,
     "starting_equipment": {
       "armor": "leather_armor",
-      "weapons": ["rapier", "shortbow"],
-      "equipment": ["burglar_pack", "thieves_tools"]
+      "weapons": [
+        "rapier",
+        "shortbow"
+      ],
+      "equipment": [
+        "burglar_pack",
+        "thieves_tools"
+      ]
     },
     "class_features": {
-      "1": ["Expertise", "Sneak Attack", "Thieves' Cant"],
-      "2": ["Cunning Action"],
-      "3": ["Roguish Archetype"]
+      "1": [
+        "Expertise",
+        "Sneak Attack",
+        "Thieves' Cant"
+      ],
+      "2": [
+        "Cunning Action"
+      ],
+      "3": [
+        "Roguish Archetype"
+      ]
     },
     "subclasses": [
       {
         "name": "Thief",
         "description": "You hone your skills in the larcenous arts.",
         "features": {
-          "3": ["Fast Hands", "Second-Story Work"],
-          "9": ["Supreme Sneak"],
-          "13": ["Use Magic Device"],
-          "17": ["Thief's Reflexes"]
+          "3": [
+            "Fast Hands",
+            "Second-Story Work"
+          ],
+          "9": [
+            "Supreme Sneak"
+          ],
+          "13": [
+            "Use Magic Device"
+          ],
+          "17": [
+            "Thief's Reflexes"
+          ]
         }
       },
       {
         "name": "Assassin",
         "description": "You focus your training on the grim art of death.",
         "features": {
-          "3": ["Bonus Proficiencies", "Assassinate"],
-          "9": ["Infiltration Expertise"],
-          "13": ["Impostor"],
-          "17": ["Death Strike"]
+          "3": [
+            "Bonus Proficiencies",
+            "Assassinate"
+          ],
+          "9": [
+            "Infiltration Expertise"
+          ],
+          "13": [
+            "Impostor"
+          ],
+          "17": [
+            "Death Strike"
+          ]
         }
       }
     ]
+  },
+  {
+    "name": "Warlock",
+    "description": "A wielder of magic derived from a bargain with an extraplanar entity.",
+    "hit_die": 8,
+    "primary_ability": "Charisma",
+    "saving_throw_proficiencies": [
+      "wisdom",
+      "charisma"
+    ],
+    "armor_proficiencies": [
+      "light"
+    ],
+    "weapon_proficiencies": [
+      "simple"
+    ],
+    "skill_proficiencies": [
+      "Arcana",
+      "Deception",
+      "History",
+      "Intimidation",
+      "Investigation",
+      "Nature",
+      "Religion"
+    ],
+    "skill_choices": 2
+  },
+  {
+    "name": "Wizard",
+    "description": "A scholarly magic-user capable of manipulating the structures of spellcasting.",
+    "hit_die": 6,
+    "primary_ability": "Intelligence",
+    "saving_throw_proficiencies": [
+      "intelligence",
+      "wisdom"
+    ],
+    "armor_proficiencies": [],
+    "weapon_proficiencies": [
+      "daggers",
+      "darts",
+      "slings",
+      "quarterstaffs",
+      "light crossbows"
+    ],
+    "skill_proficiencies": [
+      "Arcana",
+      "History",
+      "Insight",
+      "Investigation",
+      "Medicine",
+      "Religion"
+    ],
+    "skill_choices": 2
   }
 ]

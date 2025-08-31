@@ -1092,10 +1092,18 @@ class CharacterPanel(QWidget):
             ability_score = abilities.get(ability_name, 10)
             ability_mod = (ability_score - 10) // 2
             
-            # For now, assume no saving throw proficiencies
-            save_bonus = ability_mod
+            # Check for saving throw proficiency
+            proficiency_bonus = 2  # Level 1 proficiency bonus
+            prof_key = f"{ability_name[:3]}_save_proficient"
+            is_proficient = self.character_data.get(prof_key, 0) == 1
+            
+            save_bonus = ability_mod + (proficiency_bonus if is_proficient else 0)
             bonus_text = f"+{save_bonus}" if save_bonus >= 0 else str(save_bonus)
             saving_throw_widget.bonus_label.setText(bonus_text)
+            
+            # Update diamond indicator for proficiency
+            if hasattr(saving_throw_widget, 'diamond'):
+                saving_throw_widget.diamond.setVisible(is_proficient)
         
         # Update detailed panel data
         self._update_detail_panel()

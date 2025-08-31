@@ -205,6 +205,14 @@ class GameEngineSQLite:
                     death_saves_failures=character_row['death_saves_failures'],
                     conditions=[],  # Empty for now
                     
+                    # Saving throw proficiencies
+                    str_save_proficient=character_row.get('str_save_proficient', 0),
+                    dex_save_proficient=character_row.get('dex_save_proficient', 0),
+                    con_save_proficient=character_row.get('con_save_proficient', 0),
+                    int_save_proficient=character_row.get('int_save_proficient', 0),
+                    wis_save_proficient=character_row.get('wis_save_proficient', 0),
+                    cha_save_proficient=character_row.get('cha_save_proficient', 0),
+                    
                     # Character features from our migration
                     proficiencies=proficiencies,
                     features=features,
@@ -394,8 +402,10 @@ class GameEngineSQLite:
                         hit_points_temporary, max_hit_points, current_hit_points,
                         hit_dice_max, hit_dice_current, death_saves_successes,
                         death_saves_failures, equipment_main_hand, equipment_off_hand,
-                        equipment_armor, equipment_shield, created_at, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        equipment_armor, equipment_shield, str_save_proficient,
+                        dex_save_proficient, con_save_proficient, int_save_proficient,
+                        wis_save_proficient, cha_save_proficient, created_at, notes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id, save_slot_id, character_data['name'],
                     character_data['race_id'], character_data['class_id'], character_data['background_id'],
@@ -409,6 +419,9 @@ class GameEngineSQLite:
                     0, 0,  # death saves
                     character_data.get('equipment_main_hand'), character_data.get('equipment_off_hand'),
                     character_data.get('equipment_armor'), character_data.get('equipment_shield'),
+                    character_data.get('str_save_proficient', 0), character_data.get('dex_save_proficient', 0),
+                    character_data.get('con_save_proficient', 0), character_data.get('int_save_proficient', 0),
+                    character_data.get('wis_save_proficient', 0), character_data.get('cha_save_proficient', 0),
                     datetime.now().isoformat(), character_data.get('notes', '')
                 ))
                 

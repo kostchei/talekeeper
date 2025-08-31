@@ -75,6 +75,14 @@ class CharacterDTO:
     feats: List[str]
     weapon_masteries: List[str]
     
+    # Saving Throw Proficiencies
+    str_save_proficient: int = 0
+    dex_save_proficient: int = 0
+    con_save_proficient: int = 0
+    int_save_proficient: int = 0
+    wis_save_proficient: int = 0
+    cha_save_proficient: int = 0
+    
     # Resource Tracking
     spell_slots_current: Dict[int, int]
     spell_slots_max: Dict[int, int]
