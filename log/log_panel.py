@@ -375,6 +375,91 @@ class LogPanel(QWidget):
         }}
         """
         self.setStyleSheet(style_sheet)
+        
+        # Reformat all existing log entries with new theme colors
+        self._reformat_existing_entries(theme_name)
+    
+    def _reformat_existing_entries(self, theme_name: str):
+        """Reformat all existing log entries with new theme colors."""
+        # Clear the current log display
+        self.log_text.clear()
+        
+        # Re-add all entries with current theme formatting
+        for entry in self.log_entries:
+            if entry['level'] in self.enabled_levels:
+                self._format_and_display_entry(entry)
+        
+        # Scroll to bottom
+        self._scroll_to_bottom()
+    
+    def _format_and_display_entry(self, entry: Dict[str, Any]):
+        """Format and display a single log entry."""
+        # Get entry data
+        timestamp = entry['timestamp']
+        message = entry['message']
+        level = entry['level']
+        
+        # Move cursor to end
+        cursor = self.log_text.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        
+        # Set format based on level
+        format = QTextCharFormat()
+        
+        # Get current theme colors
+        try:
+            from ui.themes import get_theme_palette
+            theme_name = getattr(self.parent(), 'current_theme', 'dark')
+            palette = get_theme_palette(theme_name)
+            
+            # For light theme, use dark text; for dark theme, use light text
+            if theme_name == 'light':
+                text_color = palette['text']  # Dark text for light theme
+                secondary_color = palette['text_secondary']
+            else:
+                text_color = "#ffffff"  # White text for dark theme
+                secondary_color = "#888888"  # Gray for dark theme
+        except Exception as e:
+            # Fallback colors for dark theme
+            text_color = "#ffffff"
+            secondary_color = "#888888"
+        
+        if level == LogLevel.INFO:
+            format.setForeground(QColor(text_color))  # Use theme text color
+        elif level == LogLevel.WARNING:
+            format.setForeground(QColor("#ff9500"))
+        elif level == LogLevel.ERROR:
+            format.setForeground(QColor("#ff4444"))
+        elif level == LogLevel.COMBAT:
+            format.setForeground(QColor("#ff6b6b"))
+            format.setFontWeight(QFont.Weight.Bold)
+        elif level == LogLevel.DICE:
+            format.setForeground(QColor("#4a9"))
+        elif level == LogLevel.SYSTEM:
+            format.setForeground(QColor(secondary_color))  # Use theme secondary color
+            format.setFontItalic(True)
+        
+        # Format the message
+        level_prefix = {
+            LogLevel.INFO: "",
+            LogLevel.WARNING: "⚠ ",
+            LogLevel.ERROR: "❌ ",
+            LogLevel.COMBAT: "⚔ ",
+            LogLevel.DICE: "🎲 ",
+            LogLevel.SYSTEM: "⚙ "
+        }
+        
+        formatted_message = f"[{timestamp.strftime('%H:%M:%S')}] {level_prefix.get(level, '')}{message}\n"
+        
+        # Insert with formatting
+        cursor.setCharFormat(format)
+        cursor.insertText(formatted_message)
+        
+        # Reset format
+        format.setForeground(QColor(text_color))  # Use theme text color
+        format.setFontWeight(QFont.Weight.Normal)
+        format.setFontItalic(False)
+        cursor.setCharFormat(format)
     
     def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO, 
                        details: Optional[Dict[str, Any]] = None):
@@ -417,8 +502,26 @@ class LogPanel(QWidget):
         # Set format based on level
         format = QTextCharFormat()
         
+        # Get current theme colors
+        try:
+            from ui.themes import get_theme_palette
+            theme_name = getattr(self.parent(), 'current_theme', 'dark')
+            palette = get_theme_palette(theme_name)
+            
+            # For light theme, use dark text; for dark theme, use light text
+            if theme_name == 'light':
+                text_color = palette['text']  # Dark text for light theme
+                secondary_color = palette['text_secondary']
+            else:
+                text_color = "#ffffff"  # White text for dark theme
+                secondary_color = "#888888"  # Gray for dark theme
+        except Exception as e:
+            # Fallback colors for dark theme
+            text_color = "#ffffff"
+            secondary_color = "#888888"
+        
         if level == LogLevel.INFO:
-            format.setForeground(QColor("#ffffff"))
+            format.setForeground(QColor(text_color))  # Use theme text color instead of white
         elif level == LogLevel.WARNING:
             format.setForeground(QColor("#ff9500"))
         elif level == LogLevel.ERROR:
@@ -429,7 +532,7 @@ class LogPanel(QWidget):
         elif level == LogLevel.DICE:
             format.setForeground(QColor("#4a9"))
         elif level == LogLevel.SYSTEM:
-            format.setForeground(QColor("#888888"))
+            format.setForeground(QColor(secondary_color))  # Use theme secondary color
             format.setFontItalic(True)
         
         # Format the message
@@ -449,7 +552,7 @@ class LogPanel(QWidget):
         cursor.insertText(formatted_message)
         
         # Reset format
-        format.setForeground(QColor("#ffffff"))
+        format.setForeground(QColor(text_color))  # Use theme text color instead of white
         format.setFontWeight(QFont.Weight.Normal)
         format.setFontItalic(False)
         cursor.setCharFormat(format)

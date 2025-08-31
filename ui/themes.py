@@ -9,11 +9,11 @@ from __future__ import annotations
 
 # Light theme based on Light_.JPG color palette
 LIGHT_THEME = {
-    # Base colors from Light_.JPG - warm, bright tones
-    "background": "#e8c5a0",          # Light warm tan from the lightest swatch
-    "surface": "#d4b896",             # Slightly darker warm beige for panels
-    "text": "#4a3528",                # Dark brown text for readability
-    "text_secondary": "#6b4d3a",      # Medium brown for secondary text
+    # Base colors from Light_.JPG - warm, bright tones (made lighter)
+    "background": "#f5e9d8",          # Much lighter warm cream background
+    "surface": "#f0e1d0",             # Light warm beige for panels
+    "text": "#3d3530",                # Darker muted charcoal-brown text
+    "text_secondary": "#5a504a",      # Medium muted gray-brown for secondary text
     
     # Accent colors from Light_.JPG swatches
     "accent_primary": "#8b5a3c",      # Rich reddish-brown from palette
@@ -25,9 +25,9 @@ LIGHT_THEME = {
     "button": "#a0673f",              # Warm orange-brown for buttons
     "button_hover": "#b8784a",        # Lighter on hover
     "button_pressed": "#8b5a3c",      # Darker when pressed
-    "border": "#b8a082",              # Soft brown border
+    "border": "#d0c4b0",              # Lighter soft brown border
     "selection": "#5c8b7a",           # Blue-teal for selections, links, active states
-    "highlight": "#f2e1c8",           # Very light warm highlight
+    "highlight": "#fbf5ef",           # Even lighter warm highlight
 }
 
 # Dark theme based on Dark.JPG color palette
