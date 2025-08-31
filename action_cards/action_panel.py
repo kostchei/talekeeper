@@ -83,6 +83,11 @@ class ActionPanel(QWidget):
         self.equipped_weapons = {}  # Store equipped weapon data
         self.target_monster_id = None  # Currently targeted monster for attacks
         
+        # Action Economy Integration - NEW
+        self.current_combat_session = None  # Current combat session for action economy
+        self.character_id = None  # Current character ID for action tracking
+        self.action_economy_enabled = True  # Toggle for action economy enforcement
+        
         # Set fixed size (center + right columns only)
         self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
         self.setAutoFillBackground(True)  # Ensure background is filled
@@ -117,6 +122,12 @@ class ActionPanel(QWidget):
         header_layout.addWidget(self.title_label)
         
         header_layout.addStretch()
+        
+        # Action Economy Status Display - NEW
+        self.economy_status_label = QLabel("Action: ✓ | Bonus: ✓ | Reaction: ✓")
+        self.economy_status_label.setObjectName("economyStatusLabel")
+        self.economy_status_label.setVisible(False)  # Hidden until combat starts
+        header_layout.addWidget(self.economy_status_label)
         
         # Category filter buttons
         self.category_buttons = QButtonGroup(self)
@@ -1861,6 +1872,222 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"Error logging mastery effects: {e}")
+    
+    # === ACTION ECONOMY INTEGRATION ===
+    
+    def set_combat_session(self, combat_session, character_id: str):
+        """Set the current combat session for action economy tracking."""
+        self.current_combat_session = combat_session
+        self.character_id = character_id
+        self._update_action_availability()
+    
+    def end_combat_session(self):
+        """Clear combat session and reset action availability."""
+        self.current_combat_session = None
+        self.character_id = None
+        self._update_action_availability()
+    
+    def _update_action_availability(self):
+        """Update action card availability based on action economy."""
+        if not self.action_economy_enabled or not self.current_combat_session:
+            # Outside combat or action economy disabled - all actions available
+            for card in self.action_cards.values():
+                card.set_available(True)
+            self.economy_status_label.setVisible(False)
+            return
+        
+        # Show action economy status
+        self.economy_status_label.setVisible(True)
+        self._update_economy_status_display()
+        
+        # Check each action card against action economy
+        for action_type, card in self.action_cards.items():
+            available = self._is_action_available_by_economy(action_type)
+            card.set_available(available)
+            
+            # Add economy status to card description
+            if not available:
+                economy_reason = self._get_economy_unavailability_reason(action_type)
+                card.set_tooltip_suffix(f" ({economy_reason})")
+            else:
+                card.set_tooltip_suffix("")
+    
+    def _update_economy_status_display(self):
+        """Update the action economy status display in the header."""
+        if not self.current_combat_session or not self.character_id:
+            return
+        
+        status = self.get_action_economy_status()
+        if status.get("error"):
+            self.economy_status_label.setText("Action Economy: Error")
+            return
+        
+        # Create status text with visual indicators
+        action_icon = "✓" if status.get("action_available", False) else "✗"
+        bonus_icon = "✓" if status.get("bonus_action_available", False) else "✗"
+        reaction_icon = "✓" if status.get("reaction_available", False) else "✗"
+        
+        round_num = status.get("current_round", 1)
+        movement = status.get("movement_remaining", 30)
+        
+        status_text = f"R{round_num} | Action: {action_icon} | Bonus: {bonus_icon} | Reaction: {reaction_icon} | Move: {movement}ft"
+        
+        # Color code the status label based on active turn
+        if status.get("is_active_turn", False):
+            self.economy_status_label.setStyleSheet("color: #4a90e2; font-weight: bold;")
+        else:
+            self.economy_status_label.setStyleSheet("color: #888888;")
+        
+        self.economy_status_label.setText(status_text)
+    
+    def _is_action_available_by_economy(self, action_type: ActionType) -> bool:
+        """Check if an action is available based on action economy rules."""
+        if not self.current_combat_session or not self.character_id:
+            return True
+        
+        # Map ActionType to action economy categories
+        economy_type = self._map_action_to_economy_type(action_type)
+        if not economy_type:
+            return True  # Free actions or unmapped actions
+        
+        return self.current_combat_session.can_take_action(self.character_id, economy_type.value)
+    
+    def _map_action_to_economy_type(self, action_type: ActionType):
+        """Map ActionType to ActionEconomyType."""
+        from models.action_economy import ActionEconomyType
+        
+        # Actions that consume your main Action
+        main_actions = {
+            ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND, ActionType.ATTACK_UNARMED,
+            ActionType.CAST_SPELL, ActionType.DASH, ActionType.DISENGAGE, ActionType.DODGE,
+            ActionType.HELP, ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM
+        }
+        
+        # Bonus Actions
+        bonus_actions = {
+            ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
+            ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.HEALING_POTION,
+            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY
+        }
+        
+        # Reactions
+        reactions = {
+            ActionType.OPPORTUNITY_ATTACK, ActionType.COUNTERSPELL, ActionType.SHIELD
+        }
+        
+        if action_type in main_actions:
+            return ActionEconomyType.ACTION
+        elif action_type in bonus_actions:
+            return ActionEconomyType.BONUS_ACTION
+        elif action_type in reactions:
+            return ActionEconomyType.REACTION
+        else:
+            return ActionEconomyType.FREE_ACTION  # Movement, object interactions, etc.
+    
+    def _get_economy_unavailability_reason(self, action_type: ActionType) -> str:
+        """Get reason why an action is unavailable due to action economy."""
+        economy_type = self._map_action_to_economy_type(action_type)
+        
+        if economy_type == ActionEconomyType.ACTION:
+            return "Action used this turn"
+        elif economy_type == ActionEconomyType.BONUS_ACTION:
+            return "Bonus action used this turn"
+        elif economy_type == ActionEconomyType.REACTION:
+            return "Reaction used this round"
+        else:
+            return "Action not available"
+    
+    def _trigger_action_with_economy(self, action_type: ActionType, context: Dict[str, Any]):
+        """Trigger an action with action economy enforcement."""
+        if not self.action_economy_enabled or not self.current_combat_session:
+            # No economy restrictions - just trigger the action
+            self.action_triggered.emit(action_type, context)
+            return
+        
+        # Check if action is available
+        if not self._is_action_available_by_economy(action_type):
+            # Action not available - show feedback
+            reason = self._get_economy_unavailability_reason(action_type)
+            self._show_action_unavailable_feedback(action_type, reason)
+            return
+        
+        # Use the action through combat session
+        economy_type = self._map_action_to_economy_type(action_type)
+        success = self.current_combat_session.use_action(
+            self.character_id, 
+            economy_type.value, 
+            action_type.value, 
+            context
+        )
+        
+        if success:
+            # Action used successfully - trigger it and update UI
+            self.action_triggered.emit(action_type, context)
+            self._update_action_availability()
+            
+            # Log action economy usage
+            self._log_action_economy_usage(action_type, economy_type)
+        else:
+            # This shouldn't happen if our checks are correct, but handle it
+            self._show_action_unavailable_feedback(action_type, "Action failed")
+    
+    def _show_action_unavailable_feedback(self, action_type: ActionType, reason: str):
+        """Show feedback when an action cannot be taken."""
+        # Flash the action card or show tooltip
+        if action_type in self.action_cards:
+            card = self.action_cards[action_type]
+            # You could add a flash effect here
+            pass
+        
+        # Log to combat log
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"❌ Cannot use {action_type.value}: {reason}")
+                    break
+                parent = parent.parent()
+        except:
+            pass
+    
+    def _log_action_economy_usage(self, action_type: ActionType, economy_type):
+        """Log action economy usage to combat log."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    economy_name = economy_type.value.replace('_', ' ').title()
+                    parent.log_panel.log_combat(f"⚡ Used {economy_name}: {action_type.value}")
+                    break
+                parent = parent.parent()
+        except:
+            pass
+    
+    def get_action_economy_status(self) -> Dict[str, Any]:
+        """Get current action economy status for UI display."""
+        if not self.current_combat_session or not self.character_id:
+            return {
+                "in_combat": False,
+                "action_available": True,
+                "bonus_action_available": True,
+                "reaction_available": True,
+                "movement_remaining": 30
+            }
+        
+        state = self.current_combat_session.action_economy.get_combatant_state(self.character_id)
+        if not state:
+            return {"in_combat": True, "error": "No action economy state found"}
+        
+        return {
+            "in_combat": True,
+            "current_round": state.current_round,
+            "is_active_turn": state.is_active_turn,
+            "action_available": state.action_available,
+            "bonus_action_available": state.bonus_action_available,  
+            "reaction_available": state.reaction_available,
+            "movement_remaining": state.get_remaining_movement(),
+            "actions_taken_this_turn": len(state.actions_taken_this_turn)
+        }
 
 
 class ActionCard(QWidget):
@@ -2082,9 +2309,18 @@ class ActionCard(QWidget):
         self.cooldown_bar.setVisible(False)
         self.action_btn.setEnabled(self.available)
     
+    def set_tooltip_suffix(self, suffix: str):
+        """Add a suffix to the action card tooltip (for action economy status)."""
+        base_tooltip = self.description
+        if suffix:
+            self.setToolTip(f"{base_tooltip}{suffix}")
+        else:
+            self.setToolTip(base_tooltip)
+    
     def enterEvent(self, event):
         """Handle mouse enter for hover effect."""
         # Only emit for ActionType enums, skip for legacy integer IDs
         if isinstance(self.action_type, ActionType):
-            self.action_hovered.emit(self.action_type, self.description)
+            current_tooltip = self.toolTip() or self.description
+            self.action_hovered.emit(self.action_type, current_tooltip)
         super().enterEvent(event)

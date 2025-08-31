@@ -31,6 +31,7 @@ from models.character_indexeddb import Character, Race, Class, Background, Subcl
 from models.monsters_indexeddb import Monster
 from models.game_indexeddb import SaveSlot, GameState
 from models.combat_indexeddb import CombatSession
+from models.action_economy import CombatActionEconomy, ActionEconomyType
 from core.dtos import CharacterDTO, MonsterDTO, RaceDTO, ClassDTO, BackgroundDTO, SaveSlotDTO
 
 
