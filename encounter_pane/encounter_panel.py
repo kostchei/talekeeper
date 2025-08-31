@@ -1512,6 +1512,7 @@ class EncounterPanel(QWidget):
             bg_data = current.data(Qt.ItemDataRole.UserRole)
             self.character_creation_data['background'] = bg_data
             self._update_bg_species_description()
+            self._auto_select_background_feat(bg_data)
     
     def _on_species_selected(self, current, previous):
         """Handle species selection change."""
@@ -1545,6 +1546,27 @@ class EncounterPanel(QWidget):
             description += f"**Species: {species['name']}**\n{species.get('description', '')}"
         
         self.bg_species_description.setPlainText(description)
+    
+    def _auto_select_background_feat(self, bg_data):
+        """Auto-select the default feat for the chosen background."""
+        # Map backgrounds to their default feats from 2024 SRD
+        default_feats = {
+            "Acolyte": "Magic Initiate (Cleric)",
+            "Criminal": "Alert", 
+            "Sage": "Magic Initiate (Wizard)",
+            "Soldier": "Savage Attacker",
+            "Farmer": "Tough"
+        }
+        
+        bg_name = bg_data.get('name', '')
+        default_feat = default_feats.get(bg_name)
+        
+        if default_feat:
+            # Find and select the default feat in the combo box
+            for i in range(self.background_feat_combo.count()):
+                if self.background_feat_combo.itemText(i) == default_feat:
+                    self.background_feat_combo.setCurrentIndex(i)
+                    break
     
     def _update_background_bonuses(self):
         """D&D 2024: Background provides up to 3 points distributed as +1/+1/+1 or +2/+1."""
