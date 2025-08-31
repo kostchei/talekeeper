@@ -840,3 +840,45 @@ class GameEngineSQLite:
             'Leather Armor': {'weight': 10.0, 'description': 'Light armor, AC 11 + Dex mod', 'value': 10},
         }
         return armor_stats.get(armor_name, {'weight': 10.0, 'description': 'Armor', 'value': 10})
+    
+    def update_character_hp_sync(self, current_hp: int, max_hp: int = None):
+        """Update character's HP in database."""
+        if not self.current_character:
+            print("[SQLite] No current character to update HP")
+            return
+        
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Update HP values
+                if max_hp is not None:
+                    # Update both current and max HP
+                    cursor.execute("""
+                        UPDATE characters 
+                        SET hit_points_current = ?, hit_points_max = ?, max_hit_points = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (current_hp, max_hp, max_hp, datetime.now().isoformat(), self.current_character.id))
+                    
+                    # Also update the current character DTO
+                    self.current_character.hit_points_current = current_hp
+                    self.current_character.hit_points_max = max_hp
+                    
+                    print(f"[SQLite] Updated {self.current_character.name} HP: {current_hp}/{max_hp}")
+                else:
+                    # Update only current HP
+                    cursor.execute("""
+                        UPDATE characters 
+                        SET hit_points_current = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (current_hp, datetime.now().isoformat(), self.current_character.id))
+                    
+                    # Update the current character DTO
+                    self.current_character.hit_points_current = current_hp
+                    
+                    print(f"[SQLite] Updated {self.current_character.name} current HP: {current_hp}/{self.current_character.hit_points_max}")
+                
+                conn.commit()
+                
+        except Exception as e:
+            print(f"[SQLite] Error updating character HP: {e}")
