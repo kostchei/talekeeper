@@ -51,6 +51,11 @@ class ActionType(Enum):
     
     # Consumables
     USE_POTION = "use_potion"
+    
+    # Class Features
+    RAGE = "rage"
+    SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
+    LAY_ON_HANDS = "lay_on_hands"
 
 
 class ActionCategory(Enum):
@@ -184,6 +189,8 @@ class ActionPanel(QWidget):
                 (ActionType.INVESTIGATE, "🕵️", "Investigate", "Make a detailed investigation"),
                 (ActionType.REST, "😴", "Rest", "Take a short rest to recover"),
                 (ActionType.USE_POTION, "🧪", "Use Potion", "Drink a healing potion (2d4+4 HP)"),
+                (ActionType.RAGE, "🔥", "Rage", "Enter barbarian rage (+2 damage, resistance)"),
+                (ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch"),
             ],
             ActionCategory.FREE: [
                 (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
@@ -251,14 +258,14 @@ class ActionPanel(QWidget):
             return
         
         # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND]
+        feature_action_types = [ActionType.SECOND_WIND, ActionType.RAGE, ActionType.LAY_ON_HANDS]
         for action_id in feature_action_types:
             if action_id in self.action_cards:
                 self.action_cards[action_id].deleteLater()
                 del self.action_cards[action_id]
         
         # Create Second Wind card if character has it
-        print(f"DEBUG: Character features for Second Wind check: {list(self.character_features.keys())}")
+        print(f"DEBUG: Character features for feature checks: {list(self.character_features.keys())}")
         if 'Second Wind' in self.character_features:
             feature = self.character_features['Second Wind']
             level = self.character_context.get('level', 1)
@@ -270,6 +277,20 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.SECOND_WIND] = card
+        
+        # Create Rage card if character has it
+        if 'Rage' in self.character_features:
+            card = ActionCard(ActionType.RAGE, "🔥", "Rage", "Enter barbarian rage (+2 damage, resistance to physical)")
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered) 
+            self.action_cards[ActionType.RAGE] = card
+        
+        # Create Lay on Hands card if character has it
+        if 'Lay on Hands' in self.character_features:
+            card = ActionCard(ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch")
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.LAY_ON_HANDS] = card
         
         
         # Create Weapon Mastery cards based on character's selected masteries
@@ -646,6 +667,12 @@ class ActionPanel(QWidget):
                 elif action_type == ActionType.USE_POTION:
                     self._use_healing_potion(full_context)
                 
+                # Handle class features
+                elif action_type == ActionType.RAGE:
+                    self._use_rage()
+                elif action_type == ActionType.LAY_ON_HANDS:
+                    self._use_lay_on_hands()
+                
                 # Emit signal
                 self.action_triggered.emit(action_type, full_context)
                 
@@ -987,7 +1014,10 @@ class ActionPanel(QWidget):
                     'total': max(1, total)  # Minimum 1 damage
                 }
                 
-                return max(1, total), breakdown
+                # Apply sneak attack if applicable
+                breakdown = self._apply_sneak_attack(context, breakdown)
+                
+                return max(1, breakdown['total']), breakdown
             except (ValueError, IndexError):
                 # Fallback if parsing fails
                 fallback_total = max(1, total_modifier) if total_modifier > 0 else 1
@@ -2377,6 +2407,124 @@ class ActionPanel(QWidget):
             "movement_remaining": state.get_remaining_movement(),
             "actions_taken_this_turn": len(state.actions_taken_this_turn)
         }
+    
+    # === CLASS FEATURE METHODS ===
+    
+    def _has_class_feature(self, feature_name: str) -> bool:
+        """Check if character has a specific class feature."""
+        if not self.character_context:
+            return False
+        
+        character_features = self.character_features or {}
+        return feature_name in character_features
+    
+    def _get_sneak_attack_damage(self) -> str:
+        """Get sneak attack damage based on rogue level."""
+        if not self._has_class_feature('Sneak Attack'):
+            return '0'
+        
+        # Simple implementation - assume 1d6 per 2 rogue levels
+        total_level = self.character_context.get('level', 1)
+        sneak_dice = max(1, total_level // 2)  # Simplified calculation
+        return f'{sneak_dice}d6'
+    
+    def _can_sneak_attack(self, context: Dict[str, Any]) -> bool:
+        """Check if sneak attack can be applied."""
+        if not self._has_class_feature('Sneak Attack'):
+            return False
+        
+        weapon_props = context.get('weapon_properties', [])
+        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        
+        # Must use finesse or ranged weapon
+        is_finesse = 'finesse' in weapon_props_lower
+        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
+        
+        return is_finesse or is_ranged
+    
+    def _apply_sneak_attack(self, context: Dict[str, Any], damage_breakdown: dict) -> dict:
+        """Apply sneak attack damage if conditions are met."""
+        if not self._can_sneak_attack(context):
+            return damage_breakdown
+        
+        import random
+        sneak_damage_dice = self._get_sneak_attack_damage()
+        
+        if 'd' in sneak_damage_dice:
+            try:
+                num_dice, die_size = sneak_damage_dice.split('d')
+                num_dice = int(num_dice)
+                die_size = int(die_size)
+                
+                sneak_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+                sneak_total = sum(sneak_rolls)
+                
+                # Add to damage breakdown
+                damage_breakdown['sneak_attack_rolls'] = sneak_rolls
+                damage_breakdown['sneak_attack_damage'] = sneak_total
+                damage_breakdown['total'] += sneak_total
+                
+            except (ValueError, IndexError):
+                pass
+        
+        return damage_breakdown
+    
+    def _has_rage_uses(self) -> bool:
+        """Check if character has rage uses remaining."""
+        if not self.character_context:
+            return False
+        
+        # Simple check - assume barbarian has rages available
+        return self._has_class_feature('Rage')
+    
+    def _use_rage(self):
+        """Activate barbarian rage."""
+        if not self._has_rage_uses():
+            return
+        
+        # Apply rage effects (simplified)
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("🔥 RAGE activated! +2 damage, resistance to physical damage, advantage on STR checks/saves")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging rage activation: {e}")
+    
+    def _has_lay_on_hands_uses(self) -> bool:
+        """Check if paladin has Lay on Hands uses remaining."""
+        if not self._has_class_feature('Lay on Hands'):
+            return False
+        
+        # Simple check - assume paladin has healing pool
+        return True
+    
+    def _use_lay_on_hands(self, healing_amount: int = 5):
+        """Use paladin Lay on Hands healing."""
+        if not self._has_lay_on_hands_uses():
+            return
+        
+        # Apply healing (reuse existing healing logic)
+        old_hp = self.character_context.get('hit_points_current', 0)
+        new_hp = self._apply_healing_to_player(healing_amount)
+        
+        if new_hp > old_hp:
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"✋ Lay on Hands: Healed {new_hp - old_hp} HP")
+                        break
+                    parent = parent.parent()
+            except Exception as e:
+                print(f"Error logging lay on hands: {e}")
+    
+    def _get_spell_slots(self, level: int) -> int:
+        """Get available spell slots of given level."""
+        # Simple implementation - would need to track spell slots properly
+        return 1 if self._has_class_feature('Spellcasting') or self._has_class_feature('Pact Magic') else 0
 
 
 class ActionCard(QWidget):
