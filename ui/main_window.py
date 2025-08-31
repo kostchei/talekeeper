@@ -446,6 +446,12 @@ class MainWindow(QMainWindow):
             
             # Load character feats into action panel (for fighting styles, etc.)
             character_feats = saved_character.feats or []
+            # Also load fighting styles from character_features table
+            try:
+                fighting_styles = self.game_engine.get_character_fighting_styles(saved_character.id)
+                character_feats.extend(fighting_styles)
+            except:
+                pass
             self.action_panel.load_character_feats(character_feats)
             
             # Load weapon masteries into action panel
@@ -598,6 +604,12 @@ class MainWindow(QMainWindow):
         
         # Load character feats into action panel (for fighting styles, etc.)
         character_feats = getattr(character, 'feats', []) or []
+        # Also load fighting styles from character_features table
+        try:
+            fighting_styles = self.game_engine.get_character_fighting_styles(character.id)
+            character_feats.extend(fighting_styles)
+        except:
+            pass
         self.action_panel.load_character_feats(character_feats)
         
         # Load weapon masteries into action panel  

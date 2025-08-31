@@ -269,47 +269,6 @@ class CharacterPanel(QWidget):
         features_label.setObjectName("sectionTitle")
         features_layout.addWidget(features_label)
         
-        # Add weapon mastery selection section (Fighter only)
-        self.weapon_mastery_frame = QFrame()
-        mastery_layout = QVBoxLayout(self.weapon_mastery_frame)
-        mastery_layout.setContentsMargins(5, 5, 5, 5)
-        
-        self.mastery_label = QLabel("Weapon Masteries")
-        self.mastery_label.setObjectName("featSubtitle")
-        mastery_layout.addWidget(self.mastery_label)
-        
-        # Create grid layout for mastery selections
-        mastery_grid = QGridLayout()
-        mastery_grid.setSpacing(10)
-        
-        # Weapon mastery options based on D&D 2024 rules
-        self.weapon_masteries = [
-            ("Cleave", "If you hit a creature, you can make a bonus action attack against another creature within reach."),
-            ("Graze", "If you miss with an attack, you can deal damage equal to your ability modifier."),
-            ("Nick", "When you make the Attack action with a light weapon, you can make a bonus action attack with another light weapon."),
-            ("Push", "If you hit a creature, you can push it 10 feet away from you if it's no more than one size larger."),
-            ("Sap", "If you hit a creature, it has disadvantage on its next attack roll before the start of your next turn."),
-            ("Slow", "If you hit a creature, its speed is reduced by 10 feet until the start of your next turn."),
-            ("Topple", "If you hit a creature, it must make a Constitution save or be knocked prone."),
-            ("Vex", "If you hit a creature, you have advantage on your next attack roll against it before the end of your next turn.")
-        ]
-        
-        self.mastery_checkboxes = []
-        for i, (mastery, description) in enumerate(self.weapon_masteries):
-            checkbox = QCheckBox(mastery)
-            checkbox.setToolTip(description)
-            checkbox.stateChanged.connect(lambda state, m=mastery: self._on_mastery_changed(m, state))
-            mastery_grid.addWidget(checkbox, i // 2, i % 2)
-            self.mastery_checkboxes.append(checkbox)
-        
-        mastery_layout.addLayout(mastery_grid)
-        
-        # Selected masteries display
-        self.selected_masteries_label = QLabel("Selected: None")
-        self.selected_masteries_label.setObjectName("featDescription")
-        mastery_layout.addWidget(self.selected_masteries_label)
-        
-        features_layout.addWidget(self.weapon_mastery_frame)
         
         self.features_text = QTextEdit()
         self.features_text.setObjectName("featuresText")
@@ -1284,7 +1243,6 @@ class CharacterPanel(QWidget):
         self._update_xp_displays()
         
         # Load weapon masteries for Fighter characters
-        self._load_weapon_masteries()
         
         # Update ability scores with D&D layout (modifier prominent, score below)
         abilities = {
@@ -1464,7 +1422,6 @@ class CharacterPanel(QWidget):
         self.features_text.setPlainText(features_text)
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
-        self._load_weapon_masteries()
         
         # Update spells section (basic implementation)
         spells_text = "=== Cantrips ===\n"
@@ -1539,104 +1496,6 @@ class CharacterPanel(QWidget):
         """Return current expansion state."""
         return self.expanded
     
-    def _on_mastery_changed(self, mastery_name: str, state: int):
-        """Handle weapon mastery checkbox changes - max 3 selections."""
-        selected_masteries = self._get_selected_masteries()
-        
-        if state == 2:  # Checked
-            if len(selected_masteries) >= 3:
-                # Find the checkbox and uncheck it
-                for checkbox in self.mastery_checkboxes:
-                    if checkbox.text() == mastery_name:
-                        checkbox.blockSignals(True)
-                        checkbox.setChecked(False)
-                        checkbox.blockSignals(False)
-                        break
-                return
-            selected_masteries.append(mastery_name)
-        else:  # Unchecked
-            if mastery_name in selected_masteries:
-                selected_masteries.remove(mastery_name)
-        
-        # Update display and character data
-        self._update_masteries_display(selected_masteries)
-        self._save_masteries_to_character(selected_masteries)
-    
-    def _get_selected_masteries(self) -> list:
-        """Get list of currently selected weapon masteries."""
-        selected = []
-        for checkbox in self.mastery_checkboxes:
-            if checkbox.isChecked():
-                selected.append(checkbox.text())
-        return selected
-    
-    def _update_masteries_display(self, selected_masteries: list):
-        """Update the selected masteries display label."""
-        if selected_masteries:
-            self.selected_masteries_label.setText(f"Selected: {', '.join(selected_masteries)}")
-        else:
-            self.selected_masteries_label.setText("Selected: None")
-    
-    def _save_masteries_to_character(self, selected_masteries: list):
-        """Save weapon masteries to character data and database."""
-        if not self.character_data:
-            return
-        
-        # Update local character data
-        if 'weapon_masteries' not in self.character_data:
-            self.character_data['weapon_masteries'] = []
-        
-        self.character_data['weapon_masteries'] = selected_masteries
-        
-        # Save to database through game engine
-        try:
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
-                    # Update the current character object
-                    parent.game_engine.current_character.weapon_masteries = selected_masteries
-                    parent.game_engine.current_character.updated_at = datetime.now().isoformat()
-                    
-                    # Save to database
-                    import asyncio
-                    from core.database_indexeddb import indexeddb
-                    asyncio.run(indexeddb.put('characters', parent.game_engine.current_character.to_dict(), parent.game_engine.current_character.id))
-                    
-                    # Log the change
-                    parent.log_panel.log_info(f"Updated weapon masteries: {', '.join(selected_masteries) if selected_masteries else 'None'}")
-                    break
-                parent = parent.parent()
-        except Exception as e:
-            # Not critical if save fails, but log it
-            print(f"Warning: Could not save weapon masteries to database: {e}")
-    
-    def _load_weapon_masteries(self):
-        """Load and display weapon masteries from character data."""
-        if not self.character_data:
-            return
-        
-        # Only show weapon mastery section for Fighter class
-        class_name = self.character_data.get('class_name', '')
-        class_id = self.character_data.get('class_id', '')
-        
-        
-        if class_name != 'Fighter' and class_id != 'Fighter':
-            self.weapon_mastery_frame.hide()
-            return
-        
-        self.weapon_mastery_frame.show()
-        
-        # Load saved masteries
-        saved_masteries = self.character_data.get('weapon_masteries', [])
-        
-        # Update checkboxes
-        for checkbox in self.mastery_checkboxes:
-            checkbox.blockSignals(True)
-            checkbox.setChecked(checkbox.text() in saved_masteries)
-            checkbox.blockSignals(False)
-        
-        # Update display
-        self._update_masteries_display(saved_masteries)
     
     def update_ac(self, new_ac):
         """Update the AC display when equipment changes."""

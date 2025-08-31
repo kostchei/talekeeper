@@ -321,6 +321,26 @@ class GameEngineSQLite:
             print(f"Error loading save slots: {e}")
             return []
     
+    def get_character_fighting_styles(self, character_id: str) -> List[str]:
+        """Get character's fighting styles from character_features table."""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT feature_name FROM character_features 
+                WHERE character_id = ? AND feature_type = 'fighting_style'
+            """, (character_id,))
+            
+            results = cursor.fetchall()
+            conn.close()
+            
+            return [row[0] for row in results]
+            
+        except Exception as e:
+            print(f"Error getting fighting styles for character {character_id}: {e}")
+            return []
+
     def get_character_inventory_sync(self, character_id: str) -> List[Dict[str, Any]]:
         """Get inventory items for a character."""
         try:

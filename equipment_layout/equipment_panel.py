@@ -609,14 +609,56 @@ class EquipmentPanel(QWidget):
             self.inventory_items.remove(item)
             self._update_inventory_display()
         
-        # Unequip current item in slot if any
-        if slot in self.equipped_items:
-            old_item = self.equipped_items[slot]
-            self.inventory_items.append(old_item)
+        # Check if this is a two-handed weapon
+        is_two_handed = self._is_two_handed_weapon(item)
         
-        # Equip new item
-        self.equipped_items[slot] = item
-        self.slot_widgets[slot].set_item(item)
+        if is_two_handed and slot == EquipmentSlot.MAIN_HAND:
+            # Two-handed weapon - unequip both main hand and off-hand
+            if EquipmentSlot.MAIN_HAND in self.equipped_items:
+                old_main = self.equipped_items[EquipmentSlot.MAIN_HAND]
+                self.inventory_items.append(old_main)
+                
+            if EquipmentSlot.OFF_HAND in self.equipped_items:
+                old_off = self.equipped_items[EquipmentSlot.OFF_HAND]
+                self.inventory_items.append(old_off)
+            
+            # Equip in both slots (same item reference)
+            self.equipped_items[EquipmentSlot.MAIN_HAND] = item
+            self.equipped_items[EquipmentSlot.OFF_HAND] = item
+            self.slot_widgets[EquipmentSlot.MAIN_HAND].set_item(item)
+            self.slot_widgets[EquipmentSlot.OFF_HAND].set_item(item)
+            
+        elif slot == EquipmentSlot.OFF_HAND:
+            # If equipping to off-hand, check if main hand has two-handed weapon
+            main_hand_item = self.equipped_items.get(EquipmentSlot.MAIN_HAND)
+            if main_hand_item and self._is_two_handed_weapon(main_hand_item):
+                # Can't equip to off-hand if main hand has two-handed weapon
+                # Unequip the two-handed weapon first
+                self.inventory_items.append(main_hand_item)
+                self.equipped_items.pop(EquipmentSlot.MAIN_HAND, None)
+                self.equipped_items.pop(EquipmentSlot.OFF_HAND, None)
+                self.slot_widgets[EquipmentSlot.MAIN_HAND].clear_item()
+                self.slot_widgets[EquipmentSlot.OFF_HAND].clear_item()
+            
+            # Unequip current off-hand item if any
+            if slot in self.equipped_items:
+                old_item = self.equipped_items[slot]
+                self.inventory_items.append(old_item)
+            
+            # Equip new item to off-hand
+            self.equipped_items[slot] = item
+            self.slot_widgets[slot].set_item(item)
+            
+        else:
+            # Regular single-slot equipment
+            # Unequip current item in slot if any
+            if slot in self.equipped_items:
+                old_item = self.equipped_items[slot]
+                self.inventory_items.append(old_item)
+            
+            # Equip new item
+            self.equipped_items[slot] = item
+            self.slot_widgets[slot].set_item(item)
         
         # Update displays
         self._update_inventory_display()
@@ -626,12 +668,40 @@ class EquipmentPanel(QWidget):
         self.item_equipped.emit(item, slot)
         self.inventory_changed.emit()
     
+    def _is_two_handed_weapon(self, item: Dict[str, Any]) -> bool:
+        """Check if an item is a two-handed weapon."""
+        try:
+            from services.equipment import equipment_service
+            # Get full item data from database
+            db_item = equipment_service.get_item(item.get('name', ''))
+            if db_item and db_item.get('weapon_properties'):
+                import json
+                properties = json.loads(db_item['weapon_properties'])
+                return 'two-handed' in properties
+            return False
+        except Exception as e:
+            print(f"Error checking if {item.get('name', 'unknown')} is two-handed: {e}")
+            return False
+    
     def _unequip_item(self, slot: EquipmentSlot):
         """Unequip an item from a slot."""
         if slot in self.equipped_items:
-            item = self.equipped_items.pop(slot)
-            self.inventory_items.append(item)
-            self.slot_widgets[slot].clear_item()
+            item = self.equipped_items[slot]
+            
+            # Check if it's a two-handed weapon - if so, unequip from both slots
+            if self._is_two_handed_weapon(item):
+                # Remove from both main hand and off-hand
+                self.equipped_items.pop(EquipmentSlot.MAIN_HAND, None)
+                self.equipped_items.pop(EquipmentSlot.OFF_HAND, None)
+                self.slot_widgets[EquipmentSlot.MAIN_HAND].clear_item()
+                self.slot_widgets[EquipmentSlot.OFF_HAND].clear_item()
+                # Add to inventory only once
+                self.inventory_items.append(item)
+            else:
+                # Regular single-slot item
+                self.equipped_items.pop(slot)
+                self.inventory_items.append(item)
+                self.slot_widgets[slot].clear_item()
             
             # Update displays
             self._update_inventory_display()

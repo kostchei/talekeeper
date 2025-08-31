@@ -1199,66 +1199,6 @@ class EncounterPanel(QWidget):
         self.class_features_layout.addWidget(fighting_style_group)
         
         
-        # Weapon Mastery selection
-        weapon_mastery_group = QGroupBox("Weapon Mastery")
-        wm_layout = QVBoxLayout(weapon_mastery_group)
-        wm_layout.setContentsMargins(1, 1, 1, 1)
-        wm_layout.setSpacing(3)
-        
-        wm_description = QLabel("Choose 3:")
-        wm_description.setWordWrap(True)
-        wm_description.setStyleSheet("color: #666; font-size: 11px; margin: 1px;")
-        wm_layout.addWidget(wm_description)
-        
-        # Create checkboxes for weapon masteries
-        self.weapon_mastery_checkboxes = {}
-        mastery_weapons = [
-            ("Dagger", "Nick"), ("Handaxe", "Vex"), ("Javelin", "Slow"),
-            ("Light Hammer", "Nick"), ("Scimitar", "Nick"), ("Shortsword", "Vex"),
-            ("Battleaxe", "Topple"), ("Flail", "Sap"), ("Glaive", "Graze"),
-            ("Greataxe", "Cleave"), ("Greatsword", "Graze"), ("Halberd", "Cleave"),
-            ("Lance", "Topple"), ("Longsword", "Sap"), ("Maul", "Topple"),
-            ("Morningstar", "Sap"), ("Pike", "Push"), ("Rapier", "Vex"),
-            ("Scimitar", "Nick"), ("Shortsword", "Vex"), ("Trident", "Topple"),
-            ("War Pick", "Sap"), ("Warhammer", "Push"), ("Whip", "Slow")
-        ]
-        
-        # Remove duplicates while preserving order
-        seen = set()
-        unique_weapons = []
-        for weapon, mastery in mastery_weapons:
-            if weapon not in seen:
-                unique_weapons.append((weapon, mastery))
-                seen.add(weapon)
-        
-        # Create grid layout for checkboxes
-        checkbox_widget = QWidget()
-        checkbox_layout = QGridLayout(checkbox_widget)
-        checkbox_layout.setContentsMargins(1, 1, 1, 1)
-        checkbox_layout.setSpacing(2)
-        
-        for i, (weapon, mastery) in enumerate(unique_weapons):
-            checkbox = QCheckBox(f"{weapon} ({mastery})")
-            checkbox.weapon_name = weapon
-            checkbox.mastery = mastery
-            checkbox.toggled.connect(self._on_weapon_mastery_changed)
-            checkbox.setStyleSheet("font-size: 10px; margin: 1px;")
-            
-            # Add to layout (3 columns)
-            row = i // 3
-            col = i % 3
-            checkbox_layout.addWidget(checkbox, row, col)
-            
-            self.weapon_mastery_checkboxes[weapon] = checkbox
-        
-        wm_layout.addWidget(checkbox_widget)
-        
-        # Add selection counter
-        self.mastery_counter_label = QLabel("Selected: 0/3")
-        self.mastery_counter_label.setStyleSheet("color: #888; font-weight: bold; font-size: 10px; margin: 1px;")
-        wm_layout.addWidget(self.mastery_counter_label)
-        
-        self.class_features_layout.addWidget(weapon_mastery_group)
     
     def _on_fighting_style_selected(self):
         """Handle Fighting Style selection change."""
@@ -1275,34 +1215,6 @@ class EncounterPanel(QWidget):
         else:
             self.fighting_style_description.setHtml("<i>Select a Fighting Style to see its description.</i>")
     
-    def _on_weapon_mastery_changed(self):
-        """Handle weapon mastery checkbox selection changes."""
-        if not hasattr(self, 'weapon_mastery_checkboxes'):
-            return
-            
-        # Count selected masteries
-        selected_count = sum(1 for checkbox in self.weapon_mastery_checkboxes.values() if checkbox.isChecked())
-        
-        # Update counter label
-        self.mastery_counter_label.setText(f"Selected: {selected_count}/3")
-        
-        # Update label color based on selection
-        if selected_count > 3:
-            self.mastery_counter_label.setStyleSheet("color: #ff4444; font-weight: bold;")
-        elif selected_count == 3:
-            self.mastery_counter_label.setStyleSheet("color: #44aa44; font-weight: bold;")
-        else:
-            self.mastery_counter_label.setStyleSheet("color: #888; font-weight: bold;")
-        
-        # Disable unchecked boxes if 3 are already selected
-        if selected_count >= 3:
-            for checkbox in self.weapon_mastery_checkboxes.values():
-                if not checkbox.isChecked():
-                    checkbox.setEnabled(False)
-        else:
-            # Re-enable all checkboxes
-            for checkbox in self.weapon_mastery_checkboxes.values():
-                checkbox.setEnabled(True)
     
     def _create_review_step(self) -> QWidget:
         """Create final review and confirmation step."""
@@ -1827,21 +1739,6 @@ class EncounterPanel(QWidget):
                     'level_acquired': 2
                 }
             
-            # Collect selected weapon masteries
-            if hasattr(self, 'weapon_mastery_checkboxes'):
-                selected_weapon_masteries = [
-                    checkbox.weapon_name for checkbox in self.weapon_mastery_checkboxes.values() 
-                    if checkbox.isChecked()
-                ]
-            
-            class_features['Weapon Mastery'] = {
-                'type': 'passive',
-                'usage': 'permanent',
-                'count': 3,  # 3 weapon masteries
-                'selected_weapons': selected_weapon_masteries,
-                'description': f'Use mastery properties of {len(selected_weapon_masteries)} weapons: {", ".join(selected_weapon_masteries)}',
-                'level_acquired': 1
-            }
         
         # Calculate saving throw proficiencies
         saving_throw_profs = {
