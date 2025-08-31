@@ -173,6 +173,28 @@ class EncounterPanel(QWidget):
         self.hide_btn.clicked.connect(lambda: self.exploration_action.emit("hide"))
         env_actions_layout.addWidget(self.hide_btn)
         
+        # Long Rest button - NEW
+        self.long_rest_btn = QPushButton("Long Rest")
+        self.long_rest_btn.clicked.connect(self._perform_long_rest)
+        self.long_rest_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2a4a2a;
+                border: 2px solid #4a6a4a;
+                border-radius: 4px;
+                color: #88ff88;
+                font-weight: bold;
+                padding: 4px 8px;
+            }
+            QPushButton:hover {
+                background-color: #3a5a3a;
+                border-color: #5a7a5a;
+            }
+            QPushButton:pressed {
+                background-color: #1a3a1a;
+            }
+        """)
+        env_actions_layout.addWidget(self.long_rest_btn)
+        
         env_layout.addWidget(self.env_actions_frame)
         
         # --- CHARACTER CREATION TAB ---
@@ -2796,3 +2818,120 @@ class EncounterPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"ERROR: Could not update character sheet HP: {e}")
+    
+    def _perform_long_rest(self):
+        """Perform long rest - restore all resources according to D&D 5e rules."""
+        from datetime import datetime
+        from PyQt6.QtWidgets import QMessageBox
+        
+        try:
+            # Get current character
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    break
+                parent = parent.parent()
+            
+            if not character:
+                self._log_monster_action("❌ No character found for long rest!")
+                return
+            
+            # Confirm long rest (since it's a significant action)
+            reply = QMessageBox.question(
+                self, 
+                "Long Rest", 
+                f"Take a Long Rest?\n\n{character.name} will:\n• Restore all hit points\n• Restore all spell slots\n• Restore all long rest abilities\n• Restore half of spent hit dice\n\nThis represents 8 hours of rest in a safe location.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            
+            self._log_monster_action("🌙 Beginning long rest...")
+            
+            # === D&D 5e LONG REST BENEFITS ===
+            
+            # 1. Restore all hit points to maximum
+            old_hp = character.hit_points_current
+            max_hp = character.hit_points_max
+            character.hit_points_current = max_hp
+            character.current_hit_points = max_hp  # Alternative field
+            self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} → {max_hp}/{max_hp}")
+            
+            # 2. Restore all spent hit dice (up to half maximum, minimum 1)
+            character_level = character.level
+            max_hit_dice = character_level
+            current_hit_dice = character.hit_dice_current
+            hit_dice_to_restore = max(1, max_hit_dice // 2)
+            new_hit_dice = min(max_hit_dice, current_hit_dice + hit_dice_to_restore)
+            
+            if new_hit_dice > current_hit_dice:
+                character.hit_dice_current = new_hit_dice
+                self._log_monster_action(f"🎲 Hit Dice restored: {current_hit_dice} → {new_hit_dice} (gained {new_hit_dice - current_hit_dice})")
+            
+            # 3. Restore all spell slots
+            if hasattr(character, 'spell_slots_current') and character.spell_slots_current:
+                spell_slots_restored = []
+                for level, current_slots in character.spell_slots_current.items():
+                    max_slots = character.spell_slots_max.get(level, 0)
+                    if current_slots < max_slots:
+                        character.spell_slots_current[level] = max_slots
+                        spell_slots_restored.append(f"Level {level}: {current_slots} → {max_slots}")
+                
+                if spell_slots_restored:
+                    self._log_monster_action(f"✨ Spell slots restored: {', '.join(spell_slots_restored)}")
+            
+            # 4. Restore all long rest abilities
+            long_rest_abilities = ["Action Surge", "Second Wind", "Healing Potion"]  # Common ones
+            abilities_restored = []
+            
+            for ability in long_rest_abilities:
+                if ability in character.ability_uses:
+                    max_uses = character.ability_uses_max.get(ability, 1)
+                    if character.ability_uses[ability] < max_uses:
+                        character.ability_uses[ability] = max_uses
+                        abilities_restored.append(ability)
+            
+            if abilities_restored:
+                self._log_monster_action(f"⚡ Abilities restored: {', '.join(abilities_restored)}")
+            
+            # 5. Reset action economy for new day (if in combat)
+            if hasattr(self, 'current_combat_session') and self.current_combat_session:
+                # Reset action surge usage
+                if hasattr(character, 'action_surge_used'):
+                    character.action_surge_used = False
+            
+            # 6. Update rest timestamp
+            character.last_long_rest = datetime.now().isoformat()
+            character.updated_at = datetime.now().isoformat()
+            
+            # Save character to database (following DB-first pattern)
+            game_engine.update_character_hp_sync(max_hp, max_hp)  # This also saves the character
+            
+            # Additional save for other changes
+            import asyncio
+            from core.database_indexeddb import indexeddb
+            asyncio.run(indexeddb.put('characters', character.to_dict(), character.id))
+            
+            # Update character sheet display
+            self._update_character_sheet_hp(max_hp, max_hp)
+            
+            self._log_monster_action("🌅 Long rest completed! All resources restored.")
+            
+            # Log to parent log panel
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_info(f"🌙 {character.name} completed a long rest - all resources restored")
+                        break
+                    parent = parent.parent()
+            except:
+                pass
+            
+        except Exception as e:
+            print(f"Error performing long rest: {e}")
+            self._log_monster_action(f"❌ Long rest failed: {e}")

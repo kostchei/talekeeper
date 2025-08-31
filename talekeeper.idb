@@ -3629,7 +3629,7 @@
           "subclass_id": null,
           "background_id": "Soldier",
           "level": 1,
-          "experience_points": 275,
+          "experience_points": 600,
           "strength": 18,
           "dexterity": 16,
           "constitution": 16,
@@ -3651,8 +3651,8 @@
           "spell_slots_max": {},
           "class_resources": {},
           "class_resources_max": {},
-          "last_short_rest": "2025-08-31T12:11:51.521534",
-          "last_long_rest": null,
+          "last_short_rest": "2025-08-31T12:28:20.979680",
+          "last_long_rest": "2025-08-31T12:27:21.859197",
           "ability_uses": {
             "Second Wind": 1
           },
@@ -3798,7 +3798,7 @@
           "equipment_armor": "Chain Mail",
           "equipment_shield": null,
           "created_at": "2025-08-31T11:34:49.223319",
-          "updated_at": "2025-08-31T12:12:02.940851",
+          "updated_at": "2025-08-31T12:28:23.061597",
           "notes": "Created via character creator. D&D 2024 rules applied."
         }
       },
@@ -4033,13 +4033,13 @@
           "slot_number": 18,
           "is_occupied": true,
           "save_name": "Trute - Level 1",
-          "last_played": "2025-08-31T12:12:02.927355",
+          "last_played": "2025-08-31T12:28:23.043557",
           "play_time_minutes": 0,
           "character_name": "Trute",
           "character_level": 1,
           "current_location": "Starting Town",
           "created_at": "2025-08-31T11:34:49.215318",
-          "updated_at": "2025-08-31T12:12:02.927355"
+          "updated_at": "2025-08-31T12:28:23.043557"
         }
       },
       "key_path": "id",
@@ -4387,7 +4387,7 @@
           "total_damage_dealt": 0,
           "total_damage_taken": 0,
           "created_at": "2025-08-31T11:34:49.233218",
-          "updated_at": "2025-08-31T12:12:02.949843"
+          "updated_at": "2025-08-31T12:28:23.061597"
         }
       },
       "key_path": "id",
