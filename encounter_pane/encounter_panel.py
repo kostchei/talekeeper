@@ -120,6 +120,12 @@ class EncounterPanel(QWidget):
         encounters_layout = QVBoxLayout(self.encounters_tab)
         encounters_layout.setContentsMargins(1, 1, 1, 1)
         
+        # Encounters list widget (was missing)
+        from PyQt6.QtWidgets import QListWidget
+        self.encounters_list = QListWidget()
+        self.encounters_list.setObjectName("encountersList")
+        self.encounters_list.setMaximumHeight(100)
+        encounters_layout.addWidget(self.encounters_list)
         
         # Generate encounter button
         self.generate_encounter_btn = QPushButton("Generate Random Encounter")
@@ -2616,8 +2622,8 @@ class EncounterPanel(QWidget):
             if recovered_abilities:
                 self._log_monster_action(f"✨ Abilities recovered: {', '.join(recovered_abilities)}")
             
-            # TODO: Open hit dice spending dialog (optional)
-            self._log_monster_action("🎲 Hit dice spending dialog not implemented yet - auto-recovered abilities")
+            # Open hit dice spending dialog (optional)
+            self._show_hit_dice_dialog(game_engine, character)
             
             # Save character (save the whole game state)
             game_engine.save_game_sync()
@@ -2627,3 +2633,166 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"Error performing short rest: {e}")
             self._log_monster_action(f"❌ Short rest failed: {e}")
+    
+    def _show_hit_dice_dialog(self, game_engine, character):
+        """Show dialog for optional hit dice spending."""
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+                                   QPushButton, QSpinBox, QDialogButtonBox, QGroupBox)
+        from PyQt6.QtCore import Qt
+        
+        # Always allow hit dice spending - get HP from character sheet display
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_sheet'):
+                    hp_text = parent.character_sheet.hp_widget.value_label.text()
+                    if '/' in hp_text:
+                        current_str, max_str = hp_text.split('/')
+                        current_hp, max_hp = int(current_str.strip()), int(max_str.strip())
+                        break
+                    parent = parent.parent()
+            else:
+                # Fallback to character object values
+                current_hp = character.hit_points_current
+                max_hp = character.hit_points_max
+        except Exception as e:
+            print(f"ERROR: Could not get HP: {e}")
+            current_hp = character.hit_points_current
+            max_hp = character.hit_points_max
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Hit Dice Recovery")
+        dialog.setFixedSize(400, 300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Status info
+        status_label = QLabel(f"Current HP: {current_hp}/{max_hp}")
+        status_label.setStyleSheet("font-weight: bold; color: #ff6b6b; font-size: 14px;")
+        layout.addWidget(status_label)
+        
+        missing_hp = max_hp - current_hp
+        if missing_hp > 0:
+            info_label = QLabel(f"Missing {missing_hp} HP - You can spend hit dice to recover")
+            layout.addWidget(info_label)
+        
+        # Hit dice info
+        hit_dice_available = character.hit_dice_current
+        if hit_dice_available <= 0:
+            no_dice_label = QLabel("❌ No hit dice available!")
+            no_dice_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
+            layout.addWidget(no_dice_label)
+        else:
+            # Determine hit die type based on class (simplified)
+            class_name = getattr(character, 'class_id', 'Fighter')
+            hit_die_map = {
+                'Fighter': 10, 'Paladin': 10, 'Ranger': 10, 'Barbarian': 12,
+                'Rogue': 8, 'Monk': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Warlock': 8,
+                'Artificer': 8, 'Sorcerer': 6, 'Wizard': 6
+            }
+            hit_die = hit_die_map.get(class_name, 8)
+            con_mod = character.constitution_modifier
+            
+            dice_group = QGroupBox(f"Available Hit Dice: {hit_dice_available} × d{hit_die}")
+            dice_layout = QVBoxLayout(dice_group)
+            
+            # Spending controls
+            spend_layout = QHBoxLayout()
+            spend_layout.addWidget(QLabel("Spend:"))
+            
+            dice_spinner = QSpinBox()
+            dice_spinner.setMinimum(0)
+            dice_spinner.setMaximum(min(hit_dice_available, 10))  # Max 10 at once
+            dice_spinner.setValue(1 if hit_dice_available > 0 else 0)
+            spend_layout.addWidget(dice_spinner)
+            
+            spend_layout.addWidget(QLabel(f"d{hit_die} (+ {con_mod} CON each)"))
+            dice_layout.addLayout(spend_layout)
+            
+            # Roll button
+            roll_btn = QPushButton("🎲 Roll Hit Dice")
+            roll_btn.clicked.connect(lambda: self._roll_hit_dice(dialog, game_engine, character, 
+                                                               dice_spinner.value(), hit_die, status_label))
+            dice_layout.addWidget(roll_btn)
+            
+            layout.addWidget(dice_group)
+        
+        # Dialog buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.accept)  # Close button acts like OK
+        layout.addWidget(buttons)
+        
+        dialog.exec()
+    
+    def _roll_hit_dice(self, dialog, game_engine, character, num_dice, hit_die, status_label):
+        """Roll hit dice and apply healing."""
+        if num_dice <= 0:
+            return
+            
+        if character.hit_dice_current < num_dice:
+            self._log_monster_action("❌ Not enough hit dice available!")
+            return
+        
+        from services.dice import DiceRoller
+        dice_roller = DiceRoller()
+        
+        total_healing = 0
+        rolls = []
+        
+        for i in range(num_dice):
+            # Roll the hit die
+            roll = dice_roller.roll(f"1d{hit_die}")
+            healing = roll + character.constitution_modifier
+            healing = max(1, healing)  # Minimum 1 HP per die
+            total_healing += healing
+            rolls.append(f"d{hit_die}({roll})+{character.constitution_modifier}={healing}")
+        
+        # Apply healing (cannot exceed max HP) - use combat system fields
+        old_hp = getattr(character, 'current_hit_points', character.hit_points_current)
+        max_hp = getattr(character, 'max_hit_points', character.hit_points_max)
+        new_hp = min(max_hp, old_hp + total_healing)
+        actual_healing = new_hp - old_hp
+        
+        # Update both HP field sets to keep them in sync
+        if hasattr(character, 'current_hit_points'):
+            character.current_hit_points = new_hp
+        character.hit_points_current = new_hp
+        
+        # Spend the hit dice
+        character.hit_dice_current -= num_dice
+        
+        # Log the results
+        roll_details = " + ".join(rolls)
+        if actual_healing < total_healing:
+            self._log_monster_action(f"🎲 Hit Dice: {roll_details} = {total_healing} healing")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+        else:
+            self._log_monster_action(f"🎲 Hit Dice: {roll_details} = {total_healing} healing")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing})")
+        
+        # Update status label
+        status_label.setText(f"Current HP: {new_hp}/{max_hp}")
+        
+        # Save changes to database FIRST (source of truth)
+        game_engine.update_character_hp_sync(new_hp, max_hp)
+        
+        # Update character sheet display to reflect database state
+        self._update_character_sheet_hp(new_hp, max_hp)
+        
+        # Close dialog if at full health
+        if new_hp >= max_hp:
+            self._log_monster_action("💚 Fully healed!")
+            dialog.accept()
+    
+    def _update_character_sheet_hp(self, current_hp: int, max_hp: int):
+        """Update the character sheet HP display."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_sheet'):
+                    parent.character_sheet.update_hp(current_hp, max_hp)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"ERROR: Could not update character sheet HP: {e}")

@@ -61,11 +61,11 @@ class GameEngineIndexedDB:
     
     def _character_to_dto(self, character: Character) -> CharacterDTO:
         """Convert Character dataclass to CharacterDTO."""
-        # Resolve names from IDs
-        race_name = self._get_race_name_by_id(character.race_id)
-        class_name = self._get_class_name_by_id(character.class_id)
-        background_name = self._get_background_name_by_id(character.background_id)
-        subclass_name = self._get_subclass_name_by_id(character.subclass_id) if character.subclass_id else None
+        # Resolve names from IDs using database as source of truth
+        race_name = self._get_race_name_from_db(character.race_id)
+        class_name = self._get_class_name_from_db(character.class_id)
+        background_name = self._get_background_name_from_db(character.background_id)
+        subclass_name = self._get_subclass_name_from_db(character.subclass_id) if character.subclass_id else None
         
         # Recalculate armor class to ensure it's current
         character.armor_class = self._calculate_armor_class(character)
@@ -424,15 +424,33 @@ class GameEngineIndexedDB:
         if not slot.is_occupied:
             return None
         
-        # Find character
-        characters_data = await indexeddb.get_all('characters')
-        character_data = None
-        for char_data in characters_data:
-            if char_data.get('save_slot_id') == slot.id:
-                character_data = char_data
-                break
-        
-        if not character_data:
+        # Find character by save_slot_id
+        # Try direct query first, then fall back to iteration
+        try:
+            # Get all characters
+            characters_store = indexeddb.object_stores.get('characters', {})
+            characters_dict = characters_store.get('data', {})
+            
+            character_data = None
+            for char_id, char_data in characters_dict.items():
+                if isinstance(char_data, dict) and char_data.get('save_slot_id') == slot.id:
+                    character_data = char_data
+                    break
+            
+            if not character_data:
+                # Try using get_all as fallback
+                characters_list = await indexeddb.get_all('characters')
+                for char_data in characters_list:
+                    if isinstance(char_data, dict) and char_data.get('save_slot_id') == slot.id:
+                        character_data = char_data
+                        break
+            
+            if not character_data:
+                logger.warning(f"No character found for save slot {save_slot}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error finding character for slot {save_slot}: {e}")
             return None
         
         character = Character.from_dict(character_data)
@@ -892,72 +910,159 @@ class GameEngineIndexedDB:
         if self.current_character and self.current_save_slot:
             self.save_game_sync()
     
-    def _get_race_name_by_id(self, race_id: str) -> str:
-        """Get race name by ID from database."""
+    def _get_race_name_from_db(self, race_id: str) -> str:
+        """Get race name by ID from database - proper DB-first approach."""
+        if not race_id:
+            return "Human"
+        
         try:
-            # Direct access to avoid async issues
-            if not indexeddb.is_connected or not indexeddb.object_stores:
-                return race_id if race_id else "Human"
+            # Ensure database connection
+            if not indexeddb.is_connected:
+                return race_id  # Fallback to ID if DB not available
                 
+            # Access races store directly but safely
             races_store = indexeddb.object_stores.get('races', {})
+            if not races_store:
+                return race_id
+            
+            races_data = races_store.get('data', {})
+            
+            # Try exact match first
+            race_data = races_data.get(race_id)
+            if race_data and 'name' in race_data:
+                return race_data['name']
+            
+            # Try normalized key match
             race_key = race_id.lower().replace(' ', '_')
-            race_data = races_store.get('data', {}).get(race_key)
+            race_data = races_data.get(race_key)
+            if race_data and 'name' in race_data:
+                return race_data['name']
             
-            if race_data:
-                return race_data.get('name', race_id)
-            return race_id if race_id else "Human"  # Use the ID as fallback
-        except:
-            return race_id if race_id else "Human"  # Safe fallback
+            # Search by name field if no key match
+            for race_data in races_data.values():
+                if isinstance(race_data, dict) and race_data.get('name', '').lower() == race_id.lower():
+                    return race_data['name']
+            
+            # Fallback to ID if not found
+            return race_id
+            
+        except Exception as e:
+            logger.warning(f"Error resolving race name for ID '{race_id}': {e}")
+            return race_id
     
-    def _get_class_name_by_id(self, class_id: str) -> str:
-        """Get class name by ID from database.""" 
+    def _get_class_name_from_db(self, class_id: str) -> str:
+        """Get class name by ID from database - proper DB-first approach.""" 
+        if not class_id:
+            return "Fighter"
+        
         try:
-            # Direct access to avoid async issues
-            if not indexeddb.is_connected or not indexeddb.object_stores:
-                return class_id if class_id else "Fighter"
+            # Ensure database connection
+            if not indexeddb.is_connected:
+                return class_id
                 
+            # Access classes store directly but safely
             classes_store = indexeddb.object_stores.get('classes', {})
+            if not classes_store:
+                return class_id
+            
+            classes_data = classes_store.get('data', {})
+            
+            # Try exact match first
+            class_data = classes_data.get(class_id)
+            if class_data and 'name' in class_data:
+                return class_data['name']
+            
+            # Try normalized key match
             class_key = class_id.lower().replace(' ', '_')
-            class_data = classes_store.get('data', {}).get(class_key)
+            class_data = classes_data.get(class_key)
+            if class_data and 'name' in class_data:
+                return class_data['name']
             
-            if class_data:
-                return class_data.get('name', class_id)
-            return class_id if class_id else "Fighter"  # Use the ID as fallback
-        except:
-            return class_id if class_id else "Fighter"  # Safe fallback
+            # Search by name field if no key match
+            for class_data in classes_data.values():
+                if isinstance(class_data, dict) and class_data.get('name', '').lower() == class_id.lower():
+                    return class_data['name']
+            
+            # Fallback to ID if not found
+            return class_id
+            
+        except Exception as e:
+            logger.warning(f"Error resolving class name for ID '{class_id}': {e}")
+            return class_id
     
-    def _get_background_name_by_id(self, background_id: str) -> str:
-        """Get background name by ID from database."""
+    def _get_background_name_from_db(self, background_id: str) -> str:
+        """Get background name by ID from database - proper DB-first approach."""
+        if not background_id:
+            return "Folk Hero"
+        
         try:
-            # Direct access to avoid async issues
-            if not indexeddb.is_connected or not indexeddb.object_stores:
-                return background_id if background_id else "Folk Hero"
+            # Ensure database connection
+            if not indexeddb.is_connected:
+                return background_id
                 
+            # Access backgrounds store directly but safely
             backgrounds_store = indexeddb.object_stores.get('backgrounds', {})
-            background_key = background_id.lower().replace(' ', '_').replace('-', '_')
-            background_data = backgrounds_store.get('data', {}).get(background_key)
+            if not backgrounds_store:
+                return background_id
             
-            if background_data:
-                return background_data.get('name', background_id)
-            return background_id if background_id else "Folk Hero"  # Use the ID as fallback
-        except:
-            return background_id if background_id else "Folk Hero"  # Safe fallback
+            backgrounds_data = backgrounds_store.get('data', {})
+            
+            # Try exact match first
+            background_data = backgrounds_data.get(background_id)
+            if background_data and 'name' in background_data:
+                return background_data['name']
+            
+            # Try normalized key match
+            background_key = background_id.lower().replace(' ', '_').replace('-', '_')
+            background_data = backgrounds_data.get(background_key)
+            if background_data and 'name' in background_data:
+                return background_data['name']
+            
+            # Search by name field if no key match
+            for background_data in backgrounds_data.values():
+                if isinstance(background_data, dict) and background_data.get('name', '').lower() == background_id.lower():
+                    return background_data['name']
+            
+            # Fallback to ID if not found
+            return background_id
+            
+        except Exception as e:
+            logger.warning(f"Error resolving background name for ID '{background_id}': {e}")
+            return background_id
     
-    def _get_subclass_name_by_id(self, subclass_id: str) -> str:
-        """Get subclass name by ID from database."""
+    def _get_subclass_name_from_db(self, subclass_id: str) -> str:
+        """Get subclass name by ID from database - proper DB-first approach."""
+        if not subclass_id:
+            return "Unknown"
+        
         try:
-            # Direct access to subclasses data
-            if not indexeddb.is_connected or not indexeddb.object_stores:
+            # Ensure database connection
+            if not indexeddb.is_connected:
                 return "Unknown"
                 
+            # Access subclasses store directly but safely
             subclasses_store = indexeddb.object_stores.get('subclasses', {})
-            subclass_data = subclasses_store.get('data', {}).get(subclass_id)
+            if not subclasses_store:
+                return "Unknown"
             
-            if subclass_data:
-                return subclass_data.get('name', 'Unknown')
+            subclasses_data = subclasses_store.get('data', {})
+            
+            # Try exact match first
+            subclass_data = subclasses_data.get(subclass_id)
+            if subclass_data and 'name' in subclass_data:
+                return subclass_data['name']
+            
+            # Search by name field if no key match
+            for subclass_data in subclasses_data.values():
+                if isinstance(subclass_data, dict) and subclass_data.get('name', '').lower() == subclass_id.lower():
+                    return subclass_data['name']
+            
+            # Fallback to ID if not found
+            return subclass_id if subclass_id != "Unknown" else "Unknown"
+            
+        except Exception as e:
+            logger.warning(f"Error resolving subclass name for ID '{subclass_id}': {e}")
             return "Unknown"
-        except:
-            return "Unknown"  # Safe fallback
     
     def _is_proficient_with_armor(self, character, armor_type: str) -> bool:
         """Check if character is proficient with a specific armor type."""
@@ -1152,6 +1257,166 @@ class GameEngineIndexedDB:
             logger.warning(f"Error calculating armor class: {e}")
             # Fallback to base calculation
             return 10 + dex_modifier
+    
+    async def update_character_hp(self, current_hp: int, max_hp: int = None, temp_hp: int = None):
+        """Update character's HP values in the database and notify UI components."""
+        await self._ensure_connected()
+        
+        if not self.current_character or not self.current_save_slot:
+            logger.warning("No current character to update HP for")
+            return
+            
+        try:
+            # Store old values for logging
+            old_current_hp = self.current_character.hit_points_current
+            old_max_hp = self.current_character.hit_points_max
+            
+            # Update current character object (source of truth)
+            self.current_character.hit_points_current = current_hp
+            self.current_character.current_hit_points = current_hp  # Alternative field
+            
+            if max_hp is not None:
+                self.current_character.hit_points_max = max_hp
+                self.current_character.max_hit_points = max_hp  # Alternative field
+                
+            if temp_hp is not None:
+                self.current_character.hit_points_temporary = temp_hp
+            
+            # Update timestamp
+            self.current_character.updated_at = datetime.now().isoformat()
+            
+            # Save to database - this is the critical write to DB
+            await indexeddb.put('characters', self.current_character.to_dict(), self.current_character.id)
+            
+            # Log the change with proper details
+            if max_hp is not None:
+                logger.info(f"Updated character {self.current_character.name} HP: {old_current_hp}/{old_max_hp} → {current_hp}/{max_hp}")
+            else:
+                logger.info(f"Updated character {self.current_character.name} HP: {old_current_hp} → {current_hp}")
+            
+            # Auto-save the game to ensure save slot is current
+            await self.save_game()
+            
+        except Exception as e:
+            logger.error(f"Failed to update character HP: {e}")
+            # Revert changes if database save failed
+            self.current_character.hit_points_current = old_current_hp
+            self.current_character.current_hit_points = old_current_hp
+            if max_hp is not None:
+                self.current_character.hit_points_max = old_max_hp
+                self.current_character.max_hit_points = old_max_hp
+            raise
+    
+    def update_character_hp_sync(self, current_hp: int, max_hp: int = None, temp_hp: int = None):
+        """Synchronous version of update_character_hp."""
+        return asyncio.run(self.update_character_hp(current_hp, max_hp, temp_hp))
+    
+    async def get_current_character_from_db(self) -> Optional[CharacterDTO]:
+        """Get fresh character data from database (not from cache)."""
+        if not self.current_character or not self.current_save_slot:
+            return None
+            
+        await self._ensure_connected()
+        
+        try:
+            # Reload character from database
+            character_data = await indexeddb.get('characters', self.current_character.id)
+            if character_data:
+                character = Character.from_dict(character_data)
+                # Update our cached current character
+                self.current_character = character
+                return self._character_to_dto(character)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to reload character from database: {e}")
+            return None
+    
+    def get_current_character_from_db_sync(self) -> Optional[CharacterDTO]:
+        """Synchronous version of get_current_character_from_db."""
+        return asyncio.run(self.get_current_character_from_db())
+    
+    async def update_character_equipment(self, equipment_slot: str, item_name: Optional[str] = None):
+        """Update character equipment in database."""
+        if not self.current_character:
+            logger.warning("No current character to update equipment for")
+            return
+            
+        await self._ensure_connected()
+        
+        try:
+            # Update the current character object
+            if equipment_slot == 'main_hand':
+                self.current_character.equipment_main_hand = item_name
+            elif equipment_slot == 'off_hand':
+                self.current_character.equipment_off_hand = item_name
+            elif equipment_slot == 'armor':
+                self.current_character.equipment_armor = item_name
+            elif equipment_slot == 'shield':
+                self.current_character.equipment_shield = item_name
+            else:
+                logger.warning(f"Unknown equipment slot: {equipment_slot}")
+                return
+            
+            # Recalculate AC with new equipment
+            self.current_character.armor_class = self._calculate_armor_class(self.current_character)
+            self.current_character.updated_at = datetime.now().isoformat()
+            
+            # Save to database
+            await indexeddb.put('characters', self.current_character.to_dict(), self.current_character.id)
+            
+            # Log the change
+            action = "equipped" if item_name else "unequipped"
+            item_text = item_name if item_name else "nothing"
+            logger.info(f"Character {self.current_character.name} {action} {item_text} in {equipment_slot}")
+            
+            # Auto-save
+            await self.save_game()
+            
+        except Exception as e:
+            logger.error(f"Failed to update character equipment: {e}")
+            raise
+    
+    def update_character_equipment_sync(self, equipment_slot: str, item_name: Optional[str] = None):
+        """Synchronous version of update_character_equipment."""
+        return asyncio.run(self.update_character_equipment(equipment_slot, item_name))
+    
+    async def update_character_resources(self, resource_updates: Dict[str, Any]):
+        """Update character resources (spell slots, class features, etc.) in database."""
+        if not self.current_character:
+            logger.warning("No current character to update resources for")
+            return
+            
+        await self._ensure_connected()
+        
+        try:
+            # Update various resource types
+            if 'spell_slots_current' in resource_updates:
+                self.current_character.spell_slots_current.update(resource_updates['spell_slots_current'])
+            
+            if 'class_resources' in resource_updates:
+                self.current_character.class_resources.update(resource_updates['class_resources'])
+            
+            if 'ability_uses' in resource_updates:
+                self.current_character.ability_uses.update(resource_updates['ability_uses'])
+            
+            # Update timestamp
+            self.current_character.updated_at = datetime.now().isoformat()
+            
+            # Save to database
+            await indexeddb.put('characters', self.current_character.to_dict(), self.current_character.id)
+            
+            logger.info(f"Updated resources for character {self.current_character.name}")
+            
+            # Auto-save
+            await self.save_game()
+            
+        except Exception as e:
+            logger.error(f"Failed to update character resources: {e}")
+            raise
+    
+    def update_character_resources_sync(self, resource_updates: Dict[str, Any]):
+        """Synchronous version of update_character_resources."""
+        return asyncio.run(self.update_character_resources(resource_updates))
     
     def shutdown(self):
         """Clean shutdown of game engine."""

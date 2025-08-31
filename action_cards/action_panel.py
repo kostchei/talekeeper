@@ -289,6 +289,36 @@ class ActionPanel(QWidget):
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
         if action_type == ActionType.SECOND_WIND or action_type == 1000:  # Handle both enum and legacy ID
+            # Check if Second Wind is available first
+            print("DEBUG: Using Second Wind")
+            uses_remaining = self._get_ability_uses_remaining("Second Wind")
+            print(f"DEBUG: Second Wind uses before check: {uses_remaining}")
+            
+            if uses_remaining <= 0:
+                # Try to initialize for existing characters
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'game_engine'):
+                        character = parent.game_engine.current_character
+                        if character and hasattr(character, 'ability_uses') and "Second Wind" not in character.ability_uses:
+                            print("DEBUG: Initializing Second Wind for existing character")
+                            character.ability_uses["Second Wind"] = 1
+                            character.ability_uses_max["Second Wind"] = 1
+                            uses_remaining = 1
+                        break
+                    parent = parent.parent()
+                
+                # If still no uses, block the action
+                if uses_remaining <= 0:
+                    print("DEBUG: Second Wind blocked - no uses remaining")
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"❌ Second Wind exhausted - requires Short Rest!")
+                            break
+                        parent = parent.parent()
+                    return  # Block the action entirely
+            
             level = self.character_context.get('level', 1)
             healing_roll = f"1d10+{level}"
             
@@ -317,7 +347,6 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
             
             # Use ability - decrement uses remaining
-            print("DEBUG: Using Second Wind")
             self._use_ability("Second Wind")
         
         elif action_type == ActionType.NICK_MASTERY:

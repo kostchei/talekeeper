@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QGridLayout, QProgressBar, QCheckBox)
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QParallelAnimationGroup
 from typing import Optional, Dict, Any
+from datetime import datetime
 
 
 class CharacterPanel(QWidget):
@@ -1219,17 +1220,35 @@ class CharacterPanel(QWidget):
             saving_throw_widget.bonus_label.setText("+0")
     
     def update_hp(self, current_hp: int, max_hp: int):
-        """Update HP display."""
+        """Update HP display - database should already be updated by game engine."""
+        # Update the UI display
         self.hp_widget.value_label.setText(f"{current_hp}/{max_hp}")
         
         if self.character_data:
-            # Update all HP field variants for compatibility
+            # Update local character data to reflect database state
             self.character_data['current_hit_points'] = current_hp
             self.character_data['hit_points_current'] = current_hp
             self.character_data['max_hit_points'] = max_hp
             self.character_data['hit_points_max'] = max_hp
             self.character_data['hit_points'] = max_hp  # Legacy field
-            self._update_details_text()
+            
+            # Log the HP change
+            self._log_hp_change(current_hp, max_hp)
+    
+    def _log_hp_change(self, current_hp: int, max_hp: int):
+        """Log HP change to game log."""
+        try:
+            # Find the log panel in parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    character_name = self.character_data.get('name', 'Character')
+                    parent.log_panel.log_combat(f"{character_name} HP: {current_hp}/{max_hp}")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            # Not critical if logging fails
+            pass
     
     def is_expanded(self) -> bool:
         """Return current expansion state."""
@@ -1274,25 +1293,37 @@ class CharacterPanel(QWidget):
             self.selected_masteries_label.setText("Selected: None")
     
     def _save_masteries_to_character(self, selected_masteries: list):
-        """Save weapon masteries to character data."""
+        """Save weapon masteries to character data and database."""
         if not self.character_data:
             return
         
+        # Update local character data
         if 'weapon_masteries' not in self.character_data:
             self.character_data['weapon_masteries'] = []
         
         self.character_data['weapon_masteries'] = selected_masteries
         
-        # Emit signal to parent for saving
+        # Save to database through game engine
         try:
             parent = self.parent()
             while parent:
-                if hasattr(parent, 'save_character_data'):
-                    parent.save_character_data()
+                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
+                    # Update the current character object
+                    parent.game_engine.current_character.weapon_masteries = selected_masteries
+                    parent.game_engine.current_character.updated_at = datetime.now().isoformat()
+                    
+                    # Save to database
+                    import asyncio
+                    from core.database_indexeddb import indexeddb
+                    asyncio.run(indexeddb.put('characters', parent.game_engine.current_character.to_dict(), parent.game_engine.current_character.id))
+                    
+                    # Log the change
+                    parent.log_panel.log_info(f"Updated weapon masteries: {', '.join(selected_masteries) if selected_masteries else 'None'}")
                     break
                 parent = parent.parent()
-        except:
-            pass  # Fail silently if no save method found
+        except Exception as e:
+            # Not critical if save fails, but log it
+            print(f"Warning: Could not save weapon masteries to database: {e}")
     
     def _load_weapon_masteries(self):
         """Load and display weapon masteries from character data."""
