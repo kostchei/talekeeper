@@ -75,6 +75,36 @@ class CharacterDTO:
     feats: List[str]
     weapon_masteries: List[str]
     
+    # Resource Tracking
+    spell_slots_current: Dict[int, int]
+    spell_slots_max: Dict[int, int]
+    class_resources: Dict[str, int]
+    class_resources_max: Dict[str, int]
+    
+    # Ability Usage
+    ability_uses: Dict[str, int]
+    ability_uses_max: Dict[str, int]
+    
+    # Metadata
+    created_at: datetime
+    notes: str
+    
+    # Optional fields with defaults
+    # Equipment (item IDs)
+    equipment_main_hand: Optional[str] = None
+    equipment_off_hand: Optional[str] = None
+    equipment_armor: Optional[str] = None
+    equipment_shield: Optional[str] = None
+    
+    # Rest Tracking
+    last_short_rest: Optional[str] = None
+    last_long_rest: Optional[str] = None
+    
+    # Save Slot Info
+    save_slot_id: Optional[str] = None
+    save_slot_number: Optional[int] = None
+    updated_at: Optional[datetime] = None
+    
     # Saving Throw Proficiencies
     str_save_proficient: int = 0
     dex_save_proficient: int = 0
@@ -82,35 +112,6 @@ class CharacterDTO:
     int_save_proficient: int = 0
     wis_save_proficient: int = 0
     cha_save_proficient: int = 0
-    
-    # Resource Tracking
-    spell_slots_current: Dict[int, int]
-    spell_slots_max: Dict[int, int]
-    class_resources: Dict[str, int]
-    class_resources_max: Dict[str, int]
-    
-    # Rest Tracking
-    last_short_rest: Optional[str]
-    last_long_rest: Optional[str]
-    
-    # Ability Usage
-    ability_uses: Dict[str, int]
-    ability_uses_max: Dict[str, int]
-    
-    # Equipment (item IDs)
-    equipment_main_hand: Optional[str]
-    equipment_off_hand: Optional[str]
-    equipment_armor: Optional[str]
-    equipment_shield: Optional[str]
-    
-    # Metadata
-    created_at: datetime
-    updated_at: Optional[datetime]
-    notes: str
-    
-    # Save Slot Info
-    save_slot_id: Optional[str]
-    save_slot_number: Optional[int]
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert CharacterDTO to dictionary."""

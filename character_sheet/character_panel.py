@@ -327,11 +327,32 @@ class CharacterPanel(QWidget):
         spells_label.setObjectName("sectionTitle")
         spells_layout.addWidget(spells_label)
         
+        # Spell slots display
+        self.spell_slots_widget = QWidget()
+        spell_slots_layout = QVBoxLayout(self.spell_slots_widget)
+        spell_slots_layout.setContentsMargins(0, 0, 0, 0)
+        spell_slots_layout.setSpacing(5)
+        
+        # Create spell slot level displays (1st through 9th level)
+        self.spell_slot_displays = {}
+        for level in range(1, 10):
+            level_widget = self._create_spell_slot_level_widget(level)
+            self.spell_slot_displays[level] = level_widget
+            spell_slots_layout.addWidget(level_widget)
+        
+        # Warlock pact magic slots (separate)
+        self.pact_magic_widget = self._create_pact_magic_widget()
+        spell_slots_layout.addWidget(self.pact_magic_widget)
+        
+        spells_layout.addWidget(self.spell_slots_widget)
+        
+        # Spell description area
         self.spells_text = QTextEdit()
         self.spells_text.setObjectName("spellsText")
         self.spells_text.setReadOnly(True)
-        self.spells_text.setPlainText("Known spells and special abilities will appear here...")
-        spells_layout.addWidget(self.spells_text, 1)
+        self.spells_text.setPlainText("Known spells and cantrips will appear here...")
+        self.spells_text.setMaximumHeight(100)
+        spells_layout.addWidget(self.spells_text)
         
         # Add all sections to detail panel
         self.detail_layout.addWidget(self.detail_header)
@@ -640,6 +661,234 @@ class CharacterPanel(QWidget):
         widget.is_proficient = False
         
         return widget
+    
+    def _create_spell_slot_level_widget(self, level: int) -> QWidget:
+        """Create a spell slot level display widget."""
+        widget = QWidget()
+        widget.setVisible(False)  # Hidden by default, shown only if character has slots
+        
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(10)
+        
+        # Level label
+        level_suffix = {1: "st", 2: "nd", 3: "rd"}.get(level, "th")
+        level_label = QLabel(f"{level}{level_suffix} Level")
+        level_label.setFixedWidth(80)
+        level_label.setObjectName("spellSlotLevel")
+        layout.addWidget(level_label)
+        
+        # Slot circles container
+        slots_container = QWidget()
+        slots_layout = QHBoxLayout(slots_container)
+        slots_layout.setContentsMargins(0, 0, 0, 0)
+        slots_layout.setSpacing(3)
+        
+        # Store references to slot circles for updating
+        widget.slot_circles = []
+        widget.slots_layout = slots_layout
+        
+        layout.addWidget(slots_container, 1)
+        
+        return widget
+    
+    def _create_pact_magic_widget(self) -> QWidget:
+        """Create Warlock pact magic slots display."""
+        widget = QWidget()
+        widget.setVisible(False)  # Hidden by default, shown only for Warlocks
+        
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(10)
+        
+        # Pact magic label
+        pact_label = QLabel("Pact Magic")
+        pact_label.setObjectName("pactMagicLabel")
+        pact_label.setStyleSheet("color: #9932cc; font-weight: bold;")
+        layout.addWidget(pact_label)
+        
+        # Slot level indicator
+        self.pact_slot_level_label = QLabel("1st Level")
+        self.pact_slot_level_label.setObjectName("pactSlotLevel")
+        layout.addWidget(self.pact_slot_level_label)
+        
+        # Slot circles container
+        pact_slots_container = QWidget()
+        pact_slots_layout = QHBoxLayout(pact_slots_container)
+        pact_slots_layout.setContentsMargins(0, 0, 0, 0)
+        pact_slots_layout.setSpacing(3)
+        
+        widget.slot_circles = []
+        widget.slots_layout = pact_slots_layout
+        
+        layout.addWidget(pact_slots_container, 1)
+        
+        return widget
+    
+    def _create_spell_slot_circle(self, used: bool = False) -> QWidget:
+        """Create a single spell slot circle indicator."""
+        circle = QLabel("●")
+        circle.setFixedSize(16, 16)
+        circle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        if used:
+            circle.setStyleSheet("color: #444444; font-size: 14px;")  # Dark gray for used
+            circle.setToolTip("Used spell slot")
+        else:
+            circle.setStyleSheet("color: #4a9eff; font-size: 14px;")  # Blue for available
+            circle.setToolTip("Available spell slot")
+        
+        return circle
+    
+    def _update_spell_slots_display(self, character_data: Dict[str, Any]):
+        """Update spell slot display based on character class and level."""
+        if not character_data:
+            return
+            
+        class_name = character_data.get('class_name', '')
+        level = character_data.get('level', 1)
+        
+        # Hide all spell slot displays first
+        for level_widget in self.spell_slot_displays.values():
+            level_widget.setVisible(False)
+        self.pact_magic_widget.setVisible(False)
+        
+        # D&D 2024 spell slot progressions
+        spell_slots = self._get_spell_slots_for_class_level(class_name, level)
+        
+        if class_name == 'Warlock':
+            # Warlock Pact Magic
+            self._update_warlock_pact_slots(level, character_data)
+        else:
+            # Regular spellcasters
+            self._update_regular_spell_slots(spell_slots, character_data)
+    
+    def _get_spell_slots_for_class_level(self, class_name: str, level: int) -> Dict[int, int]:
+        """Get spell slots by level for a class/level combination."""
+        # D&D 2024 spell slot tables
+        
+        # Full casters (Cleric, Wizard) - spell slots by level
+        full_caster_table = {
+            1: {1: 2},
+            2: {1: 3},
+            3: {1: 4, 2: 2},
+            4: {1: 4, 2: 3},
+            5: {1: 4, 2: 3, 3: 2},
+            6: {1: 4, 2: 3, 3: 3},
+            7: {1: 4, 2: 3, 3: 3, 4: 1},
+            8: {1: 4, 2: 3, 3: 3, 4: 2},
+            9: {1: 4, 2: 3, 3: 3, 4: 3, 5: 1},
+            10: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2},
+            11: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1},
+            12: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1},
+            13: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1},
+            14: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1},
+            15: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1},
+            16: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1},
+            17: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1, 9: 1},
+            18: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 1, 7: 1, 8: 1, 9: 1},
+            19: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 1, 8: 1, 9: 1},
+            20: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 2, 8: 1, 9: 1},
+        }
+        
+        # Half casters (Paladin) - start at level 2, max 5th level spells
+        half_caster_table = {
+            2: {1: 2},
+            3: {1: 3},
+            4: {1: 3},
+            5: {1: 4, 2: 2},
+            6: {1: 4, 2: 2},
+            7: {1: 4, 2: 3},
+            8: {1: 4, 2: 3},
+            9: {1: 4, 2: 3, 3: 2},
+            10: {1: 4, 2: 3, 3: 2},
+            11: {1: 4, 2: 3, 3: 3},
+            12: {1: 4, 2: 3, 3: 3},
+            13: {1: 4, 2: 3, 3: 3, 4: 1},
+            14: {1: 4, 2: 3, 3: 3, 4: 1},
+            15: {1: 4, 2: 3, 3: 3, 4: 2},
+            16: {1: 4, 2: 3, 3: 3, 4: 2},
+            17: {1: 4, 2: 3, 3: 3, 4: 3, 5: 1},
+            18: {1: 4, 2: 3, 3: 3, 4: 3, 5: 1},
+            19: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2},
+            20: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2},
+        }
+        
+        if class_name in ['Cleric', 'Wizard']:
+            return full_caster_table.get(level, {})
+        elif class_name == 'Paladin':
+            return half_caster_table.get(level, {})
+        else:
+            return {}
+    
+    def _update_regular_spell_slots(self, spell_slots: Dict[int, int], character_data: Dict[str, Any]):
+        """Update regular spell slot displays."""
+        spell_slots_current = character_data.get('spell_slots_current', {})
+        
+        for spell_level, max_slots in spell_slots.items():
+            if spell_level in self.spell_slot_displays:
+                level_widget = self.spell_slot_displays[spell_level]
+                level_widget.setVisible(True)
+                
+                # Clear existing circles
+                for circle in level_widget.slot_circles:
+                    circle.setParent(None)
+                level_widget.slot_circles.clear()
+                
+                # Add slot circles
+                current_slots = spell_slots_current.get(str(spell_level), max_slots)
+                for i in range(max_slots):
+                    used = i >= current_slots
+                    circle = self._create_spell_slot_circle(used)
+                    level_widget.slot_circles.append(circle)
+                    level_widget.slots_layout.addWidget(circle)
+    
+    def _update_warlock_pact_slots(self, level: int, character_data: Dict[str, Any]):
+        """Update Warlock pact magic slot display."""
+        # Warlock pact magic progression
+        pact_slots_by_level = {
+            1: (1, 1),   # (slot_count, slot_level)
+            2: (2, 1),
+            3: (2, 2),
+            4: (2, 2),
+            5: (2, 3),
+            6: (2, 3),
+            7: (2, 4),
+            8: (2, 4),
+            9: (2, 5),
+            10: (2, 5),
+            11: (3, 5),
+            12: (3, 5),
+            13: (3, 5),
+            14: (3, 5),
+            15: (3, 5),
+            16: (3, 5),
+            17: (4, 5),
+            18: (4, 5),
+            19: (4, 5),
+            20: (4, 5),
+        }
+        
+        if level in pact_slots_by_level:
+            slot_count, slot_level = pact_slots_by_level[level]
+            self.pact_magic_widget.setVisible(True)
+            
+            # Update slot level label
+            level_suffix = {1: "st", 2: "nd", 3: "rd"}.get(slot_level, "th")
+            self.pact_slot_level_label.setText(f"{slot_level}{level_suffix} Level")
+            
+            # Clear existing circles
+            for circle in self.pact_magic_widget.slot_circles:
+                circle.setParent(None)
+            self.pact_magic_widget.slot_circles.clear()
+            
+            # Add pact slot circles - assume all available for now
+            for i in range(slot_count):
+                circle = self._create_spell_slot_circle(False)
+                circle.setStyleSheet("color: #9932cc; font-size: 14px;")  # Purple for pact magic
+                circle.setToolTip(f"Pact Magic slot ({slot_level}{level_suffix} level)")
+                self.pact_magic_widget.slot_circles.append(circle)
+                self.pact_magic_widget.slots_layout.addWidget(circle)
     
     def _apply_styles(self):
         """No hardcoded styling - let main theme handle all colors."""
@@ -1104,6 +1353,9 @@ class CharacterPanel(QWidget):
             # Update diamond indicator for proficiency
             if hasattr(saving_throw_widget, 'diamond'):
                 saving_throw_widget.diamond.setVisible(is_proficient)
+        
+        # Update spell slots display
+        self._update_spell_slots_display(character_data)
         
         # Update detailed panel data
         self._update_detail_panel()

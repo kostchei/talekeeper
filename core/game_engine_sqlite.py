@@ -31,6 +31,13 @@ class GameEngineSQLite:
         conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
         return conn
     
+    def _safe_get_row_value(self, row: sqlite3.Row, key: str, default=None):
+        """Safely get a value from sqlite3.Row with default fallback."""
+        try:
+            return row[key]
+        except (IndexError, KeyError):
+            return default
+    
     def _load_settings(self):
         """Load application settings from SQLite or file."""
         try:
@@ -103,6 +110,13 @@ class GameEngineSQLite:
                 print(f"[SQLite] Found character row: {character_row is not None}")
                 
                 if not character_row:
+                    print(f"[SQLite] No character found in slot {save_slot}")
+                    # Check if save slot exists at all
+                    cursor.execute("SELECT * FROM save_slots WHERE slot_number = ?", (save_slot,))
+                    slot_row = cursor.fetchone()
+                    print(f"[SQLite] Save slot {save_slot} exists: {slot_row is not None}")
+                    if slot_row:
+                        print(f"[SQLite] Slot data: occupied={slot_row['is_occupied']}, name={slot_row['character_name']}")
                     return None
                 
                 character_id = character_row['id']
@@ -205,13 +219,13 @@ class GameEngineSQLite:
                     death_saves_failures=character_row['death_saves_failures'],
                     conditions=[],  # Empty for now
                     
-                    # Saving throw proficiencies
-                    str_save_proficient=character_row.get('str_save_proficient', 0),
-                    dex_save_proficient=character_row.get('dex_save_proficient', 0),
-                    con_save_proficient=character_row.get('con_save_proficient', 0),
-                    int_save_proficient=character_row.get('int_save_proficient', 0),
-                    wis_save_proficient=character_row.get('wis_save_proficient', 0),
-                    cha_save_proficient=character_row.get('cha_save_proficient', 0),
+                    # Saving throw proficiencies (handle missing columns gracefully)
+                    str_save_proficient=self._safe_get_row_value(character_row, 'str_save_proficient', 0),
+                    dex_save_proficient=self._safe_get_row_value(character_row, 'dex_save_proficient', 0),
+                    con_save_proficient=self._safe_get_row_value(character_row, 'con_save_proficient', 0),
+                    int_save_proficient=self._safe_get_row_value(character_row, 'int_save_proficient', 0),
+                    wis_save_proficient=self._safe_get_row_value(character_row, 'wis_save_proficient', 0),
+                    cha_save_proficient=self._safe_get_row_value(character_row, 'cha_save_proficient', 0),
                     
                     # Character features from our migration
                     proficiencies=proficiencies,
@@ -460,9 +474,16 @@ class GameEngineSQLite:
                 
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
-                
-                # Load and return the created character
-                return self.load_character_sync(save_slot)
+            
+            # Load and return the created character (with a fresh connection after commit)
+            import time
+            time.sleep(0.1)  # Brief delay to ensure transaction is fully committed
+            
+            created_character = self.load_character_sync(save_slot)
+            if created_character is None:
+                raise RuntimeError(f"Failed to load character after creation in slot {save_slot}")
+            
+            return created_character
                 
         except Exception as e:
             print(f"Error creating character: {e}")
