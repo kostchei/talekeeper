@@ -2705,14 +2705,37 @@ class EncounterPanel(QWidget):
             no_dice_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
             layout.addWidget(no_dice_label)
         else:
-            # Determine hit die type based on class (simplified)
-            class_name = getattr(character, 'class_id', 'Fighter')
+            # Determine hit die type based on class - check both class_id and resolved class name
+            class_id = getattr(character, 'class_id', 'Fighter')
+            
+            # Try to get the actual class name from database
+            class_name = class_id
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'game_engine'):
+                        class_name = parent.game_engine._get_class_name_from_db(class_id)
+                        break
+                    parent = parent.parent()
+            except:
+                pass
+            
+            # Hit die mapping - check both normalized names and IDs
             hit_die_map = {
+                # Class names
                 'Fighter': 10, 'Paladin': 10, 'Ranger': 10, 'Barbarian': 12,
                 'Rogue': 8, 'Monk': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Warlock': 8,
-                'Artificer': 8, 'Sorcerer': 6, 'Wizard': 6
+                'Artificer': 8, 'Sorcerer': 6, 'Wizard': 6,
+                # Class IDs (lowercase versions)
+                'fighter': 10, 'paladin': 10, 'ranger': 10, 'barbarian': 12,
+                'rogue': 8, 'monk': 8, 'bard': 8, 'cleric': 8, 'druid': 8, 'warlock': 8,
+                'artificer': 8, 'sorcerer': 6, 'wizard': 6
             }
-            hit_die = hit_die_map.get(class_name, 8)
+            
+            # Try class name first, then class_id, then default
+            hit_die = hit_die_map.get(class_name, hit_die_map.get(class_id, hit_die_map.get(class_id.lower(), 8)))
+            
+            self._log_monster_action(f"🎯 DEBUG: class_id='{class_id}', class_name='{class_name}', hit_die=d{hit_die}")
             con_mod = character.constitution_modifier
             
             dice_group = QGroupBox(f"Available Hit Dice: {hit_dice_available} × d{hit_die}")

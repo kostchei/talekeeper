@@ -4033,7 +4033,7 @@
           "slot_number": 18,
           "is_occupied": true,
           "save_name": "Trute - Level 1",
-          "last_played": "2025-08-31T12:28:23.043557",
+          "last_played": "2025-08-31T12:33:26.942957",
           "play_time_minutes": 0,
           "character_name": "Trute",
           "character_level": 1,
@@ -4419,31 +4419,19 @@
       "store": "characters",
       "key_path": "race_id",
       "unique": false,
-      "index_data": {
-        "Human": [
-          "5509671e-1a02-4bf0-abd8-3b72117df3d9"
-        ]
-      }
+      "index_data": {}
     },
     "characters.class_id": {
       "store": "characters",
       "key_path": "class_id",
       "unique": false,
-      "index_data": {
-        "fighter": [
-          "5509671e-1a02-4bf0-abd8-3b72117df3d9"
-        ]
-      }
+      "index_data": {}
     },
     "characters.name": {
       "store": "characters",
       "key_path": "name",
       "unique": false,
-      "index_data": {
-        "Trute": [
-          "5509671e-1a02-4bf0-abd8-3b72117df3d9"
-        ]
-      }
+      "index_data": {}
     },
     "monsters.challenge_rating": {
       "store": "monsters",

@@ -2,27 +2,86 @@
   {
     "name": "Farmer",
     "description": "You know the hard work of the farm and field. You understand the cycle of seasons and the patience required to nurture crops and livestock.",
+    "ability_scores": ["Constitution", "Wisdom", "Strength"],
+    "feat": "Tough",
     "skill_proficiencies": ["Animal Handling", "Nature"],
-    "language_proficiencies": [],
-    "tool_proficiencies": ["Carpenter's Tools", "Vehicles (land)"],
+    "tool_proficiencies": ["Carpenter's Tools"],
     "starting_equipment": {
-      "equipment": ["carpenter_tools", "shovel", "common_clothes", "belt_pouch", "backpack", "potion_of_healing", "rations_5"],
-      "gold": 10
-    },
-    "feature_name": "Rustic Hospitality",
-    "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among other commoners, especially in rural areas."
+      "option_a": {
+        "equipment": ["carpenters_tools", "shovel", "common_clothes", "belt_pouch", "backpack", "potion_of_healing", "rations_5"],
+        "gold": 10
+      },
+      "option_b": {
+        "gold": 50
+      }
+    }
   },
   {
     "name": "Soldier",
-    "description": "War has been your life for as long as you care to remember.",
+    "description": "You began training for war as soon as you reached adulthood and carry precious few memories of life before you took up arms. Battle is in your blood. The crash of weapons, the stink of blood, the screams of enemies—this is the music that makes your heart race. War has been your life for as long as you care to remember.",
+    "ability_scores": ["Strength", "Dexterity", "Constitution"],
+    "feat": "Savage Attacker",
     "skill_proficiencies": ["Athletics", "Intimidation"],
-    "language_proficiencies": [],
-    "tool_proficiencies": ["Gaming Set", "Vehicles (land)"],
+    "tool_proficiencies": ["Gaming Set"],
     "starting_equipment": {
-      "equipment": ["rank_insignia", "trophy", "deck_of_cards", "common_clothes", "belt_pouch", "backpack", "potion_of_healing", "rations_5"],
-      "gold": 10
-    },
-    "feature_name": "Military Rank",
-    "feature_description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence."
+      "option_a": {
+        "equipment": ["spear", "shortbow", "arrows_20", "gaming_set", "healers_kit", "quiver", "travelers_clothes"],
+        "gold": 14
+      },
+      "option_b": {
+        "gold": 50
+      }
+    }
+  },
+  {
+    "name": "Acolyte",
+    "description": "You devoted yourself to service in a temple, either nestled in a town or secluded in a sacred grove. There you performed rites in honor of a god or pantheon. You served under a priest and studied religion. Thanks to your priest's instruction and your own devotion, you gained mastery over your god's mysteries.",
+    "ability_scores": ["Intelligence", "Wisdom", "Charisma"],
+    "feat": "Magic Initiate (Cleric)",
+    "skill_proficiencies": ["Insight", "Religion"],
+    "tool_proficiencies": ["Calligrapher's Supplies"],
+    "starting_equipment": {
+      "option_a": {
+        "equipment": ["calligraphers_supplies", "prayer_book", "holy_symbol", "parchment_10", "robe"],
+        "gold": 8
+      },
+      "option_b": {
+        "gold": 50
+      }
+    }
+  },
+  {
+    "name": "Criminal",
+    "description": "You once broke the law and paid for it, learning a hard lesson about the reach of legal authority. You spent time among other criminals and developed connections within the criminal underworld. You're far closer than most people to the world of murder, theft, and violence that pervades the underbelly of civilization.",
+    "ability_scores": ["Dexterity", "Constitution", "Intelligence"],
+    "feat": "Alert",
+    "skill_proficiencies": ["Sleight of Hand", "Stealth"],
+    "tool_proficiencies": ["Thieves' Tools"],
+    "starting_equipment": {
+      "option_a": {
+        "equipment": ["dagger", "dagger", "thieves_tools", "crowbar", "pouch", "pouch", "travelers_clothes"],
+        "gold": 16
+      },
+      "option_b": {
+        "gold": 50
+      }
+    }
+  },
+  {
+    "name": "Sage",
+    "description": "You spent your formative years traveling between libraries, scriptoriums, and universities, learning from scholars, wizards, and other learned persons. You became an apprentice to a master who taught you to value knowledge above all else. You mastered the basics of accessing the most fundamental sources of knowledge.",
+    "ability_scores": ["Constitution", "Intelligence", "Wisdom"],
+    "feat": "Magic Initiate (Wizard)",
+    "skill_proficiencies": ["Arcana", "History"],
+    "tool_proficiencies": ["Calligrapher's Supplies"],
+    "starting_equipment": {
+      "option_a": {
+        "equipment": ["quarterstaff", "calligraphers_supplies", "history_book", "parchment_8", "robe"],
+        "gold": 8
+      },
+      "option_b": {
+        "gold": 50
+      }
+    }
   }
 ]
