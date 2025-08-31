@@ -429,6 +429,7 @@ class MainWindow(QMainWindow):
             
             # Load character data into action panel for weapon cards
             character_stats = {
+                'id': saved_character.id,  # Add character ID for potion checks
                 'strength': saved_character.strength,
                 'dexterity': saved_character.dexterity,
                 'constitution': saved_character.constitution,
@@ -436,7 +437,9 @@ class MainWindow(QMainWindow):
                 'wisdom': saved_character.wisdom,
                 'charisma': saved_character.charisma,
                 'armor_class': saved_character.armor_class,
-                'level': saved_character.level
+                'level': saved_character.level,
+                'hit_points_current': saved_character.hit_points_current,
+                'hit_points_max': saved_character.hit_points_max
             }
             self.action_panel.load_character_equipment(equipped_items, character_stats)
 
@@ -587,6 +590,7 @@ class MainWindow(QMainWindow):
         
         # Load character data into action panel for weapon cards
         character_stats = {
+            'id': character.id,  # Add character ID for potion checks
             'strength': character.strength,
             'dexterity': character.dexterity,
             'constitution': character.constitution,
@@ -594,7 +598,9 @@ class MainWindow(QMainWindow):
             'wisdom': character.wisdom,
             'charisma': character.charisma,
             'armor_class': character.armor_class,
-            'level': character.level
+            'level': character.level,
+            'hit_points_current': character.hit_points_current,
+            'hit_points_max': character.hit_points_max
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)
 

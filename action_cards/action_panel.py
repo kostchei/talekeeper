@@ -48,6 +48,9 @@ class ActionType(Enum):
     # Weapon Mastery Actions
     NICK_MASTERY = "nick_mastery"
     CLEAVE_MASTERY = "cleave_mastery"
+    
+    # Consumables
+    USE_POTION = "use_potion"
 
 
 class ActionCategory(Enum):
@@ -180,6 +183,7 @@ class ActionPanel(QWidget):
                 (ActionType.SEARCH, "🔍", "Search", "Look for hidden objects or clues"),
                 (ActionType.INVESTIGATE, "🕵️", "Investigate", "Make a detailed investigation"),
                 (ActionType.REST, "😴", "Rest", "Take a short rest to recover"),
+                (ActionType.USE_POTION, "🧪", "Use Potion", "Drink a healing potion (2d4+4 HP)"),
             ],
             ActionCategory.FREE: [
                 (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
@@ -564,6 +568,12 @@ class ActionPanel(QWidget):
                 self.cards_layout.addWidget(card)
                 card.show()
             
+            # Add potion cards (only if character has potions)
+            if ActionType.USE_POTION in self.action_cards and self._character_has_potions():
+                card = self.action_cards[ActionType.USE_POTION]
+                self.cards_layout.addWidget(card)
+                card.show()
+            
             # Add weapon mastery bonus action cards
             if ActionType.NICK_MASTERY in self.action_cards:  # Nick mastery
                 card = self.action_cards[ActionType.NICK_MASTERY]
@@ -632,6 +642,10 @@ class ActionPanel(QWidget):
                     ability_name = "Second Wind" if action_type == ActionType.SECOND_WIND else "Action Surge"
                     self._use_ability(ability_name)
                 
+                # Handle potion usage
+                elif action_type == ActionType.USE_POTION:
+                    self._use_healing_potion(full_context)
+                
                 # Emit signal
                 self.action_triggered.emit(action_type, full_context)
                 
@@ -649,6 +663,7 @@ class ActionPanel(QWidget):
         combat_actions = {
             ActionType.CAST_SPELL,   # Casting spells in combat
             ActionType.USE_ITEM,     # Using items in combat  
+            ActionType.USE_POTION,   # Using potions in combat
             ActionType.DODGE,        # Dodging is a combat action
             ActionType.DASH,         # Dashing in combat
             ActionType.SEARCH,       # Searching in combat
@@ -1464,7 +1479,8 @@ class ActionPanel(QWidget):
             ActionType.OPPORTUNITY: "reaction",
             ActionType.SECOND_WIND: "bonus_action",
             ActionType.NICK_MASTERY: "bonus_action",
-            ActionType.CLEAVE_MASTERY: "bonus_action"
+            ActionType.CLEAVE_MASTERY: "bonus_action",
+            ActionType.USE_POTION: "bonus_action"
         }
         
         cost_type = action_costs.get(action_type, "free")
@@ -1586,6 +1602,10 @@ class ActionPanel(QWidget):
         """Set the character context for action availability."""
         self.character_context = context
         self._update_card_availability()
+        # Update potion card to show count
+        self._update_potion_card()
+        # Also update visible cards to show/hide potion card based on inventory
+        self._update_visible_cards()
     
     def _update_card_availability(self):
         """Update the availability state of all action cards."""
@@ -1736,6 +1756,185 @@ class ActionPanel(QWidget):
             parent = parent.parent()
         
         return 2
+    
+    def _use_healing_potion(self, context: Dict[str, Any]):
+        """Use a healing potion to restore hit points."""
+        character_id = context.get('id')
+        if not character_id:
+            print("[DEBUG] No character ID found for potion use")
+            return
+        
+        # Check if character has healing potions in inventory
+        if not self._has_healing_potion(character_id):
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("❌ No healing potions available!")
+                    break
+                parent = parent.parent()
+            return
+        
+        # Roll healing: 2d4+4
+        import random
+        roll1 = random.randint(1, 4)
+        roll2 = random.randint(1, 4)
+        healing = roll1 + roll2 + 4
+        
+        # Apply healing to character
+        current_hp = context.get('hit_points_current', 0)
+        max_hp = context.get('hit_points_max', 0)
+        new_hp = min(current_hp + healing, max_hp)
+        actual_healing = new_hp - current_hp
+        
+        # Update character HP in database
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE characters 
+                SET hit_points_current = ?, current_hit_points = ?
+                WHERE id = ?
+            """, (new_hp, new_hp, character_id))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error updating character HP: {e}")
+        
+        # Remove one healing potion from inventory
+        self._consume_healing_potion(character_id)
+        
+        # Update character context
+        self.character_context['hit_points_current'] = new_hp
+        self.character_context['current_hit_points'] = new_hp
+        
+        # Log the healing
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"🧪 Used Healing Potion: 2d4([{roll1}, {roll2}]) + 4 = {healing} healing")
+                if actual_healing > 0:
+                    parent.log_panel.log_combat(f"💚 Restored {actual_healing} HP ({current_hp} → {new_hp})")
+                else:
+                    parent.log_panel.log_combat(f"💚 Already at full health ({current_hp} HP)")
+                break
+            parent = parent.parent()
+        
+        # Update character panel if available
+        if hasattr(parent, 'character_panel'):
+            parent.character_panel.update_character_data(self.character_context)
+        
+        # Update potion card to reflect new count
+        self._update_potion_card()
+        self._update_visible_cards()
+    
+    def _has_healing_potion(self, character_id: str) -> bool:
+        """Check if character has healing potions in inventory."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT quantity FROM character_inventory 
+                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+            """, (character_id,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                print(f"[DEBUG] Found {result[0]} healing potions for character {character_id}")
+                return result[0] > 0
+            else:
+                print(f"[DEBUG] No healing potions found for character {character_id}")
+                return False
+            
+        except Exception as e:
+            print(f"Error checking healing potion inventory: {e}")
+            return False
+    
+    def _consume_healing_potion(self, character_id: str):
+        """Remove one healing potion from character's inventory."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            # Decrease potion quantity by 1
+            cursor.execute("""
+                UPDATE character_inventory 
+                SET quantity = quantity - 1
+                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+            """, (character_id,))
+            
+            # Remove entries with 0 quantity
+            cursor.execute("""
+                DELETE FROM character_inventory 
+                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity <= 0
+            """, (character_id,))
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error consuming healing potion: {e}")
+    
+    def _update_potion_card(self):
+        """Update the potion card to show current potion count."""
+        if ActionType.USE_POTION not in self.action_cards:
+            return
+            
+        if not self.character_context:
+            return
+            
+        character_id = self.character_context.get('id')
+        if not character_id:
+            return
+            
+        # Get potion count
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT SUM(quantity) FROM character_inventory 
+                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+            """, (character_id,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            potion_count = result[0] if result and result[0] else 0
+            
+            # Update card description
+            card = self.action_cards[ActionType.USE_POTION]
+            if potion_count > 0:
+                card.set_description(f"Drink a healing potion (2d4+4 HP) - {potion_count} available")
+            else:
+                card.set_description("No healing potions available")
+            
+            print(f"[DEBUG] Updated potion card: {potion_count} potions available")
+            
+        except Exception as e:
+            print(f"Error updating potion card: {e}")
+    
+    def _character_has_potions(self) -> bool:
+        """Check if character has any healing potions."""
+        if not self.character_context:
+            print("[DEBUG] No character context for potion check")
+            return False
+        character_id = self.character_context.get('id')
+        if not character_id:
+            print("[DEBUG] No character ID for potion check")
+            return False
+        has_potions = self._has_healing_potion(character_id)
+        print(f"[DEBUG] Character {character_id} has potions: {has_potions}")
+        return has_potions
     
     def _apply_fighting_style_effects(self, dice_rolls: list, context: Dict[str, Any]) -> list:
         """Apply fighting style effects to damage dice rolls."""
@@ -2381,6 +2580,11 @@ class ActionCard(QWidget):
             self.setStyleSheet(self.styleSheet().replace("border: 2px solid #666666;", "border: 2px solid #555555;"))
         else:
             self.setStyleSheet(self.styleSheet().replace("border: 2px solid #555555;", "border: 2px solid #666666;"))
+    
+    def set_description(self, description: str):
+        """Update the description text."""
+        self.description = description
+        self.desc_label.setText(description)
     
     def set_cooldown(self, turns: int):
         """Set cooldown remaining."""
