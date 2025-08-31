@@ -157,6 +157,29 @@ class IndexedDBSimulator:
                 return None
         return value
     
+    async def cleanup_invalid_entries(self, store_name: str) -> int:
+        """Remove invalid entries (non-dict) from a store."""
+        if store_name not in self.object_stores:
+            return 0
+        
+        store_data = self.object_stores[store_name]['data']
+        invalid_keys = []
+        
+        for key, value in store_data.items():
+            if not isinstance(value, dict):
+                invalid_keys.append(key)
+                logger.warning(f"Found invalid entry in {store_name}: {key} = {type(value)} {value}")
+        
+        # Remove invalid entries
+        for key in invalid_keys:
+            del store_data[key]
+        
+        if invalid_keys:
+            await self._persist()
+            logger.info(f"Cleaned up {len(invalid_keys)} invalid entries from {store_name}")
+        
+        return len(invalid_keys)
+    
     async def _update_indexes(self, store_name: str, key: str, data: Dict):
         """Update indexes when data is added/modified."""
         for index_key, index_info in self.indexes.items():

@@ -362,9 +362,15 @@ class MainWindow(QMainWindow):
     
     def _on_character_created(self, character_data):
         """Handle completed character creation."""
+        if not character_data:
+            self.log_panel.log_error("Character creation failed: no data received")
+            return
+            
         name = character_data.get('name', 'Unknown')
-        class_name = character_data.get('class_data', {}).get('name', 'Unknown')
-        species_name = character_data.get('species_data', {}).get('name', 'Unknown')
+        class_data = character_data.get('class_data') or {}
+        species_data = character_data.get('species_data') or {}
+        class_name = class_data.get('name', 'Unknown')
+        species_name = species_data.get('name', 'Unknown')
         selected_feats = character_data.get('selected_feats', [])
         
         self.log_panel.log_system(f"Character created: {name} ({species_name} {class_name})")

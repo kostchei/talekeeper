@@ -59,6 +59,15 @@ class GameEngineIndexedDB:
         """Ensure IndexedDB connection is established."""
         if not indexeddb.is_connected:
             await indexeddb.connect()
+            
+            # Clean up corrupted data on first connection
+            if not hasattr(self, '_cleanup_performed'):
+                logger.info("Performing database cleanup on initialization...")
+                for store_name in ['characters', 'game_states', 'save_slots']:
+                    cleaned = await indexeddb.cleanup_invalid_entries(store_name)
+                    if cleaned > 0:
+                        logger.info(f"Cleaned {cleaned} invalid entries from {store_name}")
+                self._cleanup_performed = True
     
     def _character_to_dto(self, character: Character) -> CharacterDTO:
         """Convert Character dataclass to CharacterDTO."""
@@ -540,6 +549,10 @@ class GameEngineIndexedDB:
         characters_data = await indexeddb.get_all('characters')
         character_id = None
         for char_data in characters_data:
+            # Skip invalid data entries (should be dicts, not strings)
+            if not isinstance(char_data, dict):
+                logger.warning(f"Skipping invalid character data: {type(char_data)} - {char_data}")
+                continue
             if char_data.get('save_slot_id') == slot.id:
                 character_id = char_data.get('id')
                 break
@@ -550,6 +563,10 @@ class GameEngineIndexedDB:
 
             game_states_data = await indexeddb.get_all('game_states')
             for gs_data in game_states_data:
+                # Skip invalid data entries (should be dicts, not strings)
+                if not isinstance(gs_data, dict):
+                    logger.warning(f"Skipping invalid game state data: {type(gs_data)} - {gs_data}")
+                    continue
                 if gs_data.get('character_id') == character_id:
                     await indexeddb.delete('game_states', gs_data.get('id'))
                     break

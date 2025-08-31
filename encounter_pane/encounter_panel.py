@@ -1423,6 +1423,24 @@ class EncounterPanel(QWidget):
                     if not has_level_req:
                         self.background_feat_combo.addItem(feat_name, feat)
                         self.species_feat_combo.addItem(feat_name, feat)
+                
+                # Also include feat versions (like Magic Initiate variants)
+                if '_versions' in feat:
+                    for version in feat['_versions']:
+                        version_name = version.get('name', 'Unknown Version')
+                        # Create a combined feat data with version-specific modifications
+                        version_feat = feat.copy()
+                        version_feat.update(version)
+                        version_feat['name'] = version_name
+                        
+                        # Check if this version is origin-appropriate
+                        version_category = version_feat.get('category', feat_category)
+                        if version_category == 'O' or not version_category:
+                            version_prereqs = version_feat.get('prerequisite', [])
+                            has_level_req = any('level' in req for req in version_prereqs if isinstance(req, dict))
+                            if not has_level_req:
+                                self.background_feat_combo.addItem(version_name, version_feat)
+                                self.species_feat_combo.addItem(version_name, version_feat)
             
             # Connect selection handlers
             self.background_feat_combo.currentIndexChanged.connect(self._on_feat_selected)
@@ -1551,9 +1569,9 @@ class EncounterPanel(QWidget):
         """Auto-select the default feat for the chosen background."""
         # Map backgrounds to their default feats from 2024 SRD
         default_feats = {
-            "Acolyte": "Magic Initiate (Cleric)",
+            "Acolyte": "Magic Initiate; Cleric",
             "Criminal": "Alert", 
-            "Sage": "Magic Initiate (Wizard)",
+            "Sage": "Magic Initiate; Wizard",
             "Soldier": "Savage Attacker",
             "Farmer": "Tough"
         }
