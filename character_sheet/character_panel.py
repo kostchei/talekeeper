@@ -1140,7 +1140,25 @@ class CharacterPanel(QWidget):
         level = self.character_data.get('level', 1)
         character_features = self.character_data.get('features', {})
         
-        features_text = f"=== Class Features ({class_name}) ===\n"
+        # Display character feats first (most important)
+        character_feats = self.character_data.get('feats', [])
+        
+        # Debug logging to file
+        import os
+        debug_file = os.path.join(os.getcwd(), "character_debug.log")
+        with open(debug_file, "a") as f:
+            f.write(f"[DEBUG] Character: {self.character_data.get('name', 'Unknown')}\n")
+            f.write(f"[DEBUG] Feats data: {character_feats}\n")
+            f.write(f"[DEBUG] All character data keys: {list(self.character_data.keys())}\n\n")
+        
+        features_text = ""
+        if character_feats:
+            features_text += "=== Character Feats ===\n"
+            for feat_name in character_feats:
+                features_text += f"• {feat_name}\n"
+            features_text += "\n"
+        
+        features_text += f"=== Class Features ({class_name}) ===\n"
         
         # Display actual class features
         if character_features:
@@ -1171,10 +1189,17 @@ class CharacterPanel(QWidget):
             features_text += "\n"
         
         features_text += "=== Background Features ===\n"
-        if self.character_data.get('background_name'):
-            features_text += f"• {self.character_data.get('background_name')} background benefits\n"
-        features_text += "• Skill proficiencies\n"
-        features_text += "• Equipment and tools\n"
+        background_name = self.character_data.get('background_name', 'Unknown')
+        features_text += f"• {background_name} background benefits\n"
+        
+        # Show actual proficiencies if available
+        proficiencies = self.character_data.get('proficiencies', [])
+        if proficiencies:
+            for prof in proficiencies:
+                features_text += f"• {prof}\n"
+        else:
+            features_text += "• Skill proficiencies\n"
+            features_text += "• Equipment and tools\n"
         
         self.features_text.setPlainText(features_text)
         
@@ -1352,3 +1377,8 @@ class CharacterPanel(QWidget):
         
         # Update display
         self._update_masteries_display(saved_masteries)
+    
+    def update_ac(self, new_ac):
+        """Update the AC display when equipment changes."""
+        if hasattr(self, 'ac_widget') and self.ac_widget:
+            self.ac_widget.value_label.setText(str(new_ac))

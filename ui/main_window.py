@@ -34,7 +34,7 @@ from encounter_pane.encounter_panel import EncounterPanel
 from log.log_panel import LogPanel
 from equipment_layout.equipment_panel import EquipmentPanel
 from action_cards.action_panel import ActionPanel
-from core.game_engine_indexeddb import GameEngineIndexedDB
+from core.game_engine_sqlite import GameEngineSQLite
 
 
 class MainWindow(QMainWindow):
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1920, 1080)
         
         # Initialize game engine
-        self.game_engine = GameEngineIndexedDB()
+        self.game_engine = GameEngineSQLite()
         
         # Theme management
         self.current_theme = "light"  # Default to light theme
@@ -220,6 +220,7 @@ class MainWindow(QMainWindow):
         # NOTE: When spell system is added, spell changes will need similar handling for magic actions
         self.equipment_panel.item_equipped.connect(self._on_item_equipped)
         self.equipment_panel.item_unequipped.connect(self._on_item_unequipped)
+        self.equipment_panel.ac_changed.connect(self._on_ac_changed)
         
         # Action panel signals
         self.action_panel.action_triggered.connect(
@@ -290,6 +291,13 @@ class MainWindow(QMainWindow):
         
         # Log the equipment change
         self.log_panel.log_info(f"Unequipped item from {slot.value} slot")
+    
+    def _on_ac_changed(self, new_ac):
+        """Handle AC change from equipment panel - update character sheet display."""
+        if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
+            # Update the character sheet display with new AC
+            self.character_sheet.update_ac(new_ac)
+            self.log_panel.log_info(f"AC updated to {new_ac}")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
@@ -505,6 +513,7 @@ class MainWindow(QMainWindow):
         try:
             # First, try to load from the last used slot
             last_slot = self.game_engine.settings.get('last_character_slot')
+            print(f"[UI] Last character slot setting: {last_slot}")
             if last_slot:
                 character = self.game_engine.load_character_sync(last_slot)
                 if character:
@@ -513,7 +522,9 @@ class MainWindow(QMainWindow):
             
             # If no last slot or it's empty, try to find the most recent character from any slot
             save_slots = self.game_engine.get_save_slots_sync()
+            print(f"[UI] Found {len(save_slots)} total save slots")
             occupied_slots = [slot for slot in save_slots if slot.is_occupied]
+            print(f"[UI] Found {len(occupied_slots)} occupied slots")
             
             if occupied_slots:
                 # Sort by last_played date, most recent first
@@ -963,5 +974,6 @@ class MainWindow(QMainWindow):
             'charisma': character_dto.charisma,
             'experience_points': character_dto.experience_points,
             'features': character_dto.features,
+            'feats': character_dto.feats,  # Include feats from SQLite migration!
             'speed': 30  # Default speed for now
         }

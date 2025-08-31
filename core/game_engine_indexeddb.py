@@ -63,6 +63,13 @@ class GameEngineIndexedDB:
             # Clean up corrupted data on first connection
             if not hasattr(self, '_cleanup_performed'):
                 logger.info("Performing database cleanup on initialization...")
+                
+                # First repair major corruption in characters store
+                repaired = await indexeddb.repair_corrupted_characters()
+                if repaired:
+                    logger.info("Database corruption repair completed")
+                
+                # Then clean up any remaining invalid entries
                 for store_name in ['characters', 'game_states', 'save_slots']:
                     cleaned = await indexeddb.cleanup_invalid_entries(store_name)
                     if cleaned > 0:
@@ -859,6 +866,84 @@ class GameEngineIndexedDB:
         except Exception as e:
             print(f"Error applying feat effects: {e}")
             return character  # Return unmodified character on error
+    
+    async def add_feat_to_character(self, character_id: str, feat_name: str) -> bool:
+        """Add a new feat to a character and recalculate their stats."""
+        await self._ensure_connected()
+        
+        try:
+            # Get the character
+            character_data = await indexeddb.get('characters', character_id)
+            if not character_data:
+                logger.error(f"Character {character_id} not found")
+                return False
+            
+            character = Character.from_dict(character_data)
+            
+            # Check if feat already exists
+            if character.feats and feat_name in character.feats:
+                logger.warning(f"Character already has feat: {feat_name}")
+                return False
+            
+            # Add the feat
+            if not character.feats:
+                character.feats = []
+            character.feats.append(feat_name)
+            
+            # Recalculate character stats with new feat
+            character = self._apply_character_feat_effects(character)
+            
+            # Save updated character
+            await indexeddb.put('characters', character.to_dict(), character.id)
+            
+            # Update current character if this is the loaded character
+            if self.current_character and self.current_character.id == character_id:
+                self.current_character = character
+            
+            logger.info(f"Added feat '{feat_name}' to character {character.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error adding feat to character: {e}")
+            return False
+    
+    def add_feat_to_character_sync(self, character_id: str, feat_name: str) -> bool:
+        """Synchronous version of add_feat_to_character."""
+        return asyncio.run(self.add_feat_to_character(character_id, feat_name))
+    
+    async def recalculate_character_stats(self, character_id: str) -> bool:
+        """Recalculate all character stats including feat effects."""
+        await self._ensure_connected()
+        
+        try:
+            # Get the character
+            character_data = await indexeddb.get('characters', character_id)
+            if not character_data:
+                logger.error(f"Character {character_id} not found")
+                return False
+            
+            character = Character.from_dict(character_data)
+            
+            # Recalculate base stats
+            await self._calculate_character_stats(character)
+            
+            # Save updated character
+            await indexeddb.put('characters', character.to_dict(), character.id)
+            
+            # Update current character if this is the loaded character
+            if self.current_character and self.current_character.id == character_id:
+                self.current_character = character
+            
+            logger.info(f"Recalculated stats for character {character.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error recalculating character stats: {e}")
+            return False
+    
+    def recalculate_character_stats_sync(self, character_id: str) -> bool:
+        """Synchronous version of recalculate_character_stats."""
+        return asyncio.run(self.recalculate_character_stats(character_id))
     
     async def _apply_class_features(self, character, char_class):
         """Apply class features to character based on class and level."""

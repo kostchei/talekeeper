@@ -1044,22 +1044,39 @@ class EncounterPanel(QWidget):
             self.equipment_choices_layout.addWidget(info_label)
             return
         
-        # Get class name
+        # Get class name/ID
         selected_class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
         
-        # Test data for Fighter (you can expand this)
+        # Load equipment choices from database via game engine
         equipment_choices = []
-        if selected_class_name == "Fighter":
-            equipment_choices = [
-                {
-                    "name": "Martial Weapon",
-                    "options": ["Longsword (1d8 slashing)", "Greatsword (2d6 slashing)", "Rapier (1d8 piercing)"]
-                },
-                {
-                    "name": "Armor",  
-                    "options": ["Studded Leather (AC 12)", "Breastplate (AC 14)", "Chain Mail (AC 16)"]
-                }
-            ]
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    db_choices = parent.game_engine.get_class_equipment_choices_sync(selected_class_name)
+                    # Format for display
+                    for choice in db_choices:
+                        formatted_choice = {
+                            "name": choice['name'],
+                            "group": choice['group'],
+                            "options": []
+                        }
+                        for option in choice['options']:
+                            # Build display string from option data
+                            if 'damage' in option:
+                                display = f"{option['name']} ({option['damage']})"
+                            elif 'ac' in option:
+                                display = f"{option['name']} (AC {option['ac']})"
+                            elif 'contents' in option:
+                                display = f"{option['name']}"
+                            else:
+                                display = option['name']
+                            formatted_choice['options'].append(display)
+                        equipment_choices.append(formatted_choice)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error loading equipment choices: {e}")
         
         if not equipment_choices:
             info_label = QLabel(f"No equipment choices available for {selected_class_name}.")
@@ -1076,6 +1093,8 @@ class EncounterPanel(QWidget):
             
             # Create button group to ensure only one selection per choice
             button_group = QButtonGroup(self)
+            # Store the group identifier for saving later
+            button_group.choice_group = choice.get("group", choice["name"])
             self.equipment_button_groups[choice["name"]] = button_group
             
             # Radio buttons for options
@@ -1722,11 +1741,16 @@ class EncounterPanel(QWidget):
         if bg_feat_data:
             selected_feats.append(bg_feat_data.get('name', ''))
         
-        # Species bonus feat (only for humans)
-        if self.species_feat_combo.isVisible():
+        # Species bonus feat (only for humans) - use currentText() as fallback
+        if self.species_feat_combo.isVisible() and self.species_feat_combo.currentIndex() > 0:
             species_feat_data = self.species_feat_combo.currentData()
             if species_feat_data:
                 selected_feats.append(species_feat_data.get('name', ''))
+            else:
+                # Fallback to currentText if currentData fails
+                species_feat_text = self.species_feat_combo.currentText()
+                if species_feat_text and not species_feat_text.startswith("Select"):
+                    selected_feats.append(species_feat_text)
         
         # Class-specific feats (Fighter Fighting Style)
         class_data = self.character_creation_data.get('class')
@@ -1734,8 +1758,7 @@ class EncounterPanel(QWidget):
             if hasattr(self, 'fighting_style_combo'):
                 fighting_style_data = self.fighting_style_combo.currentData()
                 if fighting_style_data:
-                    feat_name = fighting_style_data.get('name', '')
-                    selected_feats.append(feat_name)
+                    selected_feats.append(fighting_style_data.get('name', ''))
         
         # Collect class features
         class_features = {}
@@ -1794,13 +1817,19 @@ class EncounterPanel(QWidget):
             'equipment_choices': {}
         }
 
-        # Record selected equipment options
+        # Record selected equipment options - use group name as key
         if hasattr(self, 'equipment_button_groups'):
-            for choice_name, button_group in self.equipment_button_groups.items():
+            for choice_key, button_group in self.equipment_button_groups.items():
                 checked = button_group.checkedButton()
                 if checked:
+                    # Extract just the item name (before parentheses)
                     item_name = checked.text().split(' (', 1)[0]
-                    final_character['equipment_choices'][choice_name] = item_name
+                    # Use the group name from our stored data
+                    if hasattr(button_group, 'choice_group'):
+                        final_character['equipment_choices'][button_group.choice_group] = item_name
+                    else:
+                        # Fallback to choice name
+                        final_character['equipment_choices'][choice_key] = item_name
 
         # Emit the completed character
         self.character_created.emit(final_character)

@@ -23,6 +23,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QDrag, QPixmap, QPainter, QIcon
 from typing import Optional, Dict, Any, List
 from enum import Enum
+from services.equipment import equipment_service
 
 
 class EquipmentSlot(Enum):
@@ -56,6 +57,7 @@ class EquipmentPanel(QWidget):
     item_unequipped = pyqtSignal(EquipmentSlot)  # slot
     item_used = pyqtSignal(dict)  # item
     inventory_changed = pyqtSignal()
+    ac_changed = pyqtSignal(int)  # new AC value
     
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -805,6 +807,10 @@ class EquipmentPanel(QWidget):
         """Update the stats display based on equipped items."""
         # Update attack displays
         self._update_attack_displays()
+        
+        # Calculate and emit AC change
+        new_ac = self._calculate_armor_class()
+        self.ac_changed.emit(new_ac)
     
     def _update_attack_displays(self):
         """Update all attack display rows."""
@@ -920,51 +926,35 @@ class EquipmentPanel(QWidget):
         return prof_bonus + spellcasting_mod
     
     def _calculate_armor_class(self):
-        """Calculate total AC from equipped armor, shield, and dexterity."""
-        base_ac = 10
+        """Calculate total AC from equipped armor, shield, and dexterity using equipment service."""
         dex_mod = (self.character_dexterity - 10) // 2
+        ac = 10 + dex_mod  # Base AC with no armor
         
         # Find equipped armor
-        armor = None
+        armor_item = None
         for slot, item in self.equipped_items.items():
-            if slot == EquipmentSlot.ARMOR and item.get('armor_properties'):
-                armor = item
+            if slot == EquipmentSlot.ARMOR:
+                armor_item = item
                 break
         
-        if armor:
-            armor_props = armor.get('armor_properties', {})
-            base_ac = armor_props.get('armor_class', 10)
-            armor_type = armor_props.get('armor_type', 'light')
-            dex_max = armor_props.get('dex_bonus_max')
-            
-            # Apply Dex modifier based on armor type
-            if armor_type == 'light':
-                # Light armor: full Dex modifier
-                ac = base_ac + dex_mod
-            elif armor_type == 'medium':
-                # Medium armor: Dex modifier capped at +2 (or dex_bonus_max)
-                max_dex = dex_max if dex_max is not None else 2
-                ac = base_ac + min(dex_mod, max_dex)
-            else:  # heavy armor
-                # Heavy armor: no Dex modifier (unless dex_bonus_max specified)
-                if dex_max is not None:
-                    ac = base_ac + min(dex_mod, dex_max)
-                else:
-                    ac = base_ac
-        else:
-            # No armor: 10 + Dex modifier
-            ac = base_ac + dex_mod
+        # Calculate AC with equipped armor using equipment service
+        if armor_item:
+            armor_name = armor_item.get('name')
+            if armor_name:
+                ac = equipment_service.get_armor_ac(armor_name, dex_mod)
         
-        # Add shield AC if equipped
-        shield = None
+        # Add shield AC bonus if equipped
+        shield_item = None
         for slot, item in self.equipped_items.items():
             if slot == EquipmentSlot.OFF_HAND and item.get('item_type') == 'shield':
-                shield = item
+                shield_item = item
                 break
         
-        if shield:
-            shield_ac = shield.get('armor_class', 0)
-            ac += shield_ac
+        if shield_item:
+            shield_name = shield_item.get('name')
+            if shield_name:
+                shield_bonus = equipment_service.get_shield_ac_bonus(shield_name)
+                ac += shield_bonus
         
         return max(ac, 1)  # AC can't be less than 1
     

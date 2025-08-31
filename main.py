@@ -27,7 +27,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFontDatabase, QFont
 
 from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
-from core.game_engine_indexeddb import GameEngineIndexedDB
+from core.game_engine_sqlite import GameEngineSQLite
 from ui.main_window import MainWindow
 
 
@@ -74,29 +74,41 @@ def main():
             logger.warning(f"Font file not found at {font_path}")
             app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
-        # Initialize IndexedDB database
-        logger.info("Initializing IndexedDB database...")
-        init_indexeddb_database()
-        
-        # Check for existing SQLite databases and offer migration
-        sqlite_paths = [
-            Path("characters.db"),
-            Path("tests_demo/archive/talekeeper_sqlite_original.db"),
-            Path("tests_demo/talekeeper.db")
-        ]
-        
-        for sqlite_db_path in sqlite_paths:
-            if sqlite_db_path.exists() and not Path("talekeeper.idb").exists():
-                logger.info(f"Found SQLite database {sqlite_db_path}, attempting migration...")
+        # Check if SQLite database exists, otherwise create it from IndexedDB
+        sqlite_db_path = Path("talekeeper.db")
+        if not sqlite_db_path.exists():
+            logger.info("No SQLite database found - checking for IndexedDB to migrate...")
+            indexeddb_path = Path("talekeeper.idb")
+            if indexeddb_path.exists():
+                logger.info("Found IndexedDB file - running migration to SQLite...")
+                # Run our migration script
+                import subprocess
                 try:
-                    migrate_from_sqlite(str(sqlite_db_path))
-                    logger.info("SQLite to IndexedDB migration completed successfully")
-                    break
-                except Exception as e:
-                    logger.warning(f"Migration from {sqlite_db_path} failed, trying next: {e}")
+                    result = subprocess.run(["python", "migrate_to_sqlite.py"], 
+                                          capture_output=True, text=True, check=True)
+                    logger.info("IndexedDB to SQLite migration completed successfully")
+                except subprocess.CalledProcessError as e:
+                    logger.error(f"Migration failed: {e}")
+                    logger.info("Creating empty SQLite database...")
+                    # Create empty database with schema
+                    import sqlite3
+                    conn = sqlite3.connect("talekeeper.db")
+                    with open("database_schema.sql", "r") as f:
+                        schema_sql = f.read()
+                    conn.executescript(schema_sql)
+                    conn.close()
+            else:
+                logger.info("No existing data found - creating fresh SQLite database...")
+                # Create fresh database with schema
+                import sqlite3
+                conn = sqlite3.connect("talekeeper.db")
+                with open("database_schema.sql", "r") as f:
+                    schema_sql = f.read()
+                conn.executescript(schema_sql)
+                conn.close()
         
-        # Initialize IndexedDB game engine
-        game_engine = GameEngineIndexedDB()
+        # Initialize SQLite game engine
+        game_engine = GameEngineSQLite()
         
         # Create main application window
         window = MainWindow()

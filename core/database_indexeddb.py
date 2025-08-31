@@ -180,6 +180,43 @@ class IndexedDBSimulator:
         
         return len(invalid_keys)
     
+    async def repair_corrupted_characters(self) -> bool:
+        """Repair corrupted characters store where data is stored as string."""
+        if 'characters' not in self.object_stores:
+            return False
+        
+        store_data = self.object_stores['characters']['data']
+        
+        # Check if data is corrupted (stored as string representation)
+        for key, value in list(store_data.items()):
+            if isinstance(value, str) and value.startswith("{'") and value.endswith("'}"):
+                logger.warning(f"Found corrupted character data string: {key}")
+                try:
+                    # Try to parse the string as Python literal
+                    import ast
+                    parsed_data = ast.literal_eval(value)
+                    
+                    # Clear the corrupted store
+                    store_data.clear()
+                    
+                    # Restore proper structure
+                    if isinstance(parsed_data, dict):
+                        for char_id, char_data in parsed_data.items():
+                            if isinstance(char_data, dict):
+                                store_data[char_id] = char_data
+                                logger.info(f"Restored character: {char_data.get('name', char_id)}")
+                    
+                    await self._persist()
+                    logger.info("Database repair completed successfully")
+                    return True
+                    
+                except Exception as e:
+                    logger.error(f"Failed to repair corrupted data: {e}")
+                    return False
+        
+        logger.info("No corruption detected in characters store")
+        return True
+    
     async def _update_indexes(self, store_name: str, key: str, data: Dict):
         """Update indexes when data is added/modified."""
         for index_key, index_info in self.indexes.items():
