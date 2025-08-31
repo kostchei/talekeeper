@@ -1767,6 +1767,9 @@ class ActionPanel(QWidget):
             # Check if stored in character context
             weapon_masteries = self.character_context.get('weapon_masteries', [])
         
+        print(f"[DEBUG] Weapon masteries for {weapon_name}: {weapon_masteries}")
+        print(f"[DEBUG] Checking if {weapon_name} in {weapon_masteries}")
+        
         
         if weapon_name not in weapon_masteries:
             return {}

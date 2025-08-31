@@ -468,6 +468,28 @@ class GameEngineSQLite:
                         feature_data.get('description', ''),
                         json.dumps(feature_data.get('mechanics', {}))
                     ))
+                    
+                    # Extract weapon masteries from Weapon Mastery feature
+                    if feature_name == 'Weapon Mastery' and 'selected_weapons' in feature_data:
+                        selected_weapons = feature_data['selected_weapons']
+                        weapon_mastery_map = {
+                            "Dagger": "Nick", "Handaxe": "Vex", "Javelin": "Slow",
+                            "Light Hammer": "Nick", "Scimitar": "Nick", "Shortsword": "Vex",
+                            "Battleaxe": "Topple", "Flail": "Sap", "Glaive": "Graze",
+                            "Greataxe": "Cleave", "Greatsword": "Graze", "Halberd": "Cleave",
+                            "Lance": "Topple", "Longsword": "Sap", "Maul": "Topple",
+                            "Morningstar": "Sap", "Pike": "Push", "Rapier": "Vex",
+                            "Trident": "Topple", "War Pick": "Sap", "Warhammer": "Push", "Whip": "Slow"
+                        }
+                        
+                        for weapon_name in selected_weapons:
+                            mastery_type = weapon_mastery_map.get(weapon_name)
+                            if mastery_type:
+                                cursor.execute("""
+                                    INSERT INTO character_weapon_masteries (character_id, weapon_name, mastery_type)
+                                    VALUES (?, ?, ?)
+                                """, (character_id, weapon_name, mastery_type.lower()))
+                                print(f"[SQLite] Added weapon mastery: {weapon_name} -> {mastery_type}")
                 
                 # Add starting equipment from class and background
                 self._add_starting_equipment(cursor, character_id, character_data)
