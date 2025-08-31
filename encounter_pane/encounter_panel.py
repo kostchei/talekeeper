@@ -1363,12 +1363,21 @@ class EncounterPanel(QWidget):
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(current_dir)
             
-            # Load backgrounds
-            bg_file = os.path.join(project_root, "data", "backgrounds.json")
-            with open(bg_file, 'r') as f:
-                backgrounds_data = json.load(f)
+            # Load backgrounds from database
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM backgrounds ORDER BY name")
+            backgrounds_data = cursor.fetchall()
+            conn.close()
             
-            for bg_data in backgrounds_data:
+            for bg_row in backgrounds_data:
+                bg_data = {
+                    'name': bg_row['name'],
+                    'description': bg_row['description'],
+                    'feat': bg_row['feat']
+                }
                 item = QListWidgetItem(bg_data['name'])
                 item.setData(Qt.ItemDataRole.UserRole, bg_data)
                 self.background_list.addItem(item)

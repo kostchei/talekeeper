@@ -1026,8 +1026,35 @@ class EquipmentPanel(QWidget):
         self._update_stats_display()
     
     def get_equipped_items(self) -> Dict[str, Any]:
-        """Get currently equipped items."""
-        return {slot.value: item for slot, item in self.equipped_items.items()}
+        """Get currently equipped items with enriched database stats."""
+        from services.equipment import equipment_service
+        
+        enriched_items = {}
+        for slot, item in self.equipped_items.items():
+            if item and item.get('name'):
+                # Get full stats from database
+                db_stats = equipment_service.get_item(item['name'])
+                if db_stats:
+                    # Merge database stats with existing item data
+                    enriched_item = {**item}
+                    enriched_item.update({
+                        'damage_dice': db_stats.get('damage_dice'),
+                        'damage_type': db_stats.get('damage_type'),
+                        'weapon_properties': db_stats.get('weapon_properties'),
+                        'armor_class': db_stats.get('armor_class'),
+                        'armor_type': db_stats.get('armor_type'),
+                    })
+                    enriched_items[slot.value] = enriched_item
+                else:
+                    enriched_items[slot.value] = item
+            elif item:
+                enriched_items[slot.value] = item
+        
+        return enriched_items
+    
+    def get_equipped_items_dict(self) -> Dict[str, Any]:
+        """Get currently equipped items as dictionary - alias for get_equipped_items."""
+        return self.get_equipped_items()
     
     def get_inventory_items(self) -> List[Dict[str, Any]]:
         """Get inventory items."""

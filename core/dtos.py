@@ -16,7 +16,7 @@ AI Agents: DTOs for clean separation between data layer and business logic.
 """
 
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime
 
 
@@ -103,6 +103,10 @@ class CharacterDTO:
     # Save Slot Info
     save_slot_id: Optional[str]
     save_slot_number: Optional[int]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert CharacterDTO to dictionary."""
+        return asdict(self)
 
 
 @dataclass

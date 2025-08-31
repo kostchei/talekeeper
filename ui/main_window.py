@@ -799,7 +799,9 @@ class MainWindow(QMainWindow):
         # Get IDs by looking up the names in the database
         race_id = self._get_race_id_by_name(species_data.get('name', 'Human'))
         class_id = self._get_class_id_by_name(class_data.get('name', 'Fighter'))
-        background_id = self._get_background_id_by_name(background_data.get('name', 'Folk Hero'))
+        if not background_data or not background_data.get('name'):
+            raise ValueError("No background selected - this should never happen in character creation")
+        background_id = self._get_background_id_by_name(background_data['name'])
 
         # BULLETPROOF: Extract all selection data with comprehensive fallbacks
         selected_feats = character_data.get('selected_feats', []) or []
@@ -951,9 +953,9 @@ class MainWindow(QMainWindow):
             for bg in backgrounds:
                 if bg.name == name:
                     return bg.id
-            return backgrounds[0].id if backgrounds else 'folk-hero'  # Fallback to first background or default
-        except:
-            return 'folk-hero'  # Safe fallback
+            raise ValueError(f"Background '{name}' not found in database")
+        except Exception as e:
+            raise ValueError(f"Failed to get background ID for '{name}': {e}")
     
     def _convert_dto_to_display(self, character_dto):
         """Convert CharacterDTO to format expected by character sheet."""

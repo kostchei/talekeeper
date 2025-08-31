@@ -329,13 +329,9 @@ class GameEngineSQLite:
             return []
     
     def get_equipment_item_sync(self, item_name: str) -> Optional[Dict[str, Any]]:
-        """Get equipment item data by name."""
-        # For now, return basic item data
-        return {
-            'name': item_name,
-            'weight_lb': 0,
-            'type': 'Equipment'
-        }
+        """Get equipment item data by name from database."""
+        from services.equipment import equipment_service
+        return equipment_service.get_item(item_name)
     
     def create_new_character_sync(self, character_data: Dict, save_slot: int) -> CharacterDTO:
         """Create a new character and save to database."""
@@ -532,19 +528,16 @@ class GameEngineSQLite:
         return class_names.get(class_id, class_id.title())
     
     def _get_background_name(self, background_id: str) -> str:
-        """Get display name for background."""
-        # Map background IDs to display names
-        background_names = {
-            'Soldier': 'Soldier',
-            'soldier': 'Soldier',
-            'Folk Hero': 'Folk Hero',
-            'folk-hero': 'Folk Hero',
-            'Acolyte': 'Acolyte',
-            'acolyte': 'Acolyte',
-            'Criminal': 'Criminal',
-            'criminal': 'Criminal'
-        }
-        return background_names.get(background_id, background_id.replace('-', ' ').title())
+        """Get display name for background from database."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM backgrounds WHERE name = ? COLLATE NOCASE", (background_id,))
+            row = cursor.fetchone()
+            conn.close()
+            return row['name'] if row else background_id
+        except:
+            return background_id
     
     # Placeholder methods for compatibility with existing UI code
     def get_available_races_sync(self):
@@ -556,8 +549,24 @@ class GameEngineSQLite:
         return []
     
     def get_available_backgrounds_sync(self):
-        """Get available backgrounds - placeholder."""
-        return []
+        """Get available backgrounds from database."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM backgrounds ORDER BY name")
+            backgrounds = []
+            for row in cursor.fetchall():
+                # Create a simple object with name and id attributes
+                class BackgroundInfo:
+                    def __init__(self, name):
+                        self.name = name
+                        self.id = name
+                backgrounds.append(BackgroundInfo(row['name']))
+            conn.close()
+            return backgrounds
+        except Exception as e:
+            print(f"Error loading backgrounds: {e}")
+            return []
     
     def get_class_equipment_choices_sync(self, class_id: str):
         """Get equipment choices for a specific class from the database."""
@@ -647,6 +656,8 @@ class GameEngineSQLite:
         background_id = character_data.get('background_id', '').lower()
         equipment_choices = character_data.get('equipment_choices', {})
         
+        print(f"[SQLite] Adding starting equipment for class '{class_id}' background '{background_id}'")
+        
         # First, add equipment from character creation choices
         if equipment_choices:
             print(f"[SQLite] Adding equipment from character creation choices: {equipment_choices}")
@@ -702,69 +713,65 @@ class GameEngineSQLite:
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
         
-        # Background Equipment
-        if background_id in ['soldier']:
-            equipment_items = [
-                ('Insignia of Rank', 'gear', 1, 0.0, 'Shows your military rank and unit', 0),
-                ('Trophy from Fallen Enemy', 'gear', 1, 1.0, 'A memento from a defeated foe', 0),
-                ('Deck of Cards', 'gear', 1, 0.0, 'For gambling and entertainment', 1),
-                ('Common Clothes', 'gear', 1, 3.0, 'Everyday clothing', 5),
-                ('Belt Pouch', 'gear', 1, 1.0, 'Small pouch for carrying coins', 5),
-                ('Gold Pieces', 'treasure', 10, 0.02, 'Starting money', 1),
-            ]
-            
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+        # Background Equipment (direct database query)
+        print(f"[SQLite] Loading background equipment for '{background_id}'")
         
-        elif background_id in ['acolyte']:
-            equipment_items = [
-                ('Holy Symbol', 'gear', 1, 1.0, 'Symbol of your faith (amulet)', 5),
-                ('Prayer Book', 'gear', 1, 3.0, 'Book of prayers and religious texts', 25),
-                ('Incense', 'gear', 5, 0.0, 'Sticks of incense', 1),
-                ('Vestments', 'gear', 1, 4.0, 'Ceremonial robes', 5),
-                ('Common Clothes', 'gear', 1, 3.0, 'Everyday clothing', 5),
-                ('Belt Pouch', 'gear', 1, 1.0, 'Small pouch for carrying coins', 5),
-                ('Gold Pieces', 'treasure', 15, 0.02, 'Starting money', 1),
-            ]
-            
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+        # Query background directly from database
+        cursor.execute("""
+            SELECT equipment_option_a, equipment_option_a_gold FROM backgrounds WHERE name = ? COLLATE NOCASE
+        """, (background_id,))
         
-        elif background_id in ['criminal']:
-            equipment_items = [
-                ('Crowbar', 'gear', 1, 5.0, 'Iron crowbar, useful for breaking and entering', 2),
-                ('Dark Common Clothes', 'gear', 1, 3.0, 'Dark-colored clothing with hood', 5),
-                ('Belt Pouch', 'gear', 1, 1.0, 'Small pouch for carrying coins', 5),
-                ('Gold Pieces', 'treasure', 15, 0.02, 'Starting money', 1),
-            ]
+        background_row = cursor.fetchone()
+        if background_row:
+            background_equipment = json.loads(background_row['equipment_option_a'])
+            background_gold = background_row['equipment_option_a_gold']
             
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
+            print(f"[SQLite] Adding {len(background_equipment)} items from {background_id} background")
+            
+            # Use equipment service to get proper item data
+            from services.equipment import equipment_service
+            
+            for equipment_name in background_equipment:
+                # Try to get item data from equipment database
+                equipment_data = equipment_service.get_item(equipment_name)
+                
+                if equipment_data:
+                    # Use database equipment data
+                    item_type = equipment_data['item_type']
+                    weight_lb = equipment_data['weight_lb'] 
+                    description = equipment_data['description'] or ''
+                    value_gp = equipment_data['cost_gp']
+                    quantity = 1
+                    
+                    # Handle special quantity items (like arrows_20, rations_5)
+                    if '_' in equipment_name and equipment_name.split('_')[-1].isdigit():
+                        quantity = int(equipment_name.split('_')[-1])
+                        equipment_name = equipment_name.rsplit('_', 1)[0]  # Remove quantity suffix
+                    
+                else:
+                    # Fallback for items not in equipment database
+                    item_type = 'gear'
+                    weight_lb = 1.0
+                    description = f'{equipment_name} (background equipment)'
+                    value_gp = 1
+                    quantity = 1
+                    print(f"[SQLite] Warning: '{equipment_name}' not found in equipment database, using fallback")
+                
                 cursor.execute("""
                     INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
-        
-        elif background_id in ['sage']:
-            equipment_items = [
-                ('Ink and Quill', 'gear', 1, 0.0, 'Bottle of ink with quill pen', 10),
-                ('Small Knife', 'gear', 1, 0.5, 'Letter opener and utility knife', 1),
-                ('Scholar\'s Pack', 'gear', 1, 40.0, 'Includes backpack, book of lore, ink, quill, parchment, bag of sand, small knife', 40),
-                ('Common Clothes', 'gear', 1, 3.0, 'Everyday clothing', 5),
-                ('Belt Pouch', 'gear', 1, 1.0, 'Small pouch for carrying coins', 5),
-                ('Gold Pieces', 'treasure', 10, 0.02, 'Starting money', 1),
-            ]
+                """, (str(uuid.uuid4()), character_id, equipment_name, item_type, quantity, weight_lb, description, value_gp))
+                print(f"[SQLite] Added background item: {equipment_name} (x{quantity})")
             
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
+            # Add starting gold from background
+            if background_gold > 0:
                 cursor.execute("""
                     INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+                """, (str(uuid.uuid4()), character_id, 'Gold Pieces', 'treasure', background_gold, 0.02, 'Starting money from background', 1))
+                print(f"[SQLite] Added {background_gold} gold pieces from {background_id} background")
+        else:
+            print(f"[SQLite] Warning: Background '{background_id}' not found in database")
         
         # Universal starting equipment (everyone gets these)
         universal_equipment = [
@@ -777,43 +784,6 @@ class GameEngineSQLite:
                 INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
-        
-        # Add equipped items to inventory as well (so they show in equipment panel)
-        # This includes the weapon and armor choices made during character creation
-        
-        main_hand = character_data.get('equipment_main_hand')
-        if main_hand:
-            weapon_stats = self._get_weapon_stats(main_hand)
-            cursor.execute("""
-                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(uuid.uuid4()), character_id, main_hand, 'weapon', 1, 
-                  weapon_stats['weight'], weapon_stats['description'], weapon_stats['value']))
-        
-        armor = character_data.get('equipment_armor')
-        if armor:
-            armor_stats = self._get_armor_stats(armor)
-            cursor.execute("""
-                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(uuid.uuid4()), character_id, armor, 'armor', 1,
-                  armor_stats['weight'], armor_stats['description'], armor_stats['value']))
-        
-        shield = character_data.get('equipment_shield')
-        if shield:
-            cursor.execute("""
-                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(uuid.uuid4()), character_id, shield, 'armor', 1, 6.0, '+2 AC when not using two-handed weapon', 10))
-        
-        off_hand = character_data.get('equipment_off_hand')
-        if off_hand and off_hand != shield:  # Don't duplicate if shield is in off-hand
-            weapon_stats = self._get_weapon_stats(off_hand)
-            cursor.execute("""
-                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(uuid.uuid4()), character_id, off_hand, 'weapon', 1,
-                  weapon_stats['weight'], weapon_stats['description'], weapon_stats['value']))
         
         print(f"[SQLite] Added starting equipment for {class_id} {background_id}")
     
