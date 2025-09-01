@@ -294,10 +294,14 @@ class MainWindow(QMainWindow):
     
     def _on_ac_changed(self, new_ac):
         """Handle AC change from equipment panel - update character sheet display."""
-        if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
-            # Update the character sheet display with new AC
-            self.character_sheet.update_ac(new_ac)
-            self.log_panel.log_info(f"AC updated to {new_ac}")
+        # DISABLED: Equipment panel AC calculation doesn't account for Unarmored Defense
+        # The character sheet should use the AC from the database which is correctly calculated
+        # including class features like Barbarian Unarmored Defense
+        pass
+        # if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
+        #     # Update the character sheet display with new AC
+        #     self.character_sheet.update_ac(new_ac)
+        #     self.log_panel.log_info(f"AC updated to {new_ac}")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""

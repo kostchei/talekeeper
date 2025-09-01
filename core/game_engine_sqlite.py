@@ -170,6 +170,24 @@ class GameEngineSQLite:
                 def calc_modifier(score):
                     return (score - 10) // 2
                 
+                # Recalculate AC to ensure it's current (handles existing characters created before AC fix)
+                current_ac = self._calculate_armor_class(
+                    character_id,
+                    character_row['strength'],
+                    character_row['dexterity'], 
+                    character_row['constitution'],
+                    character_row['class_id']
+                )
+                
+                # Update database if AC has changed
+                if current_ac != character_row['armor_class']:
+                    cursor.execute("""
+                        UPDATE characters SET armor_class = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (current_ac, datetime.now().isoformat(), character_id))
+                    conn.commit()
+                    print(f"[SQLite] Updated AC for {character_row['name']}: {character_row['armor_class']} -> {current_ac}")
+                
                 # Parse datetime fields
                 created_at = datetime.fromisoformat(character_row['created_at']) if character_row['created_at'] else datetime.now()
                 updated_at = datetime.fromisoformat(character_row['updated_at']) if character_row['updated_at'] else None
@@ -209,7 +227,7 @@ class GameEngineSQLite:
                     charisma_modifier=calc_modifier(character_row['charisma']),
                     
                     # Combat stats
-                    armor_class=character_row['armor_class'],
+                    armor_class=current_ac,
                     hit_points_max=character_row['hit_points_max'],
                     hit_points_current=character_row['hit_points_current'],
                     hit_points_temporary=character_row['hit_points_temporary'],
@@ -425,7 +443,16 @@ class GameEngineSQLite:
                 print(f"[SQLite] Creating character with equipment:")
                 print(f"  Main hand: {character_data.get('equipment_main_hand')}")
                 print(f"  Armor: {character_data.get('equipment_armor')}")  
-                print(f"  AC: {character_data.get('armor_class')}")
+                
+                # Calculate proper AC based on class features and equipment
+                calculated_ac = self._calculate_armor_class(
+                    character_id, 
+                    character_data['strength'], 
+                    character_data['dexterity'], 
+                    character_data['constitution'], 
+                    character_data['class_id']
+                )
+                print(f"  Calculated AC: {calculated_ac}")
                 
                 # Create character
                 cursor.execute("""
@@ -446,7 +473,7 @@ class GameEngineSQLite:
                     character_data.get('level', 1), character_data.get('experience_points', 0),
                     character_data['strength'], character_data['dexterity'], character_data['constitution'],
                     character_data['intelligence'], character_data['wisdom'], character_data['charisma'],
-                    character_data.get('armor_class', 10), character_data['hit_points_max'],
+                    calculated_ac, character_data['hit_points_max'],
                     character_data['hit_points_current'], character_data.get('hit_points_temporary', 0),
                     character_data['hit_points_max'], character_data['hit_points_current'],
                     character_data.get('hit_dice_max', 1), character_data.get('hit_dice_current', 1),
@@ -1000,3 +1027,53 @@ class GameEngineSQLite:
                 
         except Exception as e:
             print(f"[SQLite] Error updating character HP: {e}")
+    
+    def _calculate_armor_class(self, character_id: str, strength: int, dexterity: int, constitution: int, class_id: str) -> int:
+        """Calculate AC based on equipped armor and class features like Unarmored Defense."""
+        try:
+            # Get equipped armor information
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Check for equipped armor
+            cursor.execute("""
+                SELECT item_name, item_type 
+                FROM character_inventory 
+                WHERE character_id = ? AND equipped = 1 AND item_type = 'armor'
+            """, (character_id,))
+            
+            equipped_armor = cursor.fetchone()
+            conn.close()
+            
+            # Calculate modifiers
+            dex_mod = (dexterity - 10) // 2
+            con_mod = (constitution - 10) // 2
+            
+            # Base AC calculation
+            if equipped_armor:
+                # Character is wearing armor - use armor AC + dex mod (with potential limits)
+                armor_name = equipped_armor[0]
+                armor_stats = self._get_armor_stats(armor_name)
+                base_ac = armor_stats.get('ac', 10)
+                
+                # For now, simple AC calculation (can be enhanced later for armor types)
+                ac = base_ac + dex_mod
+                print(f"[SQLite] AC calculation: {armor_name} AC {base_ac} + Dex {dex_mod} = {ac}")
+                
+            else:
+                # No armor equipped - check for class features
+                if class_id == 'barbarian':
+                    # Barbarian Unarmored Defense: 10 + Dex + Con
+                    ac = 10 + dex_mod + con_mod
+                    print(f"[SQLite] Barbarian Unarmored Defense: 10 + Dex {dex_mod} + Con {con_mod} = {ac}")
+                else:
+                    # Standard unarmored AC: 10 + Dex
+                    ac = 10 + dex_mod
+                    print(f"[SQLite] Standard unarmored AC: 10 + Dex {dex_mod} = {ac}")
+            
+            return ac
+            
+        except Exception as e:
+            print(f"[SQLite] Error calculating AC: {e}")
+            # Fallback to basic calculation
+            return 10 + ((dexterity - 10) // 2)
