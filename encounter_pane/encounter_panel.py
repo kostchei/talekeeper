@@ -1697,7 +1697,10 @@ class EncounterPanel(QWidget):
             selected_feats.append(bg_feat_data.get('name', ''))
         
         # Species bonus feat (only for humans) - use currentText() as fallback
-        if self.species_feat_combo.isVisible() and self.species_feat_combo.currentIndex() > 0:
+        # Check if human based on species data, not visibility (combo might be on different wizard step)
+        species_data = self.character_creation_data.get('species', {})
+        is_human = 'human' in species_data.get('name', '').lower()
+        if is_human and self.species_feat_combo.currentIndex() > 0:
             species_feat_data = self.species_feat_combo.currentData()
             if species_feat_data:
                 selected_feats.append(species_feat_data.get('name', ''))
