@@ -549,14 +549,12 @@ class ActionPanel(QWidget):
         
         # Add cards for current category
         if self.current_category == ActionCategory.COMBAT:
-            # Combat: weapon attacks + other combat actions
+            # Combat: main-hand attacks + other combat actions (off-hand is bonus action only)
             combat_actions = []
             
-            # Add weapon attacks if they exist
+            # Add main-hand weapon attack only (off-hand goes to bonus actions)
             if ActionType.ATTACK_MAIN_HAND in self.action_cards:
                 combat_actions.append(ActionType.ATTACK_MAIN_HAND)
-            if ActionType.ATTACK_OFF_HAND in self.action_cards:
-                combat_actions.append(ActionType.ATTACK_OFF_HAND)
             
             # Add other combat actions
             combat_actions.extend([ActionType.CAST_SPELL, ActionType.USE_ITEM, ActionType.DODGE])
@@ -576,7 +574,11 @@ class ActionPanel(QWidget):
                     card.show()
                     
         elif self.current_category == ActionCategory.BONUS:
-            bonus_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.REST, ActionType.RAGE]
+            bonus_actions = [ActionType.RAGE]
+            
+            # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
+            if ActionType.ATTACK_OFF_HAND in self.action_cards:
+                bonus_actions.append(ActionType.ATTACK_OFF_HAND)
             for action_type in bonus_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -2277,7 +2279,7 @@ class ActionPanel(QWidget):
         
         # Actions that consume your main Action
         main_actions = {
-            ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND, ActionType.ATTACK_UNARMED,
+            ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_UNARMED,
             ActionType.CAST_SPELL, ActionType.DASH, ActionType.DISENGAGE, ActionType.DODGE,
             ActionType.HELP, ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM
         }
@@ -2286,7 +2288,8 @@ class ActionPanel(QWidget):
         bonus_actions = {
             ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
             ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.HEALING_POTION,
-            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE
+            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE,
+            ActionType.ATTACK_OFF_HAND
         }
         
         # Reactions

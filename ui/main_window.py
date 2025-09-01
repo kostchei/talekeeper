@@ -263,6 +263,9 @@ class MainWindow(QMainWindow):
         equipped_items = self.equipment_panel.get_equipped_items_dict()
         self.action_panel.load_character_equipment(equipped_items, character_stats)
         
+        # Update database character equipment slots
+        self._update_character_equipment_slots(equipped_items)
+        
         # Log the equipment change
         item_name = item.get('name', 'Unknown Item')
         self.log_panel.log_info(f"Equipped {item_name} in {slot.value} slot")
@@ -289,6 +292,9 @@ class MainWindow(QMainWindow):
         equipped_items = self.equipment_panel.get_equipped_items_dict()
         self.action_panel.load_character_equipment(equipped_items, character_stats)
         
+        # Update database character equipment slots
+        self._update_character_equipment_slots(equipped_items)
+        
         # Log the equipment change
         self.log_panel.log_info(f"Unequipped item from {slot.value} slot")
     
@@ -302,6 +308,47 @@ class MainWindow(QMainWindow):
         #     # Update the character sheet display with new AC
         #     self.character_sheet.update_ac(new_ac)
         #     self.log_panel.log_info(f"AC updated to {new_ac}")
+    
+    def _update_character_equipment_slots(self, equipped_items: dict):
+        """Update the current character's equipment slots in the database."""
+        if not hasattr(self, 'game_engine') or not hasattr(self.game_engine, 'current_character'):
+            return
+            
+        current_character = getattr(self.game_engine, 'current_character', None)
+        if not current_character:
+            return
+            
+        # Map equipment slots to character fields
+        main_hand_item = equipped_items.get('main_hand')
+        off_hand_item = equipped_items.get('off_hand')
+        armor_item = equipped_items.get('armor')
+        
+        main_hand_name = main_hand_item.get('name') if main_hand_item else None
+        off_hand_name = off_hand_item.get('name') if off_hand_item else None
+        armor_name = armor_item.get('name') if armor_item else None
+        
+        # Update database
+        import sqlite3
+        try:
+            conn = sqlite3.connect(self.game_engine.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE characters 
+                SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?
+                WHERE id = ?
+            """, (main_hand_name, off_hand_name, armor_name, current_character.id))
+            
+            conn.commit()
+            conn.close()
+            
+            # Update the current character DTO as well
+            current_character.equipment_main_hand = main_hand_name
+            current_character.equipment_off_hand = off_hand_name  
+            current_character.equipment_armor = armor_name
+            
+        except Exception as e:
+            print(f"Error updating character equipment slots: {e}")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
