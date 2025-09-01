@@ -1062,15 +1062,23 @@ class EncounterPanel(QWidget):
                             "options": []
                         }
                         for option in choice['options']:
-                            # Build display string from option data
-                            if 'damage' in option:
-                                display = f"{option['name']} ({option['damage']})"
-                            elif 'ac' in option:
-                                display = f"{option['name']} (AC {option['ac']})"
-                            elif 'contents' in option:
-                                display = f"{option['name']}"
+                            # Handle both string and dictionary option formats
+                            if isinstance(option, str):
+                                # Option is already a formatted string
+                                display = option
+                            elif isinstance(option, dict):
+                                # Build display string from option data
+                                if 'damage' in option:
+                                    display = f"{option['name']} ({option['damage']})"
+                                elif 'ac' in option:
+                                    display = f"{option['name']} (AC {option['ac']})"
+                                elif 'contents' in option:
+                                    display = f"{option['name']}"
+                                else:
+                                    display = option.get('name', str(option))
                             else:
-                                display = option['name']
+                                # Fallback for unexpected formats
+                                display = str(option)
                             formatted_choice['options'].append(display)
                         equipment_choices.append(formatted_choice)
                     break
@@ -1740,6 +1748,61 @@ class EncounterPanel(QWidget):
                     'recharge': 1,  # 1 use per short rest
                     'description': 'Take an additional action on your turn',
                     'level_acquired': 2
+                }
+        
+        elif class_data and class_data.get('name') == 'Barbarian':
+            # Rage - Barbarian's signature ability
+            class_features['Rage'] = {
+                'type': 'bonus_action',
+                'usage': 'long_rest',
+                'recharge': 2,  # 2 rages per long rest at level 1
+                'description': '+2 damage on Str-based melee attacks, resistance to bludgeoning/piercing/slashing damage, advantage on Str checks/saves. Lasts for entire combat.',
+                'level_acquired': 1,
+                'mechanics': {
+                    'damage_bonus': 2,
+                    'damage_resistance': ['bludgeoning', 'piercing', 'slashing'],
+                    'advantage_on': ['strength_checks', 'strength_saves'],
+                    'duration': 'combat'
+                }
+            }
+            
+            # Unarmored Defense - Passive AC calculation
+            class_features['Unarmored Defense'] = {
+                'type': 'passive',
+                'usage': 'permanent',
+                'description': 'While not wearing armor, your AC equals 10 + Dex modifier + Con modifier',
+                'level_acquired': 1,
+                'mechanics': {
+                    'ac_calculation': '10 + dex_mod + con_mod',
+                    'requires_no_armor': True
+                }
+            }
+            
+            # Add level 2+ Barbarian features
+            level = self.character_creation_data.get('level', 1)
+            if level >= 2:
+                class_features['Reckless Attack'] = {
+                    'type': 'free_action',
+                    'usage': 'unlimited',
+                    'description': 'When making first attack on turn with Str, gain advantage but attacks against you have advantage until next turn',
+                    'level_acquired': 2,
+                    'mechanics': {
+                        'grants_advantage': True,
+                        'grants_enemies_advantage': True,
+                        'requires_strength_attack': True
+                    }
+                }
+                
+                class_features['Danger Sense'] = {
+                    'type': 'passive',
+                    'usage': 'permanent',
+                    'description': 'Advantage on Dex saving throws against effects you can see (traps, spells, etc.) while not blinded, deafened, or incapacitated',
+                    'level_acquired': 2,
+                    'mechanics': {
+                        'advantage_on': ['dexterity_saves'],
+                        'requires_sight': True,
+                        'excludes_conditions': ['blinded', 'deafened', 'incapacitated']
+                    }
                 }
             
         

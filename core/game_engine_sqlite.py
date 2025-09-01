@@ -621,8 +621,24 @@ class GameEngineSQLite:
         return []
     
     def get_available_classes_sync(self):
-        """Get available classes - placeholder."""
-        return []
+        """Get available classes from database."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name FROM classes ORDER BY name")
+            classes = []
+            for row in cursor.fetchall():
+                # Create a simple class-like object with id and name
+                class ClassData:
+                    def __init__(self, id, name):
+                        self.id = id
+                        self.name = name
+                classes.append(ClassData(row['id'], row['name']))
+            conn.close()
+            return classes
+        except Exception as e:
+            print(f"Error loading classes: {e}")
+            return []
     
     def get_available_backgrounds_sync(self):
         """Get available backgrounds from database."""
@@ -800,6 +816,36 @@ class GameEngineSQLite:
                 ('Dungeoneer\'s Pack', 'gear', 1, 61.0, 'Includes backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 days rations, waterskin, 50 ft hemp rope', 12),
                 ('Explorer\'s Pack', 'gear', 1, 59.0, 'Includes backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days rations, waterskin, 50 ft hemp rope', 10),
             ]
+            
+            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+        
+        # Barbarian Class Starting Equipment
+        elif class_id in ['barbarian']:
+            equipment_items = [
+                # Combat gear - 2 scimitars as standard
+                ('Scimitar', 'weapon', 2, 3.0, 'Finesse, light martial weapon (1d6 slashing)', 25),
+                # Adventuring gear
+                ('Explorer\'s Pack', 'gear', 1, 59.0, 'Includes backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days rations, waterskin, 50 ft hemp rope', 10),
+                ('Javelin', 'weapon', 4, 2.0, 'Simple thrown weapon (range 30/120)', 5),
+            ]
+            
+            # Check equipment choices for greataxe vs scale mail choice
+            # The choice has already been added from equipment_choices above, so we only add if no choice was made
+            barbarian_choice = equipment_choices.get('barbarian_choice', '')
+            if not barbarian_choice:
+                # No choice made, default to greataxe
+                equipment_items.append(('Greataxe', 'weapon', 1, 7.0, 'Heavy, two-handed martial weapon (1d12 slashing)', 30))
+                print(f"[SQLite] Barbarian defaulted to Greataxe (no choice made)")
+            elif 'scale' in barbarian_choice.lower() or 'mail' in barbarian_choice.lower():
+                # Choice was scale mail, already added above
+                print(f"[SQLite] Barbarian chose Scale Mail")
+            else:
+                # Choice was greataxe, already added above
+                print(f"[SQLite] Barbarian chose Greataxe")
             
             for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
                 cursor.execute("""

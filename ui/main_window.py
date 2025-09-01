@@ -970,9 +970,16 @@ class MainWindow(QMainWindow):
             classes = self.game_engine.get_available_classes_sync()
             for cls in classes:
                 if cls.name == name:
-                    return cls.id.lower().replace(' ', '_')  # Convert to database key format
-            return classes[0].id.lower().replace(' ', '_') if classes else 'fighter'  # Fallback to first class or default
-        except:
+                    # Convert class name to lowercase database key format
+                    result = name.lower().replace(' ', '_')
+                    return result
+            # Fallback - use first class name if no match
+            if classes:
+                fallback = classes[0].name.lower().replace(' ', '_')
+                return fallback
+            return 'fighter'  # Ultimate fallback
+        except Exception as e:
+            print(f"[DEBUG] Exception in _get_class_id_by_name: {e}")
             return 'fighter'  # Safe fallback
     
     def _get_background_id_by_name(self, name):
