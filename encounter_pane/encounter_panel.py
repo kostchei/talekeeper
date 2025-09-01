@@ -1876,7 +1876,11 @@ class EncounterPanel(QWidget):
         dump_stats = {
             'fighter': 'intelligence',
             'rogue': 'wisdom',
-            # Add more classes as needed
+            'cleric': 'dexterity',
+            'wizard': 'strength',
+            'warlock': 'strength',
+            'paladin': 'intelligence',
+            'barbarian': 'charisma'
         }
         
         # Default to intelligence for unknown classes
