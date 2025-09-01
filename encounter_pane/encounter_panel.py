@@ -2737,6 +2737,9 @@ class EncounterPanel(QWidget):
             # Update rest timestamp
             character.last_short_rest = datetime.now().isoformat()
             
+            # End rage if active (rage ends on any rest)
+            self._end_rage_on_rest()
+            
             # Recover short rest abilities (instant)
             recovered_abilities = []
             if "Second Wind" in character.ability_uses:
@@ -2762,6 +2765,23 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"Error performing short rest: {e}")
             self._log_monster_action(f"❌ Short rest failed: {e}")
+    
+    def _end_rage_on_rest(self):
+        """End rage when character takes any rest."""
+        try:
+            # Find action panel in main window
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel'):
+                    action_panel = parent.action_panel
+                    if action_panel.character_context.get('raging', False):
+                        action_panel.character_context['raging'] = False
+                        action_panel.character_context['rage_turns_remaining'] = 0
+                        self._log_monster_action("💨 RAGE ends due to rest")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error ending rage on rest: {e}")
     
     def _show_hit_dice_dialog(self, game_engine, character):
         """Show dialog for optional hit dice spending."""

@@ -887,6 +887,9 @@ class ActionPanel(QWidget):
     def _log_player_turn_start(self):
         """Log that it's the player's turn again."""
         try:
+            # Handle rage turn countdown
+            self._update_rage_state()
+            
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -895,6 +898,30 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"Could not log player turn start: {e}")
+    
+    def _update_rage_state(self):
+        """Update rage state at the start of each turn."""
+        if not self.character_context.get('raging', False):
+            return
+            
+        # Decrease rage turns remaining
+        turns_remaining = self.character_context.get('rage_turns_remaining', 0)
+        if turns_remaining <= 1:
+            # Rage ends
+            self.character_context['raging'] = False
+            self.character_context['rage_turns_remaining'] = 0
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("💨 RAGE ends!")
+                        break
+                    parent = parent.parent()
+            except Exception as e:
+                print(f"Error logging rage end: {e}")
+        else:
+            # Continue rage
+            self.character_context['rage_turns_remaining'] = turns_remaining - 1
     
     def _get_encounter_panel(self):
         """Get the encounter panel from the main window."""
@@ -1362,9 +1389,24 @@ class ActionPanel(QWidget):
             print(f"Error rolling monster damage: {e}")
             return 1
     
-    def _apply_damage_to_player(self, damage: int, encounter_panel):
-        """Apply damage to the player character."""
+    def _apply_damage_to_player(self, damage: int, encounter_panel, damage_type: str = "physical"):
+        """Apply damage to the player character, with rage resistance."""
         try:
+            # Check for rage damage resistance (bludgeoning, piercing, slashing)
+            original_damage = damage
+            if self.character_context.get('raging', False) and damage_type in ['physical', 'bludgeoning', 'piercing', 'slashing']:
+                damage = damage // 2  # Half damage (rounded down)
+                if damage < original_damage:
+                    try:
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'log_panel'):
+                                parent.log_panel.log_combat(f"🛡️ RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
+                                break
+                            parent = parent.parent()
+                    except Exception as e:
+                        print(f"Error logging rage resistance: {e}")
+            
             # Get character data from encounter panel or main window
             parent = self.parent()
             while parent:
@@ -2485,7 +2527,11 @@ class ActionPanel(QWidget):
         if not self._has_rage_uses():
             return
         
-        # Apply rage effects (simplified)
+        # Track rage state
+        self.character_context['raging'] = True
+        self.character_context['rage_turns_remaining'] = 10  # Rage lasts 10 rounds
+        
+        # Apply rage effects 
         try:
             parent = self.parent()
             while parent:
