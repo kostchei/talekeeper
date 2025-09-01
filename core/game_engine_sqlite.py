@@ -826,12 +826,20 @@ class GameEngineSQLite:
         # Barbarian Class Starting Equipment
         elif class_id in ['barbarian']:
             equipment_items = [
-                # Combat gear - 2 scimitars as standard
-                ('Scimitar', 'weapon', 2, 3.0, 'Finesse, light martial weapon (1d6 slashing)', 25),
                 # Adventuring gear
                 ('Explorer\'s Pack', 'gear', 1, 59.0, 'Includes backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days rations, waterskin, 50 ft hemp rope', 10),
+                # Javelins stack since they're thrown weapons
                 ('Javelin', 'weapon', 4, 2.0, 'Simple thrown weapon (range 30/120)', 5),
             ]
+            
+            # Add 2 scimitars separately for dual-wielding (not stacked)
+            for i in range(2):
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), character_id, 'Scimitar', 'weapon', 1, 3.0, 'Finesse, light martial weapon (1d6 slashing)', 25, 1 if i == 0 else 0))
+                
+            print(f"[SQLite] Added 2 individual scimitars for dual-wielding (first equipped)")
             
             # Check equipment choices for greataxe vs scale mail choice
             # The choice has already been added from equipment_choices above, so we only add if no choice was made

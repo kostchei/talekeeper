@@ -576,7 +576,7 @@ class ActionPanel(QWidget):
                     card.show()
                     
         elif self.current_category == ActionCategory.BONUS:
-            bonus_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.REST]
+            bonus_actions = [ActionType.SEARCH, ActionType.INVESTIGATE, ActionType.REST, ActionType.RAGE]
             for action_type in bonus_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -2286,7 +2286,7 @@ class ActionPanel(QWidget):
         bonus_actions = {
             ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
             ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.HEALING_POTION,
-            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY
+            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE
         }
         
         # Reactions
