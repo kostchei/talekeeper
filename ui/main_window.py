@@ -425,7 +425,11 @@ class MainWindow(QMainWindow):
             if saved_character.equipment_shield and 'off_hand' not in equipped_items:
                 item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_shield)
                 equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_shield, 'weight_lb': 0}
-            self.equipment_panel.load_equipment_data(equipped_items, [], saved_character.strength, saved_character.dexterity)
+            
+            # Load character inventory
+            inventory_items = self.game_engine.get_character_inventory_sync(saved_character.id)
+            
+            self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character.strength, saved_character.dexterity)
             
             # Load character data into action panel for weapon cards
             character_stats = {
