@@ -701,28 +701,46 @@ class GameEngineSQLite:
     
     def _apply_feat_effects_to_character(self, character_dto: CharacterDTO, feats: List[str]) -> CharacterDTO:
         """Apply mechanical effects of feats to character stats."""
-        modified_dto = character_dto
-        
-        for feat_name in feats:
-            if feat_name == "Tough":
-                # Tough feat: +2 HP per level
-                bonus_hp = 2 * modified_dto.level
-                modified_dto.hit_points_max += bonus_hp
-                modified_dto.hit_points_current += bonus_hp  # Also increase current if at max
-                print(f"[SQLite] Applied Tough feat: +{bonus_hp} HP to {modified_dto.name}")
-            
-            elif feat_name == "Linguist":
-                # Linguist feat: +1 Intelligence
-                modified_dto.intelligence += 1
-                modified_dto.intelligence_modifier = (modified_dto.intelligence - 10) // 2
-                print(f"[SQLite] Applied Linguist feat: +1 INT to {modified_dto.name}")
-            
-            # Note: Fighting style feats like "Great Weapon Fighting" are passive and 
-            # don't modify base stats - they're handled by the action system
-            elif feat_name in ["Great Weapon Fighting", "Dueling", "Archery", "Defense"]:
-                print(f"[SQLite] Fighting style feat '{feat_name}' noted (passive effect)")
-        
-        return modified_dto
+        if not feats:
+            return character_dto
+
+        try:
+            # Convert DTO to dictionary for processing
+            char_dict = {
+                'level': character_dto.level,
+                'hit_points_max': character_dto.hit_points_max,
+                'hit_points_current': character_dto.hit_points_current,
+                'strength': character_dto.strength,
+                'dexterity': character_dto.dexterity,
+                'constitution': character_dto.constitution,
+                'intelligence': character_dto.intelligence,
+                'wisdom': character_dto.wisdom,
+                'charisma': character_dto.charisma,
+                'proficiencies': character_dto.proficiencies or []
+            }
+
+            # Apply all feat effects using shared processor
+            from services.feat_effects import FeatEffectsProcessor
+
+            processor = FeatEffectsProcessor()
+            modified = processor.apply_feat_effects_to_character(char_dict, feats)
+
+            # Update DTO with any modified values, clamping ability scores at 20
+            character_dto.hit_points_max = modified.get('hit_points_max', character_dto.hit_points_max)
+            character_dto.hit_points_current = modified.get('hit_points_current', character_dto.hit_points_current)
+            character_dto.strength = min(20, modified.get('strength', character_dto.strength))
+            character_dto.dexterity = min(20, modified.get('dexterity', character_dto.dexterity))
+            character_dto.constitution = min(20, modified.get('constitution', character_dto.constitution))
+            character_dto.intelligence = min(20, modified.get('intelligence', character_dto.intelligence))
+            character_dto.wisdom = min(20, modified.get('wisdom', character_dto.wisdom))
+            character_dto.charisma = min(20, modified.get('charisma', character_dto.charisma))
+            character_dto.proficiencies = modified.get('proficiencies', character_dto.proficiencies or [])
+
+            return character_dto
+
+        except Exception as e:
+            print(f"[SQLite] Error applying feat effects: {e}")
+            return character_dto
     
     def _add_starting_equipment(self, cursor, character_id: str, character_data: Dict):
         """Add starting equipment based on class and background."""

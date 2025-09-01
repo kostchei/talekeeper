@@ -4,20 +4,23 @@ Test script to verify class features system.
 """
 
 import sqlite3
+import pytest
 from services.level_up import level_up_service
 
 def test_class_features():
     """Test if class features are being assigned correctly."""
     conn = sqlite3.connect("talekeeper.db")
     cursor = conn.cursor()
-    
-    # Get first character
-    cursor.execute("SELECT id, name, level, class_id FROM characters LIMIT 1")
+
+    # Get first character if table exists, otherwise skip
+    try:
+        cursor.execute("SELECT id, name, level, class_id FROM characters LIMIT 1")
+    except sqlite3.OperationalError:
+        pytest.skip("characters table not found")
+
     character = cursor.fetchone()
-    
     if not character:
-        print("No characters found")
-        return
+        pytest.skip("No characters found")
     
     char_id, char_name, char_level, char_class = character
     print(f"Testing character: {char_name} (Level {char_level} {char_class})")
