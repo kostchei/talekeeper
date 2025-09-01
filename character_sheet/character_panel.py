@@ -14,12 +14,13 @@ Designed to match ui_plan.md specifications:
 - Dark theme styling
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QGridLayout, QProgressBar, QCheckBox)
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QParallelAnimationGroup
 from typing import Optional, Dict, Any
 from datetime import datetime
+import sqlite3
 
 
 class CharacterPanel(QWidget):
@@ -1229,7 +1230,18 @@ class CharacterPanel(QWidget):
     def load_character_data(self, character_data: Dict[str, Any]):
         """Load character data into the panel display."""
         self.character_data = character_data
-        
+
+        # Always load feats and class features from database to ensure
+        # only persisted data is displayed
+        char_id = character_data.get('id')
+        if char_id:
+            feats, features = self._load_feats_and_features_from_db(char_id)
+            self.character_data['feats'] = feats
+            self.character_data['features'] = features
+        else:
+            self.character_data['feats'] = []
+            self.character_data['features'] = {}
+
         # Update character name in title
         name = character_data.get('name', 'Unknown Character')
         level = character_data.get('level', 1)
@@ -1317,9 +1329,44 @@ class CharacterPanel(QWidget):
         
         # Update detailed panel data
         self._update_detail_panel()
-        
+
         # Character data loaded successfully
-    
+
+    def _load_feats_and_features_from_db(self, character_id: str):
+        """Fetch feats and class features for a character from SQLite."""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT feat_name FROM character_feats WHERE character_id = ? ORDER BY level_acquired, feat_name",
+                (character_id,)
+            )
+            feats = [row["feat_name"] for row in cursor.fetchall()]
+
+            cursor.execute(
+                """
+                SELECT feature_name, feature_type, usage_type, level_gained, description
+                FROM character_features
+                WHERE character_id = ?
+                """,
+                (character_id,)
+            )
+            features = {}
+            for row in cursor.fetchall():
+                features[row["feature_name"]] = {
+                    "type": row["feature_type"],
+                    "usage": row["usage_type"],
+                    "level_gained": row["level_gained"],
+                    "description": row["description"],
+                }
+
+            conn.close()
+            return feats, features
+        except Exception:
+            return [], {}
+
     def _update_detail_panel(self):
         """Update the detailed panel with character-specific information."""
         if not self.character_data:
