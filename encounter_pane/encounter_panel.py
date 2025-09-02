@@ -2472,6 +2472,7 @@ class EncounterPanel(QWidget):
             
             self.encounter_instances = {}
             self.selected_monster_id = None  # Clear selection
+            self.defeated_monsters = []  # Clear defeated monsters list for treasure tracking
             
             # Create new encounter ID
             self.current_encounter_id = str(uuid4())
@@ -2871,6 +2872,14 @@ class EncounterPanel(QWidget):
         try:
             xp_value = instance.monster_xp
             
+            # Track defeated monsters for treasure calculation
+            if not hasattr(self, 'defeated_monsters'):
+                self.defeated_monsters = []
+            
+            # Get monster CR for treasure calculation
+            monster_cr = getattr(instance, 'monster_cr', 0)  # Default to CR 0 if not found
+            self.defeated_monsters.append((instance.monster_name, monster_cr))
+            
             # Update encounter tracking
             if self.current_encounter:
                 self.current_encounter.add_defeated_monster(xp_value)
@@ -3103,7 +3112,120 @@ class EncounterPanel(QWidget):
     
     def _handle_loot_action(self):
         """Handle clicking the Loot action card."""
-        self._log_monster_action("[SEARCH] Searching for loot... (dummy loot generation not implemented yet)")
+        self._log_monster_action("[SEARCH] Searching for loot...")
+        
+        if not hasattr(self, 'defeated_monsters') or not self.defeated_monsters:
+            self._log_monster_action("No defeated monsters to loot.")
+            return
+            
+        # Calculate individual treasure from each defeated monster
+        total_individual_gp = 0
+        treasure_details = []
+        
+        for monster_name, monster_cr in self.defeated_monsters:
+            individual_gp = self._roll_individual_treasure(monster_cr)
+            if individual_gp > 0:
+                total_individual_gp += individual_gp
+                treasure_details.append(f"{monster_name}: {individual_gp} GP")
+        
+        # Log individual treasure
+        if total_individual_gp > 0:
+            self._log_monster_action(f"💰 Individual Treasure: {total_individual_gp} GP total")
+            for detail in treasure_details:
+                self._log_monster_action(f"  └─ {detail}")
+        
+        # Check for encounter hoard based on difficulty
+        if hasattr(self, 'current_encounter') and self.current_encounter:
+            hoard_treasure = self._check_for_hoard(self.current_encounter.difficulty if hasattr(self.current_encounter, 'difficulty') else 'moderate')
+            if hoard_treasure:
+                self._log_monster_action(f"🏆 {hoard_treasure}")
+        
+        # Add treasure to character's inventory/gold
+        total_treasure = total_individual_gp
+        if total_treasure > 0:
+            self._add_gold_to_character(total_treasure)
+    
+    def _roll_individual_treasure(self, monster_cr) -> int:
+        """Roll individual treasure based on monster CR."""
+        import random
+        
+        # Convert CR to numeric value if it's a string
+        if isinstance(monster_cr, str):
+            try:
+                # Handle fractional CRs like "1/2", "1/4", etc.
+                if '/' in monster_cr:
+                    numerator, denominator = monster_cr.split('/')
+                    cr_numeric = float(numerator) / float(denominator)
+                else:
+                    cr_numeric = float(monster_cr)
+            except (ValueError, TypeError):
+                cr_numeric = 0
+        else:
+            cr_numeric = float(monster_cr) if monster_cr else 0
+        
+        if cr_numeric <= 4:
+            # CR 0-4: 3d6 GP
+            return sum(random.randint(1, 6) for _ in range(3))
+        elif cr_numeric <= 10:
+            # CR 5-10: 2d8 × 10 GP
+            return sum(random.randint(1, 8) for _ in range(2)) * 10
+        elif cr_numeric <= 16:
+            # CR 11-16: 2d10 × 100 GP
+            return sum(random.randint(1, 10) for _ in range(2)) * 100
+        else:
+            # CR 17+: 2d8 × 1000 GP
+            return sum(random.randint(1, 8) for _ in range(2)) * 1000
+    
+    def _check_for_hoard(self, difficulty: str) -> str:
+        """Check for hoard treasure based on encounter difficulty."""
+        import random
+        
+        # Determine hoard chance based on difficulty
+        hoard_chances = {
+            'low': 0.05,      # 5%
+            'moderate': 0.20, # 20%
+            'hard': 0.95,     # 95%
+            'high': 0.95      # Treat 'high' same as 'hard'
+        }
+        
+        chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
+        
+        if random.random() <= chance:
+            # Roll hoard treasure: 2d4 × 100 GP and 1d4-1 magical items
+            hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
+            hoard_gp = hoard_gp_dice * 100
+            
+            magic_items_roll = random.randint(1, 4) - 1
+            magic_items = max(0, magic_items_roll)  # Minimum 0 items
+            
+            magic_text = f" and {magic_items} magical item{'s' if magic_items != 1 else ''}" if magic_items > 0 else " and no magical items"
+            
+            return f"A Hoard with {hoard_gp} GP{magic_text}"
+        
+        return None
+    
+    def _add_gold_to_character(self, gold_amount: int):
+        """Add gold to the current character."""
+        try:
+            # Get game engine from parent for character update
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    
+                    if character:
+                        # For now, just log the gold gain - proper inventory system would go here
+                        self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
+                        
+                        # TODO: Add proper gold tracking to character database when inventory system is implemented
+                        print(f"[TREASURE] Character would gain {gold_amount} GP")
+                        return
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error adding gold to character: {e}")
     
     def _handle_short_rest_action(self):
         """Handle clicking the Short Rest action card."""
