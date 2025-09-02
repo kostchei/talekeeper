@@ -2053,7 +2053,9 @@ class EncounterPanel(QWidget):
             # Fallback to default frame
             default_frame_data = {
                 'monster_type_weights': {'humanoid': 0.7, 'fiend': 0.2, 'aberration': 0.1},
-                'difficulty_distribution': {'low': 0.5, 'moderate': 0.4, 'high': 0.1}
+                'difficulty_distribution': {'low': 0.5, 'moderate': 0.4, 'high': 0.1},
+                'rest_rules': {'short_rest_duration': 1, 'long_rest_duration': 8},
+                'style': 'standard'
             }
             campaign_frame = CampaignFrame(default_frame_data)
             self.encounter_generator = EncounterGenerator(campaign_frame)
@@ -3061,10 +3063,7 @@ class EncounterPanel(QWidget):
             # Save character to database (following DB-first pattern)
             game_engine.update_character_hp_sync(max_hp, max_hp)  # This also saves the character
             
-            # Additional save for other changes
-            import asyncio
-            from core.database_indexeddb import indexeddb
-            asyncio.run(indexeddb.put('characters', character.to_dict(), character.id))
+            # Character changes are saved via SQLite game engine above
             
             # Update character sheet display
             self._update_character_sheet_hp(max_hp, max_hp)

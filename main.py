@@ -26,7 +26,6 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFontDatabase, QFont
 
-from core.database_indexeddb import init_indexeddb_database, migrate_from_sqlite
 from core.game_engine_sqlite import GameEngineSQLite
 from ui.main_window import MainWindow
 

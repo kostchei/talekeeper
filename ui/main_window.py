@@ -483,8 +483,10 @@ class MainWindow(QMainWindow):
             self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character.strength, saved_character.dexterity)
             
             # Load character data into action panel for weapon cards
+            print(f"🐞 MAIN WINDOW DEBUG: saved_character.class_id = {saved_character.class_id}")
             character_stats = {
                 'id': saved_character.id,  # Add character ID for potion checks
+                'class_id': saved_character.class_id,  # Required for rage damage bonus
                 'strength': saved_character.strength,
                 'dexterity': saved_character.dexterity,
                 'constitution': saved_character.constitution,
@@ -494,9 +496,15 @@ class MainWindow(QMainWindow):
                 'armor_class': saved_character.armor_class,
                 'level': saved_character.level,
                 'hit_points_current': saved_character.hit_points_current,
-                'hit_points_max': saved_character.hit_points_max
+                'hit_points_max': saved_character.hit_points_max,
+                'feats': saved_character.feats or [],
+                'weapon_masteries': saved_character.weapon_masteries or []
             }
+            print(f"🐞 CHARACTER_STATS DEBUG: {character_stats}")
             self.action_panel.load_character_equipment(equipped_items, character_stats)
+            
+            # Set full character context for action panel features like rage
+            self.action_panel.set_character_context(character_stats)
 
             # Load class features into action panel
             class_features = saved_character.features or {}
@@ -646,6 +654,7 @@ class MainWindow(QMainWindow):
         # Load character data into action panel for weapon cards
         character_stats = {
             'id': character.id,  # Add character ID for potion checks
+            'class_id': character.class_id,  # Required for rage damage bonus
             'strength': character.strength,
             'dexterity': character.dexterity,
             'constitution': character.constitution,
@@ -655,9 +664,14 @@ class MainWindow(QMainWindow):
             'armor_class': character.armor_class,
             'level': character.level,
             'hit_points_current': character.hit_points_current,
-            'hit_points_max': character.hit_points_max
+            'hit_points_max': character.hit_points_max,
+            'feats': character.feats or [],
+            'weapon_masteries': character.weapon_masteries or []
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)
+        
+        # Set full character context for action panel features like rage
+        self.action_panel.set_character_context(character_stats)
 
         # Load class features into action panel
         class_features = character.features or {}

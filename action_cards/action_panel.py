@@ -23,6 +23,7 @@ from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
+print("DEBUG: action_panel.py module loaded/imported at line 25")
 
 class ActionType(Enum):
     """Types of character actions."""
@@ -461,7 +462,21 @@ class ActionPanel(QWidget):
         
         # Magic weapon damage bonus
         magic_bonus = weapon.get('damage_bonus', 0)
-        total_bonus = ability_mod + magic_bonus
+        
+        # Get feature-based damage bonuses (rage, dueling, etc.)
+        weapon_context = {
+            'weapon_properties': weapon_props,
+            'damage_type': weapon.get('damage_type', 'physical')
+        }
+        feature_bonuses = self._get_all_damage_bonuses(weapon_context)
+        total_feature_bonus = sum(feature_bonuses.values())
+        
+        # Off-hand attacks don't get feature bonuses if the feature is melee-only
+        if is_off_hand and 'Rage' in feature_bonuses:
+            # Rage applies to both main-hand and off-hand attacks
+            pass  # Keep the rage bonus for off-hand
+        
+        total_bonus = ability_mod + magic_bonus + total_feature_bonus
         
         if total_bonus > 0:
             return f"{damage_dice}+{total_bonus} {damage_type}"
@@ -652,8 +667,10 @@ class ActionPanel(QWidget):
                 if self.target_monster_id:
                     full_context['target_monster_id'] = self.target_monster_id
                     
-                    # Trigger the attack flow
-                    self._execute_attack(action_type, full_context)
+                    print(f"ROUTING: About to call _new_execute_attack with action_type={action_type}")
+                    # NEW ATTACK SYSTEM - Build from scratch
+                    self._new_execute_attack(action_type, full_context)
+                    return  # IMPORTANT: Don't fall through to old system
                 else:
                     # No target selected, just emit the signal as before
                     self.action_triggered.emit(action_type, full_context)
@@ -704,10 +721,9 @@ class ActionPanel(QWidget):
     
     def _execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
         """Execute an attack against the targeted monster."""
-        print(f"DEBUG: _execute_attack called with action_type: {action_type}")
+        print(f"DEBUG: _execute_attack called with weapon: {context.get('name', 'weapon')}")
         target_id = context.get('target_monster_id')
         weapon_name = context.get('name', 'weapon')
-        print(f"DEBUG: target_id: {target_id}, weapon_name: {weapon_name}")
         
         # Get encounter panel to access the monster
         encounter_panel = self._get_encounter_panel()
@@ -781,6 +797,295 @@ class ActionPanel(QWidget):
             # Monsters still alive, trigger counter-attacks
             print(f"DEBUG: About to trigger counter-attacks after player attack")
             self._trigger_monster_counter_attacks(encounter_panel)
+    
+    def _new_execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
+        """NEW ATTACK SYSTEM - Built from scratch with proper rage damage."""
+        import random
+        
+        # Log to combat panel instead of print
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"🐞 NEW ATTACK SYSTEM CALLED with {context.get('name', 'weapon')}")
+                parent.log_panel.log_combat(f"🐞 Context: raging={context.get('raging', 'NOT_FOUND')}, class={context.get('class_id', 'NOT_FOUND')}")
+                parent.log_panel.log_combat(f"🐞 Self character_context: {getattr(self, 'character_context', 'NO_CHAR_CONTEXT')}")
+                if hasattr(self, 'character_context') and self.character_context:
+                    parent.log_panel.log_combat(f"🐞 Self context keys: {list(self.character_context.keys())}")
+                break
+            parent = parent.parent()
+        
+        # Get target info
+        target_id = context.get('target_monster_id')
+        weapon_name = context.get('name', 'weapon')
+        
+        # Get encounter panel
+        encounter_panel = self._get_encounter_panel()
+        if not encounter_panel:
+            print("NEW ATTACK: No encounter panel found")
+            return
+            
+        target_monster = encounter_panel.get_selected_monster()
+        if not target_monster:
+            print(f"NEW ATTACK: Target monster {target_id} not found")
+            return
+        
+        # Roll initiative if needed
+        self._check_and_roll_initiative(encounter_panel, context)
+        
+        # === ATTACK ROLL ===
+        d20_roll = random.randint(1, 20)
+        prof_bonus = 2  # TODO: Get from character level
+        
+        # Get ability modifier for attack
+        weapon_props = context.get('weapon_properties', [])
+        if 'finesse' in [p.lower() for p in weapon_props] if weapon_props else False:
+            str_mod = (context.get('strength', 10) - 10) // 2
+            dex_mod = (context.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+            ability_name = "STR" if str_mod >= dex_mod else "DEX"
+        else:
+            ability_mod = (context.get('strength', 10) - 10) // 2
+            ability_name = "STR"
+        
+        attack_total = d20_roll + prof_bonus + ability_mod
+        target_ac = 12  # TODO: Get from monster data
+        
+        hit = attack_total >= target_ac
+        
+        # === LOG ATTACK ===
+        bonus_parts = [f"+{prof_bonus} prof", f"{ability_mod:+d} {ability_name}"]
+        bonus_str = f" ({' '.join(bonus_parts)})"
+        
+        if hit:
+            # === DAMAGE ROLL ===
+            damage_dice = context.get('damage_dice', '1d6')
+            
+            # Roll damage dice
+            if 'd' in damage_dice:
+                num_dice, die_size = damage_dice.split('d')
+                dice_rolls = [random.randint(1, int(die_size)) for _ in range(int(num_dice))]
+                dice_total = sum(dice_rolls)
+            else:
+                dice_rolls = [1]
+                dice_total = 1
+            
+            # === DAMAGE BONUSES ===
+            damage_bonuses = {}
+            
+            # Ability modifier
+            damage_bonuses[ability_name] = ability_mod
+            
+            # RAGE DAMAGE BONUS - BARBARIAN ONLY (SCALES WITH LEVEL)
+            # Check if character is a barbarian and raging
+            try:
+                # Get class_id from context first, then from character_context, then from database
+                class_id = context.get('class_id') or (self.character_context.get('class_id') if hasattr(self, 'character_context') else None)
+                
+                if not class_id:
+                    # Last resort: get from current character in main window
+                    main_window = self.parent()
+                    while main_window and not hasattr(main_window, 'current_character'):
+                        main_window = main_window.parent()
+                    if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
+                        class_id = main_window.current_character.class_id
+                        parent.log_panel.log_combat(f"🐞 Got class_id from main window: {class_id}")
+                
+                is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
+                
+                if (class_id and class_id.lower() == 'barbarian' and is_raging):
+                    is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
+                    if not is_ranged:
+                        # Get actual barbarian level from character context (single-class barbarian)
+                        barbarian_level = self.character_context.get('level', 1)
+                        parent.log_panel.log_combat(f"🐞 Using character level {barbarian_level} for rage damage")
+                        
+                        # Get rage damage bonus from database by looking up barbarian abilities
+                        rage_bonus = self._get_rage_damage_from_database(barbarian_level)
+                        
+                        if rage_bonus > 0:
+                            damage_bonuses['rage'] = rage_bonus
+                            parent.log_panel.log_combat(f"🐞 Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
+                        else:
+                            parent.log_panel.log_combat(f"🐞 No rage damage in database for level {barbarian_level}")
+                else:
+                    parent.log_panel.log_combat(f"🐞 No rage: class={class_id}, raging={is_raging}")
+            except Exception as e:
+                parent.log_panel.log_combat(f"🐞 Rage check error: {e}")
+            
+            # Calculate total damage
+            total_damage = dice_total + sum(damage_bonuses.values())
+            
+            # === LOG DAMAGE ===
+            dice_str = f"[{', '.join(map(str, dice_rolls))}]"
+            bonus_parts = []
+            for bonus_name, bonus_value in damage_bonuses.items():
+                if bonus_value != 0:
+                    bonus_parts.append(f"{bonus_value:+d} {bonus_name}")
+            
+            bonus_str = f" ({' '.join(bonus_parts)})" if bonus_parts else ""
+            
+            # Apply damage to monster
+            encounter_panel._apply_damage_to_monster(target_id, total_damage)
+            
+            # Log to combat panel
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(
+                        f"⚔️ {weapon_name} hits {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                    )
+                    parent.log_panel.log_combat(
+                        f"💥 NEW Damage: {dice_str} = {dice_total}{bonus_str} = {total_damage} damage"
+                    )
+                    break
+                parent = parent.parent()
+        else:
+            # Miss - just log attack
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(
+                        f"⚔️ {weapon_name} misses {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                    )
+                    break
+                parent = parent.parent()
+        
+        # Trigger monster counter-attacks
+        living_monsters_after_attack = encounter_panel.get_living_monsters()
+        print(f"NEW ATTACK: After attack, {len(living_monsters_after_attack)} monsters remaining")
+        
+        if not living_monsters_after_attack:
+            print(f"NEW ATTACK: All monsters defeated, ending combat")
+            self._end_combat(encounter_panel)
+        else:
+            print(f"NEW ATTACK: Triggering monster counter-attacks")
+            self._trigger_monster_counter_attacks(encounter_panel)
+    
+    def _get_barbarian_level_from_database(self) -> int:
+        """Get the character's barbarian class level from database (for multiclass support)."""
+        try:
+            import sqlite3
+            
+            if not hasattr(self, 'character_context'):
+                print(f"DATABASE ERROR: _get_barbarian_level_from_database - No character_context")
+                return 0
+                
+            if not self.character_context.get('id'):
+                print(f"DATABASE ERROR: _get_barbarian_level_from_database - No character ID in context")
+                return 0
+            
+            character_id = self.character_context.get('id')
+            print(f"DATABASE: Querying barbarian level for character {character_id}")
+            
+            # Query character_class_levels table for barbarian levels
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT level FROM character_class_levels 
+                WHERE character_id = ? AND class_id = 'barbarian'
+            """, (character_id,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                barbarian_level = result[0]
+                print(f"DATABASE SUCCESS: Found barbarian level {barbarian_level} for character {character_id}")
+                return barbarian_level
+            else:
+                print(f"DATABASE ERROR: No multiclass data found for character {character_id}")
+                # Check if character is single-class barbarian
+                total_level = self.character_context.get('level', 1)
+                class_id = self.character_context.get('class_id', '').lower()
+                if class_id == 'barbarian':
+                    print(f"DATABASE FALLBACK: Using total level {total_level} for single-class barbarian")
+                    return total_level
+                else:
+                    print(f"DATABASE ERROR: Character is not a barbarian (class: {class_id})")
+                    return 0
+                    
+        except sqlite3.Error as e:
+            print(f"DATABASE ERROR: SQLite error in _get_barbarian_level_from_database: {e}")
+            return 0
+        except Exception as e:
+            print(f"DATABASE ERROR: Unexpected error in _get_barbarian_level_from_database: {e}")
+            return 0
+    
+    def _get_rage_damage_from_database(self, barbarian_level: int) -> int:
+        """Get rage damage bonus from database by looking up barbarian class features."""
+        print(f"DATABASE: _get_rage_damage_from_database called with barbarian_level={barbarian_level}")
+        
+        if barbarian_level <= 0:
+            print(f"DATABASE ERROR: _get_rage_damage_from_database - Invalid barbarian level: {barbarian_level}")
+            return 0
+        
+        try:
+            import sqlite3
+            
+            print(f"DATABASE: Opening connection to query rage damage for level {barbarian_level}")
+            
+            # Query class_features_detailed table for barbarian rage damage
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT damage_bonus, feature_name, level_required FROM class_features_detailed 
+                WHERE class_name = 'Barbarian' 
+                AND feature_name LIKE '%rage%' 
+                AND level_required <= ?
+                AND damage_bonus IS NOT NULL
+                ORDER BY level_required DESC
+                LIMIT 1
+            """
+            print(f"DATABASE: Executing query: {query} with barbarian_level={barbarian_level}")
+            
+            cursor.execute(query, (barbarian_level,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            print(f"DATABASE: Query result: {result}")
+            
+            if result and result[0]:
+                try:
+                    rage_damage = int(result[0])
+                    feature_name = result[1]
+                    level_required = result[2]
+                    
+                    if rage_damage > 0:
+                        print(f"DATABASE SUCCESS: Found rage damage +{rage_damage} from '{feature_name}' (level {level_required}) for barbarian level {barbarian_level}")
+                        return rage_damage
+                    else:
+                        print(f"DATABASE ERROR: Rage damage is 0 from '{feature_name}' (level {level_required})")
+                        return 0
+                        
+                except (ValueError, TypeError) as e:
+                    print(f"DATABASE ERROR: Could not parse damage_bonus '{result[0]}' as integer: {e}")
+                    return 0
+            else:
+                print(f"DATABASE ERROR: No rage damage found in class_features_detailed for barbarian level {barbarian_level}")
+                
+                # Debug: Show what IS in the table
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT feature_name, level_required, damage_bonus FROM class_features_detailed 
+                    WHERE class_name = 'Barbarian' AND feature_name LIKE '%rage%'
+                    ORDER BY level_required
+                """)
+                debug_results = cursor.fetchall()
+                conn.close()
+                
+                print(f"DATABASE DEBUG: Available barbarian rage features: {debug_results}")
+                return 0
+                
+        except sqlite3.Error as e:
+            print(f"DATABASE ERROR: SQLite error in _get_rage_damage_from_database: {e}")
+            return 0
+        except Exception as e:
+            print(f"DATABASE ERROR: Unexpected error in _get_rage_damage_from_database: {e}")
+            return 0
     
     def _trigger_monster_counter_attacks(self, encounter_panel):
         """Trigger counter-attacks from all living monsters after player's action."""
@@ -910,6 +1215,11 @@ class ActionPanel(QWidget):
             # Rage ends
             self.character_context['raging'] = False
             self.character_context['rage_turns_remaining'] = 0
+            
+            # Refresh weapon cards to remove rage damage bonus
+            self._create_weapon_cards()
+            self._update_visible_cards()
+            
             try:
                 parent = self.parent()
                 while parent:
@@ -999,10 +1309,26 @@ class ActionPanel(QWidget):
         # Magic weapon damage bonus
         magic_bonus = context.get('damage_bonus', 0)
         
-        # Check for Dueling fighting style bonus
-        dueling_bonus = self._get_dueling_bonus(context)
+        # Get all feature-based damage bonuses
+        feature_bonuses = self._get_all_damage_bonuses(context)
+        total_feature_bonus = sum(feature_bonuses.values())
         
-        total_modifier = ability_mod + magic_bonus + dueling_bonus
+        # Add rage bonus directly if the feature system isn't working
+        rage_bonus = 0
+        raging = self.character_context.get('raging', False)
+        class_id = self.character_context.get('class_id', '').lower()
+        print(f"RAGE CHECK: raging={raging}, class_id='{class_id}', context_keys={list(self.character_context.keys()) if self.character_context else 'None'}")
+        
+        if (raging and class_id == 'barbarian'):
+            weapon_props = context.get('weapon_properties', [])
+            is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
+            if not is_ranged:
+                rage_bonus = 2
+                feature_bonuses['Rage'] = rage_bonus
+                total_feature_bonus += rage_bonus
+                print(f"RAGE BONUS APPLIED: +{rage_bonus} damage")
+        
+        total_modifier = ability_mod + magic_bonus + total_feature_bonus
         
         # Parse damage dice - just handle basic cases like "1d6", "2d6", etc
         if 'd' in damage_dice:
@@ -1028,7 +1354,6 @@ class ActionPanel(QWidget):
                 dice_total = sum(dice_rolls)
                 total = dice_total + total_modifier
                 
-                # Create breakdown for logging
                 breakdown = {
                     'damage_dice': damage_dice,
                     'num_dice': num_dice,
@@ -1038,7 +1363,8 @@ class ActionPanel(QWidget):
                     'ability_mod': ability_mod,
                     'ability_name': ability_name,
                     'magic_bonus': magic_bonus,
-                    'dueling_bonus': dueling_bonus,
+                    'feature_bonuses': feature_bonuses,
+                    'total_feature_bonus': total_feature_bonus,
                     'total_modifier': total_modifier,
                     'total': max(1, total)  # Minimum 1 damage
                 }
@@ -1047,7 +1373,7 @@ class ActionPanel(QWidget):
                 breakdown = self._apply_sneak_attack(context, breakdown)
                 
                 return max(1, breakdown['total']), breakdown
-            except (ValueError, IndexError):
+            except (ValueError, IndexError) as e:
                 # Fallback if parsing fails
                 fallback_total = max(1, total_modifier) if total_modifier > 0 else 1
                 breakdown = {
@@ -1057,6 +1383,8 @@ class ActionPanel(QWidget):
                     'ability_mod': ability_mod,
                     'ability_name': ability_name,
                     'magic_bonus': magic_bonus,
+                    'feature_bonuses': feature_bonuses,
+                    'total_feature_bonus': total_feature_bonus,
                     'total_modifier': total_modifier,
                     'total': fallback_total,
                     'error': 'Failed to parse damage dice'
@@ -1065,6 +1393,7 @@ class ActionPanel(QWidget):
         else:
             # Static damage value
             static_damage = int(damage_dice) if damage_dice.isdigit() else 1
+            static_total = static_damage + total_feature_bonus
             breakdown = {
                 'damage_dice': damage_dice,
                 'dice_rolls': [],
@@ -1072,10 +1401,12 @@ class ActionPanel(QWidget):
                 'ability_mod': 0,
                 'ability_name': '',
                 'magic_bonus': 0,
-                'total_modifier': 0,
-                'total': static_damage
+                'feature_bonuses': feature_bonuses,
+                'total_feature_bonus': total_feature_bonus,
+                'total_modifier': total_feature_bonus,
+                'total': static_total
             }
-            return static_damage, breakdown
+            return static_total, breakdown
     
     def _log_attack_result(self, hit: bool, weapon: str, target: str, attack_breakdown: dict, target_ac: int, damage_breakdown: dict = None):
         """Log the result of an attack with detailed dice breakdown."""
@@ -1111,7 +1442,15 @@ class ActionPanel(QWidget):
                         dam_ability = damage_breakdown['ability_mod']
                         dam_ability_name = damage_breakdown['ability_name']
                         dam_magic = damage_breakdown['magic_bonus']
-                        dam_dueling = damage_breakdown.get('dueling_bonus', 0)
+                        feature_bonuses = damage_breakdown.get('feature_bonuses', {})
+                        
+                        # Add rage bonus directly to logging if missing
+                        if (self.character_context.get('raging', False) and 
+                            self.character_context.get('class_id', '').lower() == 'barbarian' and
+                            'Rage' not in feature_bonuses):
+                            feature_bonuses['Rage'] = 2
+                            damage_breakdown['total'] += 2
+                            
                         damage_total = damage_breakdown['total']
                         
                         # Format individual dice rolls
@@ -1124,9 +1463,12 @@ class ActionPanel(QWidget):
                             if dam_magic != 0:
                                 sign = "+" if dam_magic >= 0 else ""
                                 damage_parts.append(f"{sign}{dam_magic} magic")
-                            if dam_dueling != 0:
-                                sign = "+" if dam_dueling >= 0 else ""
-                                damage_parts.append(f"{sign}{dam_dueling} dueling")
+                            
+                            # Add all feature bonuses dynamically
+                            for feature_name, bonus in feature_bonuses.items():
+                                if bonus != 0:
+                                    sign = "+" if bonus >= 0 else ""
+                                    damage_parts.append(f"{sign}{bonus} {feature_name.lower()}")
                             
                             damage_bonus_str = f" ({' '.join(damage_parts)})" if damage_parts else ""
                             
@@ -1394,18 +1736,11 @@ class ActionPanel(QWidget):
         try:
             # Check for rage damage resistance (bludgeoning, piercing, slashing)
             original_damage = damage
+            rage_resistance_applied = False
             if self.character_context.get('raging', False) and damage_type in ['physical', 'bludgeoning', 'piercing', 'slashing']:
                 damage = damage // 2  # Half damage (rounded down)
                 if damage < original_damage:
-                    try:
-                        parent = self.parent()
-                        while parent:
-                            if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"🛡️ RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
-                                break
-                            parent = parent.parent()
-                    except Exception as e:
-                        print(f"Error logging rage resistance: {e}")
+                    rage_resistance_applied = True
             
             # Get character data from encounter panel or main window
             parent = self.parent()
@@ -1420,6 +1755,18 @@ class ActionPanel(QWidget):
                     
                     # Update character sheet display
                     parent.character_sheet.load_character_data(character_data)
+                    
+                    # Log rage resistance after damage is applied
+                    if rage_resistance_applied:
+                        try:
+                            log_parent = self.parent()
+                            while log_parent:
+                                if hasattr(log_parent, 'log_panel'):
+                                    log_parent.log_panel.log_combat(f"    🛡️ RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
+                                    break
+                                log_parent = log_parent.parent()
+                        except Exception as e:
+                            print(f"Error logging rage resistance: {e}")
                     
                     return new_hp
                 parent = parent.parent()
@@ -1674,6 +2021,8 @@ class ActionPanel(QWidget):
     
     def set_character_context(self, context: Dict[str, Any]):
         """Set the character context for action availability."""
+        print(f"ACTION PANEL: Setting character context with keys: {list(context.keys())}")
+        print(f"ACTION PANEL: class_id = {context.get('class_id', 'NOT_FOUND')}")
         self.character_context = context
         self._update_card_availability()
         # Update potion card to show count
@@ -1821,15 +2170,59 @@ class ActionPanel(QWidget):
         if off_hand_item or shield_item:
             return 0
         
-        # Log the Dueling bonus application
-        parent = self.parent()
-        while parent:
-            if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"⚔️ Dueling: +2 damage (one-handed weapon with free off-hand)")
-                break
-            parent = parent.parent()
+        # Dueling bonus is now logged in damage breakdown automatically
         
         return 2
+    
+    def _get_rage_damage_bonus(self, context: Dict[str, Any]) -> int:
+        """Check if Barbarian gets rage damage bonus (+2 to melee weapon attacks)."""
+        if not self.character_context:
+            return 0
+        
+        # Only applies if raging
+        if not self.character_context.get('raging', False):
+            return 0
+        
+        # Only applies to melee weapon attacks (not ranged or spells)
+        weapon_props = context.get('weapon_properties', [])
+        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
+        
+        if is_ranged:
+            return 0
+        
+        # Check if character is a Barbarian
+        class_id = self.character_context.get('class_id', '').lower()
+        if class_id != 'barbarian':
+            return 0
+        
+        return 2  # +2 damage from rage
+    
+    def _get_all_damage_bonuses(self, context: Dict[str, Any]) -> dict:
+        """Get all feature-based damage bonuses and their values."""
+        bonuses = {}
+        
+        # Dueling Fighting Style
+        dueling_bonus = self._get_dueling_bonus(context)
+        if dueling_bonus > 0:
+            bonuses['Dueling'] = dueling_bonus
+        
+        # Barbarian Rage
+        rage_bonus = self._get_rage_damage_bonus(context)
+        if rage_bonus > 0:
+            bonuses['Rage'] = rage_bonus
+        
+        # Great Weapon Master (if implemented later)
+        # gwm_bonus = self._get_great_weapon_master_bonus(context)
+        # if gwm_bonus > 0:
+        #     bonuses['Great Weapon Master'] = gwm_bonus
+        
+        # Sharpshooter (if implemented later)
+        # sharpshooter_bonus = self._get_sharpshooter_bonus(context) 
+        # if sharpshooter_bonus > 0:
+        #     bonuses['Sharpshooter'] = sharpshooter_bonus
+        
+        return bonuses
     
     def _use_healing_potion(self, context: Dict[str, Any]):
         """Use a healing potion to restore hit points."""
@@ -2530,6 +2923,10 @@ class ActionPanel(QWidget):
         # Track rage state
         self.character_context['raging'] = True
         self.character_context['rage_turns_remaining'] = 10  # Rage lasts 10 rounds
+        
+        # Refresh weapon cards to show rage damage bonus
+        self._create_weapon_cards()
+        self._update_visible_cards()
         
         # Apply rage effects 
         try:
