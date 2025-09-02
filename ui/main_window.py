@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
         self.action_panel.raise_()
         
         # Theme toggle button (top right, near log panel)
-        self.theme_toggle_button = QPushButton("🌙 Dark", self)  # Start with moon for switching to dark
+        self.theme_toggle_button = QPushButton("[MOON] Dark", self)  # Start with moon for switching to dark
         self.theme_toggle_button.setGeometry(96 + 648 + 648 - 100, 20, 90, 30)  # Top right, above log panel
         self.theme_toggle_button.clicked.connect(self._toggle_theme)
         self.theme_toggle_button.setToolTip("Toggle between Light and Dark themes (Ctrl+T)")
@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
             # Update toggle button text/icon based on current theme
             if hasattr(self, 'theme_toggle_button'):
                 if theme_name == 'light':
-                    self.theme_toggle_button.setText("🌙 Dark")  # Moon icon to switch to dark
+                    self.theme_toggle_button.setText("[MOON] Dark")  # Moon icon to switch to dark
                 else:
                     self.theme_toggle_button.setText("☀️ Light")  # Sun icon to switch to light
                     
@@ -410,7 +410,7 @@ class MainWindow(QMainWindow):
             "What do you do?"
         )
         
-        self.log_panel.log_info("📝 This is demo data - Create your own character to get started!")
+        self.log_panel.log_info("[NOTE] This is demo data - Create your own character to get started!")
         self.log_panel.log_system("Use 'Create Character' button to make your own adventurer")
         self.log_panel.log_info("Demo scenario: You explore ancient ruins...")
     
@@ -483,7 +483,7 @@ class MainWindow(QMainWindow):
             self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character.strength, saved_character.dexterity)
             
             # Load character data into action panel for weapon cards
-            print(f"🐞 MAIN WINDOW DEBUG: saved_character.class_id = {saved_character.class_id}")
+            print(f"[DEBUG] MAIN WINDOW DEBUG: saved_character.class_id = {saved_character.class_id}")
             character_stats = {
                 'id': saved_character.id,  # Add character ID for potion checks
                 'class_id': saved_character.class_id,  # Required for rage damage bonus
@@ -500,7 +500,7 @@ class MainWindow(QMainWindow):
                 'feats': saved_character.feats or [],
                 'weapon_masteries': saved_character.weapon_masteries or []
             }
-            print(f"🐞 CHARACTER_STATS DEBUG: {character_stats}")
+            print(f"[DEBUG] CHARACTER_STATS DEBUG: {character_stats}")
             self.action_panel.load_character_equipment(equipped_items, character_stats)
             
             # Set full character context for action panel features like rage

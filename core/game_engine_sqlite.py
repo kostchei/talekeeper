@@ -720,25 +720,54 @@ class GameEngineSQLite:
             print("[SQLite] No equipment choices provided")
             return
         
-        # Process all equipment choices dynamically
+        # Initialize inventory if not exists
+        if 'inventory' not in character_data:
+            character_data['inventory'] = []
+        
+        # Process all equipment choices - frontend now sends individual items
         for choice_key, item_name in equipment_choices.items():
             print(f"[SQLite] Processing choice '{choice_key}': {item_name}")
             
-            # Handle weapon choices
-            if 'weapon' in choice_key.lower() or choice_key in ['Martial Weapon', 'Primary Weapon', 'Simple Weapon']:
-                # Check if it's a secondary weapon
-                if 'secondary' in choice_key.lower():
-                    character_data['equipment_off_hand'] = item_name
-                    print(f"[SQLite] Applied secondary weapon: {item_name}")
-                else:
-                    character_data['equipment_main_hand'] = item_name
-                    print(f"[SQLite] Applied primary weapon: {item_name}")
+            # Get item data from equipment JSON to determine type
+            item_data = self.get_equipment_item_sync(item_name)
+            if not item_data:
+                print(f"[SQLite] Warning: Item '{item_name}' not found in equipment database")
+                continue
             
-            # Handle armor choices
-            elif 'armor' in choice_key.lower() or choice_key == 'Armor':
+            item_type = item_data.get('item_type', '')
+            
+            # Add to inventory first
+            character_data['inventory'].append({
+                'name': item_name,
+                'quantity': 1,
+                'weight': item_data.get('weight_lb', 0)
+            })
+            print(f"[SQLite] Added '{item_name}' to inventory")
+            
+            # Auto-equip based on item type
+            if item_type == 'weapon':
+                if not character_data.get('equipment_main_hand'):
+                    character_data['equipment_main_hand'] = item_name
+                    print(f"[SQLite] Equipped '{item_name}' as main hand weapon")
+                elif not character_data.get('equipment_off_hand') and 'light' in item_data.get('weapon_properties', []):
+                    character_data['equipment_off_hand'] = item_name
+                    print(f"[SQLite] Equipped '{item_name}' as off hand weapon")
+                    
+            elif item_type == 'armor':
                 character_data['equipment_armor'] = item_name
-                print(f"[SQLite] Applied armor choice: {item_name}")
-                # AC will be calculated when the armor is equipped in the UI
+                print(f"[SQLite] Equipped '{item_name}' as armor")
+                
+            elif item_type == 'shield':
+                character_data['equipment_off_hand'] = item_name
+                print(f"[SQLite] Equipped '{item_name}' as shield")
+                
+            elif item_type in ['spellcasting_focus', 'spellbook']:
+                # Add to inventory but don't auto-equip focuses/spellbooks
+                print(f"[SQLite] Added '{item_name}' ({item_type}) to inventory")
+                
+            elif item_type == 'helmet':
+                character_data['equipment_helmet'] = item_name
+                print(f"[SQLite] Equipped '{item_name}' as helmet")
     
     def _apply_feat_effects_to_character(self, character_dto: CharacterDTO, feats: List[str]) -> CharacterDTO:
         """Apply mechanical effects of feats to character stats."""

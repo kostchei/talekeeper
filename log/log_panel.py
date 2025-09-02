@@ -443,9 +443,9 @@ class LogPanel(QWidget):
         level_prefix = {
             LogLevel.INFO: "",
             LogLevel.WARNING: "⚠ ",
-            LogLevel.ERROR: "❌ ",
+            LogLevel.ERROR: "[FAIL] ",
             LogLevel.COMBAT: "⚔ ",
-            LogLevel.DICE: "🎲 ",
+            LogLevel.DICE: "[DICE] ",
             LogLevel.SYSTEM: "⚙ "
         }
         
@@ -539,9 +539,9 @@ class LogPanel(QWidget):
         level_prefix = {
             LogLevel.INFO: "",
             LogLevel.WARNING: "⚠ ",
-            LogLevel.ERROR: "❌ ",
+            LogLevel.ERROR: "[FAIL] ",
             LogLevel.COMBAT: "⚔ ",
-            LogLevel.DICE: "🎲 ",
+            LogLevel.DICE: "[DICE] ",
             LogLevel.SYSTEM: "⚙ "
         }
         

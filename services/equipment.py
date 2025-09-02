@@ -20,13 +20,21 @@ class EquipmentService:
             conn.row_factory = sqlite3.Row  # Enable dict-like access
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM equipment WHERE name = ?", (item_name,))
+            # Case-insensitive search
+            cursor.execute("SELECT * FROM equipment WHERE LOWER(name) = LOWER(?)", (item_name,))
             row = cursor.fetchone()
             conn.close()
             
             if row:
-                # Convert to dict - all columns are already separate, no JSON parsing needed
-                return dict(row)
+                # Convert to dict and parse JSON fields
+                item_dict = dict(row)
+                
+                # Parse JSON fields
+                if item_dict.get('weapon_properties'):
+                    item_dict['weapon_properties'] = json.loads(item_dict['weapon_properties'])
+                
+                return item_dict
+            
             return None
             
         except Exception as e:
@@ -110,7 +118,15 @@ class EquipmentService:
             rows = cursor.fetchall()
             conn.close()
             
-            return [dict(row) for row in rows]
+            # Convert to dict and parse JSON fields
+            items = []
+            for row in rows:
+                item_dict = dict(row)
+                if item_dict.get('weapon_properties'):
+                    item_dict['weapon_properties'] = json.loads(item_dict['weapon_properties'])
+                items.append(item_dict)
+            
+            return items
             
         except Exception as e:
             print(f"Error getting items of type '{item_type}': {e}")

@@ -250,7 +250,7 @@
   },
   {
     "name": "Greatsword",
-    "description": "A large, two-handed sword.",
+    "description": "A massive two-handed sword for powerful strikes. Proficiency allows you to add your proficiency bonus to attack rolls.",
     "item_type": "weapon",
     "weapon_category": "martial_melee",
     "rarity": "common",
@@ -258,8 +258,9 @@
     "weight_lb": 6.0,
     "damage_dice": "2d6",
     "damage_type": "slashing",
-    "weapon_properties": ["heavy", "two-handed"],
-    "weapon_mastery": "Graze"
+    "weapon_properties": ["heavy", "two-handed", "graze"],
+    "weapon_mastery": "Graze",
+    "mastery_property": "Graze: If your attack roll misses, you can deal damage equal to your ability modifier (same damage type)."
   },
   {
     "name": "Halberd",
@@ -563,18 +564,6 @@
     "armor_class": 2
   },
   {
-    "name": "Greatsword",
-    "description": "A massive two-handed sword for powerful strikes. Proficiency allows you to add your proficiency bonus to attack rolls.",
-    "item_type": "weapon",
-    "rarity": "common",
-    "cost_gp": 50,
-    "weight_lb": 6.0,
-    "damage_dice": "2d6",
-    "damage_type": "slashing",
-    "weapon_properties": ["heavy", "two-handed", "graze"],
-    "mastery_property": "Graze: If your attack roll misses, you can deal damage equal to your ability modifier (same damage type)."
-  },
-  {
     "name": "Studded Leather",
     "description": "Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes.",
     "item_type": "armor",
@@ -734,6 +723,48 @@
       "container": true,
       "sellable": true,
       "description": "Leftover from consumed potions"
+    }
+  },
+  {
+    "name": "Arcane Focus",
+    "description": "A spellcasting focus used by wizards, sorcerers, and warlocks.",
+    "item_type": "spellcasting_focus",
+    "rarity": "common",
+    "cost_gp": 20,
+    "weight_lb": 1.0
+  },
+  {
+    "name": "Holy Symbol",
+    "description": "A divine spellcasting focus used by clerics and paladins.",
+    "item_type": "spellcasting_focus",
+    "rarity": "common",
+    "cost_gp": 5,
+    "weight_lb": 1.0
+  },
+  {
+    "name": "Spellbook",
+    "description": "A book containing spells and magical formulae.",
+    "item_type": "spellbook",
+    "rarity": "common",
+    "cost_gp": 50,
+    "weight_lb": 3.0,
+    "misc_properties": {
+      "spells_capacity": 100,
+      "description": "Can hold up to 100 spells"
+    }
+  },
+  {
+    "name": "Dread Helm",
+    "description": "A fearsome helmet that strikes terror into enemies.",
+    "item_type": "helmet",
+    "armor_type": "light",
+    "armor_class": 0,
+    "rarity": "uncommon",
+    "cost_gp": 25,
+    "weight_lb": 2.0,
+    "misc_properties": {
+      "intimidation_bonus": 1,
+      "description": "Grants advantage on Intimidation checks"
     }
   }
 ]

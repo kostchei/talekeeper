@@ -2171,19 +2171,27 @@ class EncounterPanel(QWidget):
             'saving_throw_proficiencies': saving_throw_profs
         }
 
-        # Record selected equipment options - use group name as key
+        # Record selected equipment options - break down combination strings
         if hasattr(self, 'equipment_button_groups'):
             for choice_key, button_group in self.equipment_button_groups.items():
                 checked = button_group.checkedButton()
                 if checked:
                     # Extract just the item name (before parentheses)
-                    item_name = checked.text().split(' (', 1)[0]
+                    selected_text = checked.text().split(' (', 1)[0]
+                    
+                    # Break down combination strings (e.g., "Longsword + Shield")
+                    individual_items = [item.strip() for item in selected_text.split(' + ')]
+                    
                     # Use the group name from our stored data
-                    if hasattr(button_group, 'choice_group'):
-                        final_character['equipment_choices'][button_group.choice_group] = item_name
+                    group_name = button_group.choice_group if hasattr(button_group, 'choice_group') else choice_key
+                    
+                    # If single item, store directly; if multiple items, store as list
+                    if len(individual_items) == 1:
+                        final_character['equipment_choices'][group_name] = individual_items[0]
                     else:
-                        # Fallback to choice name
-                        final_character['equipment_choices'][choice_key] = item_name
+                        # For multiple items, store each with a suffix
+                        for i, item in enumerate(individual_items):
+                            final_character['equipment_choices'][f"{group_name}_item_{i+1}"] = item
 
         # Emit the completed character
         self.character_created.emit(final_character)
@@ -2324,10 +2332,10 @@ class EncounterPanel(QWidget):
             # Update the rolled score display - show if it beats point buy
             point_buy_value = self.ability_spinboxes[ability].value()
             if total > point_buy_value:
-                roll_text = f"{total}* (4d6: {','.join(map(str, rolls))} → {','.join(map(str, rolls[:3]))})"  # * indicates it's being used
+                roll_text = f"{total}* (4d6: {','.join(map(str, rolls))} -> {','.join(map(str, rolls[:3]))})"  # * indicates it's being used
                 self.rolled_score_labels[ability].setStyleSheet("color: #50c878; font-weight: bold;")  # Green for winning
             else:
-                roll_text = f"{total} (4d6: {','.join(map(str, rolls))} → {','.join(map(str, rolls[:3]))})"
+                roll_text = f"{total} (4d6: {','.join(map(str, rolls))} -> {','.join(map(str, rolls[:3]))})"
                 self.rolled_score_labels[ability].setStyleSheet("color: #ff9500; font-weight: bold;")  # Orange for not used
             
             self.rolled_score_labels[ability].setText(roll_text)
@@ -3014,7 +3022,7 @@ class EncounterPanel(QWidget):
         layout.setContentsMargins(1, 1, 1, 1)
         
         # Title
-        title = QLabel("🛡️ Short Rest")
+        title = QLabel("[SHIELD] Short Rest")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight: bold; color: #44ddff; font-size: 14px;")
         layout.addWidget(title)
@@ -3034,7 +3042,7 @@ class EncounterPanel(QWidget):
     
     def _handle_loot_action(self):
         """Handle clicking the Loot action card."""
-        self._log_monster_action("🔍 Searching for loot... (dummy loot generation not implemented yet)")
+        self._log_monster_action("[SEARCH] Searching for loot... (dummy loot generation not implemented yet)")
     
     def _handle_short_rest_action(self):
         """Handle clicking the Short Rest action card."""
@@ -3056,7 +3064,7 @@ class EncounterPanel(QWidget):
                 parent = parent.parent()
             
             if not character:
-                self._log_monster_action("❌ No character found for short rest!")
+                self._log_monster_action("[FAIL] No character found for short rest!")
                 return
             
             # Update rest timestamp
@@ -3085,11 +3093,11 @@ class EncounterPanel(QWidget):
             # Save character (save the whole game state)
             game_engine.save_game_sync()
             
-            self._log_monster_action("✅ Short rest completed!")
+            self._log_monster_action("[OK] Short rest completed!")
             
         except Exception as e:
             print(f"Error performing short rest: {e}")
-            self._log_monster_action(f"❌ Short rest failed: {e}")
+            self._log_monster_action(f"[FAIL] Short rest failed: {e}")
     
     def _end_rage_on_rest(self):
         """End rage when character takes any rest."""
@@ -3153,7 +3161,7 @@ class EncounterPanel(QWidget):
         # Hit dice info
         hit_dice_available = character.hit_dice_current
         if hit_dice_available <= 0:
-            no_dice_label = QLabel("❌ No hit dice available!")
+            no_dice_label = QLabel("[FAIL] No hit dice available!")
             no_dice_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
             layout.addWidget(no_dice_label)
         else:
@@ -3187,7 +3195,7 @@ class EncounterPanel(QWidget):
             # Try class name first, then class_id, then default
             hit_die = hit_die_map.get(class_name, hit_die_map.get(class_id, hit_die_map.get(class_id.lower(), 8)))
             
-            self._log_monster_action(f"🎯 DEBUG: class_id='{class_id}', class_name='{class_name}', hit_die=d{hit_die}")
+            self._log_monster_action(f"[TARGET] DEBUG: class_id='{class_id}', class_name='{class_name}', hit_die=d{hit_die}")
             con_mod = character.constitution_modifier
             
             dice_group = QGroupBox(f"Available Hit Dice: {hit_dice_available} × d{hit_die}")
@@ -3207,7 +3215,7 @@ class EncounterPanel(QWidget):
             dice_layout.addLayout(spend_layout)
             
             # Roll button
-            roll_btn = QPushButton("🎲 Roll Hit Dice")
+            roll_btn = QPushButton("[DICE] Roll Hit Dice")
             roll_btn.clicked.connect(lambda: self._roll_hit_dice(dialog, game_engine, character, 
                                                                dice_spinner.value(), hit_die, status_label))
             dice_layout.addWidget(roll_btn)
@@ -3228,7 +3236,7 @@ class EncounterPanel(QWidget):
             return
             
         if character.hit_dice_current < num_dice:
-            self._log_monster_action("❌ Not enough hit dice available!")
+            self._log_monster_action("[FAIL] Not enough hit dice available!")
             return
         
         from services.dice import DiceRoller
@@ -3262,11 +3270,11 @@ class EncounterPanel(QWidget):
         # Log the results
         roll_details = " + ".join(rolls)
         if actual_healing < total_healing:
-            self._log_monster_action(f"🎲 Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+            self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
         else:
-            self._log_monster_action(f"🎲 Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing})")
+            self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing})")
         
         # Update status label
         status_label.setText(f"Current HP: {new_hp}/{max_hp}")
@@ -3310,7 +3318,7 @@ class EncounterPanel(QWidget):
                 parent = parent.parent()
             
             if not character:
-                self._log_monster_action("❌ No character found for long rest!")
+                self._log_monster_action("[FAIL] No character found for long rest!")
                 return
             
             # Confirm long rest (since it's a significant action)
@@ -3325,7 +3333,7 @@ class EncounterPanel(QWidget):
             if reply != QMessageBox.StandardButton.Yes:
                 return
             
-            self._log_monster_action("🌙 Beginning long rest...")
+            self._log_monster_action("[MOON] Beginning long rest...")
             
             # === D&D 5e LONG REST BENEFITS ===
             
@@ -3334,7 +3342,7 @@ class EncounterPanel(QWidget):
             max_hp = character.hit_points_max
             character.hit_points_current = max_hp
             character.current_hit_points = max_hp  # Alternative field
-            self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} → {max_hp}/{max_hp}")
+            self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
             
             # 2. Restore all spent hit dice (up to half maximum, minimum 1)
             character_level = character.level
@@ -3345,7 +3353,7 @@ class EncounterPanel(QWidget):
             
             if new_hit_dice > current_hit_dice:
                 character.hit_dice_current = new_hit_dice
-                self._log_monster_action(f"🎲 Hit Dice restored: {current_hit_dice} → {new_hit_dice} (gained {new_hit_dice - current_hit_dice})")
+                self._log_monster_action(f"[DICE] Hit Dice restored: {current_hit_dice} -> {new_hit_dice} (gained {new_hit_dice - current_hit_dice})")
             
             # 3. Restore all spell slots
             if hasattr(character, 'spell_slots_current') and character.spell_slots_current:
@@ -3354,7 +3362,7 @@ class EncounterPanel(QWidget):
                     max_slots = character.spell_slots_max.get(level, 0)
                     if current_slots < max_slots:
                         character.spell_slots_current[level] = max_slots
-                        spell_slots_restored.append(f"Level {level}: {current_slots} → {max_slots}")
+                        spell_slots_restored.append(f"Level {level}: {current_slots} -> {max_slots}")
                 
                 if spell_slots_restored:
                     self._log_monster_action(f"✨ Spell slots restored: {', '.join(spell_slots_restored)}")
@@ -3371,7 +3379,7 @@ class EncounterPanel(QWidget):
                         abilities_restored.append(ability)
             
             if abilities_restored:
-                self._log_monster_action(f"⚡ Abilities restored: {', '.join(abilities_restored)}")
+                self._log_monster_action(f"[LIGHTNING] Abilities restored: {', '.join(abilities_restored)}")
             
             # 5. Reset action economy for new day (if in combat)
             if hasattr(self, 'current_combat_session') and self.current_combat_session:
@@ -3398,7 +3406,7 @@ class EncounterPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_info(f"🌙 {character.name} completed a long rest - all resources restored")
+                        parent.log_panel.log_info(f"[MOON] {character.name} completed a long rest - all resources restored")
                         break
                     parent = parent.parent()
             except:
@@ -3406,4 +3414,4 @@ class EncounterPanel(QWidget):
             
         except Exception as e:
             print(f"Error performing long rest: {e}")
-            self._log_monster_action(f"❌ Long rest failed: {e}")
+            self._log_monster_action(f"[FAIL] Long rest failed: {e}")

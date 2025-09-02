@@ -177,27 +177,27 @@ class ActionPanel(QWidget):
         static_actions = {
             ActionCategory.COMBAT: [
                 (ActionType.CAST_SPELL, "✨", "Magic", "Cast a spell from your repertoire"),
-                (ActionType.USE_ITEM, "🧪", "Use Item", "Use an item from your inventory"),
-                (ActionType.DODGE, "🛡️", "Dodge", "Gain advantage on Dexterity saves"),
+                (ActionType.USE_ITEM, "[POTION]", "Use Item", "Use an item from your inventory"),
+                (ActionType.DODGE, "[SHIELD]", "Dodge", "Gain advantage on Dexterity saves"),
             ],
             ActionCategory.MOVEMENT: [
-                (ActionType.MOVE, "👟", "Move", "Move up to your speed"),
+                (ActionType.MOVE, "[MOVE]", "Move", "Move up to your speed"),
                 (ActionType.DASH, "💨", "Dash", "Double your movement speed this turn"),
                 (ActionType.HIDE, "👻", "Hide", "Attempt to become hidden"),
             ],
             ActionCategory.BONUS: [
-                (ActionType.SEARCH, "🔍", "Search", "Look for hidden objects or clues"),
+                (ActionType.SEARCH, "[SEARCH]", "Search", "Look for hidden objects or clues"),
                 (ActionType.INVESTIGATE, "🕵️", "Investigate", "Make a detailed investigation"),
                 (ActionType.REST, "😴", "Rest", "Take a short rest to recover"),
-                (ActionType.USE_POTION, "🧪", "Use Potion", "Drink a healing potion (2d4+4 HP)"),
-                (ActionType.RAGE, "🔥", "Rage", "Enter barbarian rage (+2 damage, resistance)"),
+                (ActionType.USE_POTION, "[POTION]", "Use Potion", "Drink a healing potion (2d4+4 HP)"),
+                (ActionType.RAGE, "[RAGE]", "Rage", "Enter barbarian rage (+2 damage, resistance)"),
                 (ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch"),
             ],
             ActionCategory.FREE: [
                 (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
             ],
             ActionCategory.REACTION: [
-                (ActionType.OPPORTUNITY, "⚡", "Opportunity", "Make an opportunity attack"),
+                (ActionType.OPPORTUNITY, "[LIGHTNING]", "Opportunity", "Make an opportunity attack"),
             ]
         }
         
@@ -281,7 +281,7 @@ class ActionPanel(QWidget):
         
         # Create Rage card if character has it
         if 'Rage' in self.character_features:
-            card = ActionCard(ActionType.RAGE, "🔥", "Rage", "Enter barbarian rage (+2 damage, resistance to physical)")
+            card = ActionCard(ActionType.RAGE, "[RAGE]", "Rage", "Enter barbarian rage (+2 damage, resistance to physical)")
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered) 
             self.action_cards[ActionType.RAGE] = card
@@ -310,14 +310,14 @@ class ActionPanel(QWidget):
             
             # Create cards for Nick and Cleave masteries (bonus actions)
             if "Nick" in selected_masteries:
-                card = ActionCard(ActionType.NICK_MASTERY, "🗡️", "Nick Mastery", weapon_mastery_details["Nick"])
+                card = ActionCard(ActionType.NICK_MASTERY, "[SWORD]", "Nick Mastery", weapon_mastery_details["Nick"])
                 card.feature_data = {'type': 'weapon_mastery', 'name': 'Nick'}
                 card.action_triggered.connect(self._trigger_feature_action)
                 card.action_hovered.connect(self._action_hovered)
                 self.action_cards[ActionType.NICK_MASTERY] = card
             
             if "Cleave" in selected_masteries:
-                card = ActionCard(ActionType.CLEAVE_MASTERY, "🗡️", "Cleave Mastery", weapon_mastery_details["Cleave"])
+                card = ActionCard(ActionType.CLEAVE_MASTERY, "[SWORD]", "Cleave Mastery", weapon_mastery_details["Cleave"])
                 card.feature_data = {'type': 'weapon_mastery', 'name': 'Cleave'}
                 card.action_triggered.connect(self._trigger_feature_action)
                 card.action_hovered.connect(self._action_hovered)
@@ -351,7 +351,7 @@ class ActionPanel(QWidget):
                     parent = self.parent()
                     while parent:
                         if hasattr(parent, 'log_panel'):
-                            parent.log_panel.log_combat(f"❌ Second Wind exhausted - requires Short Rest!")
+                            parent.log_panel.log_combat(f"[FAIL] Second Wind exhausted - requires Short Rest!")
                             break
                         parent = parent.parent()
                     return  # Block the action entirely
@@ -391,7 +391,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"🗡️ Used Nick Mastery: Making bonus action attack with light weapon")
+                    parent.log_panel.log_combat(f"[SWORD] Used Nick Mastery: Making bonus action attack with light weapon")
                     break
                 parent = parent.parent()
         
@@ -400,7 +400,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"🗡️ Used Cleave Mastery: Making bonus action attack on second target")
+                    parent.log_panel.log_combat(f"[SWORD] Used Cleave Mastery: Making bonus action attack on second target")
                     break
                 parent = parent.parent()
         
@@ -412,7 +412,7 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_info(f"🗡️ Selected Weapon Mastery: {mastery_name}")
+                        parent.log_panel.log_info(f"[SWORD] Selected Weapon Mastery: {mastery_name}")
                         break
                     parent = parent.parent()
     
@@ -806,11 +806,11 @@ class ActionPanel(QWidget):
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"🐞 NEW ATTACK SYSTEM CALLED with {context.get('name', 'weapon')}")
-                parent.log_panel.log_combat(f"🐞 Context: raging={context.get('raging', 'NOT_FOUND')}, class={context.get('class_id', 'NOT_FOUND')}")
-                parent.log_panel.log_combat(f"🐞 Self character_context: {getattr(self, 'character_context', 'NO_CHAR_CONTEXT')}")
+                parent.log_panel.log_combat(f"[DEBUG] NEW ATTACK SYSTEM CALLED with {context.get('name', 'weapon')}")
+                parent.log_panel.log_combat(f"[DEBUG] Context: raging={context.get('raging', 'NOT_FOUND')}, class={context.get('class_id', 'NOT_FOUND')}")
+                parent.log_panel.log_combat(f"[DEBUG] Self character_context: {getattr(self, 'character_context', 'NO_CHAR_CONTEXT')}")
                 if hasattr(self, 'character_context') and self.character_context:
-                    parent.log_panel.log_combat(f"🐞 Self context keys: {list(self.character_context.keys())}")
+                    parent.log_panel.log_combat(f"[DEBUG] Self context keys: {list(self.character_context.keys())}")
                 break
             parent = parent.parent()
         
@@ -888,7 +888,7 @@ class ActionPanel(QWidget):
                         main_window = main_window.parent()
                     if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
                         class_id = main_window.current_character.class_id
-                        parent.log_panel.log_combat(f"🐞 Got class_id from main window: {class_id}")
+                        parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
                 
                 is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
                 
@@ -897,20 +897,20 @@ class ActionPanel(QWidget):
                     if not is_ranged:
                         # Get actual barbarian level from character context (single-class barbarian)
                         barbarian_level = self.character_context.get('level', 1)
-                        parent.log_panel.log_combat(f"🐞 Using character level {barbarian_level} for rage damage")
+                        parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
                         
                         # Get rage damage bonus from database by looking up barbarian abilities
                         rage_bonus = self._get_rage_damage_from_database(barbarian_level)
                         
                         if rage_bonus > 0:
                             damage_bonuses['rage'] = rage_bonus
-                            parent.log_panel.log_combat(f"🐞 Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
+                            parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
                         else:
-                            parent.log_panel.log_combat(f"🐞 No rage damage in database for level {barbarian_level}")
+                            parent.log_panel.log_combat(f"[DEBUG] No rage damage in database for level {barbarian_level}")
                 else:
-                    parent.log_panel.log_combat(f"🐞 No rage: class={class_id}, raging={is_raging}")
+                    parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging={is_raging}")
             except Exception as e:
-                parent.log_panel.log_combat(f"🐞 Rage check error: {e}")
+                parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
             
             # Calculate total damage
             total_damage = dice_total + sum(damage_bonuses.values())
@@ -932,7 +932,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     parent.log_panel.log_combat(
-                        f"⚔️ {weapon_name} hits {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"[ATTACK] {weapon_name} hits {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
                     )
                     parent.log_panel.log_combat(
                         f"💥 NEW Damage: {dice_str} = {dice_total}{bonus_str} = {total_damage} damage"
@@ -945,7 +945,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     parent.log_panel.log_combat(
-                        f"⚔️ {weapon_name} misses {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"[ATTACK] {weapon_name} misses {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
                     )
                     break
                 parent = parent.parent()
@@ -1171,7 +1171,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     parent.log_panel.log_combat("🏆 Victory! All monsters have been defeated!")
-                    parent.log_panel.log_combat("⚔️ Combat has ended. You may now rest or explore.")
+                    parent.log_panel.log_combat("[ATTACK] Combat has ended. You may now rest or explore.")
                     break
                 parent = parent.parent()
             
@@ -1198,7 +1198,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("⚡ Your turn! Choose your next action.")
+                    parent.log_panel.log_combat("[LIGHTNING] Your turn! Choose your next action.")
                     break
                 parent = parent.parent()
         except Exception as e:
@@ -1473,19 +1473,19 @@ class ActionPanel(QWidget):
                             damage_bonus_str = f" ({' '.join(damage_parts)})" if damage_parts else ""
                             
                             parent.log_panel.log_combat(
-                                f"⚔️ {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
+                                f"[ATTACK] {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
                             )
                             parent.log_panel.log_combat(
                                 f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str} = {damage_total} damage"
                             )
                         else:
                             parent.log_panel.log_combat(
-                                f"⚔️ {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac} for {damage_total} damage"
+                                f"[ATTACK] {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac} for {damage_total} damage"
                             )
                     else:
                         # Miss - just show attack roll
                         parent.log_panel.log_combat(
-                            f"⚔️ {weapon} misses {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
+                            f"[ATTACK] {weapon} misses {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
                         )
                     break
                 parent = parent.parent()
@@ -1569,12 +1569,12 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     # Log initiative rolling
-                    parent.log_panel.log_combat("🎲 Rolling initiative for combat!")
+                    parent.log_panel.log_combat("[DICE] Rolling initiative for combat!")
                     
                     # Log player initiative
                     d20_roll = player_initiative - player_dex_mod
                     dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
-                    parent.log_panel.log_combat(f"🎯 Player initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
+                    parent.log_panel.log_combat(f"[TARGET] Player initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
                     
                     # Log monster initiatives
                     for entry in initiative_order:
@@ -1582,16 +1582,16 @@ class ActionPanel(QWidget):
                             parent.log_panel.log_combat(f"👹 {entry['name']} initiative: {entry['initiative']}")
                     
                     # Log turn order
-                    turn_order = " → ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
-                    parent.log_panel.log_combat(f"⚡ Turn Order: {turn_order}")
+                    turn_order = " -> ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
+                    parent.log_panel.log_combat(f"[LIGHTNING] Turn Order: {turn_order}")
                     
                     # Announce who goes first
                     if initiative_order:
                         first_actor = initiative_order[0]
                         if first_actor['type'] == 'player':
-                            parent.log_panel.log_combat("✅ Player goes first!")
+                            parent.log_panel.log_combat("[OK] Player goes first!")
                         else:
-                            parent.log_panel.log_combat(f"⚠️ {first_actor['name']} goes first!")
+                            parent.log_panel.log_combat(f"[WARN] {first_actor['name']} goes first!")
                     
                     break
                 parent = parent.parent()
@@ -1763,7 +1763,7 @@ class ActionPanel(QWidget):
                             log_parent = self.parent()
                             while log_parent:
                                 if hasattr(log_parent, 'log_panel'):
-                                    log_parent.log_panel.log_combat(f"    🛡️ RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
+                                    log_parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
                                     break
                                 log_parent = log_parent.parent()
                         except Exception as e:
@@ -1833,10 +1833,10 @@ class ActionPanel(QWidget):
                         if hasattr(parent_with_log, 'log_panel'):
                             if actual_healing < healing:
                                 # Hit max HP
-                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
                             else:
                                 # Normal healing
-                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} → {new_hp}/{max_hp} (healed {healing})")
+                                parent_with_log.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {healing})")
                             break
                         parent_with_log = parent_with_log.parent()
                     
@@ -2133,12 +2133,12 @@ class ActionPanel(QWidget):
                         
                         if 'damage' in effect_data:
                             damage = effect_data['damage']
-                            parent.log_panel.log_combat(f"🗡️ {description} - {damage} damage")
+                            parent.log_panel.log_combat(f"[SWORD] {description} - {damage} damage")
                         elif 'save_dc' in effect_data:
                             save_dc = effect_data['save_dc']
-                            parent.log_panel.log_combat(f"🗡️ {description} - DC {save_dc}")
+                            parent.log_panel.log_combat(f"[SWORD] {description} - DC {save_dc}")
                         else:
-                            parent.log_panel.log_combat(f"🗡️ {description}")
+                            parent.log_panel.log_combat(f"[SWORD] {description}")
                 break
             parent = parent.parent()
     
@@ -2237,7 +2237,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("❌ No healing potions available!")
+                    parent.log_panel.log_combat("[FAIL] No healing potions available!")
                     break
                 parent = parent.parent()
             return
@@ -2283,9 +2283,9 @@ class ActionPanel(QWidget):
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"🧪 Used Healing Potion: 2d4([{roll1}, {roll2}]) + 4 = {healing} healing")
+                parent.log_panel.log_combat(f"[POTION] Used Healing Potion: 2d4([{roll1}, {roll2}]) + 4 = {healing} healing")
                 if actual_healing > 0:
-                    parent.log_panel.log_combat(f"💚 Restored {actual_healing} HP ({current_hp} → {new_hp})")
+                    parent.log_panel.log_combat(f"💚 Restored {actual_healing} HP ({current_hp} -> {new_hp})")
                 else:
                     parent.log_panel.log_combat(f"💚 Already at full health ({current_hp} HP)")
                 break
@@ -2443,7 +2443,7 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     original_str = ', '.join(map(str, dice_rolls))
                     modified_str = ', '.join(map(str, modified_rolls))
-                    parent.log_panel.log_combat(f"⚔️ Great Weapon Fighting: [{original_str}] → [{modified_str}] (1s and 2s become 3s)")
+                    parent.log_panel.log_combat(f"[ATTACK] Great Weapon Fighting: [{original_str}] -> [{modified_str}] (1s and 2s become 3s)")
                     break
                 parent = parent.parent()
         
@@ -2618,13 +2618,13 @@ class ActionPanel(QWidget):
                         description = effect_data.get('description', 'Unknown mastery effect')
                         
                         if effect_name == 'graze_damage':
-                            parent.log_panel.log_combat(f"🗡️ {description}")
+                            parent.log_panel.log_combat(f"[SWORD] {description}")
                         elif effect_name in ['topple', 'sap', 'push', 'slow', 'vex']:
-                            parent.log_panel.log_combat(f"🗡️ {description}")
+                            parent.log_panel.log_combat(f"[SWORD] {description}")
                         elif effect_name in ['cleave', 'nick']:
-                            parent.log_panel.log_combat(f"🗡️ {description}")
+                            parent.log_panel.log_combat(f"[SWORD] {description}")
                         else:
-                            parent.log_panel.log_combat(f"🗡️ {description}")
+                            parent.log_panel.log_combat(f"[SWORD] {description}")
                     break
                 parent = parent.parent()
         except Exception as e:
@@ -2802,7 +2802,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"❌ Cannot use {action_type.value}: {reason}")
+                    parent.log_panel.log_combat(f"[FAIL] Cannot use {action_type.value}: {reason}")
                     break
                 parent = parent.parent()
         except:
@@ -2815,7 +2815,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     economy_name = economy_type.value.replace('_', ' ').title()
-                    parent.log_panel.log_combat(f"⚡ Used {economy_name}: {action_type.value}")
+                    parent.log_panel.log_combat(f"[LIGHTNING] Used {economy_name}: {action_type.value}")
                     break
                 parent = parent.parent()
         except:
@@ -2934,7 +2934,7 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("🔥 RAGE activated! +2 damage, resistance to physical damage, advantage on STR checks/saves")
+                    parent.log_panel.log_combat("[RAGE] RAGE activated! +2 damage, resistance to physical damage, advantage on STR checks/saves")
                     break
                 parent = parent.parent()
         except Exception as e:
