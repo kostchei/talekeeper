@@ -73,39 +73,37 @@ def main():
             logger.warning(f"Font file not found at {font_path}")
             app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
+        # Check required data files exist
+        required_data_files = [
+            "data/races.json",
+            "data/classes.json", 
+            "data/backgrounds.json",
+            "data/monsters_full.json",
+            "data/equipment.json"
+        ]
+        
+        missing_files = []
+        for file_path in required_data_files:
+            if not Path(file_path).exists():
+                missing_files.append(file_path)
+        
+        if missing_files:
+            error_msg = f"Missing required data files:\n" + "\n".join(f"- {f}" for f in missing_files)
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+        
         # Check if SQLite database exists
         sqlite_db_path = Path("talekeeper.db")
         if not sqlite_db_path.exists():
             logger.info("No SQLite database found - creating new database...")
-            # Legacy migration check
-            indexeddb_path = Path("talekeeper.idb")
-            if indexeddb_path.exists():
-                logger.info("Found legacy IndexedDB file - running migration to SQLite...")
-                # Run our migration script
-                import subprocess
-                try:
-                    result = subprocess.run(["python", "migrate_to_sqlite.py"], 
-                                          capture_output=True, text=True, check=True)
-                    logger.info("Legacy data migration completed successfully")
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Migration failed: {e}")
-                    logger.info("Creating empty SQLite database...")
-                    # Create empty database with schema
-                    import sqlite3
-                    conn = sqlite3.connect("talekeeper.db")
-                    with open("database_schema.sql", "r") as f:
-                        schema_sql = f.read()
-                    conn.executescript(schema_sql)
-                    conn.close()
-            else:
-                logger.info("No existing data found - creating fresh SQLite database...")
-                # Create fresh database with schema
-                import sqlite3
-                conn = sqlite3.connect("talekeeper.db")
-                with open("database_schema.sql", "r") as f:
-                    schema_sql = f.read()
-                conn.executescript(schema_sql)
-                conn.close()
+            # Create fresh database with schema
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            with open("database_schema.sql", "r") as f:
+                schema_sql = f.read()
+            conn.executescript(schema_sql)
+            conn.close()
+            logger.info("Created fresh SQLite database")
         
         # Initialize SQLite game engine
         game_engine = GameEngineSQLite()

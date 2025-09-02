@@ -1675,7 +1675,7 @@ class EncounterPanel(QWidget):
             # Get the absolute path to the scripts directory 
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(current_dir)
-            feats_file = os.path.join(project_root, "scripts", "feats_srd.json")
+            feats_file = os.path.join(project_root, "data", "feats_srd.json")
             
             with open(feats_file, 'r', encoding='utf-8') as f:
                 feats_data = json.load(f)

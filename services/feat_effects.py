@@ -41,7 +41,7 @@ class FeatEffectsProcessor:
                 # Default path relative to this service
                 current_dir = os.path.dirname(os.path.abspath(__file__))
                 project_root = os.path.dirname(current_dir)
-                feats_file_path = os.path.join(project_root, "scripts", "feats_srd.json")
+                feats_file_path = os.path.join(project_root, "data", "feats_srd.json")
             
             with open(feats_file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
