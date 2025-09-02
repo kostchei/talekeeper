@@ -73,9 +73,10 @@ def load_monsters():
         except (ValueError, TypeError):
             cr_numeric = 0
         
-        # HP is stored directly as a number from the migration
+        # HP is stored directly as a number from the migration - use database value
         average_hp = monster_row[7] if monster_row[7] else 8  # hit_points column
-        hp_formula = '1d8'  # Default formula - could be enhanced later
+        # Use the database HP value directly instead of rolling dice
+        hp_formula = str(average_hp)  # Use fixed HP from database
         
         monsters.append({
             "name": monster['name'],

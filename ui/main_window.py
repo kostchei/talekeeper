@@ -300,14 +300,25 @@ class MainWindow(QMainWindow):
     
     def _on_ac_changed(self, new_ac):
         """Handle AC change from equipment panel - update character sheet display."""
-        # DISABLED: Equipment panel AC calculation doesn't account for Unarmored Defense
-        # The character sheet should use the AC from the database which is correctly calculated
-        # including class features like Barbarian Unarmored Defense
-        pass
-        # if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
-        #     # Update the character sheet display with new AC
-        #     self.character_sheet.update_ac(new_ac)
-        #     self.log_panel.log_info(f"AC updated to {new_ac}")
+        # Update the character sheet display with new AC
+        if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
+            self.character_sheet.update_ac(new_ac)
+            
+            # Also update the character data in memory and database
+            if hasattr(self, 'game_engine') and self.game_engine.current_character:
+                # Update character data in memory
+                self.character_sheet.character_data['armor_class'] = new_ac
+                
+                # Update database via game engine (which will trigger proper AC recalculation)
+                try:
+                    character_id = self.game_engine.current_character.id
+                    # Force recalculation of character stats including AC
+                    if self.game_engine.recalculate_character_stats_sync(character_id):
+                        self.log_panel.log_info(f"AC updated to {new_ac}")
+                    else:
+                        self.log_panel.log_error("Failed to recalculate character stats")
+                except Exception as e:
+                    self.log_panel.log_error(f"Failed to update AC in database: {e}")
     
     def _update_character_equipment_slots(self, equipped_items: dict):
         """Update the current character's equipment slots in the database."""

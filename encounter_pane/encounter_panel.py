@@ -195,6 +195,66 @@ class Encounter:
             monsters_defeated=0,
             monsters_total=monster_count
         )
+    
+    def roll_initiative(self, player_dex_mod: int, monster_instances: list, monster_data: dict) -> int:
+        """Roll initiative for player and all monsters."""
+        import random
+        
+        # Roll player initiative
+        player_roll = random.randint(1, 20)
+        self.player_initiative = player_roll + player_dex_mod
+        
+        # Roll initiative for each monster
+        for instance in monster_instances:
+            if instance.is_alive:
+                # Get monster DEX modifier from monster data
+                monster_name = instance.monster_name
+                dex_modifier = 0  # Default
+                
+                if monster_name in monster_data:
+                    dex_score = monster_data[monster_name].get('dexterity', 10)
+                    dex_modifier = (dex_score - 10) // 2
+                
+                # Roll initiative for this monster
+                monster_roll = random.randint(1, 20)
+                instance.initiative = monster_roll + dex_modifier
+        
+        # Mark initiative as rolled
+        self.initiative_rolled = True
+        
+        return self.player_initiative
+    
+    def get_initiative_order(self, monster_instances: list) -> list:
+        """Get initiative order for all participants."""
+        initiative_order = []
+        
+        # Add player to order
+        if self.player_initiative is not None:
+            initiative_order.append({
+                'name': 'Player',
+                'initiative': self.player_initiative,
+                'type': 'player'
+            })
+        
+        # Add living monsters to order
+        for instance in monster_instances:
+            if instance.is_alive and instance.initiative is not None:
+                initiative_order.append({
+                    'name': instance.monster_name,
+                    'initiative': instance.initiative,
+                    'type': 'monster',
+                    'instance': instance
+                })
+        
+        # Sort by initiative (highest first)
+        initiative_order.sort(key=lambda x: x['initiative'], reverse=True)
+        
+        return initiative_order
+    
+    def start_combat(self):
+        """Start combat mode for this encounter."""
+        self.is_combat = True
+        self.current_turn = 0
 
 
 @dataclass

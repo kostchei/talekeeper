@@ -1314,15 +1314,24 @@ class GameEngineSQLite:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            # Check for equipped armor
+            # Check for equipped armor and shields
             cursor.execute("""
                 SELECT item_name, item_type 
                 FROM character_inventory 
-                WHERE character_id = ? AND equipped = 1 AND item_type = 'armor'
+                WHERE character_id = ? AND equipped = 1 AND item_type IN ('armor', 'shield')
             """, (character_id,))
             
-            equipped_armor = cursor.fetchone()
+            equipped_items = cursor.fetchall()
             conn.close()
+            
+            # Separate armor and shields
+            equipped_armor = None
+            equipped_shields = []
+            for item in equipped_items:
+                if item[1] == 'armor':
+                    equipped_armor = item
+                elif item[1] == 'shield':
+                    equipped_shields.append(item)
             
             # Calculate modifiers
             dex_mod = (dexterity - 10) // 2
@@ -1330,14 +1339,13 @@ class GameEngineSQLite:
             
             # Base AC calculation
             if equipped_armor:
-                # Character is wearing armor - use armor AC + dex mod (with potential limits)
+                # Character is wearing armor - use equipment service for proper AC calculation
                 armor_name = equipped_armor[0]
-                armor_stats = self._get_armor_stats(armor_name)
-                base_ac = armor_stats.get('ac', 10)
                 
-                # For now, simple AC calculation (can be enhanced later for armor types)
-                ac = base_ac + dex_mod
-                print(f"[SQLite] AC calculation: {armor_name} AC {base_ac} + Dex {dex_mod} = {ac}")
+                # Import and use the equipment service
+                from services.equipment import equipment_service
+                ac = equipment_service.get_armor_ac(armor_name, dex_mod)
+                print(f"[SQLite] AC calculation: {armor_name} with Dex {dex_mod} = {ac}")
                 
             else:
                 # No armor equipped - check for class features
@@ -1349,6 +1357,15 @@ class GameEngineSQLite:
                     # Standard unarmored AC: 10 + Dex
                     ac = 10 + dex_mod
                     print(f"[SQLite] Standard unarmored AC: 10 + Dex {dex_mod} = {ac}")
+            
+            # Add shield bonuses
+            if equipped_shields:
+                from services.equipment import equipment_service
+                for shield in equipped_shields:
+                    shield_name = shield[0]
+                    shield_bonus = equipment_service.get_shield_ac_bonus(shield_name)
+                    ac += shield_bonus
+                    print(f"[SQLite] Added shield {shield_name}: +{shield_bonus} AC")
             
             return ac
             

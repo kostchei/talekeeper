@@ -873,13 +873,18 @@ class ActionPanel(QWidget):
             ability_mod = (context.get('strength', 10) - 10) // 2
             ability_name = "STR"
         
-        attack_total = d20_roll + prof_bonus + ability_mod
+        # Add fighting style attack bonuses
+        fighting_style_attack_bonus = self._get_fighting_style_attack_bonus(context)
+        
+        attack_total = d20_roll + prof_bonus + ability_mod + fighting_style_attack_bonus
         target_ac = 12  # TODO: Get from monster data
         
         hit = attack_total >= target_ac
         
         # === LOG ATTACK ===
         bonus_parts = [f"+{prof_bonus} prof", f"{ability_mod:+d} {ability_name}"]
+        if fighting_style_attack_bonus > 0:
+            bonus_parts.append(f"+{fighting_style_attack_bonus} fighting style")
         bonus_str = f" ({' '.join(bonus_parts)})"
         
         if hit:
@@ -895,11 +900,20 @@ class ActionPanel(QWidget):
                 dice_rolls = [1]
                 dice_total = 1
             
+            # Apply fighting style effects to dice rolls (e.g., Great Weapon Fighting)
+            dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
+            dice_total = sum(dice_rolls)
+            
             # === DAMAGE BONUSES ===
             damage_bonuses = {}
             
             # Ability modifier
             damage_bonuses[ability_name] = ability_mod
+            
+            # Fighting style damage bonuses
+            fighting_style_bonus = self._get_fighting_style_damage_bonus(context)
+            if fighting_style_bonus > 0:
+                damage_bonuses['fighting_style'] = fighting_style_bonus
             
             # RAGE DAMAGE BONUS - BARBARIAN ONLY (SCALES WITH LEVEL)
             # Check if character is a barbarian and raging
@@ -1006,7 +1020,7 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
         
-        # Trigger monster counter-attacks
+        # Check if we should continue with initiative-based turns or end combat
         living_monsters_after_attack = encounter_panel.get_living_monsters()
         print(f"NEW ATTACK: After attack, {len(living_monsters_after_attack)} monsters remaining")
         
@@ -1014,7 +1028,61 @@ class ActionPanel(QWidget):
             print(f"NEW ATTACK: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            print(f"NEW ATTACK: Triggering monster counter-attacks")
+            # Check if initiative was rolled for this encounter
+            current_encounter = getattr(encounter_panel, 'current_encounter', None)
+            if current_encounter and current_encounter.initiative_rolled:
+                print(f"NEW ATTACK: Following initiative order for remaining monster turns")
+                self._execute_remaining_initiative_turns(encounter_panel, current_encounter)
+            else:
+                print(f"NEW ATTACK: Triggering monster counter-attacks (no initiative)")
+                self._trigger_monster_counter_attacks(encounter_panel)
+    
+    def _execute_remaining_initiative_turns(self, encounter_panel, current_encounter):
+        """Execute remaining monster turns in initiative order after player's turn."""
+        try:
+            # Get current initiative order
+            monster_instances = list(getattr(encounter_panel, 'encounter_instances', {}).values())
+            initiative_order = current_encounter.get_initiative_order(monster_instances)
+            
+            # Get monsters that come after the player in initiative order
+            monsters_to_attack = []
+            player_went = False
+            
+            for entry in initiative_order:
+                if entry['type'] == 'player':
+                    player_went = True
+                    continue
+                
+                # Collect monsters that come after the player and are still alive
+                if player_went and entry['type'] == 'monster':
+                    monster_instance = entry.get('instance')
+                    if monster_instance and monster_instance.is_alive and monster_instance.current_hit_points > 0:
+                        monsters_to_attack.append(monster_instance)
+            
+            if monsters_to_attack:
+                # Log what's happening
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"[TURN] {len(monsters_to_attack)} monsters taking their turns in initiative order...")
+                        break
+                    parent = parent.parent()
+                
+                # Use the existing working monster attack system
+                monster_data = self._load_monster_data()
+                self._execute_monster_attacks_with_delay(monsters_to_attack, monster_data, encounter_panel)
+            else:
+                # No monsters to attack, player's turn
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("[LIGHTNING] Your turn! Choose your next action.")
+                        break
+                    parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error executing initiative turns: {e}")
+            # Fall back to regular counter-attacks
             self._trigger_monster_counter_attacks(encounter_panel)
     
     def _get_barbarian_level_from_database(self) -> int:
@@ -1590,6 +1658,7 @@ class ActionPanel(QWidget):
         try:
             # Check if encounter has initiative rolled already
             current_encounter = getattr(encounter_panel, 'current_encounter', None)
+            
             if not current_encounter or current_encounter.initiative_rolled:
                 return True  # Initiative already handled, player can continue
             
@@ -1644,19 +1713,43 @@ class ActionPanel(QWidget):
             
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM monsters")
+            cursor.execute("""SELECT name, type, armor_class, hit_points, 
+                             strength, dexterity, constitution, intelligence, wisdom, charisma,
+                             challenge_rating, experience_points, actions FROM monsters""")
             monster_rows = cursor.fetchall()
             
-            # Create lookup dict by monster name
+            # Create lookup dict by monster name with full combat stats
             monster_lookup = {}
-            for monster_row in monster_rows:
+            for row in monster_rows:
+                name, monster_type, ac, hp, str_val, dex, con, int_val, wis, cha, cr, xp, actions = row
+                
+                # Parse actions JSON if it exists
+                parsed_actions = []
+                if actions:
+                    try:
+                        parsed_actions = json.loads(actions) if isinstance(actions, str) else actions
+                    except:
+                        parsed_actions = []
+                
                 monster_data = {
-                    'name': monster_row[1],
-                    'dex': monster_row[10] if monster_row[10] else 10,  # dexterity from database
-                    'type': {'type': monster_row[2]},  # Maintain expected structure
-                    'cr': monster_row[15]
+                    'name': name,
+                    'type': {'type': monster_type},
+                    'armor_class': ac if ac else 10,
+                    'hit_points': hp if hp else 1,
+                    'strength': str_val if str_val else 10,
+                    'dexterity': dex if dex else 10,
+                    'constitution': con if con else 10,
+                    'intelligence': int_val if int_val else 10,
+                    'wisdom': wis if wis else 10,
+                    'charisma': cha if cha else 10,
+                    'challenge_rating': cr,
+                    'experience_points': xp if xp else 0,
+                    'action': parsed_actions,  # Full actions for attacks
+                    # Legacy compatibility 
+                    'dex': dex if dex else 10,
+                    'cr': cr
                 }
-                monster_lookup[monster_row[1]] = monster_data
+                monster_lookup[name] = monster_data
             
             conn.close()
             return monster_lookup
@@ -1671,31 +1764,36 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    # Log initiative rolling
-                    parent.log_panel.log_combat("[DICE] Rolling initiative for combat!")
+                    # Clear separator for initiative
+                    parent.log_panel.log_combat("=" * 50)
+                    parent.log_panel.log_combat("[DICE] ROLLING INITIATIVE FOR COMBAT!")
+                    parent.log_panel.log_combat("=" * 50)
                     
-                    # Log player initiative
+                    # Log player initiative with more detail
                     d20_roll = player_initiative - player_dex_mod
                     dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
-                    parent.log_panel.log_combat(f"[TARGET] Player initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
+                    parent.log_panel.log_combat(f"[PLAYER] Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
                     
                     # Log monster initiatives
                     for entry in initiative_order:
                         if entry['type'] == 'monster':
-                            parent.log_panel.log_combat(f"👹 {entry['name']} initiative: {entry['initiative']}")
+                            parent.log_panel.log_combat(f"[MONSTER] {entry['name']} initiative: {entry['initiative']}")
                     
-                    # Log turn order
+                    # Log turn order prominently
+                    parent.log_panel.log_combat("-" * 30)
                     turn_order = " -> ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
-                    parent.log_panel.log_combat(f"[LIGHTNING] Turn Order: {turn_order}")
+                    parent.log_panel.log_combat(f"[TURN ORDER] {turn_order}")
+                    parent.log_panel.log_combat("-" * 30)
                     
                     # Announce who goes first
                     if initiative_order:
                         first_actor = initiative_order[0]
                         if first_actor['type'] == 'player':
-                            parent.log_panel.log_combat("[OK] Player goes first!")
+                            parent.log_panel.log_combat("[FIRST TURN] You go first!")
                         else:
-                            parent.log_panel.log_combat(f"[WARN] {first_actor['name']} goes first!")
+                            parent.log_panel.log_combat(f"[FIRST TURN] {first_actor['name']} goes first!")
                     
+                    parent.log_panel.log_combat("=" * 50)
                     break
                 parent = parent.parent()
                 
@@ -2512,41 +2610,188 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return dice_rolls
         
-        # Check if character has Great Weapon Fighting style (stored in feats array)
+        # Get character's fighting styles
         character_feats = getattr(self, 'character_feats', [])
         
-        if "Great Weapon Fighting" not in character_feats:
-            return dice_rolls
+        # Apply Great Weapon Fighting (modifies dice rolls)
+        if "Great Weapon Fighting" in character_feats:
+            dice_rolls = self._apply_great_weapon_fighting(dice_rolls, context)
         
-        # Check if weapon qualifies for Great Weapon Fighting
+        return dice_rolls
+    
+    def _get_fighting_style_attack_bonus(self, context: Dict[str, Any]) -> int:
+        """Get attack bonus from fighting styles."""
+        if not self.character_context:
+            return 0
+        
+        character_feats = getattr(self, 'character_feats', [])
+        bonus = 0
+        
+        # Archery: +2 to ranged weapon attacks
+        if "Archery" in character_feats:
+            weapon_props = context.get('weapon_properties', [])
+            weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+            
+            # Check if this is a ranged weapon attack (not thrown melee weapons)
+            is_ranged_weapon = any(prop in weapon_props_lower for prop in ['ranged'])
+            weapon_name = context.get('name', '').lower()
+            is_bow_or_crossbow = any(bow_type in weapon_name for bow_type in ['bow', 'crossbow', 'sling'])
+            
+            if is_ranged_weapon or is_bow_or_crossbow:
+                bonus += 2
+                self._log_fighting_style("Archery", "Attack", "+2 to ranged weapon attack")
+        
+        return bonus
+    
+    def _get_fighting_style_damage_bonus(self, context: Dict[str, Any]) -> int:
+        """Get damage bonus from fighting styles."""
+        if not self.character_context:
+            return 0
+        
+        character_feats = getattr(self, 'character_feats', [])
+        bonus = 0
+        
+        # Dueling: +2 damage when wielding a melee weapon in one hand and no other weapons
+        if "Dueling" in character_feats:
+            bonus += self._apply_dueling_bonus(context)
+        
+        # Thrown Weapon Fighting: +2 damage to thrown weapon attacks when used at range
+        if "Thrown Weapon Fighting" in character_feats:
+            weapon_props = context.get('weapon_properties', [])
+            weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+            
+            # Must be a thrown weapon used as a ranged attack
+            if 'thrown' in weapon_props_lower and context.get('is_ranged_attack', False):
+                bonus += 2
+                self._log_fighting_style("Thrown Weapon Fighting", "Damage", "+2 to thrown weapon damage")
+        
+        # Two-Weapon Fighting: Add ability modifier to off-hand attack damage
+        if "Two-Weapon Fighting" in character_feats:
+            # Only applies to off-hand attacks where ability modifier would normally be excluded
+            if context.get('action_type') == ActionType.ATTACK_OFF_HAND:
+                # In D&D, off-hand attacks don't normally get ability modifier unless you have this fighting style
+                # So we need to add it back in
+                if context.get('strength'):
+                    str_mod = (context.get('strength', 10) - 10) // 2
+                else:
+                    str_mod = (context.get('dexterity', 10) - 10) // 2
+                
+                # Only add if the weapon qualifies for two-weapon fighting (light weapons)
+                weapon_props = context.get('weapon_properties', [])
+                weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+                
+                if 'light' in weapon_props_lower:
+                    bonus += str_mod
+                    self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to light off-hand weapon")
+        
+        return bonus
+    
+    def _get_fighting_style_ac_bonus(self) -> int:
+        """Get AC bonus from fighting styles."""
+        if not self.character_context:
+            return 0
+        
+        character_feats = getattr(self, 'character_feats', [])
+        
+        # Defense: +1 AC while wearing armor
+        if "Defense" in character_feats:
+            # Check if character is actually wearing armor by checking equipped items
+            # This would need integration with equipment system to be fully accurate
+            # For now, use a heuristic: if AC is significantly above base AC + DEX, assume armor
+            current_ac = self.character_context.get('armor_class', 10)
+            dex_mod = ((self.character_context.get('dexterity', 10) - 10) // 2)
+            base_unarmored_ac = 10 + dex_mod
+            
+            # If AC is more than 2 points above unarmored AC, assume wearing armor
+            if current_ac >= base_unarmored_ac + 2:
+                return 1
+        
+        return 0
+    
+    def _log_fighting_style(self, style_name: str, bonus_type: str, description: str):
+        """Log fighting style bonuses to combat log."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[FIGHTING STYLE] {style_name}: {description}")
+                break
+            parent = parent.parent()
+    
+    def _apply_dueling_bonus(self, context: Dict[str, Any]) -> int:
+        """Apply Dueling fighting style bonus (+2 damage when wielding one melee weapon in one hand and no other weapons)."""
         weapon_props = context.get('weapon_properties', [])
-        # Convert to lowercase for comparison
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        
+        # Must be a melee weapon (not ranged)
+        weapon_name = context.get('name', '').lower()
+        is_ranged_weapon = any(ranged_type in weapon_name for ranged_type in ['bow', 'crossbow', 'sling'])
+        if is_ranged_weapon or 'ranged' in weapon_props_lower:
+            return 0
+        
+        # Must not be two-handed
+        if 'two-handed' in weapon_props_lower:
+            return 0
+        
+        # Must not be using versatile weapon with two hands (simplified: assume one-handed use)
+        # Must not be using a shield or second weapon (simplified check)
+        action_type = context.get('action_type')
+        
+        # Only applies to main-hand attacks (not off-hand, since that implies two weapons)
+        if action_type == ActionType.ATTACK_OFF_HAND:
+            return 0
+        
+        # If all conditions met, apply dueling bonus
+        self._log_fighting_style("Dueling", "Damage", "+2 damage (wielding one melee weapon in one hand)")
+        return 2
+    
+    def _apply_great_weapon_fighting(self, dice_rolls: list, context: Dict[str, Any]) -> list:
+        """Apply Great Weapon Fighting: reroll 1s and 2s on melee weapons with two-handed or heavy property."""
+        weapon_props = context.get('weapon_properties', [])
+        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        
+        # Great Weapon Fighting requires a melee weapon with two-handed OR heavy property
+        # Used with two hands (two-handed weapons are always two-handed, versatile can be used two-handed)
         is_two_handed = 'two-handed' in weapon_props_lower
+        is_heavy = 'heavy' in weapon_props_lower  
         is_versatile = 'versatile' in weapon_props_lower
         
-        if not (is_two_handed or is_versatile):
+        # Must be two-handed OR heavy, and used as a melee weapon
+        if not (is_two_handed or is_heavy or is_versatile):
             return dice_rolls
         
-        # Apply Great Weapon Fighting: treat 1s and 2s as 3s
+        # Get the damage die size from context to reroll correctly
+        damage_dice = context.get('damage_dice', '1d6')
+        die_size = 6  # Default
+        if 'd' in damage_dice:
+            try:
+                _, die_size_str = damage_dice.split('d')
+                # Handle cases like "2d6+1" by extracting just the die size
+                die_size = int(die_size_str.split('+')[0].split('-')[0])
+            except:
+                die_size = 6  # Fallback
+        
+        # Apply Great Weapon Fighting (2024 rules): treat 1s and 2s as 3s
         modified_rolls = []
-        reroll_applied = False
+        changes_made = []
         
         for roll in dice_rolls:
             if roll <= 2:
+                # Treat 1s and 2s as 3s
                 modified_rolls.append(3)
-                reroll_applied = True
+                changes_made.append((roll, 3))
             else:
                 modified_rolls.append(roll)
         
-        # Log the fighting style effect if applied
-        if reroll_applied:
+        # Log the fighting style effect if changes were made
+        if changes_made:
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
                     original_str = ', '.join(map(str, dice_rolls))
                     modified_str = ', '.join(map(str, modified_rolls))
-                    parent.log_panel.log_combat(f"[ATTACK] Great Weapon Fighting: [{original_str}] -> [{modified_str}] (1s and 2s become 3s)")
+                    change_details = ', '.join([f"{old}→{new}" for old, new in changes_made])
+                    weapon_type = "two-handed" if is_two_handed else "heavy" if is_heavy else "versatile"
+                    parent.log_panel.log_combat(f"[FIGHTING STYLE] Great Weapon Fighting: [{original_str}] → [{modified_str}] ({weapon_type} weapon: {change_details})")
                     break
                 parent = parent.parent()
         
