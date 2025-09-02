@@ -35,22 +35,26 @@ class FeatEffectsProcessor:
         self._load_feats_data(feats_file_path)
     
     def _load_feats_data(self, feats_file_path: str = None):
-        """Load feat data from feats_srd.json."""
+        """Load feat data from database."""
         try:
-            if not feats_file_path:
-                # Default path relative to this service
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                project_root = os.path.dirname(current_dir)
-                feats_file_path = os.path.join(project_root, "data", "feats_srd.json")
-            
-            with open(feats_file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM feats")
+            feats_rows = cursor.fetchall()
             
             # Index feats by name for quick lookup
-            for feat in data.get('feat', []):
-                feat_name = feat.get('name')
-                if feat_name:
-                    self.feats_data[feat_name] = feat
+            for feat_row in feats_rows:
+                feat_data = {
+                    'name': feat_row[1],
+                    'description': feat_row[2],
+                    'prerequisites': json.loads(feat_row[3]),
+                    'ability_score_increases': json.loads(feat_row[4]),
+                    'benefits': json.loads(feat_row[5])
+                }
+                self.feats_data[feat_data['name']] = feat_data
+            
+            conn.close()
                     
         except Exception as e:
             print(f"Error loading feats data: {e}")

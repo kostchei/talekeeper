@@ -27,13 +27,22 @@ CR_TO_XP = {
 }
 
 def load_monsters():
-    """Load monsters from monsters_full.json"""
-    monsters_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'monsters_full.json')
-    with open(monsters_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    """Load monsters from database"""
+    import sqlite3
+    conn = sqlite3.connect("talekeeper.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM monsters")
+    monster_rows = cursor.fetchall()
     
     monsters = []
-    for monster in data['monster']:
+    for monster_row in monster_rows:
+        # Reconstruct monster dict from database
+        monster = {
+            'id': monster_row[0],
+            'name': monster_row[1],
+            'type': monster_row[2],
+            'cr': monster_row[15]
+        }
         # Extract type - handle both string and object formats
         monster_type = monster['type']
         if isinstance(monster_type, dict):
@@ -41,21 +50,32 @@ def load_monsters():
         
         # Convert CR to string and numeric value for comparison
         cr = monster['cr']
-        if isinstance(cr, dict):
-            cr_str = cr['cr']  # Use base CR, not lair CR
-        else:
-            cr_str = cr
-            
-        if '/' in cr_str:
-            numerator, denominator = cr_str.split('/')
-            cr_numeric = float(numerator) / float(denominator)
-        else:
-            cr_numeric = float(cr_str)
+        cr_str = str(cr)
         
-        # Extract HP data
-        hp_data = monster.get('hp', {})
-        average_hp = hp_data.get('average', 8)  # Default to 8 if no HP data
-        hp_formula = hp_data.get('formula', '1d8')  # Default formula
+        # Handle complex CR data that might be stringified JSON
+        if cr_str.startswith('{') and 'cr' in cr_str:
+            try:
+                import json
+                cr_data = json.loads(cr_str)
+                cr_str = cr_data.get('cr', '0')
+            except:
+                cr_str = '0'
+        elif isinstance(cr, dict):
+            cr_str = cr.get('cr', '0')
+        
+        # Parse fractional CRs
+        try:
+            if '/' in cr_str:
+                numerator, denominator = cr_str.split('/')
+                cr_numeric = float(numerator) / float(denominator)
+            else:
+                cr_numeric = float(cr_str)
+        except (ValueError, TypeError):
+            cr_numeric = 0
+        
+        # HP is stored directly as a number from the migration
+        average_hp = monster_row[7] if monster_row[7] else 8  # hit_points column
+        hp_formula = '1d8'  # Default formula - could be enhanced later
         
         monsters.append({
             "name": monster['name'],
@@ -67,6 +87,7 @@ def load_monsters():
             "hp_formula": hp_formula
         })
     
+    conn.close()
     return monsters
 
 # Load monster database from JSON

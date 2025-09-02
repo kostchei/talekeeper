@@ -1477,31 +1477,30 @@ class EncounterPanel(QWidget):
         self.fighting_style_combo = QComboBox()
         self.fighting_style_combo.addItem("Select a Fighting Style...", None)
         
-        # Load Fighting Style feats from feats_srd.json  
+        # Load Fighting Style feats from database
         try:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(current_dir)
-            feats_file = os.path.join(project_root, "data", "feats_srd.json")
-            
-            with open(feats_file, 'r') as f:
-                feats_data = json.load(f)
-            
-            feats = feats_data.get('feat', [])
-            
-            # Filter for Fighting Style feats (those that require "Fighting Style" feature)
-            fighting_style_feats = []
-            for feat in feats:
-                prereqs = feat.get('prerequisite', [])
-                for prereq in prereqs:
-                    if isinstance(prereq, dict) and 'feature' in prereq:
-                        if 'Fighting Style' in prereq['feature']:
-                            fighting_style_feats.append(feat)
-                            break
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            # Get all Fighting Style feats by category
+            cursor.execute("SELECT * FROM feats WHERE category = 'fighting_style' ORDER BY name")
+            feats_rows = cursor.fetchall()
             
             # Add Fighting Style feats to combo box
-            for feat in fighting_style_feats:
-                feat_name = feat.get('name', 'Unknown Feat')
-                self.fighting_style_combo.addItem(feat_name, feat)
+            for feat_row in feats_rows:
+                feat_data = {
+                    'name': feat_row[1],
+                    'description': feat_row[2],
+                    'prerequisites': json.loads(feat_row[3]),
+                    'ability_score_increases': json.loads(feat_row[4]),
+                    'benefits': json.loads(feat_row[5]),
+                    'category': feat_row[7] if len(feat_row) > 7 else 'fighting_style',
+                    'entries': [feat_row[2]] if feat_row[2] else []
+                }
+                feat_name = feat_data.get('name', 'Unknown Feat')
+                self.fighting_style_combo.addItem(feat_name, feat_data)
+            
+            conn.close()
                 
         except Exception as e:
             print(f"Error loading Fighting Style feats: {e}")
@@ -1654,15 +1653,30 @@ class EncounterPanel(QWidget):
                 item.setData(Qt.ItemDataRole.UserRole, bg_data)
                 self.background_list.addItem(item)
             
-            # Load species/races
-            races_file = os.path.join(project_root, "data", "races.json")
-            with open(races_file, 'r') as f:
-                races_data = json.load(f)
+            # Load species/races from database
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM races ORDER BY display_order, name")
+            races_rows = cursor.fetchall()
             
-            for race_data in races_data:
+            for race_row in races_rows:
+                race_data = {
+                    'id': race_row[0],
+                    'name': race_row[1], 
+                    'description': race_row[2],
+                    'size': race_row[3],
+                    'speed': race_row[4],
+                    'ability_score_increases': json.loads(race_row[5]),
+                    'traits': json.loads(race_row[6]),
+                    'languages': json.loads(race_row[7]),
+                    'subraces': json.loads(race_row[8])
+                }
                 item = QListWidgetItem(race_data['name'])
                 item.setData(Qt.ItemDataRole.UserRole, race_data)
                 self.species_list.addItem(item)
+            
+            conn.close()
                 
         except Exception as e:
             print(f"Error loading background/species data: {e}")
@@ -1670,15 +1684,27 @@ class EncounterPanel(QWidget):
             traceback.print_exc()
     
     def _load_feats_data(self):
-        """Load available feats from feats_srd.json."""
+        """Load available feats from database."""
         try:
-            # Get the absolute path to the scripts directory 
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(current_dir)
-            feats_file = os.path.join(project_root, "data", "feats_srd.json")
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM feats ORDER BY name")
+            feats_rows = cursor.fetchall()
             
-            with open(feats_file, 'r', encoding='utf-8') as f:
-                feats_data = json.load(f)
+            # Create feats_data structure to match existing code
+            feats_data = {"feat": []}
+            for feat_row in feats_rows:
+                feat_data = {
+                    'name': feat_row[1],
+                    'description': feat_row[2],
+                    'prerequisites': json.loads(feat_row[3]),
+                    'ability_score_increases': json.loads(feat_row[4]),
+                    'benefits': json.loads(feat_row[5])
+                }
+                feats_data["feat"].append(feat_data)
+            
+            conn.close()
             
             if 'feat' in feats_data:
                 return feats_data['feat']

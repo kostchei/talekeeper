@@ -73,12 +73,14 @@ def main():
             logger.warning(f"Font file not found at {font_path}")
             app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
-        # Check required data files exist
+        # Check database exists (JSON files now migrated to database)
+        if not Path("talekeeper.db").exists():
+            print("ERROR: talekeeper.db not found")
+            print("Please run the migration script to set up the database")
+            return
+        
+        # Check critical equipment data still exists (hasn't been migrated yet)
         required_data_files = [
-            "data/races.json",
-            "data/classes.json", 
-            "data/backgrounds.json",
-            "data/monsters_full.json",
             "data/equipment.json"
         ]
         

@@ -225,7 +225,7 @@ class ActionPanel(QWidget):
         
         # Create main hand weapon card
         main_hand = self.equipped_weapons.get('main_hand')
-        if main_hand:
+        if main_hand and main_hand.get('item_type') == 'weapon':
             weapon_name = main_hand.get('name', 'Weapon')
             hit_bonus = self._calculate_hit_bonus(main_hand, 'main_hand')
             damage = self._format_damage(main_hand)
@@ -1534,28 +1534,29 @@ class ActionPanel(QWidget):
             print(f"Error rolling initiative: {e}")
     
     def _load_monster_data(self) -> Dict[str, Dict]:
-        """Load monster data from monsters_full.json for stats lookups."""
+        """Load monster data from database for stats lookups."""
         try:
+            import sqlite3
             import json
-            from pathlib import Path
             
-            # Get project root and load monster data
-            project_root = Path(__file__).parent.parent
-            monsters_file = project_root / "data" / "monsters_full.json"
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM monsters")
+            monster_rows = cursor.fetchall()
             
-            if monsters_file.exists():
-                with open(monsters_file, 'r') as f:
-                    data = json.load(f)
-                    
-                # Create lookup dict by monster name
-                monster_lookup = {}
-                for monster in data.get('monster', []):
-                    monster_lookup[monster['name']] = monster
-                
-                return monster_lookup
-            else:
-                print(f"Monster data file not found: {monsters_file}")
-                return {}
+            # Create lookup dict by monster name
+            monster_lookup = {}
+            for monster_row in monster_rows:
+                monster_data = {
+                    'name': monster_row[1],
+                    'dex': monster_row[10] if monster_row[10] else 10,  # dexterity from database
+                    'type': {'type': monster_row[2]},  # Maintain expected structure
+                    'cr': monster_row[15]
+                }
+                monster_lookup[monster_row[1]] = monster_data
+            
+            conn.close()
+            return monster_lookup
                 
         except Exception as e:
             print(f"Error loading monster data: {e}")
