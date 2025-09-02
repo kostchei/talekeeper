@@ -687,6 +687,10 @@ class ActionPanel(QWidget):
                 elif action_type == ActionType.USE_POTION:
                     self._use_healing_potion(full_context)
                 
+                # Handle rest actions
+                elif action_type == ActionType.REST:
+                    self._handle_rest_action(full_context)
+                
                 # Handle class features
                 elif action_type == ActionType.RAGE:
                     self._use_rage()
@@ -3325,6 +3329,266 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
             except Exception as e:
                 print(f"Error logging lay on hands: {e}")
+    
+    def _handle_rest_action(self, context: Dict[str, Any]):
+        """Handle rest action - prompt for short or long rest."""
+        try:
+            # Create a simple dialog to choose rest type
+            from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+            
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Take a Rest")
+            dialog.setModal(True)
+            dialog.resize(400, 200)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Title
+            title = QLabel("Choose rest type:")
+            title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+            layout.addWidget(title)
+            
+            # Description
+            desc = QLabel("Short Rest: Recover some abilities and HP\nLong Rest: Recover all abilities, spell slots, and HP")
+            desc.setStyleSheet("color: #cccccc; margin-bottom: 15px;")
+            layout.addWidget(desc)
+            
+            # Buttons
+            button_layout = QHBoxLayout()
+            
+            short_rest_btn = QPushButton("Short Rest (1 hour)")
+            short_rest_btn.clicked.connect(lambda: self._take_short_rest(dialog))
+            short_rest_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4a7c59;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #5a8c69;
+                }
+            """)
+            button_layout.addWidget(short_rest_btn)
+            
+            long_rest_btn = QPushButton("Long Rest (8 hours)")
+            long_rest_btn.clicked.connect(lambda: self._take_long_rest(dialog))
+            long_rest_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #5c4a7c;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #6c5a8c;
+                }
+            """)
+            button_layout.addWidget(long_rest_btn)
+            
+            cancel_btn = QPushButton("Cancel")
+            cancel_btn.clicked.connect(dialog.reject)
+            cancel_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #666666;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #777777;
+                }
+            """)
+            button_layout.addWidget(cancel_btn)
+            
+            layout.addLayout(button_layout)
+            dialog.exec()
+            
+        except Exception as e:
+            print(f"Error handling rest action: {e}")
+    
+    def _take_short_rest(self, dialog):
+        """Execute short rest."""
+        try:
+            dialog.accept()
+            
+            # Log start of rest
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("😴 Taking a Short Rest (1 hour)...")
+                    break
+                parent = parent.parent()
+            
+            # Save XP to database
+            self._save_character_xp()
+            
+            # Restore short rest abilities
+            self._restore_short_rest_abilities()
+            
+            # Allow hit die recovery (simplified - just heal some HP)
+            self._short_rest_healing()
+            
+            # Log completion
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("✨ Short Rest completed! Some abilities and HP restored.")
+                    break
+                parent = parent.parent()
+            
+        except Exception as e:
+            print(f"Error during short rest: {e}")
+    
+    def _take_long_rest(self, dialog):
+        """Execute long rest."""
+        try:
+            dialog.accept()
+            
+            # Log start of rest
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("😴 Taking a Long Rest (8 hours)...")
+                    break
+                parent = parent.parent()
+            
+            # Save XP to database
+            self._save_character_xp()
+            
+            # Restore all abilities
+            self._restore_all_abilities()
+            
+            # Full healing
+            self._long_rest_healing()
+            
+            # Log completion
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("✨ Long Rest completed! All abilities, spell slots, and HP fully restored.")
+                    break
+                parent = parent.parent()
+            
+        except Exception as e:
+            print(f"Error during long rest: {e}")
+    
+    def _save_character_xp(self):
+        """Save character XP to database."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    if character:
+                        success = game_engine.save_character_sync()
+                        if success:
+                            parent.log_panel.log_combat("💾 Character progress saved to database")
+                        else:
+                            parent.log_panel.log_combat("❌ Failed to save character progress")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error saving character XP: {e}")
+    
+    def _restore_short_rest_abilities(self):
+        """Restore abilities that recharge on short rest."""
+        try:
+            # Restore Second Wind
+            if self._has_class_feature('Second Wind'):
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'game_engine'):
+                        game_engine = parent.game_engine
+                        if game_engine.current_character:
+                            # Reset Second Wind uses (normally 1 per short rest)
+                            game_engine.update_character_resources_sync(
+                                game_engine.current_character.id,
+                                {"Second Wind": {"uses_remaining": 1, "max_uses": 1}}
+                            )
+                        break
+                    parent = parent.parent()
+                    
+            # Restore Action Surge (Fighter level 2+)
+            if self._has_class_feature('Action Surge'):
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'game_engine'):
+                        game_engine = parent.game_engine
+                        if game_engine.current_character:
+                            game_engine.update_character_resources_sync(
+                                game_engine.current_character.id,
+                                {"Action Surge": {"uses_remaining": 1, "max_uses": 1}}
+                            )
+                        break
+                    parent = parent.parent()
+                    
+        except Exception as e:
+            print(f"Error restoring short rest abilities: {e}")
+    
+    def _restore_all_abilities(self):
+        """Restore all abilities (long rest)."""
+        try:
+            # First restore short rest abilities
+            self._restore_short_rest_abilities()
+            
+            # Restore spell slots (if any)
+            # TODO: Implement spell slot restoration when spellcasting is added
+            
+            # Restore other long rest abilities
+            # TODO: Add class-specific long rest abilities like rage, lay on hands, etc.
+            
+        except Exception as e:
+            print(f"Error restoring all abilities: {e}")
+    
+    def _short_rest_healing(self):
+        """Allow hit die healing during short rest."""
+        try:
+            # Simplified hit die healing - just heal some HP
+            current_hp = self.character_context.get('hit_points_current', 0)
+            max_hp = self.character_context.get('hit_points_max', 0)
+            
+            if current_hp < max_hp:
+                # Use hit die (1d10 for most classes, simplified)
+                import random
+                constitution_mod = (self.character_context.get('constitution', 10) - 10) // 2
+                hit_die_roll = random.randint(1, 10)
+                healing = hit_die_roll + constitution_mod
+                healing = max(1, healing)  # Minimum 1 HP
+                
+                new_hp = self._apply_healing_to_player(healing)
+                
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"🎲 Hit Die: 1d10+{constitution_mod} = {hit_die_roll}+{constitution_mod} = {healing} HP healed")
+                        break
+                    parent = parent.parent()
+                    
+        except Exception as e:
+            print(f"Error during short rest healing: {e}")
+    
+    def _long_rest_healing(self):
+        """Full healing during long rest."""
+        try:
+            max_hp = self.character_context.get('hit_points_max', 0)
+            old_hp = self.character_context.get('hit_points_current', 0)
+            
+            if old_hp < max_hp:
+                self._apply_healing_to_player(max_hp - old_hp)  # Heal to full
+                
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"💚 Fully healed to {max_hp} HP")
+                        break
+                    parent = parent.parent()
+                    
+        except Exception as e:
+            print(f"Error during long rest healing: {e}")
     
     def _get_spell_slots(self, level: int) -> int:
         """Get available spell slots of given level."""

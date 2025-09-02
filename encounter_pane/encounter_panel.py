@@ -2907,15 +2907,16 @@ class EncounterPanel(QWidget):
                     if character:
                         # Add XP to character
                         old_xp = character.experience_points
-                        character.experience_points += xp_value
+                        new_xp = old_xp + xp_value
                         
-                        # TODO: Check for level up
-                        # level_up_xp = [300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 
-                        #                100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000]
-                        
-                        # Save character to database
-                        # TODO: Add character save method to game engine
-                        print(f"Character XP updated: {old_xp} -> {character.experience_points} (+{xp_value})")
+                        # Save XP to database immediately
+                        success = game_engine.update_character_xp_sync(character.id, new_xp)
+                        if success:
+                            print(f"Character XP saved to database: {old_xp} -> {new_xp} (+{xp_value})")
+                        else:
+                            print(f"Failed to save XP to database, keeping in memory only")
+                            # Still update in memory as fallback
+                            character.experience_points = new_xp
                         
                         return
                     break

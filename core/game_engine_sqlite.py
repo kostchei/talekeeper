@@ -558,9 +558,17 @@ class GameEngineSQLite:
     
     def save_game_sync(self):
         """Save current game state."""
-        # Placeholder for saving game state
         if self.current_character:
-            print(f"Would save game state for {self.current_character.name}")
+            success = self.save_character_sync()
+            if success:
+                print(f"[SQLite] Saved game state for {self.current_character.name}")
+                return True
+            else:
+                print(f"[SQLite] Failed to save game state for {self.current_character.name}")
+                return False
+        else:
+            print("[SQLite] No current character to save")
+            return False
     
     def delete_character_sync(self, save_slot: int) -> bool:
         """Delete character from save slot."""
@@ -1681,6 +1689,72 @@ class GameEngineSQLite:
         """Perform automatic save (just calls save_game_sync)."""
         self.save_game_sync()
     
+    def update_character_xp_sync(self, character_id: str, new_xp: int) -> bool:
+        """Update character's experience points in the database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    UPDATE characters 
+                    SET experience_points = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                """, (new_xp, character_id))
+                
+                success = cursor.rowcount > 0
+                if success:
+                    print(f"[SQLite] Updated character {character_id} XP to {new_xp}")
+                    
+                    # Also update the current character in memory if it's the same one
+                    if self.current_character and self.current_character.id == character_id:
+                        self.current_character.experience_points = new_xp
+                        
+                return success
+                
+        except Exception as e:
+            print(f"[SQLite] Error updating character XP: {e}")
+            return False
+    
+    def save_character_sync(self, character_id: str = None) -> bool:
+        """Save current character or specified character to database."""
+        try:
+            character = None
+            if character_id:
+                # Load specific character (not implemented for now)
+                return False
+            elif self.current_character:
+                character = self.current_character
+            else:
+                return False
+                
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    UPDATE characters SET
+                        name = ?, level = ?, experience_points = ?,
+                        strength = ?, dexterity = ?, constitution = ?,
+                        intelligence = ?, wisdom = ?, charisma = ?,
+                        armor_class = ?, hit_points_max = ?, hit_points_current = ?,
+                        hit_points_temporary = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                """, (
+                    character.name, character.level, character.experience_points,
+                    character.strength, character.dexterity, character.constitution,
+                    character.intelligence, character.wisdom, character.charisma,
+                    character.armor_class, character.hit_points_max, character.hit_points_current,
+                    character.hit_points_temporary, character.id
+                ))
+                
+                success = cursor.rowcount > 0
+                if success:
+                    print(f"[SQLite] Saved character {character.name} (ID: {character.id})")
+                return success
+                
+        except Exception as e:
+            print(f"[SQLite] Error saving character: {e}")
+            return False
+
     def shutdown(self):
         """Clean shutdown of game engine."""
         try:
