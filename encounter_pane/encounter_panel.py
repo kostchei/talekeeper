@@ -1700,7 +1700,8 @@ class EncounterPanel(QWidget):
                     'description': feat_row[2],
                     'prerequisites': json.loads(feat_row[3]),
                     'ability_score_increases': json.loads(feat_row[4]),
-                    'benefits': json.loads(feat_row[5])
+                    'benefits': json.loads(feat_row[5]),
+                    'category': feat_row[7] if len(feat_row) > 7 else 'general'
                 }
                 feats_data["feat"].append(feat_data)
             
@@ -1738,35 +1739,10 @@ class EncounterPanel(QWidget):
                 feat_name = feat.get('name', 'Unknown Feat')
                 feat_category = feat.get('category', '')
                 
-                # Include only Origin feats (O) - Fighting Styles are class features, not origin feats
+                # Include only Origin feats (category = 'O') - no fallbacks
                 if feat_category == 'O':
                     self.background_feat_combo.addItem(feat_name, feat)
                     self.species_feat_combo.addItem(feat_name, feat)
-                elif not feat_category:  # Handle feats with no category
-                    # Check if they have level prerequisites
-                    prereqs = feat.get('prerequisite', [])
-                    has_level_req = any('level' in req for req in prereqs if isinstance(req, dict))
-                    if not has_level_req:
-                        self.background_feat_combo.addItem(feat_name, feat)
-                        self.species_feat_combo.addItem(feat_name, feat)
-                
-                # Also include feat versions (like Magic Initiate variants)
-                if '_versions' in feat:
-                    for version in feat['_versions']:
-                        version_name = version.get('name', 'Unknown Version')
-                        # Create a combined feat data with version-specific modifications
-                        version_feat = feat.copy()
-                        version_feat.update(version)
-                        version_feat['name'] = version_name
-                        
-                        # Check if this version is origin-appropriate
-                        version_category = version_feat.get('category', feat_category)
-                        if version_category == 'O' or not version_category:
-                            version_prereqs = version_feat.get('prerequisite', [])
-                            has_level_req = any('level' in req for req in version_prereqs if isinstance(req, dict))
-                            if not has_level_req:
-                                self.background_feat_combo.addItem(version_name, version_feat)
-                                self.species_feat_combo.addItem(version_name, version_feat)
             
             # Connect selection handlers
             self.background_feat_combo.currentIndexChanged.connect(self._on_feat_selected)
