@@ -1092,9 +1092,9 @@ class ActionPanel(QWidget):
         try:
             print(f"DEBUG: _trigger_monster_counter_attacks called, encounter_mode: {encounter_panel.encounter_mode}")
             
-            # Check if we're in combat mode and have living monsters
-            if encounter_panel.encounter_mode != "combat":
-                print(f"DEBUG: Not in combat mode, returning")
+            # Check if we're in combat/encounter mode and have living monsters
+            if encounter_panel.encounter_mode not in ["combat", "encounter"]:
+                print(f"DEBUG: Not in combat/encounter mode, returning")
                 return
             
             living_monsters = encounter_panel.get_living_monsters()
