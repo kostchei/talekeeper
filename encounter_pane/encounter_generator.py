@@ -52,12 +52,23 @@ def load_monsters():
         cr = monster['cr']
         cr_str = str(cr)
         
-        # Handle complex CR data that might be stringified JSON
+        # Handle complex CR data that might be stringified JSON or Python dict
         if cr_str.startswith('{') and 'cr' in cr_str:
             try:
                 import json
+                # First try standard JSON parsing
                 cr_data = json.loads(cr_str)
                 cr_str = cr_data.get('cr', '0')
+            except json.JSONDecodeError:
+                try:
+                    # If JSON fails, try eval for Python dict syntax (safe for simple dicts)
+                    cr_data = eval(cr_str)
+                    if isinstance(cr_data, dict):
+                        cr_str = cr_data.get('cr', '0')
+                    else:
+                        cr_str = '0'
+                except:
+                    cr_str = '0'
             except:
                 cr_str = '0'
         elif isinstance(cr, dict):

@@ -112,6 +112,8 @@ The game creates configuration files automatically:
 ToDo
 Check 2 weapon fighting, dueling, defense, 
 Check graze, nick, vex, sap,
-Check encounter distribution 40% low, 50% medium, 10% hard
-Check loot- everything gets "personal loot" low 5% get hoards, medium have 20% hoards, hard have 95% hoards 
+level progression
+towns for selling stuff
+items on monsters for use
+training costs
 
