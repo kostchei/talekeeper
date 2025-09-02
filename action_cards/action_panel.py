@@ -774,7 +774,7 @@ class ActionPanel(QWidget):
             mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=False, damage_total=0, context=context)
             
             # Apply any miss-based damage (like Graze)
-            graze_damage = mastery_effects.get('graze_damage', {}).get('damage', 0)
+            graze_damage = mastery_effects.get('graze_damage', 0)
             if graze_damage > 0:
                 encounter_panel._apply_damage_to_monster(target_id, graze_damage)
             
@@ -997,6 +997,9 @@ class ActionPanel(QWidget):
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, total_damage)
             
+            # Apply weapon mastery effects on hit
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=total_damage, context=context)
+            
             # Log to combat panel
             parent = self.parent()
             while parent:
@@ -1010,7 +1013,15 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
         else:
-            # Miss - just log attack
+            # Apply weapon mastery effects on miss (like Graze)
+            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=False, damage_total=0, context=context)
+            
+            # Apply any miss-based damage (like Graze)
+            graze_damage = mastery_effects.get('graze_damage', 0)
+            if graze_damage > 0:
+                encounter_panel._apply_damage_to_monster(target_id, graze_damage)
+            
+            # Miss - log attack
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -2804,17 +2815,14 @@ class ActionPanel(QWidget):
         
         # Step 1: Check if weapon has mastery
         mastery_name = self._get_weapon_mastery(weapon_name)
-        print(f"[DEBUG] Weapon {weapon_name} has mastery: {mastery_name}")
         if not mastery_name:
             return {}
         
         # Step 2: Check if character has Weapon Mastery feature
         if not self._character_has_weapon_mastery_feature():
-            print(f"[DEBUG] Character lacks Weapon Mastery feature - no mastery effects")
             return {}
         
         # Step 3: Apply the mastery effect
-        print(f"[DEBUG] Applying {mastery_name} mastery for {weapon_name} (hit: {hit})")
         return self._apply_mastery_effect(mastery_name, hit, context)
     
     def _get_weapon_mastery(self, weapon_name: str) -> str:
@@ -2825,8 +2833,8 @@ class ActionPanel(QWidget):
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT mastery_name FROM weapon_mastery_properties 
-                WHERE weapon_name = ?
+                SELECT weapon_mastery FROM equipment 
+                WHERE name = ?
             """, (weapon_name,))
             
             result = cursor.fetchone()
@@ -2839,31 +2847,15 @@ class ActionPanel(QWidget):
             return None
     
     def _character_has_weapon_mastery_feature(self) -> bool:
-        """Check if character has Weapon Mastery feature."""
-        character_id = self.character_context.get('id')
-        if not character_id:
-            print(f"[DEBUG] No character ID found")
+        """Check if character class gets weapon masteries (Fighter, Rogue, Barbarian, Paladin)."""
+        if not self.character_context:
             return False
         
-        try:
-            import sqlite3
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT 1 FROM character_features 
-                WHERE character_id = ? AND feature_name = 'Weapon Mastery'
-            """, (character_id,))
-            
-            has_mastery = cursor.fetchone() is not None
-            conn.close()
-            
-            print(f"[DEBUG] Character {character_id} has Weapon Mastery feature: {has_mastery}")
-            return has_mastery
-            
-        except Exception as e:
-            print(f"[DEBUG] Error checking Weapon Mastery feature: {e}")
-            return False
+        # Check character's class
+        class_id = self.character_context.get('class_id', '').lower()
+        mastery_classes = ['fighter', 'rogue', 'barbarian', 'paladin']
+        
+        return class_id in mastery_classes
     
     def _apply_mastery_effect(self, mastery_name: str, hit: bool, context: Dict[str, Any]) -> Dict[str, Any]:
         """Apply the specific mastery effect."""
@@ -2873,7 +2865,8 @@ class ActionPanel(QWidget):
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT trigger_type, description, requires_save, save_ability
+                SELECT trigger_condition, description, requires_save, save_ability, 
+                       save_dc_formula, damage_formula, special_effects
                 FROM weapon_masteries WHERE name = ?
             """, (mastery_name,))
             
@@ -2883,74 +2876,91 @@ class ActionPanel(QWidget):
             if not mastery_data:
                 return {}
             
-            trigger_type, description, requires_save, save_ability = mastery_data
+            trigger_condition, description, requires_save, save_ability, save_dc_formula, damage_formula, special_effects = mastery_data
             
             # Check if mastery should trigger
             should_trigger = (
-                (trigger_type == 'on_hit' and hit) or
-                (trigger_type == 'on_miss' and not hit) or
-                (trigger_type == 'on_attack')  # Always triggers
+                (trigger_condition == 'on_hit' and hit) or
+                (trigger_condition == 'on_miss' and not hit) or
+                (trigger_condition == 'on_attack')  # Always triggers
             )
             
             if not should_trigger:
                 return {}
             
-            effects = {}
-            
-            # Apply specific mastery effects
-            if mastery_name == "Graze" and not hit:
-                ability_mod = context.get('strength', 10)
-                ability_mod = (ability_mod - 10) // 2
-                if ability_mod > 0:
-                    effects['graze_damage'] = {
-                        'damage': ability_mod,
-                        'description': f"Graze: {ability_mod} damage on miss"
-                    }
-            
-            elif mastery_name == "Topple" and hit:
-                dc = 8 + 2 + ((context.get('strength', 10) - 10) // 2)  # 8 + prof + ability mod
-                effects['topple'] = {
-                    'save_dc': dc,
-                    'description': f"Topple: Constitution save DC {dc} or prone"
-                }
-            
-            elif mastery_name == "Sap" and hit:
-                effects['sap'] = {
-                    'description': "Sap: Target has disadvantage on next attack roll"
-                }
-            
-            elif mastery_name == "Push" and hit:
-                effects['push'] = {
-                    'distance': 10,
-                    'description': "Push: Target pushed up to 10 feet away"
-                }
-            
-            elif mastery_name == "Slow" and hit:
-                effects['slow'] = {
-                    'speed_reduction': 10,
-                    'description': "Slow: Target's speed reduced by 10 feet until start of your next turn"
-                }
-            
-            elif mastery_name == "Vex" and hit:
-                effects['vex'] = {
-                    'description': "Vex: Advantage on next attack against this target"
-                }
-            
-            elif mastery_name == "Cleave" and hit:
-                effects['cleave'] = {
-                    'description': "Cleave: Can attack second creature within 5 feet"
-                }
-            
-            elif mastery_name == "Nick":
-                effects['nick'] = {
-                    'description': "Nick: Light weapon extra attack as part of Attack action"
-                }
-            
-            return effects
+            # Apply the mastery effect based on its special_effects
+            return self._execute_mastery_effect(mastery_name, special_effects, context, requires_save, save_ability, save_dc_formula, damage_formula)
             
         except Exception as e:
             print(f"Error applying mastery effect for {mastery_name}: {e}")
             return {}
+    
+    def _execute_mastery_effect(self, mastery_name: str, special_effects: str, context: Dict[str, Any], 
+                               requires_save: bool, save_ability: str, save_dc_formula: str, 
+                               damage_formula: str) -> Dict[str, Any]:
+        """Execute the specific mastery effect."""
+        effects = {}
+        
+        try:
+            if special_effects == 'damage_on_miss':  # Graze
+                # Deal ability modifier damage on miss
+                ability_mod = (context.get('strength', 10) - 10) // 2
+                if context.get('finesse'):  # Use DEX if finesse weapon
+                    ability_mod = max(ability_mod, (context.get('dexterity', 10) - 10) // 2)
+                
+                if ability_mod > 0:  # Only positive modifiers
+                    effects['graze_damage'] = ability_mod
+                    self._log_mastery_effect("Graze", f"Deals {ability_mod} damage on miss")
+            
+            elif special_effects == 'extra_attack_adjacent':  # Cleave
+                effects['cleave'] = True
+                self._log_mastery_effect("Cleave", "Can attack second creature within 5 feet")
+            
+            elif special_effects == 'light_attack_as_action':  # Nick
+                effects['nick'] = True
+                self._log_mastery_effect("Nick", "Light weapon extra attack as part of Attack action")
+            
+            elif special_effects == 'push_10_feet':  # Push
+                effects['push'] = 10
+                self._log_mastery_effect("Push", "Target pushed up to 10 feet away")
+            
+            elif special_effects == 'disadvantage_next_attack':  # Sap
+                effects['sap'] = True
+                self._log_mastery_effect("Sap", "Target has disadvantage on next attack")
+            
+            elif special_effects == 'reduce_speed_10':  # Slow
+                effects['slow'] = 10
+                self._log_mastery_effect("Slow", "Target's speed reduced by 10 feet")
+            
+            elif special_effects == 'prone_on_failed_save':  # Topple
+                # Calculate save DC: 8 + ability modifier + proficiency bonus
+                ability_mod = (context.get('strength', 10) - 10) // 2
+                if context.get('finesse'):  # Use DEX if finesse weapon
+                    ability_mod = max(ability_mod, (context.get('dexterity', 10) - 10) // 2)
+                
+                prof_bonus = 2  # TODO: Get from character level
+                save_dc = 8 + ability_mod + prof_bonus
+                
+                effects['topple_dc'] = save_dc
+                self._log_mastery_effect("Topple", f"Constitution save DC {save_dc} or prone")
+            
+            elif special_effects == 'advantage_next_attack':  # Vex
+                effects['vex'] = True
+                self._log_mastery_effect("Vex", "Advantage on next attack against this target")
+        
+        except Exception as e:
+            print(f"Error executing mastery effect {mastery_name}: {e}")
+        
+        return effects
+    
+    def _log_mastery_effect(self, mastery_name: str, description: str):
+        """Log mastery effect to combat log."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[WEAPON MASTERY] {mastery_name}: {description}")
+                break
+            parent = parent.parent()
     
     def _log_weapon_mastery_effects(self, mastery_effects: Dict[str, Any]):
         """Log weapon mastery effects to combat log."""
