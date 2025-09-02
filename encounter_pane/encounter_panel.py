@@ -28,7 +28,277 @@ import os
 import random
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
-from models.monsters_indexeddb import EncounterInstance, Encounter
+# Monster models no longer needed - using direct SQL queries and local dataclasses
+from dataclasses import dataclass, field
+from typing import Any, Optional, Dict
+from datetime import datetime
+
+
+@dataclass
+class CombatSession:
+    """Simple combat session for action economy tracking."""
+    id: str = field(default_factory=lambda: str(uuid4()))
+    character_id: str = ""
+    
+    # Combat state
+    is_active: bool = True
+    current_round: int = 1
+    current_turn: int = 0
+    
+    # Action Economy
+    action_economy: Optional[Any] = None  # CombatActionEconomy imported when needed
+    
+    # Metadata
+    started_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    ended_at: Optional[str] = None
+    
+    def start_combat_with_action_economy(self, character_id: str):
+        """Initialize combat session with action economy tracking."""
+        from models.action_economy import CombatActionEconomy
+        
+        self.character_id = character_id
+        self.current_round = 1
+        self.current_turn = 0
+        
+        # Create action economy tracker
+        self.action_economy = CombatActionEconomy(
+            combat_session_id=self.id,
+            current_round=1,
+            current_turn=0,
+            turn_order=[character_id]  # Simple single-player combat
+        )
+        
+        # Add character to action economy
+        self.action_economy.add_combatant(
+            combatant_id=character_id,
+            name="Player",
+            combatant_type="character",
+            movement_speed=30,
+            has_action_surge=False
+        )
+        
+        self.is_active = True
+    
+    def can_take_action(self, combatant_id: str, action_type: str) -> bool:
+        """Check if a combatant can take a specific type of action."""
+        if not self.action_economy:
+            return True  # No restrictions if action economy not initialized
+        
+        from models.action_economy import ActionEconomyType
+        
+        # Map action type strings to ActionEconomyType
+        action_type_mapping = {
+            "action": ActionEconomyType.ACTION,
+            "bonus_action": ActionEconomyType.BONUS_ACTION,
+            "reaction": ActionEconomyType.REACTION,
+            "movement": ActionEconomyType.MOVEMENT,
+            "free_action": ActionEconomyType.FREE_ACTION
+        }
+        
+        economy_type = action_type_mapping.get(action_type.lower())
+        if not economy_type:
+            return True  # Unknown action types are allowed
+        
+        state = self.action_economy.get_combatant_state(combatant_id)
+        return state.can_take_action(economy_type) if state else False
+    
+    def use_action(self, combatant_id: str, action_type: str, action_name: str, action_data: Dict = None) -> bool:
+        """Attempt to use an action and record it."""
+        if not self.action_economy:
+            return True
+        
+        from models.action_economy import ActionEconomyType
+        
+        # Map action type strings to ActionEconomyType
+        action_type_mapping = {
+            "action": ActionEconomyType.ACTION,
+            "bonus_action": ActionEconomyType.BONUS_ACTION,
+            "reaction": ActionEconomyType.REACTION,
+            "movement": ActionEconomyType.MOVEMENT,
+            "free_action": ActionEconomyType.FREE_ACTION
+        }
+        
+        economy_type = action_type_mapping.get(action_type.lower())
+        if not economy_type:
+            economy_type = ActionEconomyType.FREE_ACTION
+        
+        # Try to use the action
+        return self.action_economy.use_action(combatant_id, economy_type, action_name, action_data or {})
+
+
+@dataclass
+class Encounter:
+    """Simple dataclass to replace the IndexedDB Encounter model."""
+    id: str = field(default_factory=lambda: str(uuid4()))
+    character_id: str = ""
+    
+    # Encounter metadata
+    encounter_level: int = 1
+    difficulty: str = "low"
+    total_xp_budget: int = 0
+    
+    # Status tracking - REQUIRED for _save_encounter_to_db
+    status: str = "active"  # active, completed, abandoned
+    is_combat: bool = False
+    rounds_elapsed: int = 0
+    
+    # Initiative tracking
+    initiative_rolled: bool = False
+    current_turn: int = 0
+    player_initiative: Optional[int] = None
+    
+    # XP and rewards
+    xp_awarded: int = 0
+    xp_pending: int = 0
+    monsters_defeated: int = 0
+    monsters_total: int = 0
+    
+    # Timestamps
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: Optional[str] = None
+    
+    @property
+    def is_complete(self) -> bool:
+        """Check if encounter is completed."""
+        return self.status == "completed" or self.monsters_defeated >= self.monsters_total
+    
+    def complete_encounter(self):
+        """Mark encounter as completed."""
+        self.status = "completed"
+        self.updated_at = datetime.now().isoformat()
+    
+    def add_defeated_monster(self, xp_value: int):
+        """Add a defeated monster to the encounter."""
+        self.monsters_defeated += 1
+        self.xp_awarded += xp_value
+        self.xp_pending -= xp_value
+        
+        # Check if encounter is complete
+        if self.monsters_defeated >= self.monsters_total:
+            self.complete_encounter()
+    
+    @classmethod
+    def from_encounter_data(cls, encounter_data: Dict[str, Any], character_id: str):
+        """Create an Encounter from encounter data."""
+        total_xp = sum(m.get('xp', 0) for m in encounter_data.get('monsters', []))
+        monster_count = len(encounter_data.get('monsters', []))
+        
+        return cls(
+            character_id=character_id,
+            encounter_level=encounter_data.get('level', 1),
+            difficulty=encounter_data.get('difficulty', 'low'),
+            total_xp_budget=encounter_data.get('total_xp', total_xp),
+            status="active",
+            is_combat=False,
+            xp_awarded=0,
+            xp_pending=total_xp,
+            monsters_defeated=0,
+            monsters_total=monster_count
+        )
+
+
+@dataclass
+class EncounterInstance:
+    """Simple dataclass to replace the IndexedDB model."""
+    id: str = field(default_factory=lambda: str(uuid4()))
+    encounter_id: str = ""
+    
+    # Monster reference and current state
+    monster_name: str = ""
+    monster_cr: str = ""
+    monster_type: str = ""
+    monster_xp: int = 0
+    
+    # HP tracking
+    max_hit_points: int = 0
+    current_hit_points: int = 0
+    temporary_hit_points: int = 0
+    
+    # Combat state
+    is_alive: bool = True
+    conditions: List[str] = field(default_factory=list)
+    initiative: Optional[int] = None
+    
+    # Metadata
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: Optional[str] = None
+    
+    @property
+    def hp_percentage(self) -> float:
+        """Calculate HP percentage for health bar displays."""
+        if self.max_hit_points <= 0:
+            return 0
+        return (self.current_hit_points / self.max_hit_points) * 100
+    
+    @classmethod
+    def from_monster_data(cls, monster_data: Dict[str, Any], encounter_id: str, rolled_hp: Optional[int] = None):
+        """Create encounter instance from monster generator data."""
+        # Calculate HP from SRD data or use provided rolled HP
+        if rolled_hp is not None:
+            max_hp = rolled_hp
+        else:
+            # Use average HP from SRD data
+            max_hp = monster_data.get('average_hp', 8)  # Default fallback
+        
+        return cls(
+            encounter_id=encounter_id,
+            monster_name=monster_data['name'],
+            monster_cr=monster_data['cr_str'],
+            monster_type=monster_data['type'],
+            monster_xp=monster_data['xp'],
+            max_hit_points=max_hp,
+            current_hit_points=max_hp,
+            temporary_hit_points=0,
+            is_alive=True,
+            conditions=[],
+            initiative=None
+        )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            'id': self.id,
+            'monster_name': self.monster_name,
+            'monster_type': self.monster_type,
+            'monster_cr': self.monster_cr,
+            'current_hit_points': self.current_hit_points,
+            'max_hit_points': self.max_hit_points,
+            'hp_percentage': self.hp_percentage,
+            'is_alive': self.is_alive
+        }
+    
+    def take_damage(self, damage: int) -> int:
+        """Apply damage and return actual damage dealt."""
+        # Damage applies to temp HP first
+        if self.temporary_hit_points > 0:
+            if damage <= self.temporary_hit_points:
+                self.temporary_hit_points -= damage
+                return damage
+            else:
+                damage -= self.temporary_hit_points
+                self.temporary_hit_points = 0
+        
+        # Then regular HP
+        actual_damage = min(damage, self.current_hit_points)
+        self.current_hit_points -= actual_damage
+        
+        # Check if defeated
+        if self.current_hit_points <= 0:
+            self.current_hit_points = 0
+            self.is_alive = False
+        
+        self.updated_at = datetime.now().isoformat()
+        return actual_damage
+    
+    def heal(self, healing: int) -> int:
+        """Apply healing and return actual healing done."""
+        if not self.is_alive:
+            return 0  # Can't heal dead monsters
+            
+        actual_healing = min(healing, self.max_hit_points - self.current_hit_points)
+        self.current_hit_points += actual_healing
+        self.updated_at = datetime.now().isoformat()
+        return actual_healing
 
 
 class EncounterPanel(QWidget):
@@ -612,7 +882,55 @@ class EncounterPanel(QWidget):
         # self.mode_label.setText("In Combat")
         # self.mode_label.setStyleSheet("color: #ff4444; border-color: #ff4444;")
         self.content_tabs.setCurrentIndex(1)  # Encounters tab
+        
+        # Initialize combat session for action economy
+        self._init_combat_session()
+        
         self._update_action_buttons()
+    
+    def _init_combat_session(self):
+        """Initialize combat session and notify action panel."""
+        try:
+            # Get character ID
+            character_id = self._get_current_character_id()
+            if not character_id:
+                print("No character ID found for combat session")
+                return
+            
+            # Create combat session
+            combat_session = CombatSession()
+            combat_session.start_combat_with_action_economy(character_id)
+            
+            # Notify action panel about combat session
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel'):
+                    parent.action_panel.set_combat_session(combat_session, character_id)
+                    print(f"Combat session initialized for character {character_id}")
+                    break
+                parent = parent.parent()
+            else:
+                print("Could not find action panel to set combat session")
+                
+        except Exception as e:
+            print(f"Error initializing combat session: {e}")
+    
+    def _end_combat_session(self):
+        """End combat session and notify action panel."""
+        try:
+            # Notify action panel to end combat session
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel'):
+                    parent.action_panel.end_combat_session()
+                    print("Combat session ended")
+                    break
+                parent = parent.parent()
+            else:
+                print("Could not find action panel to end combat session")
+                
+        except Exception as e:
+            print(f"Error ending combat session: {e}")
     
     def _update_action_buttons(self):
         """Update button states based on current mode."""
@@ -2619,6 +2937,9 @@ class EncounterPanel(QWidget):
     def _show_post_combat_actions(self):
         """Add Loot and Short Rest action cards after the monster cards."""
         try:
+            # End combat session - combat is over
+            self._end_combat_session()
+            
             # Find the next available row (after existing monster cards)
             next_row = self.monsters_layout.rowCount()
             

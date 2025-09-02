@@ -572,7 +572,7 @@ class MainWindow(QMainWindow):
                 self.game_engine.save_game_sync()
                 character_name = self.game_engine.current_character.name
                 self.log_panel.log_info(f"Character '{character_name}' archived successfully!")
-                self.log_panel.log_system("Game state saved to IndexedDB")
+                self.log_panel.log_system("Game state saved to database")
             else:
                 self.log_panel.log_error("No active character to archive")
                 self.log_panel.log_info("Load or create a character first")

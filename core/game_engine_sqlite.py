@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from core.dtos import CharacterDTO, SaveSlotDTO
-from models.character_indexeddb import Character
+# Character model no longer needed - using direct SQL queries
 
 
 class GameEngineSQLite:
@@ -1077,3 +1077,319 @@ class GameEngineSQLite:
             print(f"[SQLite] Error calculating AC: {e}")
             # Fallback to basic calculation
             return 10 + ((dexterity - 10) // 2)
+    
+    def get_monsters_by_cr_sync(self, min_cr: float, max_cr: float) -> List[Dict[str, Any]]:
+        """Get monsters within CR range from JSON data files."""
+        try:
+            import json
+            import glob
+            monsters = []
+            
+            # Load monster data from JSON files
+            monster_files = glob.glob("data/monsters*.json")
+            for file_path in monster_files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        monster_data = json.load(f)
+                        
+                    # Handle different JSON structures
+                    if isinstance(monster_data, list):
+                        monsters.extend(monster_data)
+                    elif isinstance(monster_data, dict):
+                        if 'monsters' in monster_data:
+                            monsters.extend(monster_data['monsters'])
+                        else:
+                            monsters.append(monster_data)
+                            
+                except Exception as e:
+                    print(f"Error loading {file_path}: {e}")
+                    continue
+            
+            # Filter by CR range
+            matching_monsters = []
+            for monster in monsters:
+                cr = monster.get('challenge_rating', 0)
+                
+                # Handle different CR formats ("1/4", "1/2", etc.)
+                if isinstance(cr, str):
+                    if '/' in cr:
+                        numerator, denominator = cr.split('/')
+                        cr = float(numerator) / float(denominator)
+                    else:
+                        try:
+                            cr = float(cr)
+                        except ValueError:
+                            cr = 0
+                elif not isinstance(cr, (int, float)):
+                    cr = 0
+                
+                if min_cr <= cr <= max_cr:
+                    matching_monsters.append(monster)
+            
+            print(f"[SQLite] Found {len(matching_monsters)} monsters with CR {min_cr}-{max_cr}")
+            return matching_monsters
+            
+        except Exception as e:
+            print(f"[SQLite] Error loading monsters: {e}")
+            return []
+    
+    def update_character_equipment_sync(self, character_id: str, equipment_slot: str, item_name: Optional[str] = None):
+        """Update character equipment in database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Update the equipment slot
+                if equipment_slot == 'main_hand':
+                    cursor.execute("UPDATE characters SET equipment_main_hand = ? WHERE id = ?", 
+                                 (item_name, character_id))
+                elif equipment_slot == 'off_hand':
+                    cursor.execute("UPDATE characters SET equipment_off_hand = ? WHERE id = ?", 
+                                 (item_name, character_id))
+                elif equipment_slot == 'armor':
+                    cursor.execute("UPDATE characters SET equipment_armor = ? WHERE id = ?", 
+                                 (item_name, character_id))
+                elif equipment_slot == 'shield':
+                    cursor.execute("UPDATE characters SET equipment_shield = ? WHERE id = ?", 
+                                 (item_name, character_id))
+                else:
+                    print(f"[SQLite] Unknown equipment slot: {equipment_slot}")
+                    return False
+                
+                # Get character data for AC recalculation
+                cursor.execute("""
+                    SELECT strength, dexterity, constitution, class_id 
+                    FROM characters WHERE id = ?
+                """, (character_id,))
+                char_row = cursor.fetchone()
+                
+                if char_row:
+                    # Recalculate AC with new equipment
+                    new_ac = self._calculate_armor_class(
+                        character_id, 
+                        char_row['strength'], 
+                        char_row['dexterity'], 
+                        char_row['constitution'], 
+                        char_row['class_id']
+                    )
+                    
+                    # Update AC and timestamp
+                    cursor.execute("""
+                        UPDATE characters 
+                        SET armor_class = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (new_ac, datetime.now().isoformat(), character_id))
+                
+                conn.commit()
+                
+                action = "equipped" if item_name else "unequipped"
+                item_text = item_name if item_name else "nothing"
+                print(f"[SQLite] Character {action} {item_text} in {equipment_slot}, AC recalculated")
+                return True
+                
+        except Exception as e:
+            print(f"[SQLite] Error updating equipment: {e}")
+            return False
+    
+    def update_character_resources_sync(self, character_id: str, resource_updates: Dict[str, Any]):
+        """Update character resources in database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                updates = []
+                params = []
+                
+                # Handle JSON resource fields
+                json_fields = ['spell_slots_current', 'spell_slots_max', 'class_resources', 
+                              'class_resources_max', 'ability_uses', 'ability_uses_max']
+                
+                for field in json_fields:
+                    if field in resource_updates:
+                        updates.append(f"{field} = ?")
+                        params.append(json.dumps(resource_updates[field]))
+                
+                # Handle simple numeric fields
+                simple_fields = ['hit_points_current', 'hit_points_max', 'hit_points_temporary',
+                                'hit_dice_current', 'death_saves_successes', 'death_saves_failures']
+                
+                for field in simple_fields:
+                    if field in resource_updates:
+                        updates.append(f"{field} = ?")
+                        params.append(resource_updates[field])
+                
+                if updates:
+                    updates.append("updated_at = ?")
+                    params.append(datetime.now().isoformat())
+                    params.append(character_id)
+                    
+                    sql = f"UPDATE characters SET {', '.join(updates)} WHERE id = ?"
+                    cursor.execute(sql, params)
+                    conn.commit()
+                    
+                    print(f"[SQLite] Updated resources for character: {list(resource_updates.keys())}")
+                    return True
+                else:
+                    print(f"[SQLite] No valid resource updates provided")
+                    return False
+                    
+        except Exception as e:
+            print(f"[SQLite] Error updating resources: {e}")
+            return False
+    
+    def add_feat_to_character_sync(self, character_id: str, feat_name: str) -> bool:
+        """Add a new feat to a character."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check if feat already exists
+                cursor.execute("""
+                    SELECT COUNT(*) FROM character_feats 
+                    WHERE character_id = ? AND feat_name = ?
+                """, (character_id, feat_name))
+                
+                if cursor.fetchone()[0] > 0:
+                    print(f"[SQLite] Character already has feat: {feat_name}")
+                    return False
+                
+                # Get character level for feat acquisition
+                cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
+                char_row = cursor.fetchone()
+                level = char_row['level'] if char_row else 1
+                
+                # Add the feat
+                cursor.execute("""
+                    INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
+                    VALUES (?, ?, 'manual', ?)
+                """, (character_id, feat_name, level))
+                
+                # Apply feat effects if needed (e.g., Tough increases HP)
+                if feat_name == 'Tough':
+                    cursor.execute("""
+                        UPDATE characters 
+                        SET hit_points_max = hit_points_max + (level * 2),
+                            hit_points_current = hit_points_current + (level * 2)
+                        WHERE id = ?
+                    """, (character_id,))
+                
+                conn.commit()
+                print(f"[SQLite] Added feat '{feat_name}' to character")
+                return True
+                
+        except Exception as e:
+            print(f"[SQLite] Error adding feat: {e}")
+            return False
+    
+    def recalculate_character_stats_sync(self, character_id: str) -> bool:
+        """Recalculate character stats including AC and feat effects."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Get character data
+                cursor.execute("""
+                    SELECT strength, dexterity, constitution, class_id, level
+                    FROM characters WHERE id = ?
+                """, (character_id,))
+                
+                char_row = cursor.fetchone()
+                if not char_row:
+                    print(f"[SQLite] Character {character_id} not found")
+                    return False
+                
+                # Recalculate AC
+                new_ac = self._calculate_armor_class(
+                    character_id,
+                    char_row['strength'],
+                    char_row['dexterity'],
+                    char_row['constitution'],
+                    char_row['class_id']
+                )
+                
+                # Update AC and timestamp
+                cursor.execute("""
+                    UPDATE characters 
+                    SET armor_class = ?, updated_at = ?
+                    WHERE id = ?
+                """, (new_ac, datetime.now().isoformat(), character_id))
+                
+                conn.commit()
+                print(f"[SQLite] Recalculated stats for character, new AC: {new_ac}")
+                return True
+                
+        except Exception as e:
+            print(f"[SQLite] Error recalculating stats: {e}")
+            return False
+    
+    def can_equip_item(self, character_id: str, item_name: str) -> tuple[bool, str]:
+        """Check if character can equip a specific item. Returns (can_equip, reason)."""
+        try:
+            # Load item data from JSON
+            item_data = self.get_equipment_item_sync(item_name)
+            if not item_data:
+                return False, f"Item '{item_name}' not found"
+            
+            item_type = item_data.get('item_type', '')
+            
+            # Get character data for proficiency checks
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT class_id, strength FROM characters WHERE id = ?
+                """, (character_id,))
+                
+                char_row = cursor.fetchone()
+                if not char_row:
+                    return False, "Character not found"
+                
+                if item_type == 'armor':
+                    armor_type = item_data.get('armor_type', 'light')
+                    
+                    # Check armor proficiency based on class
+                    cursor.execute("""
+                        SELECT armor_proficiencies FROM classes WHERE id = ?
+                    """, (char_row['class_id'],))
+                    
+                    class_row = cursor.fetchone()
+                    if class_row and class_row['armor_proficiencies']:
+                        proficiencies = json.loads(class_row['armor_proficiencies'])
+                        if armor_type not in proficiencies and 'all' not in proficiencies:
+                            return False, f"Not proficient with {armor_type} armor"
+                    
+                    # Check Strength requirement
+                    strength_req = item_data.get('strength_requirement', 0)
+                    if strength_req and char_row['strength'] < strength_req:
+                        return False, f"Requires Strength {strength_req} (you have {char_row['strength']})"
+                        
+                elif item_type == 'shield':
+                    # Check shield proficiency
+                    cursor.execute("""
+                        SELECT armor_proficiencies FROM classes WHERE id = ?
+                    """, (char_row['class_id'],))
+                    
+                    class_row = cursor.fetchone()
+                    if class_row and class_row['armor_proficiencies']:
+                        proficiencies = json.loads(class_row['armor_proficiencies'])
+                        if 'shield' not in proficiencies and 'all' not in proficiencies:
+                            return False, "Not proficient with shields"
+            
+            return True, ""
+            
+        except Exception as e:
+            print(f"[SQLite] Error checking equipment proficiency: {e}")
+            return False, "Error checking proficiency"
+    
+    def auto_save(self):
+        """Perform automatic save (just calls save_game_sync)."""
+        self.save_game_sync()
+    
+    def shutdown(self):
+        """Clean shutdown of game engine."""
+        try:
+            # Save settings before shutting down
+            self.save_settings()
+            print("[SQLite] Game engine shut down cleanly")
+        except Exception as e:
+            print(f"[SQLite] Error during shutdown: {e}")

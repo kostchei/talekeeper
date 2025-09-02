@@ -1,12 +1,12 @@
 """
 TaleKeeper Desktop - Main Entry Point
 
-Single-player D&D 2024 tactical RPG for Windows built with PyQt6 and IndexedDB.
+Single-player D&D 2024 tactical RPG for Windows built with PyQt6 and SQLite.
 
 Application Flow:
 1. Initialize logging system
 2. Create PyQt6 application with custom fonts
-3. Setup IndexedDB database (migrate from SQLite if needed)
+3. Setup SQLite database
 4. Load D&D 2024 game data from JSON files
 5. Initialize game engine coordinator
 6. Create and display main GUI window
@@ -73,19 +73,20 @@ def main():
             logger.warning(f"Font file not found at {font_path}")
             app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
-        # Check if SQLite database exists, otherwise create it from IndexedDB
+        # Check if SQLite database exists
         sqlite_db_path = Path("talekeeper.db")
         if not sqlite_db_path.exists():
-            logger.info("No SQLite database found - checking for IndexedDB to migrate...")
+            logger.info("No SQLite database found - creating new database...")
+            # Legacy migration check
             indexeddb_path = Path("talekeeper.idb")
             if indexeddb_path.exists():
-                logger.info("Found IndexedDB file - running migration to SQLite...")
+                logger.info("Found legacy IndexedDB file - running migration to SQLite...")
                 # Run our migration script
                 import subprocess
                 try:
                     result = subprocess.run(["python", "migrate_to_sqlite.py"], 
                                           capture_output=True, text=True, check=True)
-                    logger.info("IndexedDB to SQLite migration completed successfully")
+                    logger.info("Legacy data migration completed successfully")
                 except subprocess.CalledProcessError as e:
                     logger.error(f"Migration failed: {e}")
                     logger.info("Creating empty SQLite database...")
