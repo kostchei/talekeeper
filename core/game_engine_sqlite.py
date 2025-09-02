@@ -463,10 +463,8 @@ class GameEngineSQLite:
                         hit_points_temporary, max_hit_points, current_hit_points,
                         hit_dice_max, hit_dice_current, death_saves_successes,
                         death_saves_failures, equipment_main_hand, equipment_off_hand,
-                        equipment_armor, equipment_shield, str_save_proficient,
-                        dex_save_proficient, con_save_proficient, int_save_proficient,
-                        wis_save_proficient, cha_save_proficient, created_at, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        equipment_armor, equipment_shield, created_at, notes
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id, save_slot_id, character_data['name'],
                     character_data['race_id'], character_data['class_id'], character_data['background_id'],
@@ -480,9 +478,6 @@ class GameEngineSQLite:
                     0, 0,  # death saves
                     character_data.get('equipment_main_hand'), character_data.get('equipment_off_hand'),
                     character_data.get('equipment_armor'), character_data.get('equipment_shield'),
-                    character_data.get('str_save_proficient', 0), character_data.get('dex_save_proficient', 0),
-                    character_data.get('con_save_proficient', 0), character_data.get('int_save_proficient', 0),
-                    character_data.get('wis_save_proficient', 0), character_data.get('cha_save_proficient', 0),
                     datetime.now().isoformat(), character_data.get('notes', '')
                 ))
                 
@@ -540,6 +535,9 @@ class GameEngineSQLite:
                 
                 # Add starting equipment from class and background
                 self._add_starting_equipment(cursor, character_id, character_data)
+                
+                # Initialize class-specific features table
+                self._initialize_class_features(cursor, character_id, character_data)
                 
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
@@ -962,6 +960,258 @@ class GameEngineSQLite:
         
         print(f"[SQLite] Added starting equipment for {class_id} {background_id}")
     
+    def _initialize_class_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize class-specific features table based on character's class."""
+        class_id = character_data.get('class_id', '').lower()
+        level = character_data.get('level', 1)
+        
+        print(f"[SQLite] Initializing {class_id} class features for level {level}")
+        
+        if class_id == 'fighter':
+            self._initialize_fighter_features(cursor, character_id, character_data)
+        elif class_id == 'barbarian':
+            self._initialize_barbarian_features(cursor, character_id, character_data)
+        elif class_id == 'wizard':
+            self._initialize_wizard_features(cursor, character_id, character_data)
+        elif class_id == 'warlock':
+            self._initialize_warlock_features(cursor, character_id, character_data)
+        elif class_id == 'cleric':
+            self._initialize_cleric_features(cursor, character_id, character_data)
+        elif class_id == 'rogue':
+            self._initialize_rogue_features(cursor, character_id, character_data)
+        else:
+            print(f"[SQLite] Warning: No class-specific features defined for '{class_id}'")
+    
+    def _initialize_fighter_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Fighter-specific features."""
+        level = character_data.get('level', 1)
+        
+        # Extract fighting style from feats (fighting styles are stored as feats during character creation)
+        selected_feats = character_data.get('selected_feats', [])
+        fighting_style = None
+        for feat in selected_feats:
+            if feat in ['Archery', 'Defense', 'Dueling', 'Great Weapon Fighting', 'Protection', 'Two-Weapon Fighting']:
+                fighting_style = feat.lower()
+                break
+        
+        cursor.execute("""
+            INSERT INTO fighter_features (
+                character_id, level, fighting_style, action_surge_uses_max, 
+                second_wind_used, indomitable_uses_max, extra_attacks, weapon_masteries_known
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level, fighting_style,
+            1 if level >= 2 else 0,  # Action Surge at level 2
+            False,  # Second Wind available
+            1 if level >= 9 else 0,  # Indomitable at level 9
+            2 if level >= 5 else 1,  # Extra Attack at level 5
+            3 + (level // 4)  # 3 base, +1 every 4 levels
+        ))
+        print(f"[SQLite] Initialized Fighter features - Fighting Style: {fighting_style}")
+    
+    def _initialize_barbarian_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Barbarian-specific features."""
+        level = character_data.get('level', 1)
+        
+        # Calculate rage uses by level (2 at 1st, 3 at 3rd, 4 at 6th, 5 at 12th, 6 at 17th, unlimited at 20th)
+        if level >= 20:
+            rage_uses = 999  # Unlimited
+        elif level >= 17:
+            rage_uses = 6
+        elif level >= 12:
+            rage_uses = 5
+        elif level >= 6:
+            rage_uses = 4
+        elif level >= 3:
+            rage_uses = 3
+        else:
+            rage_uses = 2
+        
+        # Calculate rage damage by level (+2 at 1st, +3 at 9th, +4 at 16th)
+        if level >= 16:
+            rage_damage = 4
+        elif level >= 9:
+            rage_damage = 3
+        else:
+            rage_damage = 2
+        
+        cursor.execute("""
+            INSERT INTO barbarian_features (
+                character_id, level, rage_uses_max, rage_damage_bonus, 
+                unarmored_defense_active, reckless_attack_available, danger_sense_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level, rage_uses, rage_damage,
+            True,  # Unarmored Defense always available
+            level >= 2,  # Reckless Attack at level 2
+            level >= 2   # Danger Sense at level 2
+        ))
+        print(f"[SQLite] Initialized Barbarian features - {rage_uses} rages, +{rage_damage} damage")
+    
+    def _initialize_wizard_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Wizard-specific features (full spellcaster)."""
+        level = character_data.get('level', 1)
+        
+        # Calculate spell slots by level (full caster progression)
+        spell_slots = self._get_full_caster_spell_slots(level)
+        
+        cursor.execute("""
+            INSERT INTO wizard_features (
+                character_id, level,
+                spell_slots_1_max, spell_slots_2_max, spell_slots_3_max, spell_slots_4_max, spell_slots_5_max,
+                spell_slots_6_max, spell_slots_7_max, spell_slots_8_max, spell_slots_9_max,
+                spell_slots_1_current, spell_slots_2_current, spell_slots_3_current, spell_slots_4_current, spell_slots_5_current,
+                spell_slots_6_current, spell_slots_7_current, spell_slots_8_current, spell_slots_9_current,
+                arcane_school, arcane_recovery_used, spellbook_spells_known
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level,
+            # Max slots
+            spell_slots[1], spell_slots[2], spell_slots[3], spell_slots[4], spell_slots[5],
+            spell_slots[6], spell_slots[7], spell_slots[8], spell_slots[9],
+            # Current slots (start full)
+            spell_slots[1], spell_slots[2], spell_slots[3], spell_slots[4], spell_slots[5],
+            spell_slots[6], spell_slots[7], spell_slots[8], spell_slots[9],
+            # Features
+            None,  # Arcane school chosen later
+            False,  # Arcane recovery available
+            6 + (level - 1) * 2  # 6 starting + 2 per level
+        ))
+        print(f"[SQLite] Initialized Wizard features - Level {level} spell slots")
+    
+    def _initialize_warlock_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Warlock-specific features (pact magic)."""
+        level = character_data.get('level', 1)
+        
+        # Warlock pact magic progression (different from full casters)
+        if level >= 17:
+            pact_slots_max = 4
+            pact_slot_level = 5
+        elif level >= 15:
+            pact_slots_max = 3
+            pact_slot_level = 5
+        elif level >= 11:
+            pact_slots_max = 3
+            pact_slot_level = 5
+        elif level >= 9:
+            pact_slots_max = 2
+            pact_slot_level = 5
+        elif level >= 7:
+            pact_slots_max = 2
+            pact_slot_level = 4
+        elif level >= 5:
+            pact_slots_max = 2
+            pact_slot_level = 3
+        elif level >= 3:
+            pact_slots_max = 2
+            pact_slot_level = 2
+        else:
+            pact_slots_max = 1
+            pact_slot_level = 1
+        
+        cursor.execute("""
+            INSERT INTO warlock_features (
+                character_id, level, pact_slots_max, pact_slots_current, pact_slot_level,
+                patron, pact_boon, eldritch_invocations, patron_feature_uses_max
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level, pact_slots_max, pact_slots_max, pact_slot_level,
+            None,  # Patron chosen during character creation
+            None if level < 3 else 'chain',  # Pact Boon at level 3
+            '[]',  # JSON array of invocations
+            1 if level >= 1 else 0  # Patron feature uses
+        ))
+        print(f"[SQLite] Initialized Warlock features - {pact_slots_max} level {pact_slot_level} pact slots")
+    
+    def _initialize_cleric_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Cleric-specific features (full spellcaster + divine)."""
+        level = character_data.get('level', 1)
+        
+        # Calculate spell slots by level (same as wizard - full caster)
+        spell_slots = self._get_full_caster_spell_slots(level)
+        
+        # Calculate channel divinity uses (1 at level 2, +1 at 6th and 18th)
+        if level >= 18:
+            channel_divinity_max = 3
+        elif level >= 6:
+            channel_divinity_max = 2
+        elif level >= 2:
+            channel_divinity_max = 1
+        else:
+            channel_divinity_max = 0
+        
+        cursor.execute("""
+            INSERT INTO cleric_features (
+                character_id, level,
+                spell_slots_1_max, spell_slots_2_max, spell_slots_3_max, spell_slots_4_max, spell_slots_5_max,
+                spell_slots_6_max, spell_slots_7_max, spell_slots_8_max, spell_slots_9_max,
+                spell_slots_1_current, spell_slots_2_current, spell_slots_3_current, spell_slots_4_current, spell_slots_5_current,
+                spell_slots_6_current, spell_slots_7_current, spell_slots_8_current, spell_slots_9_current,
+                divine_domain, channel_divinity_uses_max, domain_spells_known
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level,
+            # Max slots
+            spell_slots[1], spell_slots[2], spell_slots[3], spell_slots[4], spell_slots[5],
+            spell_slots[6], spell_slots[7], spell_slots[8], spell_slots[9],
+            # Current slots (start full)
+            spell_slots[1], spell_slots[2], spell_slots[3], spell_slots[4], spell_slots[5],
+            spell_slots[6], spell_slots[7], spell_slots[8], spell_slots[9],
+            # Features
+            None,  # Divine domain chosen during character creation
+            channel_divinity_max,
+            '[]'   # JSON array of domain spells
+        ))
+        print(f"[SQLite] Initialized Cleric features - Level {level} spells, {channel_divinity_max} channel divinity")
+    
+    def _initialize_rogue_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Rogue-specific features."""
+        level = character_data.get('level', 1)
+        
+        # Calculate sneak attack dice (1d6 at 1st, +1d6 every 2 levels)
+        sneak_attack_dice = 1 + ((level - 1) // 2)
+        
+        cursor.execute("""
+            INSERT INTO rogue_features (
+                character_id, level, sneak_attack_dice, expertise_skills,
+                cunning_action_available, uncanny_dodge_available, evasion_available, archetype
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            character_id, level, sneak_attack_dice, '[]',  # JSON array of expertise skills
+            level >= 2,  # Cunning Action at level 2
+            level >= 5,  # Uncanny Dodge at level 5
+            level >= 7,  # Evasion at level 7
+            None  # Archetype chosen at level 3
+        ))
+        print(f"[SQLite] Initialized Rogue features - {sneak_attack_dice}d6 sneak attack")
+    
+    def _get_full_caster_spell_slots(self, level: int) -> Dict[int, int]:
+        """Get spell slot progression for full casters (Wizard, Cleric)."""
+        # D&D 5e full caster spell slot table
+        spell_slot_table = {
+            1: {1: 2, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            2: {1: 3, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            3: {1: 4, 2: 2, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            4: {1: 4, 2: 3, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            5: {1: 4, 2: 3, 3: 2, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            6: {1: 4, 2: 3, 3: 3, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            7: {1: 4, 2: 3, 3: 3, 4: 1, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            8: {1: 4, 2: 3, 3: 3, 4: 2, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0},
+            9: {1: 4, 2: 3, 3: 3, 4: 3, 5: 1, 6: 0, 7: 0, 8: 0, 9: 0},
+            10: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 0, 7: 0, 8: 0, 9: 0},
+            11: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 0, 8: 0, 9: 0},
+            12: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 0, 8: 0, 9: 0},
+            13: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 0, 9: 0},
+            14: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 0, 9: 0},
+            15: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1, 9: 0},
+            16: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1, 9: 0},
+            17: {1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1, 9: 1},
+            18: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 1, 7: 1, 8: 1, 9: 1},
+            19: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 1, 8: 1, 9: 1},
+            20: {1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 2, 8: 1, 9: 1}
+        }
+        return spell_slot_table.get(min(level, 20), spell_slot_table[1])
+
     def _get_weapon_stats(self, weapon_name: str) -> Dict[str, Any]:
         """Get weapon stats for inventory."""
         weapon_stats = {

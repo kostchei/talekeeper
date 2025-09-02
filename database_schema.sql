@@ -310,3 +310,203 @@ SELECT
 FROM characters c
 JOIN save_slots s ON c.save_slot_id = s.id
 WHERE s.is_occupied = TRUE;
+
+-- ================================================
+-- LEVEL PROGRESSION TABLE (from level_ch.json)
+-- ================================================
+CREATE TABLE level_progression (
+    level INTEGER PRIMARY KEY,
+    experience_points INTEGER NOT NULL,
+    proficiency_bonus INTEGER NOT NULL
+);
+
+-- ================================================
+-- LEVEL UP COSTS TABLE (from levelup_cost.json)
+-- ================================================
+CREATE TABLE levelup_costs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    level_range_start INTEGER NOT NULL,
+    level_range_end INTEGER NOT NULL,
+    training_days INTEGER NOT NULL,
+    training_cost_gp INTEGER NOT NULL
+);
+
+-- ================================================
+-- CLASS-SPECIFIC FEATURE TABLES
+-- ================================================
+
+-- FIGHTER FEATURES
+CREATE TABLE fighter_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Core Fighter Features
+    fighting_style TEXT, -- 'archery', 'defense', 'dueling', etc.
+    action_surge_uses_current INTEGER DEFAULT 0,
+    action_surge_uses_max INTEGER DEFAULT 0,
+    second_wind_used BOOLEAN DEFAULT FALSE,
+    indomitable_uses_current INTEGER DEFAULT 0,
+    indomitable_uses_max INTEGER DEFAULT 0,
+    extra_attacks INTEGER DEFAULT 1, -- 1 base, +1 at levels 5, 11, 20
+    
+    -- Weapon Mastery
+    weapon_masteries_known INTEGER DEFAULT 3, -- Scales with level
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- BARBARIAN FEATURES  
+CREATE TABLE barbarian_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Rage System
+    rage_uses_current INTEGER DEFAULT 0,
+    rage_uses_max INTEGER DEFAULT 2, -- Scales with level
+    rage_damage_bonus INTEGER DEFAULT 2, -- +2 at level 1, scales up
+    is_raging BOOLEAN DEFAULT FALSE,
+    rage_turns_remaining INTEGER DEFAULT 0,
+    
+    -- Unarmored Defense (AC = 10 + Dex + Con)
+    unarmored_defense_active BOOLEAN DEFAULT TRUE,
+    
+    -- Other Features
+    reckless_attack_available BOOLEAN DEFAULT FALSE, -- Level 2+
+    danger_sense_active BOOLEAN DEFAULT FALSE, -- Level 2+
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- WIZARD FEATURES (Full Spellcaster)
+CREATE TABLE wizard_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Spell Slots (Full Caster Progression)
+    spell_slots_1_current INTEGER DEFAULT 0,
+    spell_slots_1_max INTEGER DEFAULT 0,
+    spell_slots_2_current INTEGER DEFAULT 0,
+    spell_slots_2_max INTEGER DEFAULT 0,
+    spell_slots_3_current INTEGER DEFAULT 0,
+    spell_slots_3_max INTEGER DEFAULT 0,
+    spell_slots_4_current INTEGER DEFAULT 0,
+    spell_slots_4_max INTEGER DEFAULT 0,
+    spell_slots_5_current INTEGER DEFAULT 0,
+    spell_slots_5_max INTEGER DEFAULT 0,
+    spell_slots_6_current INTEGER DEFAULT 0,
+    spell_slots_6_max INTEGER DEFAULT 0,
+    spell_slots_7_current INTEGER DEFAULT 0,
+    spell_slots_7_max INTEGER DEFAULT 0,
+    spell_slots_8_current INTEGER DEFAULT 0,
+    spell_slots_8_max INTEGER DEFAULT 0,
+    spell_slots_9_current INTEGER DEFAULT 0,
+    spell_slots_9_max INTEGER DEFAULT 0,
+    
+    -- Wizard-Specific Features
+    arcane_school TEXT, -- 'abjuration', 'evocation', etc.
+    arcane_recovery_used BOOLEAN DEFAULT FALSE, -- Short rest feature
+    spellbook_spells_known INTEGER DEFAULT 6, -- Starts with 6, +2 per level
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- WARLOCK FEATURES (Pact Magic - Different Slot System)
+CREATE TABLE warlock_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Pact Magic Slots (All same level, recover on short rest)
+    pact_slots_current INTEGER DEFAULT 0,
+    pact_slots_max INTEGER DEFAULT 1, -- 1 at level 1, max 4 at level 17+
+    pact_slot_level INTEGER DEFAULT 1, -- Level of pact slots (1-5)
+    
+    -- Warlock-Specific Features
+    patron TEXT, -- 'fiend', 'archfey', 'great_old_one', etc.
+    pact_boon TEXT, -- 'chain', 'blade', 'tome', null until level 3
+    eldritch_invocations TEXT, -- JSON array of known invocations
+    
+    -- Patron Features
+    patron_feature_uses_current INTEGER DEFAULT 0,
+    patron_feature_uses_max INTEGER DEFAULT 0,
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- CLERIC FEATURES (Full Spellcaster + Domain Powers)
+CREATE TABLE cleric_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Spell Slots (Same as Wizard - Full Caster)
+    spell_slots_1_current INTEGER DEFAULT 0,
+    spell_slots_1_max INTEGER DEFAULT 0,
+    spell_slots_2_current INTEGER DEFAULT 0,
+    spell_slots_2_max INTEGER DEFAULT 0,
+    spell_slots_3_current INTEGER DEFAULT 0,
+    spell_slots_3_max INTEGER DEFAULT 0,
+    spell_slots_4_current INTEGER DEFAULT 0,
+    spell_slots_4_max INTEGER DEFAULT 0,
+    spell_slots_5_current INTEGER DEFAULT 0,
+    spell_slots_5_max INTEGER DEFAULT 0,
+    spell_slots_6_current INTEGER DEFAULT 0,
+    spell_slots_6_max INTEGER DEFAULT 0,
+    spell_slots_7_current INTEGER DEFAULT 0,
+    spell_slots_7_max INTEGER DEFAULT 0,
+    spell_slots_8_current INTEGER DEFAULT 0,
+    spell_slots_8_max INTEGER DEFAULT 0,
+    spell_slots_9_current INTEGER DEFAULT 0,
+    spell_slots_9_max INTEGER DEFAULT 0,
+    
+    -- Cleric-Specific Features
+    divine_domain TEXT, -- 'life', 'light', 'war', etc.
+    channel_divinity_uses_current INTEGER DEFAULT 0,
+    channel_divinity_uses_max INTEGER DEFAULT 1, -- Scales with level
+    
+    -- Domain Spells (always prepared, don't count against limit)
+    domain_spells_known TEXT, -- JSON array of domain spells
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- ROGUE FEATURES
+CREATE TABLE rogue_features (
+    character_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    
+    -- Sneak Attack (scales with level)
+    sneak_attack_dice INTEGER DEFAULT 1, -- 1d6 at level 1, +1d6 every 2 levels
+    
+    -- Expertise (double proficiency bonus)
+    expertise_skills TEXT, -- JSON array of skills with expertise
+    
+    -- Cunning Action (level 2+)
+    cunning_action_available BOOLEAN DEFAULT FALSE,
+    
+    -- Uncanny Dodge (level 5+)
+    uncanny_dodge_available BOOLEAN DEFAULT FALSE,
+    uncanny_dodge_used BOOLEAN DEFAULT FALSE, -- Once per turn
+    
+    -- Evasion (level 7+)
+    evasion_available BOOLEAN DEFAULT FALSE,
+    
+    -- Archetype
+    archetype TEXT, -- 'thief', 'assassin', 'arcane_trickster', etc.
+    
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (character_id)
+);
+
+-- ================================================
+-- INDEXES FOR CLASS-SPECIFIC TABLES
+-- ================================================
+CREATE INDEX idx_fighter_features_character_id ON fighter_features(character_id);
+CREATE INDEX idx_barbarian_features_character_id ON barbarian_features(character_id);
+CREATE INDEX idx_wizard_features_character_id ON wizard_features(character_id);
+CREATE INDEX idx_warlock_features_character_id ON warlock_features(character_id);
+CREATE INDEX idx_cleric_features_character_id ON cleric_features(character_id);
+CREATE INDEX idx_rogue_features_character_id ON rogue_features(character_id);
