@@ -91,6 +91,7 @@ class ActionPanel(QWidget):
         self.character_features = {}  # Character class features (Fighting Style, etc.)
         self.equipped_weapons = {}  # Store equipped weapon data
         self.target_monster_id = None  # Currently targeted monster for attacks
+        self.pending_attack = None  # Store attack to execute after monsters' turns
         
         # Action Economy Integration - NEW
         self.current_combat_session = None  # Current combat session for action economy
@@ -736,8 +737,14 @@ class ActionPanel(QWidget):
             print(f"Target monster {target_id} not found")
             return
         
+        # Store action type in context for pending attack system
+        context['action_type'] = action_type
+        
         # Roll initiative if this is the first attack (start of combat)
-        self._check_and_roll_initiative(encounter_panel, context)
+        player_can_act = self._check_and_roll_initiative(encounter_panel, context)
+        if not player_can_act:
+            # Monsters go first, player's attack is held and will execute after
+            return
         
         # Make attack roll
         attack_total, attack_breakdown = self._roll_attack(context)
@@ -829,10 +836,29 @@ class ActionPanel(QWidget):
             print(f"NEW ATTACK: Target monster {target_id} not found")
             return
         
-        # Roll initiative if needed
-        self._check_and_roll_initiative(encounter_panel, context)
+        # Roll initiative if needed - add action_type to context
+        context_with_action = {**context, 'action_type': action_type}
+        player_can_act = self._check_and_roll_initiative(encounter_panel, context_with_action)
+        if not player_can_act:
+            # Monsters go first, player's attack is held and will execute after monsters' turns
+            return
         
-        # === ATTACK ROLL ===
+        # Execute the attack
+        self._execute_attack_without_initiative(action_type, context, encounter_panel)
+    
+    def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
+        """Execute the attack without rolling initiative (used for immediate attacks and pending attacks)."""
+        import random
+        
+        # Get target info
+        target_id = context.get('target_monster_id')
+        weapon_name = context.get('name', 'weapon')
+        
+        target_monster = encounter_panel.get_selected_monster()
+        if not target_monster:
+            print(f"NEW ATTACK: Target monster {target_id} not found")
+            return
+        
         d20_roll = random.randint(1, 20)
         prof_bonus = 2  # TODO: Get from character level
         
@@ -888,7 +914,12 @@ class ActionPanel(QWidget):
                         main_window = main_window.parent()
                     if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
                         class_id = main_window.current_character.class_id
-                        parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'log_panel'):
+                                parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
+                                break
+                            parent = parent.parent()
                 
                 is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
                 
@@ -897,20 +928,45 @@ class ActionPanel(QWidget):
                     if not is_ranged:
                         # Get actual barbarian level from character context (single-class barbarian)
                         barbarian_level = self.character_context.get('level', 1)
-                        parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'log_panel'):
+                                parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
+                                break
+                            parent = parent.parent()
                         
                         # Get rage damage bonus from database by looking up barbarian abilities
                         rage_bonus = self._get_rage_damage_from_database(barbarian_level)
                         
                         if rage_bonus > 0:
                             damage_bonuses['rage'] = rage_bonus
-                            parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
+                            parent = self.parent()
+                            while parent:
+                                if hasattr(parent, 'log_panel'):
+                                    parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
+                                    break
+                                parent = parent.parent()
                         else:
-                            parent.log_panel.log_combat(f"[DEBUG] No rage damage in database for level {barbarian_level}")
+                            parent = self.parent()
+                            while parent:
+                                if hasattr(parent, 'log_panel'):
+                                    parent.log_panel.log_combat(f"[DEBUG] No rage damage in database for level {barbarian_level}")
+                                    break
+                                parent = parent.parent()
                 else:
-                    parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging={is_raging}")
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging={is_raging}")
+                            break
+                        parent = parent.parent()
             except Exception as e:
-                parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
+                        break
+                    parent = parent.parent()
             
             # Calculate total damage
             total_damage = dice_total + sum(damage_bonuses.values())
@@ -1140,6 +1196,10 @@ class ActionPanel(QWidget):
                 else:
                     # All attacks done, start player's turn
                     QTimer.singleShot(300, self._log_player_turn_start)
+                    
+                    # If player has a pending attack from initiative, execute it now
+                    if self.pending_attack:
+                        QTimer.singleShot(500, self._execute_pending_attack)
             
         except Exception as e:
             print(f"Error executing monster attacks with delay: {e}")
@@ -1161,6 +1221,10 @@ class ActionPanel(QWidget):
                 else:
                     # All monster attacks completed, start player's turn
                     QTimer.singleShot(300, self._log_player_turn_start)
+                    
+                    # If player has a pending attack from initiative, execute it now
+                    if self.pending_attack:
+                        QTimer.singleShot(500, self._execute_pending_attack)
         except Exception as e:
             print(f"Error continuing monster attacks: {e}")
     
@@ -1188,6 +1252,33 @@ class ActionPanel(QWidget):
             
         except Exception as e:
             print(f"Error ending combat: {e}")
+    
+    def _execute_pending_attack(self):
+        """Execute the player's attack that was held due to losing initiative."""
+        if not self.pending_attack:
+            return
+        
+        # Get the stored attack data
+        action_type = self.pending_attack.get('action_type')
+        context = self.pending_attack.get('context')
+        encounter_panel = self.pending_attack.get('encounter_panel')
+        
+        # Clear the pending attack
+        self.pending_attack = None
+        
+        # Log that player is now taking their held action
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[ACTION] Executing your held attack...")
+                break
+            parent = parent.parent()
+        
+        # Execute the attack based on the action type without rolling initiative again
+        if action_type == ActionType.ATTACK_MAIN_HAND:
+            self._execute_attack_without_initiative(ActionType.ATTACK_MAIN_HAND, context, encounter_panel)
+        elif action_type == ActionType.ATTACK_OFF_HAND:
+            self._execute_attack_without_initiative(ActionType.ATTACK_OFF_HAND, context, encounter_panel)
     
     def _log_player_turn_start(self):
         """Log that it's the player's turn again."""
@@ -1492,13 +1583,15 @@ class ActionPanel(QWidget):
         except Exception as e:
             print(f"Could not log attack: {e}")
     
-    def _check_and_roll_initiative(self, encounter_panel, context: Dict[str, Any]):
-        """Check if initiative needs to be rolled and roll it."""
+    def _check_and_roll_initiative(self, encounter_panel, context: Dict[str, Any]) -> bool:
+        """Check if initiative needs to be rolled and roll it.
+        Returns True if player can continue their action, False if monsters go first.
+        """
         try:
             # Check if encounter has initiative rolled already
             current_encounter = getattr(encounter_panel, 'current_encounter', None)
             if not current_encounter or current_encounter.initiative_rolled:
-                return  # Initiative already handled
+                return True  # Initiative already handled, player can continue
             
             # Get player DEX modifier for initiative
             player_dex_mod = (context.get('dexterity', 10) - 10) // 2
@@ -1526,12 +1619,22 @@ class ActionPanel(QWidget):
             # Switch encounter panel to combat mode
             encounter_panel.set_combat_mode()
             
-            # Check if player goes first - if not, execute monster attacks first
+            # Check if player goes first - if not, store pending attack and execute monster attacks first
             if initiative_order and initiative_order[0]['type'] == 'monster':
+                # Store the pending attack to execute after monsters' turns
+                self.pending_attack = {
+                    'action_type': context.get('action_type'),
+                    'context': context,
+                    'encounter_panel': encounter_panel
+                }
                 self._execute_monster_turns_before_player(encounter_panel, initiative_order, monster_data)
+                return False  # Player doesn't go first, their action is held
+            
+            return True  # Player goes first, can continue with their action
             
         except Exception as e:
             print(f"Error rolling initiative: {e}")
+            return True  # On error, allow action to continue
     
     def _load_monster_data(self) -> Dict[str, Dict]:
         """Load monster data from database for stats lookups."""
