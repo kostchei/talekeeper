@@ -824,6 +824,14 @@ class GameEngineSQLite:
         """Add starting equipment based on class and background."""
         import uuid
         
+        # Check if character already has equipment
+        cursor.execute("SELECT COUNT(*) FROM character_inventory WHERE character_id = ?", (character_id,))
+        existing_items = cursor.fetchone()[0]
+        
+        if existing_items > 0:
+            print(f"[SQLite] Character already has {existing_items} items in inventory, skipping starting equipment")
+            return
+        
         class_id = character_data.get('class_id', '').lower()
         background_id = character_data.get('background_id', '').lower()
         equipment_choices = character_data.get('equipment_choices', {})

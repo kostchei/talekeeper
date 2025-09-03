@@ -221,6 +221,7 @@ class MainWindow(QMainWindow):
         self.equipment_panel.item_equipped.connect(self._on_item_equipped)
         self.equipment_panel.item_unequipped.connect(self._on_item_unequipped)
         self.equipment_panel.ac_changed.connect(self._on_ac_changed)
+        self.equipment_panel.inventory_changed.connect(self._on_inventory_changed)
         
         # Action panel signals
         self.action_panel.action_triggered.connect(
@@ -320,6 +321,29 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     self.log_panel.log_error(f"Failed to update AC in database: {e}")
     
+    def _on_inventory_changed(self):
+        """Handle inventory changes - save equipment and inventory to database."""
+        try:
+            if not hasattr(self, 'game_engine') or not hasattr(self.game_engine, 'current_character'):
+                return
+                
+            current_character = getattr(self.game_engine, 'current_character', None)
+            if not current_character:
+                return
+                
+            # Get current equipped items and inventory from the equipment panel
+            equipped_items = self.equipment_panel.get_equipped_items_dict()
+            inventory_items = self.equipment_panel.get_inventory_items()
+            
+            # Update equipped slots in character record
+            self._update_character_equipment_slots(equipped_items)
+            
+            # Save inventory changes to database
+            self._save_character_inventory(current_character.id, inventory_items)
+            
+        except Exception as e:
+            self.log_panel.log_error(f"Failed to save inventory changes: {e}")
+    
     def _update_character_equipment_slots(self, equipped_items: dict):
         """Update the current character's equipment slots in the database."""
         if not hasattr(self, 'game_engine') or not hasattr(self.game_engine, 'current_character'):
@@ -360,6 +384,41 @@ class MainWindow(QMainWindow):
             
         except Exception as e:
             print(f"Error updating character equipment slots: {e}")
+    
+    def _save_character_inventory(self, character_id: str, inventory_items: list):
+        """Save character's inventory to the database, replacing all existing items."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect('talekeeper.db')
+            cursor = conn.cursor()
+            
+            # Clear existing inventory items for this character
+            cursor.execute("DELETE FROM character_inventory WHERE character_id = ?", (character_id,))
+            
+            # Insert current inventory items
+            for item in inventory_items:
+                import uuid
+                item_id = str(uuid.uuid4())
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    item_id,
+                    character_id,
+                    item.get('name', 'Unknown Item'),
+                    item.get('type', 'miscellaneous'),
+                    item.get('quantity', 1),
+                    item.get('weight_lb', 0.0),
+                    item.get('description', ''),
+                    item.get('value_gp', 0)
+                ))
+            
+            conn.commit()
+            conn.close()
+            print(f"[MainWindow] Saved {len(inventory_items)} inventory items for character {character_id}")
+            
+        except Exception as e:
+            print(f"Error saving character inventory: {e}")
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
