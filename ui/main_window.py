@@ -243,11 +243,30 @@ class MainWindow(QMainWindow):
             self.log_panel.log_combat(f"Selected target: {selected_monster.monster_name}")
     
     def _on_item_equipped(self, item, slot):
-        """Handle item equipped - update action panel with new equipment."""
-        # Get current character stats
-        if not hasattr(self, 'character_sheet') or not self.character_sheet.character_data:
-            return  # No character loaded yet
+        """Handle item equipped - update database and recalculate AC."""
+        if not hasattr(self, 'game_engine') or not self.game_engine.current_character:
+            return
         
+        # Update equipment in database
+        equipped_items = self.equipment_panel.get_equipped_items_dict()
+        self._update_character_equipment_slots(equipped_items)
+        
+        # Recalculate AC from database (includes Defense fighting style)
+        character_id = self.game_engine.current_character.id
+        if self.game_engine.recalculate_character_stats_sync(character_id):
+            # Get the new AC from the database 
+            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character.save_slot_number)
+            if updated_character:
+                new_ac = updated_character.armor_class
+                self.log_panel.log_info(f"AC updated to {new_ac}")
+                self.log_panel.log_info(f"Equipped {item.get('name', 'item')} in {slot} slot")
+                
+                # Update character sheet display with correct AC from database
+                if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
+                    self.character_sheet.update_ac(new_ac)
+                    self.character_sheet.character_data['armor_class'] = new_ac
+        
+        # Get current character stats for action panel
         character_data = self.character_sheet.character_data
         character_stats = {
             'strength': character_data.get('strength', 10),
@@ -256,7 +275,7 @@ class MainWindow(QMainWindow):
             'intelligence': character_data.get('intelligence', 10),
             'wisdom': character_data.get('wisdom', 10),
             'charisma': character_data.get('charisma', 10),
-            'armor_class': character_data.get('armor_class', 10),
+            'armor_class': new_ac if 'new_ac' in locals() else character_data.get('armor_class', 10),
             'level': character_data.get('level', 1)
         }
         
@@ -272,11 +291,30 @@ class MainWindow(QMainWindow):
         self.log_panel.log_info(f"Equipped {item_name} in {slot.value} slot")
     
     def _on_item_unequipped(self, slot):
-        """Handle item unequipped - update action panel with new equipment."""
-        # Get current character stats
-        if not hasattr(self, 'character_sheet') or not self.character_sheet.character_data:
-            return  # No character loaded yet
+        """Handle item unequipped - update database and recalculate AC."""
+        if not hasattr(self, 'game_engine') or not self.game_engine.current_character:
+            return
         
+        # Update equipment in database
+        equipped_items = self.equipment_panel.get_equipped_items_dict()
+        self._update_character_equipment_slots(equipped_items)
+        
+        # Recalculate AC from database (includes Defense fighting style)
+        character_id = self.game_engine.current_character.id
+        if self.game_engine.recalculate_character_stats_sync(character_id):
+            # Get the new AC from the database 
+            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character.save_slot_number)
+            if updated_character:
+                new_ac = updated_character.armor_class
+                self.log_panel.log_info(f"AC updated to {new_ac}")
+                self.log_panel.log_info(f"Unequipped item from {slot} slot")
+                
+                # Update character sheet display with correct AC from database
+                if hasattr(self, 'character_sheet') and self.character_sheet.character_data:
+                    self.character_sheet.update_ac(new_ac)
+                    self.character_sheet.character_data['armor_class'] = new_ac
+        
+        # Get current character stats for action panel  
         character_data = self.character_sheet.character_data
         character_stats = {
             'strength': character_data.get('strength', 10),
@@ -285,7 +323,7 @@ class MainWindow(QMainWindow):
             'intelligence': character_data.get('intelligence', 10),
             'wisdom': character_data.get('wisdom', 10),
             'charisma': character_data.get('charisma', 10),
-            'armor_class': character_data.get('armor_class', 10),
+            'armor_class': new_ac if 'new_ac' in locals() else character_data.get('armor_class', 10),
             'level': character_data.get('level', 1)
         }
         

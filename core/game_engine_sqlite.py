@@ -1334,29 +1334,36 @@ class GameEngineSQLite:
     
     def _calculate_armor_class(self, character_id: str, strength: int, dexterity: int, constitution: int, class_id: str) -> int:
         """Calculate AC based on equipped armor and class features like Unarmored Defense."""
+        print(f"[SQLite] _calculate_armor_class called for character {character_id}")
         try:
-            # Get equipped armor information
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # Check for equipped armor and shields
-            cursor.execute("""
-                SELECT item_name, item_type 
-                FROM character_inventory 
-                WHERE character_id = ? AND equipped = 1 AND item_type IN ('armor', 'shield')
-            """, (character_id,))
-            
-            equipped_items = cursor.fetchall()
-            conn.close()
-            
-            # Separate armor and shields
-            equipped_armor = None
-            equipped_shields = []
-            for item in equipped_items:
-                if item[1] == 'armor':
-                    equipped_armor = item
-                elif item[1] == 'shield':
-                    equipped_shields.append(item)
+            # Get equipped armor information from characters table
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Get equipment directly from characters table
+                cursor.execute("""
+                    SELECT equipment_armor, equipment_shield, equipment_off_hand
+                    FROM characters 
+                    WHERE id = ?
+                """, (character_id,))
+                
+                equipment_row = cursor.fetchone()
+                
+                # Extract equipped items (using dict-like access since _get_connection sets row_factory)
+                equipped_armor = equipment_row['equipment_armor'] if equipment_row else None
+                equipped_shield = equipment_row['equipment_shield'] if equipment_row else None
+                equipped_off_hand = equipment_row['equipment_off_hand'] if equipment_row else None
+                
+                # Check if off-hand item is a shield
+                if equipped_off_hand and not equipped_shield:
+                    # Check if the off-hand item is a shield by looking it up in equipment table
+                    cursor.execute("""
+                        SELECT item_type FROM equipment WHERE name = ?
+                    """, (equipped_off_hand,))
+                    item_type_row = cursor.fetchone()
+                    if item_type_row and item_type_row['item_type'] == 'shield':
+                        equipped_shield = equipped_off_hand
+                        print(f"[SQLite] Found shield in off-hand slot: {equipped_shield}")
             
             # Calculate modifiers
             dex_mod = (dexterity - 10) // 2
@@ -1365,12 +1372,10 @@ class GameEngineSQLite:
             # Base AC calculation
             if equipped_armor:
                 # Character is wearing armor - use equipment service for proper AC calculation
-                armor_name = equipped_armor[0]
-                
                 # Import and use the equipment service
                 from services.equipment import equipment_service
-                ac = equipment_service.get_armor_ac(armor_name, dex_mod)
-                print(f"[SQLite] AC calculation: {armor_name} with Dex {dex_mod} = {ac}")
+                ac = equipment_service.get_armor_ac(equipped_armor, dex_mod)
+                print(f"[SQLite] AC calculation: {equipped_armor} with Dex {dex_mod} = {ac}")
                 
             else:
                 # No armor equipped - check for class features
@@ -1383,14 +1388,30 @@ class GameEngineSQLite:
                     ac = 10 + dex_mod
                     print(f"[SQLite] Standard unarmored AC: 10 + Dex {dex_mod} = {ac}")
             
-            # Add shield bonuses
-            if equipped_shields:
+            # Add shield bonus
+            if equipped_shield:
                 from services.equipment import equipment_service
-                for shield in equipped_shields:
-                    shield_name = shield[0]
-                    shield_bonus = equipment_service.get_shield_ac_bonus(shield_name)
-                    ac += shield_bonus
-                    print(f"[SQLite] Added shield {shield_name}: +{shield_bonus} AC")
+                shield_bonus = equipment_service.get_shield_ac_bonus(equipped_shield)
+                ac += shield_bonus
+                print(f"[SQLite] Added shield {equipped_shield}: +{shield_bonus} AC")
+            
+            # Apply Defense fighting style bonus (+1 AC when wearing armor)
+            if equipped_armor:  # Only applies when wearing armor
+                print(f"[SQLite] Checking for Defense fighting style for character {character_id}")
+                with self._get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT feat_name FROM character_feats 
+                        WHERE character_id = ? AND feat_name = 'Defense'
+                    """, (character_id,))
+                    has_defense = cursor.fetchone()
+                
+                print(f"[SQLite] Defense check result: {has_defense}")
+                if has_defense:
+                    ac += 1
+                    print(f"[SQLite] Defense fighting style: +1 AC (total now {ac})")
+                else:
+                    print(f"[SQLite] No Defense fighting style found")
             
             return ac
             
@@ -1604,6 +1625,7 @@ class GameEngineSQLite:
     
     def recalculate_character_stats_sync(self, character_id: str) -> bool:
         """Recalculate character stats including AC and feat effects."""
+        print(f"[SQLite] recalculate_character_stats_sync called for character {character_id}")
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
