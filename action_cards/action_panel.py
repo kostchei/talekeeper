@@ -280,8 +280,10 @@ class ActionPanel(QWidget):
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.SECOND_WIND] = card
         
-        # Create Rage card if character has it
-        if 'Rage' in self.character_features:
+        # Create Rage card if character has it AND is a Barbarian
+        if ('Rage' in self.character_features and 
+            self.character_context and 
+            self.character_context.get('class_id', '').lower() in ['barbarian']):
             card = ActionCard(ActionType.RAGE, "[RAGE]", "Rage", "Enter barbarian rage (+2 damage, resistance to physical)")
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered) 
@@ -590,7 +592,14 @@ class ActionPanel(QWidget):
                     card.show()
                     
         elif self.current_category == ActionCategory.BONUS:
-            bonus_actions = [ActionType.RAGE]
+            # Only show bonus actions that the character actually has
+            bonus_actions = []
+            
+            # Add class feature bonus actions that the character actually has
+            if ActionType.RAGE in self.action_cards:
+                bonus_actions.append(ActionType.RAGE)
+            if ActionType.SECOND_WIND in self.action_cards:
+                bonus_actions.append(ActionType.SECOND_WIND)
             
             # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
             if ActionType.ATTACK_OFF_HAND in self.action_cards:

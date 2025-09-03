@@ -82,8 +82,19 @@ class LevelUpService:
                 WHERE id = ?
             """, (new_total_level, character_id))
             
-            # Grant new class features
+            # Grant new class features (old system)
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
+            
+            # Update features using new feature system
+            try:
+                from core.feature_integration import FeatureSystemIntegration
+                feature_system = FeatureSystemIntegration(self.db_path)
+                
+                # Refresh character features for new level
+                feature_system.initialize_character_features(character_id)
+                print(f"[LevelUp] Updated feature system for {class_choice} level {new_class_level} (total level {new_total_level})")
+            except Exception as e:
+                print(f"[LevelUp] Warning: Failed to update new feature system: {e}")
             
             conn.commit()
             return True

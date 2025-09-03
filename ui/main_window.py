@@ -576,9 +576,38 @@ class MainWindow(QMainWindow):
             # Set full character context for action panel features like rage
             self.action_panel.set_character_context(character_stats)
 
-            # Load class features into action panel
-            class_features = saved_character.features or {}
-            self.action_panel.load_character_features(class_features)
+            # Load class features into action panel using new feature system
+            try:
+                from core.feature_integration import FeatureSystemIntegration
+                feature_system = FeatureSystemIntegration('talekeeper.db')
+                print(f"[DEBUG] Loading features for character {saved_character.name} (ID: {saved_character.id})")
+                available_features = feature_system.get_available_features(saved_character.id)
+                
+                # If no features found, initialize them (for characters created before our fix)
+                if not available_features:
+                    print(f"[DEBUG] No features found, initializing for {saved_character.class_id} level {saved_character.level}")
+                    feature_system.initialize_character_features(saved_character.id)
+                    available_features = feature_system.get_available_features(saved_character.id)
+                    print(f"[DEBUG] After initialization: {len(available_features)} features")
+                
+                print(f"[DEBUG] Raw features from feature system: {[f['name'] for f in available_features]}")
+                
+                # Convert feature list to dictionary format expected by action panel
+                class_features = {}
+                for feature_data in available_features:
+                    if isinstance(feature_data, dict) and 'name' in feature_data:
+                        feature_name = feature_data['name']
+                        class_features[feature_name] = feature_data
+                
+                print(f"[DEBUG] Loading {len(class_features)} class features: {list(class_features.keys())}")
+                self.action_panel.load_character_features(class_features)
+            except Exception as e:
+                print(f"[DEBUG] Error loading class features: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback to old system - but don't load anything to avoid wrong features
+                print(f"[DEBUG] Feature system failed, loading empty features to avoid incorrect actions")
+                self.action_panel.load_character_features({})
             
             # Load character feats into action panel (for fighting styles, etc.)
             character_feats = saved_character.feats or []
@@ -743,9 +772,31 @@ class MainWindow(QMainWindow):
         # Set full character context for action panel features like rage
         self.action_panel.set_character_context(character_stats)
 
-        # Load class features into action panel
-        class_features = character.features or {}
-        self.action_panel.load_character_features(class_features)
+        # Load class features into action panel using new feature system
+        try:
+            from core.feature_integration import FeatureSystemIntegration
+            feature_system = FeatureSystemIntegration('talekeeper.db')
+            available_features = feature_system.get_available_features(character.id)
+            
+            # If no features found, initialize them (for characters created before our fix)
+            if not available_features:
+                print(f"[DEBUG] No features found, initializing for {character.class_id} level {character.level}")
+                feature_system.initialize_character_features(character.id)
+                available_features = feature_system.get_available_features(character.id)
+            
+            # Convert feature list to dictionary format expected by action panel
+            class_features = {}
+            for feature_data in available_features:
+                if isinstance(feature_data, dict) and 'name' in feature_data:
+                    feature_name = feature_data['name']
+                    class_features[feature_name] = feature_data
+            
+            print(f"[DEBUG] Loading {len(class_features)} class features: {list(class_features.keys())}")
+            self.action_panel.load_character_features(class_features)
+        except Exception as e:
+            print(f"[DEBUG] Error loading class features: {e}")
+            # Fallback - load empty to avoid wrong features
+            self.action_panel.load_character_features({})
         
         # Load character feats into action panel (for fighting styles, etc.)
         character_feats = getattr(character, 'feats', []) or []

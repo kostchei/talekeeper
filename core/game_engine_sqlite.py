@@ -536,8 +536,17 @@ class GameEngineSQLite:
                 # Add starting equipment from class and background
                 self._add_starting_equipment(cursor, character_id, character_data)
                 
-                # Initialize class-specific features table
+                # Initialize class-specific features table (old system)
                 self._initialize_class_features(cursor, character_id, character_data)
+                
+                # Initialize features using new feature system
+                try:
+                    from core.feature_integration import FeatureSystemIntegration
+                    feature_system = FeatureSystemIntegration(self.db_path)
+                    feature_system.initialize_character_features(character_id)
+                    print(f"[SQLite] Initialized new feature system for character {character_id}")
+                except Exception as e:
+                    print(f"[SQLite] Warning: Failed to initialize new feature system: {e}")
                 
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
