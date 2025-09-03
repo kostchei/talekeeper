@@ -95,6 +95,13 @@ class ActionPanel(QWidget):
         self.character_context = {}  # Current character state
         self.character_features = {}  # Character class features (Fighting Style, etc.)
         self.equipped_weapons = {}  # Store equipped weapon data
+        
+        # Lucky feat state tracking
+        self.lucky_advantage_active = False  # True when Lucky advantage is ready for next roll
+        self.lucky_disadvantage_active = False  # True when Lucky disadvantage is ready for next enemy attack
+        
+        # Vex weapon mastery tracking
+        self.vex_target_id = None  # Monster ID that player has Vex advantage against
         self.target_monster_id = None  # Currently targeted monster for attacks
         self.pending_attack = None  # Store attack to execute after monsters' turns
         
@@ -451,6 +458,7 @@ class ActionPanel(QWidget):
             uses_remaining = self._get_feat_resource_remaining("Lucky", "luck_points")
             if uses_remaining > 0:
                 self._use_feat_resource("Lucky", "luck_points")
+                self.lucky_advantage_active = True  # Set flag for next d20 roll
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
@@ -463,6 +471,7 @@ class ActionPanel(QWidget):
             uses_remaining = self._get_feat_resource_remaining("Lucky", "luck_points")
             if uses_remaining > 0:
                 self._use_feat_resource("Lucky", "luck_points")
+                self.lucky_disadvantage_active = True  # Set flag for next enemy attack
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
@@ -1488,9 +1497,8 @@ class ActionPanel(QWidget):
             return None
     
     def _roll_attack(self, context: Dict[str, Any]) -> tuple[int, dict]:
-        """Roll an attack roll (d20 + modifiers). Returns (total, breakdown)."""
-        import random
-        base_roll = random.randint(1, 20)
+        """Roll an attack roll (d20 + modifiers) with advantage/disadvantage. Returns (total, breakdown)."""
+        from services.advantage_system import advantage_system, RollType, AdvantageState
         
         # Calculate attack bonus components
         prof_bonus = 2  # TODO: Get from character level
@@ -1509,11 +1517,34 @@ class ActionPanel(QWidget):
             ability_mod = (context.get('strength', 10) - 10) // 2
             ability_name = "STR"
         
+        # Get advantage/disadvantage sources
+        advantage_sources = advantage_system.get_common_advantage_sources(RollType.ATTACK, context)
+        disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.ATTACK, context)
+        
+        # Check for Lucky feat advantage
+        if self.lucky_advantage_active:
+            advantage_sources.append("Lucky feat")
+            self.lucky_advantage_active = False  # Consume the Lucky advantage
+        
+        # Check for Vex weapon mastery advantage
+        current_target_id = context.get('target_monster_id')
+        if self.vex_target_id and self.vex_target_id == current_target_id:
+            advantage_sources.append("Vex weapon mastery")
+            self.vex_target_id = None  # Consume the Vex advantage
+        
+        # Calculate final advantage state
+        advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+        
+        # Roll with advantage/disadvantage
+        total_modifier = prof_bonus + ability_mod
+        base_roll_total, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, 0)  # Don't add modifier yet
+        base_roll = roll_breakdown['d20_result']
+        
         magic_bonus = context.get('attack_bonus', 0)
         total_bonus = prof_bonus + ability_mod + magic_bonus
         total = base_roll + total_bonus
         
-        # Create breakdown for logging
+        # Create breakdown for logging (include advantage/disadvantage info)
         breakdown = {
             'd20_roll': base_roll,
             'proficiency': prof_bonus,
@@ -1521,7 +1552,11 @@ class ActionPanel(QWidget):
             'ability_name': ability_name,
             'magic_bonus': magic_bonus,
             'total_bonus': total_bonus,
-            'total': total
+            'total': total,
+            'advantage_state': advantage_state,
+            'advantage_sources': advantage_sources,
+            'disadvantage_sources': disadvantage_sources,
+            'roll_details': roll_breakdown  # Include the full roll breakdown
         }
         
         return total, breakdown
@@ -1663,6 +1698,16 @@ class ActionPanel(QWidget):
                     magic = attack_breakdown['magic_bonus']
                     total = attack_breakdown['total']
                     
+                    # Get advantage/disadvantage info
+                    advantage_state = attack_breakdown.get('advantage_state')
+                    roll_details = attack_breakdown.get('roll_details', {})
+                    
+                    # Build d20 roll display with advantage/disadvantage
+                    if advantage_state and advantage_state.value != 'normal':
+                        roll_desc = roll_details.get('description', f'd20({d20})')
+                    else:
+                        roll_desc = f'd20({d20})'
+                    
                     # Build attack roll details
                     bonus_parts = []
                     if prof > 0:
@@ -1714,19 +1759,19 @@ class ActionPanel(QWidget):
                             damage_bonus_str = f" ({' '.join(damage_parts)})" if damage_parts else ""
                             
                             parent.log_panel.log_combat(
-                                f"[ATTACK] {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
+                                f"[ATTACK] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
                             )
                             parent.log_panel.log_combat(
                                 f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str} = {damage_total} damage"
                             )
                         else:
                             parent.log_panel.log_combat(
-                                f"[ATTACK] {weapon} hits {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac} for {damage_total} damage"
+                                f"[ATTACK] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac} for {damage_total} damage"
                             )
                     else:
                         # Miss - just show attack roll
                         parent.log_panel.log_combat(
-                            f"[ATTACK] {weapon} misses {target}! Attack: d20({d20}){bonus_str} = {total} vs AC {target_ac}"
+                            f"[ATTACK] {weapon} misses {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
                         )
                     break
                 parent = parent.parent()
@@ -1856,10 +1901,17 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat("[DICE] ROLLING INITIATIVE FOR COMBAT!")
                     parent.log_panel.log_combat("=" * 50)
                     
-                    # Log player initiative with more detail
-                    d20_roll = player_initiative - player_dex_mod
-                    dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
-                    parent.log_panel.log_combat(f"[PLAYER] Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
+                    # Log player initiative with advantage/disadvantage info
+                    initiative_breakdown = getattr(current_encounter, '_player_initiative_breakdown', None)
+                    if initiative_breakdown:
+                        roll_desc = initiative_breakdown.get('description', f'd20({player_initiative - player_dex_mod})')
+                        dex_bonus_str = f" +{player_dex_mod} DEX" if player_dex_mod >= 0 else f" {player_dex_mod} DEX"
+                        parent.log_panel.log_combat(f"[PLAYER] Initiative: {roll_desc}{dex_bonus_str} = {player_initiative}")
+                    else:
+                        # Fallback for old format
+                        d20_roll = player_initiative - player_dex_mod
+                        dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
+                        parent.log_panel.log_combat(f"[PLAYER] Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
                     
                     # Log monster initiatives
                     for entry in initiative_order:
@@ -1947,9 +1999,34 @@ class ActionPanel(QWidget):
             if not attack_info:
                 return
             
-            # Roll monster's attack
+            # Roll monster's attack with advantage/disadvantage
             import random
-            attack_roll = random.randint(1, 20) + attack_info['hit_bonus']
+            from services.advantage_system import advantage_system, RollType
+            
+            # Check for disadvantage sources (including Lucky)
+            attack_context = {
+                'monster_attack': True,
+                'sap_effect': getattr(monster_instance, 'has_sap_disadvantage', False)
+            }
+            
+            advantage_sources = []
+            disadvantage_sources = []
+            
+            # Check for Sap weapon mastery disadvantage
+            if getattr(monster_instance, 'has_sap_disadvantage', False):
+                disadvantage_sources.append("Sap weapon mastery")
+                # Clear the disadvantage after using it
+                monster_instance.has_sap_disadvantage = False
+            
+            # Check for Lucky feat disadvantage
+            if self.lucky_disadvantage_active:
+                disadvantage_sources.append("Lucky feat")
+                self.lucky_disadvantage_active = False  # Consume the Lucky disadvantage
+            
+            # Calculate advantage state and roll
+            advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+            d20_total, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, attack_info['hit_bonus'])
+            attack_roll = d20_total
             
             # Get player's actual AC from character data
             player_ac = self.character_context.get('armor_class', 10)
@@ -1965,11 +2042,11 @@ class ActionPanel(QWidget):
                 
                 # Log the attack
                 self._log_monster_attack_result(True, monster_instance.monster_name, action_name, 
-                                              attack_roll, player_ac, damage_total, attack_info)
+                                              attack_roll, player_ac, damage_total, attack_info, roll_breakdown)
             else:
                 # Attack missed
                 self._log_monster_attack_result(False, monster_instance.monster_name, action_name, 
-                                              attack_roll, player_ac, 0, attack_info)
+                                              attack_roll, player_ac, 0, attack_info, roll_breakdown)
                 
         except Exception as e:
             print(f"Error executing monster attack: {e}")
@@ -2161,16 +2238,23 @@ class ActionPanel(QWidget):
             return 0
     
     def _log_monster_attack_result(self, hit: bool, monster_name: str, action_name: str, 
-                                  attack_roll: int, player_ac: int, damage: int, attack_info: dict):
-        """Log monster attack results."""
+                                  attack_roll: int, player_ac: int, damage: int, attack_info: dict, roll_breakdown: dict = None):
+        """Log monster attack results with advantage/disadvantage information."""
         try:
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    if hit:
-                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} hits! Attack: {attack_roll} vs AC {player_ac} for {damage} damage")
+                    # Format attack roll with advantage/disadvantage info
+                    if roll_breakdown and roll_breakdown.get('type') != 'normal':
+                        roll_desc = roll_breakdown.get('description', f'{attack_roll}')
+                        attack_display = f"Attack: {roll_desc} = {attack_roll}"
                     else:
-                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} misses! Attack: {attack_roll} vs AC {player_ac}")
+                        attack_display = f"Attack: {attack_roll}"
+                    
+                    if hit:
+                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} hits! {attack_display} vs AC {player_ac} for {damage} damage")
+                    else:
+                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} misses! {attack_display} vs AC {player_ac}")
                     break
                 parent = parent.parent()
                 
@@ -3114,6 +3198,8 @@ class ActionPanel(QWidget):
             
             elif special_effects == 'advantage_next_attack':  # Vex
                 effects['vex'] = True
+                # Set Vex target for next attack
+                self.vex_target_id = context.get('target_monster_id')
                 self._log_mastery_effect("Vex", "Advantage on next attack against this target")
         
         except Exception as e:

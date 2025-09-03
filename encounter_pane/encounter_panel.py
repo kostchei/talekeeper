@@ -197,12 +197,27 @@ class Encounter:
         )
     
     def roll_initiative(self, player_dex_mod: int, monster_instances: list, monster_data: dict) -> int:
-        """Roll initiative for player and all monsters."""
+        """Roll initiative for player and all monsters with advantage/disadvantage support."""
         import random
+        from services.advantage_system import advantage_system, RollType
         
-        # Roll player initiative
-        player_roll = random.randint(1, 20)
-        self.player_initiative = player_roll + player_dex_mod
+        # Create context for player initiative roll
+        initiative_context = {
+            'dexterity_modifier': player_dex_mod,
+            # TODO: Add character features that affect initiative (e.g., Feral Instinct for Barbarians)
+            # 'feral_instinct': False  # Barbarian level 7 feature gives advantage on initiative
+        }
+        
+        # Get advantage/disadvantage sources for initiative
+        advantage_sources = advantage_system.get_common_advantage_sources(RollType.INITIATIVE, initiative_context)
+        disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.INITIATIVE, initiative_context)
+        
+        # Calculate advantage state and roll
+        advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+        self.player_initiative, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, player_dex_mod)
+        
+        # Store the roll breakdown for logging
+        self._player_initiative_breakdown = roll_breakdown
         
         # Roll initiative for each monster
         for instance in monster_instances:
