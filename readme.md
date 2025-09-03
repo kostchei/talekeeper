@@ -109,20 +109,20 @@ The game creates configuration files automatically:
 - Single-file Windows executable
 
 ## ToDo
-Check 2 weapon fighting, dueling, defense, 
-Check graze, nick, vex, sap,
-level progression
-towns for selling stuff
-items on monsters for use
-training costs
-images
-a way of parsing combat to a story
-ollama
-skills
-skill encounters
-traps
-hazards
-barbarian (berserker, slayer), rogue, fighter: and many subclasses but no spell casting
+- Check 2 weapon fighting, dueling, defense, 
+- Check graze, nick, vex, sap,
+- level progression ( fighter, barbaria6, Rogue to 20 )
+- towns for selling stuff
+- items on monsters for use
+- training costs
+- images characters, monsters and items
+- a way of parsing combat to a story
+- ollama connectivity to local storytelling version
+- skills
+- skill encounters
+- traps
+- hazards
+- barbarian (berserker, slayer), rogue ( theif, poisoner, trader), fighter (champion, gladiator) and many subclasses but no spell casting
 stealth
 encounter parlay
 encounter avoidance
