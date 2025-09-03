@@ -105,6 +105,36 @@ CREATE TABLE character_features (
 );
 
 -- ================================================
+-- CLASS FEATURE DEFINITIONS
+-- ================================================
+CREATE TABLE class_feature_definitions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_name TEXT NOT NULL,
+    level_required INTEGER NOT NULL,
+    feature_name TEXT NOT NULL,
+    feature_type TEXT NOT NULL DEFAULT 'passive',
+    usage TEXT NOT NULL DEFAULT 'permanent',
+    description TEXT NOT NULL DEFAULT '',
+    mechanics TEXT,
+    resource_name TEXT,
+    resource_max_uses INTEGER
+);
+CREATE INDEX idx_class_feature_lookup ON class_feature_definitions(class_name, level_required);
+
+-- Seed initial class feature data
+INSERT INTO class_feature_definitions (class_name, level_required, feature_name, feature_type, usage, description, mechanics, resource_name, resource_max_uses) VALUES
+    ('Fighter', 1, 'Fighting Style', 'passive', 'permanent', 'Gain a Fighting Style feat of your choice.', NULL, NULL, NULL),
+    ('Fighter', 1, 'Second Wind', 'bonus_action', 'short_rest', 'Regain 1d10 + fighter level hit points.', NULL, 'second_wind', 2),
+    ('Fighter', 1, 'Weapon Mastery', 'passive', 'permanent', 'Use mastery properties of three weapons of your choice.', '{"max_masteries":3}', NULL, NULL),
+    ('Barbarian', 1, 'Rage', 'bonus_action', 'long_rest', 'Enter a rage for 10 minutes granting resistances and bonus damage.', '{"damage_bonus":2}', 'rage', 2),
+    ('Barbarian', 1, 'Unarmored Defense', 'passive', 'permanent', 'AC equals 10 + Dex mod + Con mod while not wearing heavy armor.', NULL, NULL, NULL),
+    ('Barbarian', 1, 'Weapon Mastery', 'passive', 'permanent', 'Use mastery properties of two melee weapons.', '{"max_masteries":2}', NULL, NULL),
+    ('Rogue', 1, 'Expertise', 'passive', 'permanent', 'Gain expertise in two skills of your choice.', NULL, NULL, NULL),
+    ('Rogue', 1, 'Sneak Attack', 'passive', 'permanent', 'Once per turn deal an extra 1d6 damage when attack has advantage or ally is nearby.', NULL, NULL, NULL),
+    ('Rogue', 1, 'Thieves'' Cant', 'passive', 'permanent', 'You know Thieves'' Cant and one additional language.', NULL, NULL, NULL),
+    ('Rogue', 1, 'Weapon Mastery', 'passive', 'permanent', 'Use mastery properties of two weapons you have proficiency with.', '{"max_masteries":2}', NULL, NULL);
+
+-- ================================================
 -- CHARACTER WEAPON MASTERIES
 -- ================================================
 CREATE TABLE character_weapon_masteries (
