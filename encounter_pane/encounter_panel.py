@@ -1831,17 +1831,11 @@ class EncounterPanel(QWidget):
         feat_entries = feat_data.get('entries', [])
         
         description = f"<h3>{feat_name}</h3>"
-        description += f"<p><i>Source: {feat_source}</i></p>"
         
-        # Show mechanical effects preview
-        if feat_name == 'Tough':
-            description += f"<p><b>Effect:</b> +2 hit points per character level</p>"
-        elif feat_name == 'Linguist':
-            description += f"<p><b>Effect:</b> +1 Intelligence, +3 languages</p>"
-        elif feat_category == 'FS':
-            description += f"<p><b>Effect:</b> Fighting style for combat</p>"
-        elif feat_category == 'O':
-            description += f"<p><b>Effect:</b> Origin feat with special abilities</p>"
+        # Add feat description from database
+        feat_description = feat_data.get('description', '')
+        if feat_description:
+            description += f"<p>{feat_description}</p>"
         
         # Add feat description
         for entry in feat_entries:
