@@ -667,15 +667,30 @@ class MainWindow(QMainWindow):
         
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
-                character_id = self.game_engine.current_character.id
-                character_name = self.game_engine.current_character.name
+                character = self.game_engine.current_character
+                character_name = character.name
                 
                 # Get updated inventory from database
-                character_inventory = self.game_engine.get_character_inventory_sync(character_id)
+                character_inventory = self.game_engine.get_character_inventory_sync(character.id)
                 
-                # Refresh equipment panel
+                # Get equipped items
+                equipped_items = {}
+                if character.equipment_main_hand:
+                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_main_hand)
+                    equipped_items['main_hand'] = item_data if item_data else {'name': character.equipment_main_hand, 'weight_lb': 0}
+                if character.equipment_armor:
+                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_armor)
+                    equipped_items['armor'] = item_data if item_data else {'name': character.equipment_armor, 'weight_lb': 0}
+                if character.equipment_shield:
+                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_shield)
+                    equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
+                elif character.equipment_off_hand:
+                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_off_hand)
+                    equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_off_hand, 'weight_lb': 0}
+                
+                # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
-                    self.equipment_panel.load_equipment_data(character_inventory)
+                    self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character.strength, character.dexterity)
                 
                 # Refresh action panel (for potion availability)
                 if hasattr(self, 'action_panel'):

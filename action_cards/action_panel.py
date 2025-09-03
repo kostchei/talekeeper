@@ -2667,9 +2667,13 @@ class ActionPanel(QWidget):
                 break
             parent = parent.parent()
         
-        # Update character panel if available
-        if hasattr(parent, 'character_panel'):
-            parent.character_panel.update_character_data(self.character_context)
+        # Update character panel if available - use separate parent search
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'character_panel'):
+                parent.character_panel.update_character_data(self.character_context)
+                break
+            parent = parent.parent()
         
         # Update potion card to reflect new count
         self._update_potion_card()

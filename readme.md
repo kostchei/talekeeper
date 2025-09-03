@@ -111,7 +111,7 @@ The game creates configuration files automatically:
 ## ToDo
 - Check 2 weapon fighting, dueling, defense, 
 - Check graze, nick, vex, sap,
-- level progression ( fighter, barbaria6, Rogue to 20 )
+- level progression ( fighter, barbarian, rogue to 20 )
 - towns for selling stuff
 - items on monsters for use
 - training costs
@@ -122,7 +122,7 @@ The game creates configuration files automatically:
 - skill encounters
 - traps
 - hazards
-- barbarian (berserker, slayer), rogue ( theif, poisoner, trader), fighter (champion, gladiator) and many subclasses but no spell casting
+- barbarian (berserker, slayer), rogue ( theif,  trader), fighter (champion, gladiator) and many subclasses but no spell casting
 stealth
 encounter parlay
 encounter avoidance
