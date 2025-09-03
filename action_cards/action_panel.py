@@ -1043,14 +1043,9 @@ class ActionPanel(QWidget):
             print(f"NEW ATTACK: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            # Check if initiative was rolled for this encounter
-            current_encounter = getattr(encounter_panel, 'current_encounter', None)
-            if current_encounter and current_encounter.initiative_rolled:
-                print(f"NEW ATTACK: Following initiative order for remaining monster turns")
-                self._execute_remaining_initiative_turns(encounter_panel, current_encounter)
-            else:
-                print(f"NEW ATTACK: Triggering monster counter-attacks (no initiative)")
-                self._trigger_monster_counter_attacks(encounter_panel)
+            # Use the working monster attack system (bypassing broken initiative system for now)
+            print(f"NEW ATTACK: Using working monster counter-attack system")
+            self._trigger_monster_counter_attacks(encounter_panel)
     
     def _execute_remaining_initiative_turns(self, encounter_panel, current_encounter):
         """Execute remaining monster turns in initiative order after player's turn."""
@@ -1704,7 +1699,11 @@ class ActionPanel(QWidget):
             encounter_panel.set_combat_mode()
             
             # Check if player goes first - if not, store pending attack and execute monster attacks first
+            print(f"⚔ [DEBUG] Initiative check - first actor type: {initiative_order[0]['type'] if initiative_order else 'no order'}")
+            print(f"⚔ [DEBUG] Initiative order length: {len(initiative_order) if initiative_order else 0}")
+            
             if initiative_order and initiative_order[0]['type'] == 'monster':
+                print(f"⚔ [DEBUG] Monsters go first! Storing pending attack and executing monster turns...")
                 # Store the pending attack to execute after monsters' turns
                 self.pending_attack = {
                     'action_type': context.get('action_type'),
@@ -1714,6 +1713,7 @@ class ActionPanel(QWidget):
                 self._execute_monster_turns_before_player(encounter_panel, initiative_order, monster_data)
                 return False  # Player doesn't go first, their action is held
             
+            print(f"⚔ [DEBUG] Player goes first, continuing with their action")
             return True  # Player goes first, can continue with their action
             
         except Exception as e:
@@ -1818,31 +1818,54 @@ class ActionPanel(QWidget):
     def _execute_monster_turns_before_player(self, encounter_panel, initiative_order: list, monster_data: dict):
         """Execute monster attacks for all monsters that go before the player."""
         try:
+            print("⚔ [DEBUG] Executing monster turns before player...")
+            initiative_summary = [f"{e['name']}({e['type']})" for e in initiative_order]
+            print(f"⚔ [DEBUG] Initiative order: {initiative_summary}")
+            print(f"⚔ [DEBUG] Monster data keys: {list(monster_data.keys())}")
+            print(f"⚔ [DEBUG] Encounter instances: {list(encounter_panel.encounter_instances.keys())}")
+            
             for entry in initiative_order:
                 if entry['type'] == 'player':
+                    print(f"⚔ [DEBUG] Reached player turn, stopping monster turns")
                     break  # Stop when we reach player turn
                 
                 if entry['type'] == 'monster':
-                    monster_id = entry['id']
+                    monster_instance = entry.get('instance')
                     monster_name = entry['name']
                     
-                    # Get monster instance and stats
-                    monster_instance = encounter_panel.encounter_instances.get(monster_id)
+                    print(f"⚔ [DEBUG] Processing monster turn: {monster_name}")
+                    
+                    # Get monster stats
                     monster_stats = monster_data.get(monster_name, {})
                     
+                    print(f"⚔ [DEBUG] Monster instance found: {monster_instance is not None}")
+                    print(f"⚔ [DEBUG] Monster stats found: {monster_stats != {}}")
+                    if monster_instance:
+                        print(f"⚔ [DEBUG] Monster is alive: {monster_instance.is_alive}")
+                    
                     if monster_instance and monster_instance.is_alive and monster_stats:
+                        print(f"⚔ [DEBUG] Executing attack for {monster_name}")
                         self._execute_monster_attack(monster_instance, monster_stats, encounter_panel)
+                    else:
+                        print(f"⚔ [DEBUG] Skipping {monster_name} - missing data or not alive")
                         
         except Exception as e:
-            print(f"Error executing monster turns: {e}")
+            print(f"⚔ [ERROR] Error executing monster turns: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _execute_monster_attack(self, monster_instance, monster_stats: dict, encounter_panel):
         """Execute a single monster's attack against the player."""
         try:
+            print(f"⚔ [DEBUG] {monster_instance.monster_name} is attacking!")
+            
             # Get monster's first action (usually their main attack)
             actions = monster_stats.get('action', [])
             if not actions:
+                print(f"⚔ [DEBUG] {monster_instance.monster_name} has no actions available")
                 return  # No attacks available
+            
+            print(f"⚔ [DEBUG] {monster_instance.monster_name} has {len(actions)} actions available")
             
             main_action = actions[0]  # Use first action
             action_name = main_action.get('name', 'Attack')
