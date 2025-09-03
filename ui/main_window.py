@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
         self.menu.create_character_requested.connect(self._start_character_creation)
         self.menu.load_game_requested.connect(self._show_load_character_dialog)
         self.menu.save_and_exit_requested.connect(self._save_and_exit)
-        self.menu.archive_character_requested.connect(self._archive_current_character)
+        self.menu.force_reload_requested.connect(self._force_reload_character)
         self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
         self.menu.campaign_frame_requested.connect(lambda: self.log_panel.log_info("Campaign Frame requested"))
         
@@ -661,23 +661,34 @@ class MainWindow(QMainWindow):
         self.log_panel.log_system("Goodbye!")
         self.close()
     
-    def _archive_current_character(self):
-        """Archive (save) the current character without exiting the application."""
-        self.log_panel.log_system("Archiving current character...")
+    def _force_reload_character(self):
+        """Force reload the current character and refresh all UI panels."""
+        self.log_panel.log_system("Force reloading character...")
         
-        # Save current character and game state if available
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
-                self.game_engine.save_game_sync()
+                character_id = self.game_engine.current_character.id
                 character_name = self.game_engine.current_character.name
-                self.log_panel.log_info(f"Character '{character_name}' archived successfully!")
-                self.log_panel.log_system("Game state saved to database")
+                
+                # Reload character data from database
+                character = self.game_engine.load_character_sync(character_id)
+                if character:
+                    # Set the current character
+                    self.game_engine.current_character = character
+                    
+                    # Refresh all UI panels with updated data
+                    self._load_character_ui(character)
+                    
+                    self.log_panel.log_info(f"Character '{character_name}' reloaded successfully!")
+                    self.log_panel.log_system("All UI panels refreshed")
+                else:
+                    self.log_panel.log_error(f"Failed to reload character with ID {character_id}")
             else:
-                self.log_panel.log_error("No active character to archive")
+                self.log_panel.log_error("No active character to reload")
                 self.log_panel.log_info("Load or create a character first")
         except Exception as e:
-            self.log_panel.log_error(f"Failed to archive character: {e}")
-            self.log_panel.log_system("Archive operation failed")
+            self.log_panel.log_error(f"Failed to reload character: {e}")
+            self.log_panel.log_system("Reload operation failed")
     
     def _try_load_last_character(self):
         """Try to load the most recent character, otherwise load test data."""

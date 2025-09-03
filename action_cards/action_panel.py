@@ -2684,7 +2684,7 @@ class ActionPanel(QWidget):
             
             cursor.execute("""
                 SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
             """, (character_id,))
             
             result = cursor.fetchone()
@@ -2712,13 +2712,13 @@ class ActionPanel(QWidget):
             cursor.execute("""
                 UPDATE character_inventory 
                 SET quantity = quantity - 1
-                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
             """, (character_id,))
             
             # Remove entries with 0 quantity
             cursor.execute("""
                 DELETE FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity <= 0
+                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity <= 0
             """, (character_id,))
             
             conn.commit()
@@ -2747,7 +2747,7 @@ class ActionPanel(QWidget):
             
             cursor.execute("""
                 SELECT SUM(quantity) FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Potion of Healing' AND quantity > 0
+                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
             """, (character_id,))
             
             result = cursor.fetchone()

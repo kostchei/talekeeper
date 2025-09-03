@@ -26,7 +26,7 @@ class GameMenu(QWidget):
         create_character_requested: Emitted when create character is clicked
         load_game_requested: Emitted when load game is clicked  
         save_and_exit_requested: Emitted when save & exit is clicked
-        archive_character_requested: Emitted when archive character is clicked
+        force_reload_requested: Emitted when force reload is clicked
         settings_requested: Emitted when settings is clicked
         campaign_frame_requested: Emitted when campaign frame is clicked
     """
@@ -35,7 +35,7 @@ class GameMenu(QWidget):
     create_character_requested = pyqtSignal()
     load_game_requested = pyqtSignal()
     save_and_exit_requested = pyqtSignal()
-    archive_character_requested = pyqtSignal()
+    force_reload_requested = pyqtSignal()
     settings_requested = pyqtSignal()
     campaign_frame_requested = pyqtSignal()
     
@@ -74,10 +74,10 @@ class GameMenu(QWidget):
         self.save_and_exit_btn.setObjectName("menuButton")
         self.main_layout.addWidget(self.save_and_exit_btn, 1, 0)
         
-        self.archive_character_btn = QPushButton("Archive Character")
-        self.archive_character_btn.clicked.connect(self.archive_character_requested.emit)
+        self.force_reload_btn = QPushButton("Force Reload")
+        self.force_reload_btn.clicked.connect(self.force_reload_requested.emit)
         self.archive_character_btn.setObjectName("menuButton")
-        self.main_layout.addWidget(self.archive_character_btn, 1, 1)
+        self.main_layout.addWidget(self.force_reload_btn, 1, 1)
         
         # Row 3
         self.settings_btn = QPushButton("Settings")
@@ -167,7 +167,7 @@ class GameMenu(QWidget):
     def set_character_loaded(self, loaded: bool):
         """Enable/disable character-dependent buttons based on whether a character is loaded."""
         self.save_and_exit_btn.setEnabled(loaded)
-        self.archive_character_btn.setEnabled(loaded)
+        self.force_reload_btn.setEnabled(loaded)
     
     def update_game_info(self, character_name: str, level: int):
         """Update the game information display with character name and level."""

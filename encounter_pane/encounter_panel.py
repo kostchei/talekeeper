@@ -3209,11 +3209,22 @@ class EncounterPanel(QWidget):
                     character = game_engine.current_character
                     
                     if character:
-                        # For now, just log the gold gain - proper inventory system would go here
-                        self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
-                        
-                        # TODO: Add proper gold tracking to character database when inventory system is implemented
-                        print(f"[TREASURE] Character would gain {gold_amount} GP")
+                        # Add gold to character inventory
+                        try:
+                            # Update gold in inventory database
+                            success = game_engine.add_gold_to_character_sync(character.id, gold_amount)
+                            if success:
+                                self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
+                                print(f"[TREASURE] Successfully added {gold_amount} GP to character {character.id}")
+                                
+                                # Refresh the equipment panel to show updated gold
+                                self._refresh_equipment_panel(game_engine, character.id)
+                            else:
+                                self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                                print(f"[TREASURE] Failed to add {gold_amount} GP to character inventory")
+                        except Exception as e:
+                            self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                            print(f"[TREASURE] Error adding gold: {e}")
                         return
                     break
                 parent = parent.parent()
@@ -3591,4 +3602,23 @@ class EncounterPanel(QWidget):
             
         except Exception as e:
             print(f"Error performing long rest: {e}")
+    
+    def _refresh_equipment_panel(self, game_engine, character_id):
+        """Refresh the equipment panel to show updated inventory."""
+        try:
+            # Navigate up the parent hierarchy to find the main window
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_panel') and hasattr(parent.character_panel, 'equipment_panel'):
+                    equipment_panel = parent.character_panel.equipment_panel
+                    if hasattr(equipment_panel, 'load_equipment_data'):
+                        # Reload the inventory data
+                        character_inventory = game_engine.get_character_inventory_sync(character_id)
+                        equipment_panel.load_equipment_data(character_inventory)
+                        print(f"[UI] Refreshed equipment panel for character {character_id}")
+                        return
+                parent = parent.parent()
+            print(f"[UI] Could not find equipment panel to refresh")
+        except Exception as e:
+            print(f"[UI] Error refreshing equipment panel: {e}")
             self._log_monster_action(f"[FAIL] Long rest failed: {e}")

@@ -1732,6 +1732,48 @@ class GameEngineSQLite:
             print(f"[SQLite] Error updating character XP: {e}")
             return False
     
+    def add_gold_to_character_sync(self, character_id: str, gold_amount: int) -> bool:
+        """Add gold to character's inventory in the database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Check if character already has gold in inventory
+                cursor.execute("""
+                    SELECT quantity FROM character_inventory 
+                    WHERE character_id = ? AND item_name = 'Gold Pieces'
+                """, (character_id,))
+                
+                result = cursor.fetchone()
+                
+                if result:
+                    # Update existing gold quantity
+                    old_quantity = result[0]
+                    new_quantity = old_quantity + gold_amount
+                    
+                    cursor.execute("""
+                        UPDATE character_inventory 
+                        SET quantity = ?
+                        WHERE character_id = ? AND item_name = 'Gold Pieces'
+                    """, (new_quantity, character_id))
+                    
+                    print(f"[SQLite] Updated character {character_id} gold: {old_quantity} -> {new_quantity} (+{gold_amount})")
+                else:
+                    # Create new gold entry
+                    cursor.execute("""
+                        INSERT INTO character_inventory 
+                        (id, character_id, item_name, item_type, quantity, weight_lb, value_gp) 
+                        VALUES (?, ?, 'Gold Pieces', 'currency', ?, 0.0, 1.0)
+                    """, (f"{character_id}_gold", character_id, gold_amount))
+                    
+                    print(f"[SQLite] Added {gold_amount} gold pieces to character {character_id}")
+                
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            print(f"[SQLite] Error adding gold to character: {e}")
+            return False
+    
     def save_character_sync(self, character_id: str = None) -> bool:
         """Save current character or specified character to database."""
         try:
