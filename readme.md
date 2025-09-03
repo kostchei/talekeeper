@@ -108,12 +108,32 @@ The game creates configuration files automatically:
 - Save/load system with multiple character slots
 - Single-file Windows executable
 
-##
-ToDo
+## ToDo
 Check 2 weapon fighting, dueling, defense, 
 Check graze, nick, vex, sap,
 level progression
 towns for selling stuff
 items on monsters for use
 training costs
-
+images
+a way of parsing combat to a story
+ollama
+skills
+skill encounters
+traps
+hazards
+barbarian (berserker, slayer), rogue, fighter: and many subclasses but no spell casting
+stealth
+encounter parlay
+encounter avoidance
+pickpockets
+multiclassing
+city adventure
+dungeon adventure
+...
+range attacks, movement..something
+poisons
+Release 1
+campaign frame interface
+modules
+mounts?
