@@ -1033,7 +1033,7 @@ class GameEngineSQLite:
         
         cursor.execute("""
             INSERT INTO fighter_features (
-                character_id, level, fighting_style, action_surge_uses_max, 
+                character_id, level, fighting_style, action_surge_uses_max,
                 second_wind_used, indomitable_uses_max, extra_attacks, weapon_masteries_known
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
@@ -1044,6 +1044,15 @@ class GameEngineSQLite:
             2 if level >= 5 else 1,  # Extra Attack at level 5
             3 + (level // 4)  # 3 base, +1 every 4 levels
         ))
+        # Store selected fighting style in generic character_features table for action processing
+        if fighting_style:
+            cursor.execute(
+                """INSERT INTO character_features (
+                    character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics
+                ) VALUES (?, ?, 'fighting_style', 'permanent', ?, '', '{}')""",
+                (character_id, fighting_style.replace('_', ' ').title(), level),
+            )
+
         print(f"[SQLite] Initialized Fighter features - Fighting Style: {fighting_style}")
     
     def _initialize_barbarian_features(self, cursor, character_id: str, character_data: Dict):

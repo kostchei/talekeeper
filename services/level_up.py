@@ -5,11 +5,13 @@ Level Up Service - Handle character leveling and multi-classing
 import sqlite3
 from typing import Dict, List, Optional, Tuple
 import json
+from core.class_feature_registry import ClassFeatureRegistry, ClassFeature
 
 
 class LevelUpService:
-    def __init__(self, db_path: str = "talekeeper.db"):
+    def __init__(self, db_path: str = "talekeeper.db", feature_registry: Optional[ClassFeatureRegistry] = None):
         self.db_path = db_path
+        self.feature_registry = feature_registry or ClassFeatureRegistry(db_path)
     
     def get_available_classes(self) -> List[str]:
         """Get list of available classes for leveling."""
@@ -110,44 +112,36 @@ class LevelUpService:
     
     def _grant_class_features(self, cursor, character_id: str, class_name: str, class_level: int):
         """Grant class features for the new level."""
-        # Get features for this class and level
-        cursor.execute("""
-            SELECT feature_name, feature_type, usage_type, combat_effect, 
-                   conditions_granted, resource_pool, spell_slots
-            FROM class_features_detailed 
-            WHERE class_name = ? AND level_required = ?
-        """, (class_name, class_level))
-        
-        features = cursor.fetchall()
-        
+        features: List[ClassFeature] = self.feature_registry.get_features(class_name, class_level)
+
         for feature in features:
-            feature_name, feature_type, usage_type, combat_effect, conditions_granted, resource_pool, spell_slots = feature
-            
-            # Add to character_features table
-            cursor.execute("""
-                INSERT OR REPLACE INTO character_features 
+            cursor.execute(
+                """INSERT OR REPLACE INTO character_features
                 (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (character_id, feature_name, feature_type, usage_type, class_level, combat_effect, conditions_granted))
-            
-            # Handle special features
-            if resource_pool:
-                # Features like Lay on Hands
-                cursor.execute("""
-                    INSERT OR REPLACE INTO character_resources 
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    character_id,
+                    feature.name,
+                    feature.feature_type,
+                    feature.usage,
+                    class_level,
+                    feature.description,
+                    json.dumps(feature.mechanics or {}),
+                ),
+            )
+
+            if feature.resource:
+                cursor.execute(
+                    """INSERT OR REPLACE INTO character_resources
                     (character_id, resource_type, resource_name, current_value, max_value)
-                    VALUES (?, 'class_feature', ?, ?, ?)
-                """, (character_id, feature_name.lower().replace(' ', '_'), resource_pool, resource_pool))
-            
-            if spell_slots:
-                # Add spell slots
-                slots = json.loads(spell_slots)
-                for slot_level, slot_count in slots.items():
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO character_resources 
-                        (character_id, resource_type, resource_name, current_value, max_value)
-                        VALUES (?, 'spell_slot', ?, ?, ?)
-                    """, (character_id, f'level_{slot_level}', slot_count, slot_count))
+                    VALUES (?, 'class_feature', ?, ?, ?)""",
+                    (
+                        character_id,
+                        feature.resource.get("name"),
+                        feature.resource.get("max_uses", 0),
+                        feature.resource.get("max_uses", 0),
+                    ),
+                )
     
     def get_next_level_features(self, character_id: str, class_choice: str) -> List[Dict]:
         """Get features that would be gained at next level in chosen class."""
@@ -155,24 +149,14 @@ class LevelUpService:
         current_class_level = class_levels.get(class_choice, 0)
         next_level = current_class_level + 1
         
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT feature_name, combat_effect 
-            FROM class_features_detailed 
-            WHERE class_name = ? AND level_required = ?
-        """, (class_choice, next_level))
-        
-        features = []
-        for row in cursor.fetchall():
-            features.append({
-                'name': row[0],
-                'description': row[1]
-            })
-        
-        conn.close()
-        return features
+        features = self.feature_registry.get_features(class_choice, next_level)
+        return [
+            {
+                'name': f.name,
+                'description': f.description,
+            }
+            for f in features
+        ]
 
 
 level_up_service = LevelUpService()
