@@ -193,7 +193,9 @@ class EncounterGenerator:
 
         if difficulty == "high":
             # High encounter = 1 strong monster
-            while True:
+            attempts = 0
+            max_attempts = 100  # Prevent infinite loop
+            while attempts < max_attempts:
                 monster = self.bags[level].draw()
                 if monster["xp"] >= budget * 0.8:
                     return {
@@ -202,6 +204,16 @@ class EncounterGenerator:
                         "monsters": [monster],
                         "total_xp": monster["xp"]
                     }
+                attempts += 1
+            
+            # Fallback: return any monster if we can't find one that meets criteria
+            monster = self.bags[level].draw()
+            return {
+                "level": level,
+                "difficulty": "moderate",  # Downgrade difficulty
+                "monsters": [monster],
+                "total_xp": monster["xp"]
+            }
         else:
             # Low/Moderate: build up encounter
             encounter = []
