@@ -95,6 +95,10 @@ class FeatEffectsProcessor:
         spell_effects = self._get_spell_effects(feat_data)
         effects.extend(spell_effects)
         
+        # Combat effects (initiative, damage, etc.)
+        combat_effects = self._get_combat_effects(feat_data)
+        effects.extend(combat_effects)
+        
         return effects
     
     def _get_hit_point_effect(self, feat_data: Dict) -> Optional[FeatEffect]:
@@ -193,6 +197,49 @@ class FeatEffectsProcessor:
         
         return effects
     
+    def _get_combat_effects(self, feat_data: Dict) -> List[FeatEffect]:
+        """Check if feat provides combat-related effects."""
+        feat_name = feat_data.get('name', '')
+        effects = []
+        
+        # Alert feat - Initiative Proficiency
+        if feat_name == 'Alert':
+            effects.append(FeatEffect(
+                feat_name=feat_name,
+                effect_type='combat',
+                value={'type': 'initiative_proficiency'},
+                description='Add proficiency bonus to Initiative rolls'
+            ))
+        
+        # Savage Attacker - Damage reroll
+        elif feat_name == 'Savage Attacker':
+            effects.append(FeatEffect(
+                feat_name=feat_name,
+                effect_type='combat',
+                value={'type': 'damage_reroll', 'frequency': 'once_per_turn'},
+                description='Reroll weapon damage dice once per turn'
+            ))
+        
+        # Tavern Brawler - Enhanced Unarmed Strike
+        elif feat_name == 'Tavern Brawler':
+            effects.append(FeatEffect(
+                feat_name=feat_name,
+                effect_type='combat',
+                value={'type': 'enhanced_unarmed_strike', 'damage': '1d4', 'reroll_ones': True},
+                description='Enhanced Unarmed Strike (1d4 + STR) with damage rerolls'
+            ))
+        
+        # Lucky feat - Luck points
+        elif feat_name == 'Lucky':
+            effects.append(FeatEffect(
+                feat_name=feat_name,
+                effect_type='resource',
+                value={'type': 'luck_points', 'amount': 'proficiency_bonus', 'recharge': 'long_rest'},
+                description='Luck Points equal to proficiency bonus'
+            ))
+        
+        return effects
+    
     def apply_feat_effects_to_character(self, character_data: Dict, feat_names: List[str]) -> Dict:
         """Apply all feat effects to a character's data."""
         modified_data = character_data.copy()
@@ -207,6 +254,10 @@ class FeatEffectsProcessor:
                     modified_data = self._apply_ability_score_effect(modified_data, effect)
                 elif effect.effect_type == 'proficiency':
                     modified_data = self._apply_proficiency_effect(modified_data, effect)
+                elif effect.effect_type == 'combat':
+                    modified_data = self._apply_combat_effect(modified_data, effect)
+                elif effect.effect_type == 'resource':
+                    modified_data = self._apply_resource_effect(modified_data, effect)
                 # Spells would be handled separately in spell system
         
         return modified_data
@@ -257,6 +308,49 @@ class FeatEffectsProcessor:
         prof_description = f"{effect.feat_name}: {effect.description}"
         if prof_description not in character_data['proficiencies']:
             character_data['proficiencies'].append(prof_description)
+        
+        return character_data
+    
+    def _apply_combat_effect(self, character_data: Dict, effect: FeatEffect) -> Dict:
+        """Apply combat-related effects from feats."""
+        if 'feat_combat_effects' not in character_data:
+            character_data['feat_combat_effects'] = []
+        
+        combat_effect = {
+            'feat_name': effect.feat_name,
+            'effect_type': effect.value.get('type'),
+            'effect_data': effect.value,
+            'description': effect.description
+        }
+        
+        # Don't duplicate effects
+        existing_effects = [e for e in character_data['feat_combat_effects'] 
+                          if e.get('feat_name') == effect.feat_name]
+        if not existing_effects:
+            character_data['feat_combat_effects'].append(combat_effect)
+        
+        return character_data
+    
+    def _apply_resource_effect(self, character_data: Dict, effect: FeatEffect) -> Dict:
+        """Apply resource-based effects from feats."""
+        if 'feat_resources' not in character_data:
+            character_data['feat_resources'] = {}
+        
+        resource_name = f"{effect.feat_name}_{effect.value.get('type')}"
+        
+        # Calculate resource amount
+        if effect.value.get('amount') == 'proficiency_bonus':
+            proficiency_bonus = max(2, 2 + (character_data.get('level', 1) - 1) // 4)
+            amount = proficiency_bonus
+        else:
+            amount = effect.value.get('amount', 1)
+        
+        character_data['feat_resources'][resource_name] = {
+            'current': amount,
+            'maximum': amount,
+            'recharge': effect.value.get('recharge', 'long_rest'),
+            'description': effect.description
+        }
         
         return character_data
 

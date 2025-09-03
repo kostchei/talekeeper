@@ -57,6 +57,11 @@ class ActionType(Enum):
     RAGE = "rage"
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
+    
+    # Feat Actions
+    BATTLE_MEDIC = "battle_medic"  # Healer feat - Utilize action
+    LUCK_POINT_ADVANTAGE = "luck_point_advantage"  # Lucky feat - Free action for advantage
+    LUCK_POINT_DISADVANTAGE = "luck_point_disadvantage"  # Lucky feat - Reaction for enemy disadvantage
 
 
 class ActionCategory(Enum):
@@ -325,6 +330,30 @@ class ActionPanel(QWidget):
                 card.action_triggered.connect(self._trigger_feature_action)
                 card.action_hovered.connect(self._action_hovered)
                 self.action_cards[ActionType.CLEAVE_MASTERY] = card
+        
+        # Create Feat Action Cards
+        character_feats = getattr(self, 'character_feats', [])
+        
+        # Battle Medic (Healer feat)
+        if 'Healer' in character_feats:
+            card = ActionCard(ActionType.BATTLE_MEDIC, "🩹", "Battle Medic", "Use Healer's Kit: Target expends Hit Die + your proficiency bonus")
+            card.action_triggered.connect(self._trigger_feature_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.BATTLE_MEDIC] = card
+        
+        # Lucky feat actions
+        if 'Lucky' in character_feats:
+            # Advantage action
+            card = ActionCard(ActionType.LUCK_POINT_ADVANTAGE, "🍀", "Luck (Advantage)", "Spend 1 Luck Point for advantage on your next d20 roll")
+            card.action_triggered.connect(self._trigger_feature_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.LUCK_POINT_ADVANTAGE] = card
+            
+            # Disadvantage reaction
+            card = ActionCard(ActionType.LUCK_POINT_DISADVANTAGE, "🛡️", "Luck (Disadvantage)", "Spend 1 Luck Point to impose disadvantage on enemy attack")
+            card.action_triggered.connect(self._trigger_feature_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.LUCK_POINT_DISADVANTAGE] = card
     
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
@@ -406,6 +435,40 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat(f"[SWORD] Used Cleave Mastery: Making bonus action attack on second target")
                     break
                 parent = parent.parent()
+        
+        # Feat Actions
+        elif action_type == ActionType.BATTLE_MEDIC:
+            # Check if character has Healer's Kit
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"🩹 Used Battle Medic: Target expends Hit Die and adds proficiency bonus to healing")
+                    break
+                parent = parent.parent()
+            
+        elif action_type == ActionType.LUCK_POINT_ADVANTAGE:
+            # Use a Luck Point for advantage
+            uses_remaining = self._get_feat_resource_remaining("Lucky", "luck_points")
+            if uses_remaining > 0:
+                self._use_feat_resource("Lucky", "luck_points")
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"🍀 Used Luck Point: Gaining advantage on next d20 roll ({uses_remaining - 1} remaining)")
+                        break
+                    parent = parent.parent()
+            
+        elif action_type == ActionType.LUCK_POINT_DISADVANTAGE:
+            # Use a Luck Point to impose disadvantage
+            uses_remaining = self._get_feat_resource_remaining("Lucky", "luck_points")
+            if uses_remaining > 0:
+                self._use_feat_resource("Lucky", "luck_points")
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"🛡️ Used Luck Point: Imposing disadvantage on enemy attack ({uses_remaining - 1} remaining)")
+                        break
+                    parent = parent.parent()
         
         elif action_type >= 2000 and action_type <= 2007:  # Weapon Mastery selection
             card = self.action_cards.get(action_type)
@@ -2150,7 +2213,10 @@ class ActionPanel(QWidget):
             ActionType.SECOND_WIND: "bonus_action",
             ActionType.NICK_MASTERY: "bonus_action",
             ActionType.CLEAVE_MASTERY: "bonus_action",
-            ActionType.USE_POTION: "bonus_action"
+            ActionType.USE_POTION: "bonus_action",
+            ActionType.BATTLE_MEDIC: "action",
+            ActionType.LUCK_POINT_ADVANTAGE: "free",
+            ActionType.LUCK_POINT_DISADVANTAGE: "reaction"
         }
         
         cost_type = action_costs.get(action_type, "free")
@@ -2172,6 +2238,12 @@ class ActionPanel(QWidget):
             uses = self._get_ability_uses_remaining("Action Surge")
             if uses <= 0:
                 reasons.append("No uses remaining (requires Short Rest)")
+        
+        # Check feat resource uses
+        elif action_type in [ActionType.LUCK_POINT_ADVANTAGE, ActionType.LUCK_POINT_DISADVANTAGE]:
+            uses = self._get_feat_resource_remaining("Lucky", "luck_points")
+            if uses <= 0:
+                reasons.append("No Luck Points remaining (requires Long Rest)")
         
         return reasons
     
@@ -2234,6 +2306,62 @@ class ActionPanel(QWidget):
                         print(f"DEBUG: {ability_name} has no uses remaining ({current_uses})")
                 break
             parent = parent.parent()
+    
+    def _get_feat_resource_remaining(self, feat_name: str, resource_type: str) -> int:
+        """Get remaining uses for a feat resource."""
+        try:
+            # Get current character from parent
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    if hasattr(game_engine, 'current_character') and game_engine.current_character:
+                        character = game_engine.current_character
+                        if hasattr(character, 'feat_resources'):
+                            resource_key = f"{feat_name}_{resource_type}"
+                            resource_data = character.feat_resources.get(resource_key, {})
+                            return resource_data.get('current', 0)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"DEBUG: Error in _get_feat_resource_remaining: {e}")
+        return 0
+    
+    def _use_feat_resource(self, feat_name: str, resource_type: str):
+        """Use a feat resource - decrement remaining uses."""
+        print(f"DEBUG: _use_feat_resource called for {feat_name}_{resource_type}")
+        try:
+            # Get current character from parent
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    if hasattr(game_engine, 'current_character') and game_engine.current_character:
+                        character = game_engine.current_character
+                        if not hasattr(character, 'feat_resources'):
+                            print(f"DEBUG: Character missing feat_resources field, initializing...")
+                            character.feat_resources = {}
+                        
+                        resource_key = f"{feat_name}_{resource_type}"
+                        if resource_key in character.feat_resources:
+                            current_uses = character.feat_resources[resource_key].get('current', 0)
+                            if current_uses > 0:
+                                character.feat_resources[resource_key]['current'] = current_uses - 1
+                                print(f"DEBUG: Decremented {resource_key} to {character.feat_resources[resource_key]['current']}")
+                                # Save character
+                                try:
+                                    game_engine.save_game_sync()
+                                    print(f"DEBUG: Game saved successfully")
+                                except Exception as e:
+                                    print(f"DEBUG: Save failed: {e}")
+                                # Update action card display
+                                self._refresh_action_availability()
+                            else:
+                                print(f"DEBUG: {resource_key} has no uses remaining ({current_uses})")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"DEBUG: Error in _use_feat_resource: {e}")
     
     def _refresh_action_availability(self):
         """Refresh the availability state of all action cards."""
