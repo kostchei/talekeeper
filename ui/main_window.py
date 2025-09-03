@@ -662,33 +662,34 @@ class MainWindow(QMainWindow):
         self.close()
     
     def _force_reload_character(self):
-        """Force reload the current character and refresh all UI panels."""
-        self.log_panel.log_system("Force reloading character...")
+        """Refresh inventory and action panels to show updated data."""
+        self.log_panel.log_system("Refreshing inventory...")
         
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
                 character_id = self.game_engine.current_character.id
                 character_name = self.game_engine.current_character.name
                 
-                # Reload character data from database
-                character = self.game_engine.load_character_sync(character_id)
-                if character:
-                    # Set the current character
-                    self.game_engine.current_character = character
-                    
-                    # Refresh all UI panels with updated data
-                    self._load_character_ui(character)
-                    
-                    self.log_panel.log_info(f"Character '{character_name}' reloaded successfully!")
-                    self.log_panel.log_system("All UI panels refreshed")
-                else:
-                    self.log_panel.log_error(f"Failed to reload character with ID {character_id}")
+                # Get updated inventory from database
+                character_inventory = self.game_engine.get_character_inventory_sync(character_id)
+                
+                # Refresh equipment panel
+                if hasattr(self, 'equipment_panel'):
+                    self.equipment_panel.load_equipment_data(character_inventory)
+                
+                # Refresh action panel (for potion availability)
+                if hasattr(self, 'action_panel'):
+                    self.action_panel._update_potion_card()
+                    self.action_panel._update_visible_cards()
+                
+                self.log_panel.log_info(f"Inventory refreshed for {character_name}")
+                self.log_panel.log_system("Equipment and action panels updated")
             else:
-                self.log_panel.log_error("No active character to reload")
+                self.log_panel.log_error("No active character to refresh")
                 self.log_panel.log_info("Load or create a character first")
         except Exception as e:
-            self.log_panel.log_error(f"Failed to reload character: {e}")
-            self.log_panel.log_system("Reload operation failed")
+            self.log_panel.log_error(f"Failed to refresh inventory: {e}")
+            self.log_panel.log_system("Refresh operation failed")
     
     def _try_load_last_character(self):
         """Try to load the most recent character, otherwise load test data."""

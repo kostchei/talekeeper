@@ -74,9 +74,9 @@ class GameMenu(QWidget):
         self.save_and_exit_btn.setObjectName("menuButton")
         self.main_layout.addWidget(self.save_and_exit_btn, 1, 0)
         
-        self.force_reload_btn = QPushButton("Force Reload")
+        self.force_reload_btn = QPushButton("Refresh Inventory")
         self.force_reload_btn.clicked.connect(self.force_reload_requested.emit)
-        self.archive_character_btn.setObjectName("menuButton")
+        self.force_reload_btn.setObjectName("menuButton")
         self.main_layout.addWidget(self.force_reload_btn, 1, 1)
         
         # Row 3

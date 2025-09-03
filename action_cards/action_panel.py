@@ -3245,7 +3245,7 @@ class ActionPanel(QWidget):
         # Bonus Actions
         bonus_actions = {
             ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
-            ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.HEALING_POTION,
+            ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.USE_POTION,
             ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE,
             ActionType.ATTACK_OFF_HAND
         }
