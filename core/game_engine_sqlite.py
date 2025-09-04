@@ -1816,16 +1816,16 @@ class GameEngineSQLite:
                         hit_points_temporary = ?, updated_at = datetime('now')
                     WHERE id = ?
                 """, (
-                    character.name, character.level, character.experience_points,
-                    character.strength, character.dexterity, character.constitution,
-                    character.intelligence, character.wisdom, character.charisma,
-                    character.armor_class, character.hit_points_max, character.hit_points_current,
-                    character.hit_points_temporary, character.id
+                    character['name'], character['level'], character['experience_points'],
+                    character['strength'], character['dexterity'], character['constitution'],
+                    character['intelligence'], character['wisdom'], character['charisma'],
+                    character['armor_class'], character['hit_points_max'], character['hit_points_current'],
+                    character['hit_points_temporary'], character['id']
                 ))
                 
                 success = cursor.rowcount > 0
                 if success:
-                    print(f"[SQLite] Saved character {character.name} (ID: {character.id})")
+                    print(f"[SQLite] Saved character {character['name']} (ID: {character['id']})")
                 return success
                 
         except Exception as e:
