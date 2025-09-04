@@ -844,13 +844,13 @@ class MainWindow(QMainWindow):
         try:
             from core.feature_integration import FeatureSystemIntegration
             feature_system = FeatureSystemIntegration('talekeeper.db')
-            available_features = feature_system.get_available_features(character.id)
+            available_features = feature_system.get_available_features(character['id'])
             
             # If no features found, initialize them (for characters created before our fix)
             if not available_features:
-                print(f"[DEBUG] No features found, initializing for {character.class_id} level {character.level}")
-                feature_system.initialize_character_features(character.id)
-                available_features = feature_system.get_available_features(character.id)
+                print(f"[DEBUG] No features found, initializing for {character['class_id']} level {character['level']}")
+                feature_system.initialize_character_features(character['id'])
+                available_features = feature_system.get_available_features(character['id'])
             
             # Convert feature list to dictionary format expected by action panel
             class_features = {}
