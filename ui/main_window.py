@@ -509,7 +509,7 @@ class MainWindow(QMainWindow):
         # Use demo character's stats for calculations
         demo_strength = demo_character['strength']
         demo_dexterity = demo_character['dexterity']
-        self.equipment_panel.load_equipment_data(test_equipment, test_inventory, demo_strength, demo_dexterity)
+        self.equipment_panel.load_equipment_data(test_equipment, test_inventory, demo_strength, demo_dexterity, demo_character.get('class_id', ''), demo_character['constitution'])
         
         # Set encounter scene
         self.encounter_pane.update_scene_description(
@@ -588,7 +588,7 @@ class MainWindow(QMainWindow):
             # Load character inventory
             inventory_items = self.game_engine.get_character_inventory_sync(saved_character['id'])
             
-            self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character['strength'], saved_character['dexterity'])
+            self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character['strength'], saved_character['dexterity'], saved_character.get('class_id', ''), saved_character['constitution'])
             
             # Load character data into action panel for weapon cards
             print(f"[DEBUG] MAIN WINDOW DEBUG: saved_character.class_id = {saved_character['class_id']}")
@@ -679,7 +679,7 @@ class MainWindow(QMainWindow):
             self.character_sheet.load_character_data(formatted_character)
             self.menu.update_game_info(name, 1)
             self.menu.set_character_loaded(True)
-            self.equipment_panel.load_equipment_data({}, [])
+            self.equipment_panel.load_equipment_data({}, [], 10, 10, "", 10)
     
     def _save_and_exit(self):
         """Save the current game state and exit the application."""
@@ -728,7 +728,7 @@ class MainWindow(QMainWindow):
                 
                 # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
-                    self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character['strength'], character['dexterity'])
+                    self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character['strength'], character['dexterity'], character.get('class_id', ''), character['constitution'])
                 
                 # Refresh action panel (for potion availability)
                 if hasattr(self, 'action_panel'):
@@ -816,7 +816,7 @@ class MainWindow(QMainWindow):
             item_data = self.game_engine.get_equipment_item_sync(character['equipment_shield'])
             equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_shield'], 'weight_lb': 0}
         inventory_items = self.game_engine.get_character_inventory_sync(character['id'])
-        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character['strength'], character['dexterity'])
+        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character['strength'], character['dexterity'], character.get('class_id', ''), character['constitution'])
         
         # Load character data into action panel for weapon cards
         character_stats = {
@@ -1154,9 +1154,7 @@ class MainWindow(QMainWindow):
         if race_id == 'dwarf':
             max_hp += character_data.get('level', 1)  # Dwarven Toughness: +1 per level
             
-        # Add feat bonuses  
-        if 'Tough' in selected_feats:
-            max_hp += character_data.get('level', 1) * 2  # Tough feat: +2 per level
+        # Note: Feat bonuses (like Tough) are applied later via _apply_feat_effects()
         
         current_hp = max_hp  # Start at full health
         

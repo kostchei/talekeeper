@@ -3718,9 +3718,16 @@ class EncounterPanel(QWidget):
                 if hasattr(parent, 'character_panel') and hasattr(parent.character_panel, 'equipment_panel'):
                     equipment_panel = parent.character_panel.equipment_panel
                     if hasattr(equipment_panel, 'load_equipment_data'):
-                        # Reload the inventory data
-                        character_inventory = game_engine.get_character_inventory_sync(character_id)
-                        equipment_panel.load_equipment_data(character_inventory)
+                        # Get full character data for proper equipment loading
+                        character = game_engine.get_character_sync(character_id)
+                        if character:
+                            equipped_items = game_engine.get_character_equipment_sync(character_id)
+                            character_inventory = game_engine.get_character_inventory_sync(character_id)
+                            equipment_panel.load_equipment_data(
+                                equipped_items, character_inventory, 
+                                character['strength'], character['dexterity'], 
+                                character.get('class_id', ''), character['constitution']
+                            )
                         print(f"[UI] Refreshed equipment panel for character {character_id}")
                         return
                 parent = parent.parent()

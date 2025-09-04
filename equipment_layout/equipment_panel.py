@@ -67,6 +67,8 @@ class EquipmentPanel(QWidget):
         self.inventory_items = []  # list of inventory items
         self.character_strength = 10  # Default strength for carrying capacity
         self.character_dexterity = 10  # Default dexterity for AC calculation
+        self.character_class = ""  # Character class for unarmored defense
+        self.character_constitution = 10  # Default constitution for barbarian AC
         
         # Set initial size (extends to bottom of window)
         self.setFixedSize(432, 486)
@@ -998,9 +1000,15 @@ class EquipmentPanel(QWidget):
     def _calculate_armor_class(self):
         """Calculate total AC from equipped armor, shield, and dexterity using equipment service."""
         dex_mod = (self.character_dexterity - 10) // 2
-        ac = 10 + dex_mod  # Base AC with no armor
+        con_mod = (getattr(self, 'character_constitution', 10) - 10) // 2
         
-        # Find equipped armor
+        # Base AC with no armor
+        ac = 10 + dex_mod
+        
+        # Check if character is a Barbarian for Unarmored Defense
+        is_barbarian = getattr(self, 'character_class', '').lower() == 'barbarian'
+        
+        # Find equipped armor (only chest armor prevents unarmored defense)
         armor_item = None
         for slot, item in self.equipped_items.items():
             if slot == EquipmentSlot.ARMOR:
@@ -1012,8 +1020,13 @@ class EquipmentPanel(QWidget):
             armor_name = armor_item.get('name')
             if armor_name:
                 ac = equipment_service.get_armor_ac(armor_name, dex_mod)
+        else:
+            # No armor equipped - Barbarian Unarmored Defense applies
+            if is_barbarian:
+                # Barbarian Unarmored Defense: AC = 10 + Dex + Con (only for barbarians)
+                ac = 10 + dex_mod + con_mod
         
-        # Add shield AC bonus if equipped
+        # Add shield AC bonus if equipped (shields work with unarmored defense)
         shield_item = None
         for slot, item in self.equipped_items.items():
             if slot == EquipmentSlot.OFF_HAND and item.get('item_type') == 'shield':
@@ -1066,11 +1079,13 @@ class EquipmentPanel(QWidget):
             self._update_inventory_display()
             self.inventory_changed.emit()
     
-    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]], character_strength: int = 10, character_dexterity: int = 10):
+    def load_equipment_data(self, equipped_items: Dict[str, Any], inventory_items: List[Dict[str, Any]], character_strength: int = 10, character_dexterity: int = 10, character_class: str = "", character_constitution: int = 10):
         """Load equipment and inventory data."""
         # Store character's stats for calculations
         self.character_strength = character_strength
         self.character_dexterity = character_dexterity
+        self.character_class = character_class
+        self.character_constitution = character_constitution
         
         # Load equipped items
         self.equipped_items.clear()
