@@ -554,7 +554,7 @@ class MainWindow(QMainWindow):
         try:
             # Determine next available save slot
             save_slots = self.game_engine.get_save_slots_sync()
-            occupied_numbers = {slot.slot_number for slot in save_slots if slot.is_occupied}
+            occupied_numbers = {slot['slot_number'] for slot in save_slots if slot['is_occupied']}
             save_slot = 1
             while save_slot in occupied_numbers:
                 save_slot += 1
@@ -759,7 +759,7 @@ class MainWindow(QMainWindow):
             # If no last slot or it's empty, try to find the most recent character from any slot
             save_slots = self.game_engine.get_save_slots_sync()
             print(f"[UI] Found {len(save_slots)} total save slots")
-            occupied_slots = [slot for slot in save_slots if slot.is_occupied]
+            occupied_slots = [slot for slot in save_slots if slot['is_occupied']]
             print(f"[UI] Found {len(occupied_slots)} occupied slots")
             
             if occupied_slots:
@@ -767,13 +767,13 @@ class MainWindow(QMainWindow):
                 occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
                 most_recent_slot = occupied_slots[0]
                 
-                character = self.game_engine.load_character_sync(most_recent_slot.slot_number)
+                character = self.game_engine.load_character_sync(most_recent_slot['slot_number'])
                 if character:
                     # Update the last character slot setting for next time
-                    self.game_engine.settings['last_character_slot'] = most_recent_slot.slot_number
+                    self.game_engine.settings['last_character_slot'] = most_recent_slot['slot_number']
                     self.game_engine.save_settings()
                     
-                    self._load_character_into_ui(character, f"Auto-loaded most recent character from slot {most_recent_slot.slot_number}")
+                    self._load_character_into_ui(character, f"Auto-loaded most recent character from slot {most_recent_slot['slot_number']}")
                     return
             
             # No saved characters found at all
@@ -891,7 +891,7 @@ class MainWindow(QMainWindow):
             
             # Get all save slots
             save_slots = self.game_engine.get_save_slots_sync()
-            occupied_slots = [slot for slot in save_slots if slot.is_occupied]
+            occupied_slots = [slot for slot in save_slots if slot['is_occupied']]
             
             if not occupied_slots:
                 self.log_panel.log_info("No saved characters found!")
@@ -939,12 +939,12 @@ class MainWindow(QMainWindow):
             
             for slot in occupied_slots:
                 # Create display text
-                last_played = "Never" if not slot.last_played else slot.last_played.strftime("%Y-%m-%d %H:%M")
-                item_text = f"Slot {slot.slot_number}: {slot.character_name} (Level {slot.character_level})\n"
-                item_text += f"Location: {slot.current_location} | Last Played: {last_played}"
+                last_played = "Never" if not slot['last_played'] else slot['last_played'].strftime("%Y-%m-%d %H:%M")
+                item_text = f"Slot {slot['slot_number']}: {slot['character_name']} (Level {slot['character_level']})\n"
+                item_text += f"Location: {slot['current_location']} | Last Played: {last_played}"
                 
                 item = QListWidgetItem(item_text)
-                item.setData(Qt.ItemDataRole.UserRole, slot.slot_number)
+                item.setData(Qt.ItemDataRole.UserRole, slot['slot_number'])
                 char_list.addItem(item)
             
             layout.addWidget(char_list)
@@ -1251,26 +1251,26 @@ class MainWindow(QMainWindow):
         except Exception as e:
             raise ValueError(f"Failed to get background ID for '{name}': {e}")
     
-    def _convert_dto_to_display(self, character_dto):
-        """Convert CharacterDTO to format expected by character sheet."""
+    def _convert_dto_to_display(self, character_dict):
+        """Convert character dictionary to format expected by character sheet."""
         return {
-            'id': character_dto.id,  # Include ID for database lookups
-            'name': character_dto.name,
-            'level': character_dto.level,
-            'race_name': character_dto.race_name,
-            'class_name': character_dto.class_name,
-            'background_name': character_dto.background_name,
-            'current_hit_points': character_dto.hit_points_current,
-            'hit_points': character_dto.hit_points_max,
-            'armor_class': character_dto.armor_class,
-            'strength': character_dto.strength,
-            'dexterity': character_dto.dexterity,
-            'constitution': character_dto.constitution,
-            'intelligence': character_dto.intelligence,
-            'wisdom': character_dto.wisdom,
-            'charisma': character_dto.charisma,
-            'experience_points': character_dto.experience_points,
-            'features': character_dto.features,
-            'feats': character_dto.feats,  # Include feats from SQLite migration!
+            'id': character_dict['id'],  # Include ID for database lookups
+            'name': character_dict['name'],
+            'level': character_dict['level'],
+            'race_name': character_dict['race_name'],
+            'class_name': character_dict['class_name'],
+            'background_name': character_dict['background_name'],
+            'current_hit_points': character_dict['hit_points_current'],
+            'hit_points': character_dict['hit_points_max'],
+            'armor_class': character_dict['armor_class'],
+            'strength': character_dict['strength'],
+            'dexterity': character_dict['dexterity'],
+            'constitution': character_dict['constitution'],
+            'intelligence': character_dict['intelligence'],
+            'wisdom': character_dict['wisdom'],
+            'charisma': character_dict['charisma'],
+            'experience_points': character_dict['experience_points'],
+            'features': character_dict['features'],
+            'feats': character_dict['feats'],  # Include feats from SQLite migration!
             'speed': 30  # Default speed for now
         }

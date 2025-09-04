@@ -11,8 +11,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
 
-from core.dtos import CharacterDTO, SaveSlotDTO
-# Character model no longer needed - using direct SQL queries
+# DTOs no longer needed - using direct dictionaries from SQL queries
 
 
 class GameEngineSQLite:
@@ -91,7 +90,7 @@ class GameEngineSQLite:
         conn.commit()
         conn.close()
     
-    def load_character_sync(self, save_slot: int) -> Optional[CharacterDTO]:
+    def load_character_sync(self, save_slot: int) -> Optional[Dict[str, Any]]:
         """Load character from save slot."""
         try:
             print(f"[SQLite] Loading character from slot {save_slot}")
@@ -192,107 +191,107 @@ class GameEngineSQLite:
                 created_at = datetime.fromisoformat(character_row['created_at']) if character_row['created_at'] else datetime.now()
                 updated_at = datetime.fromisoformat(character_row['updated_at']) if character_row['updated_at'] else None
                 
-                # Convert to CharacterDTO format expected by UI
-                character_dto = CharacterDTO(
+                # Convert to dictionary format expected by UI
+                character_dict = {
                     # Core Identity
-                    id=character_row['id'],
-                    name=character_row['name'],
-                    level=character_row['level'],
-                    experience_points=character_row['experience_points'],
+                    'id': character_row['id'],
+                    'name': character_row['name'],
+                    'level': character_row['level'],
+                    'experience_points': character_row['experience_points'],
                     
                     # Character Build
-                    race_id=character_row['race_id'],
-                    race_name=self._get_race_name(character_row['race_id']),
-                    class_id=character_row['class_id'],
-                    class_name=self._get_class_name(character_row['class_id']),
-                    subclass_id=character_row['subclass_id'],
-                    subclass_name=None,  # Not implemented yet
-                    background_id=character_row['background_id'],
-                    background_name=self._get_background_name(character_row['background_id']),
+                    'race_id': character_row['race_id'],
+                    'race_name': self._get_race_name(character_row['race_id']),
+                    'class_id': character_row['class_id'],
+                    'class_name': self._get_class_name(character_row['class_id']),
+                    'subclass_id': character_row['subclass_id'],
+                    'subclass_name': None,  # Not implemented yet
+                    'background_id': character_row['background_id'],
+                    'background_name': self._get_background_name(character_row['background_id']),
                     
                     # Ability scores
-                    strength=character_row['strength'],
-                    dexterity=character_row['dexterity'],
-                    constitution=character_row['constitution'],
-                    intelligence=character_row['intelligence'],
-                    wisdom=character_row['wisdom'],
-                    charisma=character_row['charisma'],
+                    'strength': character_row['strength'],
+                    'dexterity': character_row['dexterity'],
+                    'constitution': character_row['constitution'],
+                    'intelligence': character_row['intelligence'],
+                    'wisdom': character_row['wisdom'],
+                    'charisma': character_row['charisma'],
                     
                     # Ability modifiers (calculated)
-                    strength_modifier=calc_modifier(character_row['strength']),
-                    dexterity_modifier=calc_modifier(character_row['dexterity']),
-                    constitution_modifier=calc_modifier(character_row['constitution']),
-                    intelligence_modifier=calc_modifier(character_row['intelligence']),
-                    wisdom_modifier=calc_modifier(character_row['wisdom']),
-                    charisma_modifier=calc_modifier(character_row['charisma']),
+                    'strength_modifier': calc_modifier(character_row['strength']),
+                    'dexterity_modifier': calc_modifier(character_row['dexterity']),
+                    'constitution_modifier': calc_modifier(character_row['constitution']),
+                    'intelligence_modifier': calc_modifier(character_row['intelligence']),
+                    'wisdom_modifier': calc_modifier(character_row['wisdom']),
+                    'charisma_modifier': calc_modifier(character_row['charisma']),
                     
                     # Combat stats
-                    armor_class=current_ac,
-                    hit_points_max=character_row['hit_points_max'],
-                    hit_points_current=character_row['hit_points_current'],
-                    hit_points_temporary=character_row['hit_points_temporary'],
-                    hit_dice_max=character_row['hit_dice_max'],
-                    hit_dice_current=character_row['hit_dice_current'],
-                    death_saves_successes=character_row['death_saves_successes'],
-                    death_saves_failures=character_row['death_saves_failures'],
-                    conditions=[],  # Empty for now
+                    'armor_class': current_ac,
+                    'hit_points_max': character_row['hit_points_max'],
+                    'hit_points_current': character_row['hit_points_current'],
+                    'hit_points_temporary': character_row['hit_points_temporary'],
+                    'hit_dice_max': character_row['hit_dice_max'],
+                    'hit_dice_current': character_row['hit_dice_current'],
+                    'death_saves_successes': character_row['death_saves_successes'],
+                    'death_saves_failures': character_row['death_saves_failures'],
+                    'conditions': [],  # Empty for now
                     
                     # Saving throw proficiencies (handle missing columns gracefully)
-                    str_save_proficient=self._safe_get_row_value(character_row, 'str_save_proficient', 0),
-                    dex_save_proficient=self._safe_get_row_value(character_row, 'dex_save_proficient', 0),
-                    con_save_proficient=self._safe_get_row_value(character_row, 'con_save_proficient', 0),
-                    int_save_proficient=self._safe_get_row_value(character_row, 'int_save_proficient', 0),
-                    wis_save_proficient=self._safe_get_row_value(character_row, 'wis_save_proficient', 0),
-                    cha_save_proficient=self._safe_get_row_value(character_row, 'cha_save_proficient', 0),
+                    'str_save_proficient': self._safe_get_row_value(character_row, 'str_save_proficient', 0),
+                    'dex_save_proficient': self._safe_get_row_value(character_row, 'dex_save_proficient', 0),
+                    'con_save_proficient': self._safe_get_row_value(character_row, 'con_save_proficient', 0),
+                    'int_save_proficient': self._safe_get_row_value(character_row, 'int_save_proficient', 0),
+                    'wis_save_proficient': self._safe_get_row_value(character_row, 'wis_save_proficient', 0),
+                    'cha_save_proficient': self._safe_get_row_value(character_row, 'cha_save_proficient', 0),
                     
                     # Character features from our migration
-                    proficiencies=proficiencies,
-                    features=features,
-                    feats=feats,
-                    weapon_masteries=weapon_masteries,
+                    'proficiencies': proficiencies,
+                    'features': features,
+                    'feats': feats,
+                    'weapon_masteries': weapon_masteries,
                     
                     # Resource tracking - initialize empty for now
-                    spell_slots_current={},
-                    spell_slots_max={},
-                    class_resources={},
-                    class_resources_max={},
+                    'spell_slots_current': {},
+                    'spell_slots_max': {},
+                    'class_resources': {},
+                    'class_resources_max': {},
                     
                     # Rest tracking
-                    last_short_rest=character_row['last_short_rest'],
-                    last_long_rest=character_row['last_long_rest'],
+                    'last_short_rest': character_row['last_short_rest'],
+                    'last_long_rest': character_row['last_long_rest'],
                     
                     # Ability usage - initialize empty for now
-                    ability_uses={},
-                    ability_uses_max={},
+                    'ability_uses': {},
+                    'ability_uses_max': {},
                     
                     # Equipment
-                    equipment_main_hand=character_row['equipment_main_hand'],
-                    equipment_off_hand=character_row['equipment_off_hand'],
-                    equipment_armor=character_row['equipment_armor'],
-                    equipment_shield=character_row['equipment_shield'],
+                    'equipment_main_hand': character_row['equipment_main_hand'],
+                    'equipment_off_hand': character_row['equipment_off_hand'],
+                    'equipment_armor': character_row['equipment_armor'],
+                    'equipment_shield': character_row['equipment_shield'],
                     
                     # Metadata
-                    created_at=created_at,
-                    updated_at=updated_at,
-                    notes=character_row['notes'] or '',
+                    'created_at': created_at,
+                    'updated_at': updated_at,
+                    'notes': character_row['notes'] or '',
                     
                     # Save Slot Info
-                    save_slot_id=character_row['save_slot_id'],
-                    save_slot_number=save_slot
-                )
+                    'save_slot_id': character_row['save_slot_id'],
+                    'save_slot_number': save_slot
+                }
                 
                 # Feat effects should already be applied and stored in database during character creation
                 # No need to apply them again during loading to avoid double application
                 
                 # Set current character
-                self.current_character = character_dto
-                return character_dto
+                self.current_character = character_dict
+                return character_dict
                 
         except Exception as e:
             print(f"Error loading character from slot {save_slot}: {e}")
             return None
     
-    def get_save_slots_sync(self) -> List[SaveSlotDTO]:
+    def get_save_slots_sync(self) -> List[Dict[str, Any]]:
         """Get all save slots."""
         try:
             with self._get_connection() as conn:
@@ -319,19 +318,19 @@ class GameEngineSQLite:
                         except:
                             created_at = datetime.now()
                     
-                    slot_dto = SaveSlotDTO(
-                        id=row['id'],
-                        slot_number=row['slot_number'],
-                        is_occupied=bool(row['is_occupied']),
-                        save_name=row['save_name'],
-                        last_played=last_played,
-                        play_time_hours=row['play_time_minutes'] // 60,  # Convert minutes to hours
-                        character_name=row['character_name'],
-                        character_level=row['character_level'],
-                        current_location=row['current_location'],
-                        created_at=created_at
-                    )
-                    slots.append(slot_dto)
+                    slot_dict = {
+                        'id': row['id'],
+                        'slot_number': row['slot_number'],
+                        'is_occupied': bool(row['is_occupied']),
+                        'save_name': row['save_name'],
+                        'last_played': last_played,
+                        'play_time_hours': row['play_time_minutes'] // 60,  # Convert minutes to hours
+                        'character_name': row['character_name'],
+                        'character_level': row['character_level'],
+                        'current_location': row['current_location'],
+                        'created_at': created_at
+                    }
+                    slots.append(slot_dict)
                 
                 return slots
                 
@@ -393,7 +392,7 @@ class GameEngineSQLite:
         from services.equipment import equipment_service
         return equipment_service.get_item(item_name)
     
-    def create_new_character_sync(self, character_data: Dict, save_slot: int) -> CharacterDTO:
+    def create_new_character_sync(self, character_data: Dict, save_slot: int) -> Dict[str, Any]:
         """Create a new character and save to database."""
         try:
             import uuid
@@ -570,10 +569,10 @@ class GameEngineSQLite:
         if self.current_character:
             success = self.save_character_sync()
             if success:
-                print(f"[SQLite] Saved game state for {self.current_character.name}")
+                print(f"[SQLite] Saved game state for {self.current_character['name']}")
                 return True
             else:
-                print(f"[SQLite] Failed to save game state for {self.current_character.name}")
+                print(f"[SQLite] Failed to save game state for {self.current_character['name']}")
                 return False
         else:
             print("[SQLite] No current character to save")
@@ -786,48 +785,48 @@ class GameEngineSQLite:
                 character_data['equipment_helmet'] = item_name
                 print(f"[SQLite] Equipped '{item_name}' as helmet")
     
-    def _apply_feat_effects_to_character(self, character_dto: CharacterDTO, feats: List[str]) -> CharacterDTO:
+    def _apply_feat_effects_to_character(self, character_dict: Dict[str, Any], feats: List[str]) -> Dict[str, Any]:
         """Apply mechanical effects of feats to character stats."""
         if not feats:
-            return character_dto
+            return character_dict
 
         try:
-            # Convert DTO to dictionary for processing
-            char_dict = {
-                'level': character_dto.level,
-                'hit_points_max': character_dto.hit_points_max,
-                'hit_points_current': character_dto.hit_points_current,
-                'strength': character_dto.strength,
-                'dexterity': character_dto.dexterity,
-                'constitution': character_dto.constitution,
-                'intelligence': character_dto.intelligence,
-                'wisdom': character_dto.wisdom,
-                'charisma': character_dto.charisma,
-                'proficiencies': character_dto.proficiencies or []
+            # Create a working copy for processing
+            char_data = {
+                'level': character_dict['level'],
+                'hit_points_max': character_dict['hit_points_max'],
+                'hit_points_current': character_dict['hit_points_current'],
+                'strength': character_dict['strength'],
+                'dexterity': character_dict['dexterity'],
+                'constitution': character_dict['constitution'],
+                'intelligence': character_dict['intelligence'],
+                'wisdom': character_dict['wisdom'],
+                'charisma': character_dict['charisma'],
+                'proficiencies': character_dict.get('proficiencies', [])
             }
 
             # Apply all feat effects using shared processor
             from services.feat_effects import FeatEffectsProcessor
 
             processor = FeatEffectsProcessor()
-            modified = processor.apply_feat_effects_to_character(char_dict, feats)
+            modified = processor.apply_feat_effects_to_character(char_data, feats)
 
-            # Update DTO with any modified values, clamping ability scores at 20
-            character_dto.hit_points_max = modified.get('hit_points_max', character_dto.hit_points_max)
-            character_dto.hit_points_current = modified.get('hit_points_current', character_dto.hit_points_current)
-            character_dto.strength = min(20, modified.get('strength', character_dto.strength))
-            character_dto.dexterity = min(20, modified.get('dexterity', character_dto.dexterity))
-            character_dto.constitution = min(20, modified.get('constitution', character_dto.constitution))
-            character_dto.intelligence = min(20, modified.get('intelligence', character_dto.intelligence))
-            character_dto.wisdom = min(20, modified.get('wisdom', character_dto.wisdom))
-            character_dto.charisma = min(20, modified.get('charisma', character_dto.charisma))
-            character_dto.proficiencies = modified.get('proficiencies', character_dto.proficiencies or [])
+            # Update dictionary with any modified values, clamping ability scores at 20
+            character_dict['hit_points_max'] = modified.get('hit_points_max', character_dict['hit_points_max'])
+            character_dict['hit_points_current'] = modified.get('hit_points_current', character_dict['hit_points_current'])
+            character_dict['strength'] = min(20, modified.get('strength', character_dict['strength']))
+            character_dict['dexterity'] = min(20, modified.get('dexterity', character_dict['dexterity']))
+            character_dict['constitution'] = min(20, modified.get('constitution', character_dict['constitution']))
+            character_dict['intelligence'] = min(20, modified.get('intelligence', character_dict['intelligence']))
+            character_dict['wisdom'] = min(20, modified.get('wisdom', character_dict['wisdom']))
+            character_dict['charisma'] = min(20, modified.get('charisma', character_dict['charisma']))
+            character_dict['proficiencies'] = modified.get('proficiencies', character_dict.get('proficiencies', []))
 
-            return character_dto
+            return character_dict
 
         except Exception as e:
             print(f"[SQLite] Error applying feat effects: {e}")
-            return character_dto
+            return character_dict
     
     def _add_starting_equipment(self, cursor, character_id: str, character_data: Dict):
         """Add starting equipment based on class and background."""
@@ -1304,25 +1303,25 @@ class GameEngineSQLite:
                         UPDATE characters 
                         SET hit_points_current = ?, hit_points_max = ?, max_hit_points = ?, updated_at = ?
                         WHERE id = ?
-                    """, (current_hp, max_hp, max_hp, datetime.now().isoformat(), self.current_character.id))
+                    """, (current_hp, max_hp, max_hp, datetime.now().isoformat(), self.current_character['id']))
                     
-                    # Also update the current character DTO
-                    self.current_character.hit_points_current = current_hp
-                    self.current_character.hit_points_max = max_hp
+                    # Also update the current character dictionary
+                    self.current_character['hit_points_current'] = current_hp
+                    self.current_character['hit_points_max'] = max_hp
                     
-                    print(f"[SQLite] Updated {self.current_character.name} HP: {current_hp}/{max_hp}")
+                    print(f"[SQLite] Updated {self.current_character['name']} HP: {current_hp}/{max_hp}")
                 else:
                     # Update only current HP
                     cursor.execute("""
                         UPDATE characters 
                         SET hit_points_current = ?, updated_at = ?
                         WHERE id = ?
-                    """, (current_hp, datetime.now().isoformat(), self.current_character.id))
+                    """, (current_hp, datetime.now().isoformat(), self.current_character['id']))
                     
-                    # Update the current character DTO
-                    self.current_character.hit_points_current = current_hp
+                    # Update the current character dictionary
+                    self.current_character['hit_points_current'] = current_hp
                     
-                    print(f"[SQLite] Updated {self.current_character.name} current HP: {current_hp}/{self.current_character.hit_points_max}")
+                    print(f"[SQLite] Updated {self.current_character['name']} current HP: {current_hp}/{self.current_character['hit_points_max']}")
                 
                 conn.commit()
                 
@@ -1742,8 +1741,8 @@ class GameEngineSQLite:
                     print(f"[SQLite] Updated character {character_id} XP to {new_xp}")
                     
                     # Also update the current character in memory if it's the same one
-                    if self.current_character and self.current_character.id == character_id:
-                        self.current_character.experience_points = new_xp
+                    if self.current_character and self.current_character['id'] == character_id:
+                        self.current_character['experience_points'] = new_xp
                         
                 return success
                 
