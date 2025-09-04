@@ -764,7 +764,7 @@ class MainWindow(QMainWindow):
             
             if occupied_slots:
                 # Sort by last_played date, most recent first
-                occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
+                occupied_slots.sort(key=lambda s: s['last_played'] or s['created_at'], reverse=True)
                 most_recent_slot = occupied_slots[0]
                 
                 character = self.game_engine.load_character_sync(most_recent_slot['slot_number'])
@@ -867,10 +867,10 @@ class MainWindow(QMainWindow):
             self.action_panel.load_character_features({})
         
         # Load character feats into action panel (for fighting styles, etc.)
-        character_feats = getattr(character, 'feats', []) or []
+        character_feats = character.get('feats', []) or []
         # Also load fighting styles from character_features table
         try:
-            fighting_styles = self.game_engine.get_character_fighting_styles(character.id)
+            fighting_styles = self.game_engine.get_character_fighting_styles(character['id'])
             character_feats.extend(fighting_styles)
         except:
             pass
