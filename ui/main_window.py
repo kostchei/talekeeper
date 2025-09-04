@@ -1251,6 +1251,7 @@ class MainWindow(QMainWindow):
     def _convert_dto_to_display(self, character_dto):
         """Convert CharacterDTO to format expected by character sheet."""
         return {
+            'id': character_dto.id,  # Include ID for database lookups
             'name': character_dto.name,
             'level': character_dto.level,
             'race_name': character_dto.race_name,

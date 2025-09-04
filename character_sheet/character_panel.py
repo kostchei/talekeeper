@@ -1366,106 +1366,221 @@ class CharacterPanel(QWidget):
             return feats, features
         except Exception:
             return [], {}
+    
+    def _get_feature_description(self, feature_name: str, class_name: str = "fighter") -> str:
+        """Get feature description from feature definitions."""
+        try:
+            # Get all features for the class and search for matching name
+            from core.feature_definitions import ClassFeatures
+            all_features = []
+            
+            # Get features up to level 20 to search through all possible features
+            for level in range(1, 21):
+                level_features = ClassFeatures.get_feature_at_level(class_name, level)
+                if level_features:
+                    all_features.extend(level_features)
+            
+            # Find matching feature by name
+            for feature in all_features:
+                if feature.name == feature_name:
+                    return feature.description
+                    
+        except Exception as e:
+            print(f"Error getting feature description for {feature_name}: {e}")
+        
+        # Final fallback
+        return "Class feature"
 
     def _update_detail_panel(self):
         """Update the detailed panel with character-specific information."""
         if not self.character_data:
             return
         
-        # Update skill bonuses
-        base_abilities = {
-            'Acrobatics (Dex)': self.character_data.get('dexterity', 10),
-            'Animal Handling (Wis)': self.character_data.get('wisdom', 10),
-            'Arcana (Int)': self.character_data.get('intelligence', 10),
-            'Athletics (Str)': self.character_data.get('strength', 10),
-            'Deception (Cha)': self.character_data.get('charisma', 10),
-            'History (Int)': self.character_data.get('intelligence', 10),
-            'Insight (Wis)': self.character_data.get('wisdom', 10),
-            'Intimidation (Cha)': self.character_data.get('charisma', 10),
-            'Investigation (Int)': self.character_data.get('intelligence', 10),
-            'Medicine (Wis)': self.character_data.get('wisdom', 10),
-            'Nature (Int)': self.character_data.get('intelligence', 10),
-            'Perception (Wis)': self.character_data.get('wisdom', 10),
-            'Performance (Cha)': self.character_data.get('charisma', 10),
-            'Persuasion (Cha)': self.character_data.get('charisma', 10),
-            'Religion (Int)': self.character_data.get('intelligence', 10),
-            'Sleight of Hand (Dex)': self.character_data.get('dexterity', 10),
-            'Stealth (Dex)': self.character_data.get('dexterity', 10),
-            'Survival (Wis)': self.character_data.get('wisdom', 10)
-        }
-        
-        # Calculate and display skill bonuses
-        proficiency_bonus = 2 + ((self.character_data.get('level', 1) - 1) // 4)  # D&D 5e proficiency scaling
-        
-        # Skill calculations removed - skills are displayed in main view only
-        
-        # Update features and traits
-        race_name = self.character_data.get('race_name', 'Unknown')
+        # Get character details
         class_name = self.character_data.get('class_name', 'Unknown') 
         level = self.character_data.get('level', 1)
-        character_features = self.character_data.get('features', {})
-        
-        # Display character feats first (most important)
-        character_feats = self.character_data.get('feats', [])
-        
-        # Debug logging to file
-        import os
-        debug_file = os.path.join(os.getcwd(), "character_debug.log")
-        with open(debug_file, "a") as f:
-            f.write(f"[DEBUG] Character: {self.character_data.get('name', 'Unknown')}\n")
-            f.write(f"[DEBUG] Feats data: {character_feats}\n")
-            f.write(f"[DEBUG] All character data keys: {list(self.character_data.keys())}\n\n")
-        
-        features_text = ""
-        if character_feats:
-            features_text += "=== Character Feats ===\n"
-            for feat_name in character_feats:
-                features_text += f"• {feat_name}\n"
-            features_text += "\n"
-        
-        features_text += f"=== Class Features ({class_name}) ===\n"
-        
-        # Display actual class features
-        if character_features:
-            for feature_name, feature_data in character_features.items():
-                features_text += f"• {feature_name} (Level {feature_data.get('level_gained', 1)})\n"
-                if feature_data.get('type') in ['bonus_action', 'action', 'reaction']:
-                    features_text += f"  {feature_data['type'].replace('_', ' ').title()}"
-                    if feature_data.get('usage') != 'permanent':
-                        features_text += f" • {feature_data.get('usage', 'unknown').replace('_', ' ').title()} Recharge"
-                    features_text += "\n"
-                features_text += f"  {feature_data.get('description', 'No description available.')}\n\n"
-        else:
-            features_text += f"• Level {level} class abilities and features\n"
-            features_text += "• Features will appear here as character gains levels\n\n"
-        
-        features_text += f"=== Racial Traits ({race_name}) ===\n"
-        features_text += "• Racial abilities and traits based on character race\n"
-        features_text += "• Special resistances or bonuses\n\n"
-        
-        # Add weapon masteries if Fighter
-        if class_name == 'Fighter' and self.character_data.get('weapon_masteries'):
-            masteries = self.character_data.get('weapon_masteries', [])
-            features_text += f"=== Weapon Masteries ===\n"
-            for mastery in masteries:
-                # Get description from our stored data
-                mastery_desc = next((desc for name, desc in self.weapon_masteries if name == mastery), "Special weapon technique")
-                features_text += f"• {mastery}: {mastery_desc}\n"
-            features_text += "\n"
-        
-        features_text += "=== Background Features ===\n"
+        race_name = self.character_data.get('race_name', 'Unknown')
         background_name = self.character_data.get('background_name', 'Unknown')
-        features_text += f"• {background_name} background benefits\n"
+        char_id = self.character_data.get('id')
         
-        # Show actual proficiencies if available
-        proficiencies = self.character_data.get('proficiencies', [])
-        if proficiencies:
-            for prof in proficiencies:
-                features_text += f"• {prof}\n"
-        else:
-            features_text += "• Skill proficiencies\n"
-            features_text += "• Equipment and tools\n"
         
+        # Build features text from actual database data
+        features_text = ""
+        
+        # === CLASS FEATURES ===
+        features_text += "=== CLASS FEATURES ===\n"
+        
+        # Get class features from database
+        if char_id:
+            try:
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+                
+                # Get all class features for this character from both tables
+                cursor.execute("""
+                    SELECT feature_name, description, usage_type 
+                    FROM character_features 
+                    WHERE character_id = ? 
+                    ORDER BY level_gained, feature_name
+                """, (char_id,))
+                
+                class_features = cursor.fetchall()
+                
+                # Also check the newer feature_states table
+                if not class_features:
+                    cursor.execute("""
+                        SELECT feature_name, feature_type, '' as description
+                        FROM feature_states 
+                        WHERE character_id = ? 
+                        ORDER BY feature_name
+                    """, (char_id,))
+                    
+                    feature_states = cursor.fetchall()
+                    if feature_states:
+                        class_features = [(name, self._get_feature_description(name, class_name.lower()), ftype) 
+                                        for name, ftype, _ in feature_states]
+                
+                if class_features:
+                    for feature_name, description, usage_type in class_features:
+                        features_text += f"• {feature_name}"
+                        if usage_type and usage_type != 'permanent':
+                            features_text += f" ({usage_type})"
+                        features_text += "\n"
+                        if description:
+                            features_text += f"  {description[:100]}...\n" if len(description) > 100 else f"  {description}\n"
+                
+                conn.close()
+            except Exception as e:
+                print(f"Error loading class features: {e}")
+        
+        features_text += "\n"
+        
+        # === WEAPON MASTERY ===
+        if char_id and class_name.lower() == 'fighter':
+            try:
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT weapon_name, mastery_type 
+                    FROM character_weapon_masteries 
+                    WHERE character_id = ?
+                """, (char_id,))
+                
+                masteries = cursor.fetchall()
+                if masteries:
+                    features_text += "=== WEAPON MASTERY ===\n"
+                    for weapon_name, mastery_type in masteries:
+                        features_text += f"• {weapon_name}: {mastery_type}\n"
+                    features_text += "\n"
+                
+                conn.close()
+            except Exception as e:
+                print(f"Error loading weapon masteries: {e}")
+        
+        # === FEATS ===
+        character_feats = self.character_data.get('feats', [])
+        if character_feats:
+            features_text += "=== FEATS ===\n"
+            
+            # Get feat details from database if available
+            if char_id:
+                try:
+                    conn = sqlite3.connect("talekeeper.db")
+                    cursor = conn.cursor()
+                    
+                    cursor.execute("""
+                        SELECT feat_name, feat_source 
+                        FROM character_feats 
+                        WHERE character_id = ? 
+                        ORDER BY feat_source, feat_name
+                    """, (char_id,))
+                    
+                    feat_data = cursor.fetchall()
+                    
+                    if feat_data:
+                        # Group feats by source
+                        background_feats = []
+                        species_feats = []
+                        class_feats = []
+                        other_feats = []
+                        
+                        for feat_name, feat_source in feat_data:
+                            if feat_source == 'background':
+                                background_feats.append(feat_name)
+                            elif feat_source == 'species':
+                                species_feats.append(feat_name)
+                            elif feat_source in ['class', 'fighting_style']:
+                                class_feats.append(feat_name)
+                            else:
+                                other_feats.append(feat_name)
+                        
+                        if background_feats:
+                            features_text += f"• Background Origin Feat: {', '.join(background_feats)}\n"
+                        if class_feats:
+                            for feat in class_feats:
+                                if 'fighting style' in feat.lower():
+                                    features_text += f"• Fighting Style: {feat}\n"
+                                else:
+                                    features_text += f"• {feat}\n"
+                        if species_feats:
+                            features_text += f"• Species Feat: {', '.join(species_feats)}\n"
+                        if other_feats:
+                            for feat in other_feats:
+                                features_text += f"• {feat}\n"
+                    else:
+                        # Fallback to simple list
+                        for feat_name in character_feats:
+                            features_text += f"• {feat_name}\n"
+                    
+                    conn.close()
+                except Exception as e:
+                    print(f"Error loading feat details: {e}")
+                    for feat_name in character_feats:
+                        features_text += f"• {feat_name}\n"
+            else:
+                for feat_name in character_feats:
+                    features_text += f"• {feat_name}\n"
+            
+            features_text += "\n"
+        
+        # === PROFICIENCIES ===
+        if char_id:
+            try:
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT proficiency_type, proficiency_name 
+                    FROM character_proficiencies 
+                    WHERE character_id = ? 
+                    ORDER BY proficiency_type, proficiency_name
+                """, (char_id,))
+                
+                proficiencies = cursor.fetchall()
+                
+                if proficiencies:
+                    features_text += "=== PROFICIENCIES ===\n"
+                    
+                    # Group by type
+                    prof_by_type = {}
+                    for prof_type, prof_name in proficiencies:
+                        if prof_type not in prof_by_type:
+                            prof_by_type[prof_type] = []
+                        prof_by_type[prof_type].append(prof_name)
+                    
+                    for prof_type, prof_list in prof_by_type.items():
+                        type_label = prof_type.replace('_', ' ').title()
+                        features_text += f"• {type_label}: {', '.join(prof_list)}\n"
+                    
+                    features_text += "\n"
+                
+                conn.close()
+            except Exception as e:
+                print(f"Error loading proficiencies: {e}")
+        
+        
+        # Set the complete features text  
         self.features_text.setPlainText(features_text)
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
