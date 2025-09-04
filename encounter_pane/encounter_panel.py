@@ -3433,8 +3433,8 @@ class EncounterPanel(QWidget):
                 max_hp = character['hit_points_max']
         except Exception as e:
             print(f"ERROR: Could not get HP: {e}")
-            current_hp = character.hit_points_current
-            max_hp = character.hit_points_max
+            current_hp = character['hit_points_current']
+            max_hp = character['hit_points_max']
         
         dialog = QDialog(self)
         dialog.setWindowTitle("Hit Dice Recovery")

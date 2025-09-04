@@ -983,7 +983,7 @@ class MainWindow(QMainWindow):
                 # Load into UI
                 self._load_character_into_ui(character, f"Loaded character from slot {slot_number}")
                 
-                self.log_panel.log_info(f"Successfully loaded {character.name}")
+                self.log_panel.log_info(f"Successfully loaded {character['name']}")
             else:
                 self.log_panel.log_error(f"Failed to load character from slot {slot_number}")
         except Exception as e:
