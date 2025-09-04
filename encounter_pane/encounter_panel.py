@@ -3460,7 +3460,7 @@ class EncounterPanel(QWidget):
             layout.addWidget(no_dice_label)
         else:
             # Determine hit die type based on class - check both class_id and resolved class name
-            class_id = getattr(character, 'class_id', 'Fighter')
+            class_id = character.get('class_id', '') if isinstance(character, dict) else getattr(character, 'class_id', '')
             
             # Try to get the actual class name from database
             class_name = class_id
@@ -3486,8 +3486,12 @@ class EncounterPanel(QWidget):
                 'artificer': 8, 'sorcerer': 6, 'wizard': 6
             }
             
-            # Try class name first, then class_id, then default
-            hit_die = hit_die_map.get(class_name, hit_die_map.get(class_id, hit_die_map.get(class_id.lower(), 8)))
+            # Try class name first, then class_id, then class_id lowercase
+            hit_die = hit_die_map.get(class_name, hit_die_map.get(class_id, hit_die_map.get(class_id.lower())))
+            
+            if hit_die is None:
+                self._log_monster_action(f"[TARGET] ERROR: Unknown class '{class_id}'/'{class_name}' - cannot determine hit die")
+                return
             
             self._log_monster_action(f"[TARGET] DEBUG: class_id='{class_id}', class_name='{class_name}', hit_die=d{hit_die}")
             con_mod = character['constitution_modifier']

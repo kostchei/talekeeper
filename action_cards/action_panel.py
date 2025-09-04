@@ -1243,7 +1243,7 @@ class ActionPanel(QWidget):
             return 0
     
     def _get_rage_damage_from_database(self, barbarian_level: int) -> int:
-        """Get rage damage bonus from database by looking up barbarian class features."""
+        """Get rage damage bonus from database by looking up barbarian features."""
         print(f"DATABASE: _get_rage_damage_from_database called with barbarian_level={barbarian_level}")
         
         if barbarian_level <= 0:
@@ -1255,22 +1255,24 @@ class ActionPanel(QWidget):
             
             print(f"DATABASE: Opening connection to query rage damage for level {barbarian_level}")
             
-            # Query class_features_detailed table for barbarian rage damage
+            # Get character ID from context
+            character_id = self.character_context.get('id', '')
+            if not character_id:
+                print(f"DATABASE ERROR: No character_id in context")
+                return 0
+            
+            # Query barbarian_features table for this character's rage damage
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
             
             query = """
-                SELECT damage_bonus, feature_name, level_required FROM class_features_detailed 
-                WHERE class_name = 'Barbarian' 
-                AND feature_name LIKE '%rage%' 
-                AND level_required <= ?
-                AND damage_bonus IS NOT NULL
-                ORDER BY level_required DESC
-                LIMIT 1
+                SELECT rage_damage_bonus FROM barbarian_features 
+                WHERE character_id = ?
+                AND level = ?
             """
-            print(f"DATABASE: Executing query: {query} with barbarian_level={barbarian_level}")
+            print(f"DATABASE: Executing query: {query} with character_id={character_id}, level={barbarian_level}")
             
-            cursor.execute(query, (barbarian_level,))
+            cursor.execute(query, (character_id, barbarian_level))
             
             result = cursor.fetchone()
             conn.close()
@@ -3825,10 +3827,11 @@ class ActionPanel(QWidget):
             max_hp = self.character_context.get('hit_points_max', 0)
             
             if current_hp < max_hp:
-                # Use hit die (1d10 for most classes, simplified)
+                # Get character's actual hit die based on class
+                hit_die_size = self._get_character_hit_die()
                 import random
                 constitution_mod = (self.character_context.get('constitution', 10) - 10) // 2
-                hit_die_roll = random.randint(1, 10)
+                hit_die_roll = random.randint(1, hit_die_size)
                 healing = hit_die_roll + constitution_mod
                 healing = max(1, healing)  # Minimum 1 HP
                 
@@ -3837,12 +3840,44 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"🎲 Hit Die: 1d10+{constitution_mod} = {hit_die_roll}+{constitution_mod} = {healing} HP healed")
+                        parent.log_panel.log_combat(f"🎲 Hit Die: 1d{hit_die_size}+{constitution_mod} = {hit_die_roll}+{constitution_mod} = {healing} HP healed")
                         break
                     parent = parent.parent()
                     
         except Exception as e:
             print(f"Error during short rest healing: {e}")
+    
+    def _get_character_hit_die(self) -> int:
+        """Get the character's hit die size based on their class."""
+        # Hit die mapping for D&D 2024 classes
+        hit_die_map = {
+            # Class names
+            'Fighter': 10, 'Paladin': 10, 'Ranger': 10, 'Barbarian': 12,
+            'Rogue': 8, 'Monk': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Warlock': 8,
+            'Artificer': 8, 'Sorcerer': 6, 'Wizard': 6,
+            # Class IDs (lowercase versions)
+            'fighter': 10, 'paladin': 10, 'ranger': 10, 'barbarian': 12,
+            'rogue': 8, 'monk': 8, 'bard': 8, 'cleric': 8, 'druid': 8, 'warlock': 8,
+            'artificer': 8, 'sorcerer': 6, 'wizard': 6
+        }
+        
+        # Try to get class_id from character context
+        class_id = self.character_context.get('class_id', '')
+        
+        # If not found, try to get it from main window
+        if not class_id:
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'current_character'):
+                        class_id = parent.current_character.get('class_id', '')
+                        break
+                    parent = parent.parent()
+            except:
+                pass
+        
+        # Get hit die size, default to d8 if class not found
+        return hit_die_map.get(class_id, hit_die_map.get(class_id.lower(), 8))
     
     def _long_rest_healing(self):
         """Full healing during long rest."""
