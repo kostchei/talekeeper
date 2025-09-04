@@ -252,12 +252,12 @@ class MainWindow(QMainWindow):
         self._update_character_equipment_slots(equipped_items)
         
         # Recalculate AC from database (includes Defense fighting style)
-        character_id = self.game_engine.current_character.id
+        character_id = self.game_engine.current_character['id']
         if self.game_engine.recalculate_character_stats_sync(character_id):
             # Get the new AC from the database 
-            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character.save_slot_number)
+            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character['save_slot_number'])
             if updated_character:
-                new_ac = updated_character.armor_class
+                new_ac = updated_character['armor_class']
                 self.log_panel.log_info(f"AC updated to {new_ac}")
                 self.log_panel.log_info(f"Equipped {item.get('name', 'item')} in {slot} slot")
                 
@@ -300,12 +300,12 @@ class MainWindow(QMainWindow):
         self._update_character_equipment_slots(equipped_items)
         
         # Recalculate AC from database (includes Defense fighting style)
-        character_id = self.game_engine.current_character.id
+        character_id = self.game_engine.current_character['id']
         if self.game_engine.recalculate_character_stats_sync(character_id):
             # Get the new AC from the database 
-            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character.save_slot_number)
+            updated_character = self.game_engine.load_character_sync(self.game_engine.current_character['save_slot_number'])
             if updated_character:
-                new_ac = updated_character.armor_class
+                new_ac = updated_character['armor_class']
                 self.log_panel.log_info(f"AC updated to {new_ac}")
                 self.log_panel.log_info(f"Unequipped item from {slot} slot")
                 
@@ -350,7 +350,7 @@ class MainWindow(QMainWindow):
                 
                 # Update database via game engine (which will trigger proper AC recalculation)
                 try:
-                    character_id = self.game_engine.current_character.id
+                    character_id = self.game_engine.current_character['id']
                     # Force recalculation of character stats including AC
                     if self.game_engine.recalculate_character_stats_sync(character_id):
                         self.log_panel.log_info(f"AC updated to {new_ac}")
@@ -377,7 +377,7 @@ class MainWindow(QMainWindow):
             self._update_character_equipment_slots(equipped_items)
             
             # Save inventory changes to database
-            self._save_character_inventory(current_character.id, inventory_items)
+            self._save_character_inventory(current_character['id'], inventory_items)
             
         except Exception as e:
             self.log_panel.log_error(f"Failed to save inventory changes: {e}")
@@ -410,15 +410,15 @@ class MainWindow(QMainWindow):
                 UPDATE characters 
                 SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?
                 WHERE id = ?
-            """, (main_hand_name, off_hand_name, armor_name, current_character.id))
+            """, (main_hand_name, off_hand_name, armor_name, current_character['id']))
             
             conn.commit()
             conn.close()
             
             # Update the current character DTO as well
-            current_character.equipment_main_hand = main_hand_name
-            current_character.equipment_off_hand = off_hand_name  
-            current_character.equipment_armor = armor_name
+            current_character['equipment_main_hand'] = main_hand_name
+            current_character['equipment_off_hand'] = off_hand_name  
+            current_character['equipment_armor'] = armor_name
             
         except Exception as e:
             print(f"Error updating character equipment slots: {e}")
@@ -572,41 +572,41 @@ class MainWindow(QMainWindow):
             self.character_sheet.load_character_data(character_display_data)
 
             equipped_items = {}
-            if saved_character.equipment_main_hand:
-                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_main_hand)
-                equipped_items['main_hand'] = item_data if item_data else {'name': saved_character.equipment_main_hand, 'weight_lb': 0}
-            if saved_character.equipment_off_hand:
-                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_off_hand)
-                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_off_hand, 'weight_lb': 0}
-            if saved_character.equipment_armor:
-                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_armor)
-                equipped_items['armor'] = item_data if item_data else {'name': saved_character.equipment_armor, 'weight_lb': 0}
-            if saved_character.equipment_shield and 'off_hand' not in equipped_items:
-                item_data = self.game_engine.get_equipment_item_sync(saved_character.equipment_shield)
-                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character.equipment_shield, 'weight_lb': 0}
+            if saved_character['equipment_main_hand']:
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_main_hand'])
+                equipped_items['main_hand'] = item_data if item_data else {'name': saved_character['equipment_main_hand'], 'weight_lb': 0}
+            if saved_character['equipment_off_hand']:
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_off_hand'])
+                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character['equipment_off_hand'], 'weight_lb': 0}
+            if saved_character['equipment_armor']:
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_armor'])
+                equipped_items['armor'] = item_data if item_data else {'name': saved_character['equipment_armor'], 'weight_lb': 0}
+            if saved_character.get('equipment_shield') and 'off_hand' not in equipped_items:
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_shield'])
+                equipped_items['off_hand'] = item_data if item_data else {'name': saved_character['equipment_shield'], 'weight_lb': 0}
             
             # Load character inventory
-            inventory_items = self.game_engine.get_character_inventory_sync(saved_character.id)
+            inventory_items = self.game_engine.get_character_inventory_sync(saved_character['id'])
             
-            self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character.strength, saved_character.dexterity)
+            self.equipment_panel.load_equipment_data(equipped_items, inventory_items, saved_character['strength'], saved_character['dexterity'])
             
             # Load character data into action panel for weapon cards
-            print(f"[DEBUG] MAIN WINDOW DEBUG: saved_character.class_id = {saved_character.class_id}")
+            print(f"[DEBUG] MAIN WINDOW DEBUG: saved_character.class_id = {saved_character['class_id']}")
             character_stats = {
-                'id': saved_character.id,  # Add character ID for potion checks
-                'class_id': saved_character.class_id,  # Required for rage damage bonus
-                'strength': saved_character.strength,
-                'dexterity': saved_character.dexterity,
-                'constitution': saved_character.constitution,
-                'intelligence': saved_character.intelligence,
-                'wisdom': saved_character.wisdom,
-                'charisma': saved_character.charisma,
-                'armor_class': saved_character.armor_class,
-                'level': saved_character.level,
-                'hit_points_current': saved_character.hit_points_current,
-                'hit_points_max': saved_character.hit_points_max,
-                'feats': saved_character.feats or [],
-                'weapon_masteries': saved_character.weapon_masteries or []
+                'id': saved_character['id'],  # Add character ID for potion checks
+                'class_id': saved_character['class_id'],  # Required for rage damage bonus
+                'strength': saved_character['strength'],
+                'dexterity': saved_character['dexterity'],
+                'constitution': saved_character['constitution'],
+                'intelligence': saved_character['intelligence'],
+                'wisdom': saved_character['wisdom'],
+                'charisma': saved_character['charisma'],
+                'armor_class': saved_character['armor_class'],
+                'level': saved_character['level'],
+                'hit_points_current': saved_character['hit_points_current'],
+                'hit_points_max': saved_character['hit_points_max'],
+                'feats': saved_character.get('feats', []),
+                'weapon_masteries': saved_character.get('weapon_masteries', [])
             }
             print(f"[DEBUG] CHARACTER_STATS DEBUG: {character_stats}")
             self.action_panel.load_character_equipment(equipped_items, character_stats)
@@ -618,14 +618,14 @@ class MainWindow(QMainWindow):
             try:
                 from core.feature_integration import FeatureSystemIntegration
                 feature_system = FeatureSystemIntegration('talekeeper.db')
-                print(f"[DEBUG] Loading features for character {saved_character.name} (ID: {saved_character.id})")
-                available_features = feature_system.get_available_features(saved_character.id)
+                print(f"[DEBUG] Loading features for character {saved_character['name']} (ID: {saved_character['id']})")
+                available_features = feature_system.get_available_features(saved_character['id'])
                 
                 # If no features found, initialize them (for characters created before our fix)
                 if not available_features:
-                    print(f"[DEBUG] No features found, initializing for {saved_character.class_id} level {saved_character.level}")
-                    feature_system.initialize_character_features(saved_character.id)
-                    available_features = feature_system.get_available_features(saved_character.id)
+                    print(f"[DEBUG] No features found, initializing for {saved_character['class_id']} level {saved_character['level']}")
+                    feature_system.initialize_character_features(saved_character['id'])
+                    available_features = feature_system.get_available_features(saved_character['id'])
                     print(f"[DEBUG] After initialization: {len(available_features)} features")
                 
                 print(f"[DEBUG] Raw features from feature system: {[f['name'] for f in available_features]}")
@@ -648,10 +648,10 @@ class MainWindow(QMainWindow):
                 self.action_panel.load_character_features({})
             
             # Load character feats into action panel (for fighting styles, etc.)
-            character_feats = saved_character.feats or []
+            character_feats = saved_character.get('feats', [])
             # Also load fighting styles from character_features table
             try:
-                fighting_styles = self.game_engine.get_character_fighting_styles(saved_character.id)
+                fighting_styles = self.game_engine.get_character_fighting_styles(saved_character['id'])
                 character_feats.extend(fighting_styles)
             except:
                 pass
@@ -662,13 +662,13 @@ class MainWindow(QMainWindow):
             self.action_panel.load_weapon_masteries(weapon_masteries)
 
             # Update menu
-            self.menu.update_game_info(saved_character.name, saved_character.level)
+            self.menu.update_game_info(saved_character['name'], saved_character['level'])
             self.menu.set_character_loaded(True)
             
             # Provide definitive feedback that character was saved
             self.log_panel.log_info(f"✓ Character '{name}' successfully created and saved!")
             self.log_panel.log_system(
-                f"Saved to slot {save_slot} - Level {saved_character.level} {species_name} {class_name}"
+                f"Saved to slot {save_slot} - Level {saved_character['level']} {species_name} {class_name}"
             )
             self.log_panel.log_info(f"Welcome, {name}! Your adventure begins...")
             
@@ -689,7 +689,7 @@ class MainWindow(QMainWindow):
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
                 self.game_engine.save_game_sync()
-                self.log_panel.log_info(f"Saved character: {self.game_engine.current_character.name}")
+                self.log_panel.log_info(f"Saved character: {self.game_engine.current_character['name']}")
             else:
                 self.log_panel.log_info("No active character to save")
         except Exception as e:
@@ -706,29 +706,29 @@ class MainWindow(QMainWindow):
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
                 character = self.game_engine.current_character
-                character_name = character.name
+                character_name = character['name']
                 
                 # Get updated inventory from database
-                character_inventory = self.game_engine.get_character_inventory_sync(character.id)
+                character_inventory = self.game_engine.get_character_inventory_sync(character['id'])
                 
                 # Get equipped items
                 equipped_items = {}
-                if character.equipment_main_hand:
-                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_main_hand)
-                    equipped_items['main_hand'] = item_data if item_data else {'name': character.equipment_main_hand, 'weight_lb': 0}
-                if character.equipment_armor:
-                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_armor)
-                    equipped_items['armor'] = item_data if item_data else {'name': character.equipment_armor, 'weight_lb': 0}
-                if character.equipment_shield:
-                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_shield)
-                    equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
-                elif character.equipment_off_hand:
-                    item_data = self.game_engine.get_equipment_item_sync(character.equipment_off_hand)
-                    equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_off_hand, 'weight_lb': 0}
+                if character.get('equipment_main_hand'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_main_hand'])
+                    equipped_items['main_hand'] = item_data if item_data else {'name': character['equipment_main_hand'], 'weight_lb': 0}
+                if character.get('equipment_armor'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_armor'])
+                    equipped_items['armor'] = item_data if item_data else {'name': character['equipment_armor'], 'weight_lb': 0}
+                if character.get('equipment_shield'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_shield'])
+                    equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_shield'], 'weight_lb': 0}
+                elif character.get('equipment_off_hand'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_off_hand'])
+                    equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_off_hand'], 'weight_lb': 0}
                 
                 # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
-                    self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character.strength, character.dexterity)
+                    self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character['strength'], character['dexterity'])
                 
                 # Refresh action panel (for potion availability)
                 if hasattr(self, 'action_panel'):
@@ -796,44 +796,44 @@ class MainWindow(QMainWindow):
         
         # Load into UI
         self.character_sheet.load_character_data(character_data)
-        self.menu.update_game_info(character.name, character.level)
+        self.menu.update_game_info(character['name'], character['level'])
         self.menu.set_character_loaded(True)
         
         # Check if town tab should be shown (character may be able to level up)
         self.encounter_pane.refresh_character_data()
 
         equipped_items = {}
-        if character.equipment_main_hand:
-            item_data = self.game_engine.get_equipment_item_sync(character.equipment_main_hand)
-            equipped_items['main_hand'] = item_data if item_data else {'name': character.equipment_main_hand, 'weight_lb': 0}
-        if character.equipment_off_hand:
-            item_data = self.game_engine.get_equipment_item_sync(character.equipment_off_hand)
-            equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_off_hand, 'weight_lb': 0}
-        if character.equipment_armor:
-            item_data = self.game_engine.get_equipment_item_sync(character.equipment_armor)
-            equipped_items['armor'] = item_data if item_data else {'name': character.equipment_armor, 'weight_lb': 0}
-        if character.equipment_shield and 'off_hand' not in equipped_items:
-            item_data = self.game_engine.get_equipment_item_sync(character.equipment_shield)
-            equipped_items['off_hand'] = item_data if item_data else {'name': character.equipment_shield, 'weight_lb': 0}
-        inventory_items = self.game_engine.get_character_inventory_sync(character.id)
-        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character.strength, character.dexterity)
+        if character.get('equipment_main_hand'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_main_hand'])
+            equipped_items['main_hand'] = item_data if item_data else {'name': character['equipment_main_hand'], 'weight_lb': 0}
+        if character.get('equipment_off_hand'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_off_hand'])
+            equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_off_hand'], 'weight_lb': 0}
+        if character.get('equipment_armor'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_armor'])
+            equipped_items['armor'] = item_data if item_data else {'name': character['equipment_armor'], 'weight_lb': 0}
+        if character.get('equipment_shield') and 'off_hand' not in equipped_items:
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_shield'])
+            equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_shield'], 'weight_lb': 0}
+        inventory_items = self.game_engine.get_character_inventory_sync(character['id'])
+        self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character['strength'], character['dexterity'])
         
         # Load character data into action panel for weapon cards
         character_stats = {
-            'id': character.id,  # Add character ID for potion checks
-            'class_id': character.class_id,  # Required for rage damage bonus
-            'strength': character.strength,
-            'dexterity': character.dexterity,
-            'constitution': character.constitution,
-            'intelligence': character.intelligence,
-            'wisdom': character.wisdom,
-            'charisma': character.charisma,
-            'armor_class': character.armor_class,
-            'level': character.level,
-            'hit_points_current': character.hit_points_current,
-            'hit_points_max': character.hit_points_max,
-            'feats': character.feats or [],
-            'weapon_masteries': character.weapon_masteries or []
+            'id': character['id'],  # Add character ID for potion checks
+            'class_id': character['class_id'],  # Required for rage damage bonus
+            'strength': character['strength'],
+            'dexterity': character['dexterity'],
+            'constitution': character['constitution'],
+            'intelligence': character['intelligence'],
+            'wisdom': character['wisdom'],
+            'charisma': character['charisma'],
+            'armor_class': character['armor_class'],
+            'level': character['level'],
+            'hit_points_current': character['hit_points_current'],
+            'hit_points_max': character['hit_points_max'],
+            'feats': character.get('feats', []),
+            'weapon_masteries': character.get('weapon_masteries', [])
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)
         
