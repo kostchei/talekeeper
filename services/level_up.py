@@ -88,10 +88,18 @@ class LevelUpService:
             con_modifier = (con_score - 10) // 2
             
             # Calculate HP increase (average + CON mod)
-            hp_increase = (hit_die // 2 + 1) + con_modifier
-            hp_increase = max(1, hp_increase)  # Minimum 1 HP per level
+            base_hp_increase = (hit_die // 2 + 1) + con_modifier
+            base_hp_increase = max(1, base_hp_increase)  # Minimum 1 HP per level
             
-            print(f"[LevelUp] HP increase: {hp_increase} (d{hit_die} average + {con_modifier} CON)")
+            # Add species bonuses
+            species_hp_bonus = self._get_species_hp_bonus(cursor, character_id)
+            
+            # Add feat bonuses  
+            feat_hp_bonus = self._get_feat_hp_bonus(cursor, character_id)
+            
+            total_hp_increase = base_hp_increase + species_hp_bonus + feat_hp_bonus
+            
+            print(f"[LevelUp] HP increase: {total_hp_increase} (d{hit_die} average + {con_modifier} CON + {species_hp_bonus} species + {feat_hp_bonus} feats)")
             
             # Update main character table with level and HP
             cursor.execute("""
@@ -103,7 +111,7 @@ class LevelUpService:
                     max_hit_points = max_hit_points + ?,
                     updated_at = datetime('now')
                 WHERE id = ?
-            """, (new_total_level, hp_increase, hp_increase, hp_increase, hp_increase, character_id))
+            """, (new_total_level, total_hp_increase, total_hp_increase, total_hp_increase, total_hp_increase, character_id))
             
             # Grant new class features (old system)
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
@@ -133,13 +141,13 @@ class LevelUpService:
     def _get_hit_die_for_class(self, class_name: str) -> int:
         """Get hit die size for class."""
         hit_dice = {
-            'Barbarian': 12,
-            'Fighter': 10,
-            'Paladin': 10,
-            'Cleric': 8,
-            'Rogue': 8,
-            'Warlock': 8,
-            'Wizard': 6
+            'Barbarian': 12, 'barbarian': 12,
+            'Fighter': 10, 'fighter': 10,
+            'Paladin': 10, 'paladin': 10,
+            'Cleric': 8, 'cleric': 8,
+            'Rogue': 8, 'rogue': 8,
+            'Warlock': 8, 'warlock': 8,
+            'Wizard': 6, 'wizard': 6
         }
         return hit_dice.get(class_name, 8)
     
@@ -213,6 +221,42 @@ class LevelUpService:
         # Add rogue features as needed
         pass
     
+    def _get_species_hp_bonus(self, cursor, character_id: str) -> int:
+        """Get HP bonus per level from species traits."""
+        try:
+            cursor.execute("SELECT race_id FROM characters WHERE id = ?", (character_id,))
+            race_result = cursor.fetchone()
+            if not race_result:
+                return 0
+                
+            race_id = race_result[0].lower()
+            
+            # Dwarven Toughness: +1 HP per level
+            if race_id in ['dwarf', 'dwarves']:
+                return 1
+                
+            return 0
+        except Exception as e:
+            print(f"[LevelUp] Error getting species HP bonus: {e}")
+            return 0
+    
+    def _get_feat_hp_bonus(self, cursor, character_id: str) -> int:
+        """Get HP bonus per level from feats."""
+        try:
+            cursor.execute("SELECT feat_name FROM character_feats WHERE character_id = ?", (character_id,))
+            feats = [row[0] for row in cursor.fetchall()]
+            
+            hp_bonus = 0
+            
+            # Tough feat: +2 HP per level
+            if 'Tough' in feats:
+                hp_bonus += 2
+                
+            return hp_bonus
+        except Exception as e:
+            print(f"[LevelUp] Error getting feat HP bonus: {e}")
+            return 0
+    
     def get_next_level_features(self, character_id: str, class_choice: str) -> List[Dict]:
         """Get features that would be gained at next level in chosen class."""
         class_levels = self.get_character_class_levels(character_id)
@@ -256,6 +300,81 @@ class LevelUpService:
             })
         
         return benefits
+    
+    def recalculate_character_hp(self, character_id: str) -> bool:
+        """Recalculate a character's HP to include species and feat bonuses that may be missing."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Get character data
+            cursor.execute("""
+                SELECT level, class_id, constitution, hit_points_max, race_id
+                FROM characters WHERE id = ?
+            """, (character_id,))
+            char_data = cursor.fetchone()
+            
+            if not char_data:
+                return False
+                
+            level, class_id, con_score, current_max_hp, race_id = char_data
+            con_modifier = (con_score - 10) // 2
+            
+            # Calculate what HP should be
+            hit_die = self._get_hit_die_for_class(class_id)
+            base_hp_per_level = (hit_die // 2 + 1) + con_modifier
+            base_hp_first_level = hit_die + con_modifier  # First level gets max hit die
+            
+            # Calculate total base HP
+            if level == 1:
+                total_base_hp = base_hp_first_level
+            else:
+                total_base_hp = base_hp_first_level + (base_hp_per_level * (level - 1))
+            
+            # Add species bonuses
+            species_hp_bonus = 0
+            if race_id.lower() in ['dwarf', 'dwarves']:
+                species_hp_bonus = level  # +1 per level
+                
+            # Add feat bonuses
+            cursor.execute("SELECT feat_name FROM character_feats WHERE character_id = ?", (character_id,))
+            feats = [row[0] for row in cursor.fetchall()]
+            
+            feat_hp_bonus = 0
+            if 'Tough' in feats:
+                feat_hp_bonus = level * 2  # +2 per level
+                
+            # Calculate correct total HP
+            correct_max_hp = max(1, total_base_hp + species_hp_bonus + feat_hp_bonus)
+            
+            # Update if different
+            if correct_max_hp != current_max_hp:
+                hp_difference = correct_max_hp - current_max_hp
+                
+                cursor.execute("""
+                    UPDATE characters 
+                    SET hit_points_max = ?,
+                        max_hit_points = ?,
+                        hit_points_current = hit_points_current + ?,
+                        current_hit_points = current_hit_points + ?,
+                        updated_at = datetime('now')
+                    WHERE id = ?
+                """, (correct_max_hp, correct_max_hp, hp_difference, hp_difference, character_id))
+                
+                conn.commit()
+                print(f"[LevelUp] Recalculated HP for character: {current_max_hp} -> {correct_max_hp} (+{hp_difference})")
+                print(f"  Base: {total_base_hp}, Species: +{species_hp_bonus}, Feats: +{feat_hp_bonus}")
+                return True
+            else:
+                print(f"[LevelUp] Character HP already correct: {current_max_hp}")
+                return False
+                
+        except Exception as e:
+            print(f"[LevelUp] Error recalculating HP: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
 
 
 level_up_service = LevelUpService()

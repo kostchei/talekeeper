@@ -658,8 +658,24 @@ class GameEngineSQLite:
     
     # Placeholder methods for compatibility with existing UI code
     def get_available_races_sync(self):
-        """Get available races - placeholder."""
-        return []
+        """Get available races from database."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name FROM races ORDER BY display_order, name")
+        races = []
+        for row in cursor.fetchall():
+            # Create a simple race-like object with id and name
+            class RaceData:
+                def __init__(self, id, name):
+                    self.id = id
+                    self.name = name
+            races.append(RaceData(row['id'], row['name']))
+        conn.close()
+        
+        if not races:
+            raise ValueError("No races found in database - check races table")
+        
+        return races
     
     def get_available_classes_sync(self):
         """Get available classes from database."""

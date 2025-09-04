@@ -1213,32 +1213,27 @@ class MainWindow(QMainWindow):
 
     def _get_race_id_by_name(self, name):
         """Get race ID by name from database."""
-        try:
-            races = self.game_engine.get_available_races_sync()
-            for race in races:
-                if race.name == name:
-                    return race.id
-            return races[0].id if races else 'human'  # Fallback to first race or default
-        except:
-            return 'human'  # Safe fallback
+        races = self.game_engine.get_available_races_sync()
+        for race in races:
+            if race.name == name:
+                return race.id
+        
+        # No fallback - this is a bug that needs to be fixed
+        available_names = [race.name for race in races]
+        raise ValueError(f"Race '{name}' not found in database. Available races: {available_names}")
     
     def _get_class_id_by_name(self, name):
         """Get class ID by name from database."""
-        try:
-            classes = self.game_engine.get_available_classes_sync()
-            for cls in classes:
-                if cls.name == name:
-                    # Convert class name to lowercase database key format
-                    result = name.lower().replace(' ', '_')
-                    return result
-            # Fallback - use first class name if no match
-            if classes:
-                fallback = classes[0].name.lower().replace(' ', '_')
-                return fallback
-            return 'fighter'  # Ultimate fallback
-        except Exception as e:
-            print(f"[DEBUG] Exception in _get_class_id_by_name: {e}")
-            return 'fighter'  # Safe fallback
+        classes = self.game_engine.get_available_classes_sync()
+        for cls in classes:
+            if cls.name == name:
+                # Convert class name to lowercase database key format
+                result = name.lower().replace(' ', '_')
+                return result
+        
+        # No fallback - this is a bug that needs to be fixed
+        available_names = [cls.name for cls in classes]
+        raise ValueError(f"Class '{name}' not found in database. Available classes: {available_names}")
     
     def _get_background_id_by_name(self, name):
         """Get background ID by name from database."""
