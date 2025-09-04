@@ -888,12 +888,9 @@ class GameEngineSQLite:
         # Fighter Class Starting Equipment
         if class_id in ['fighter']:
             equipment_items = [
-                # Combat gear
-                ('Javelin', 'weapon', 4, 2.0, 'Simple thrown weapon (range 30/120)', 5),
-                ('Handaxe', 'weapon', 2, 2.0, 'Light, thrown weapon (range 20/60)', 5),
-                # Adventuring gear
-                ('Dungeoneer\'s Pack', 'gear', 1, 61.0, 'Includes backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 days rations, waterskin, 50 ft hemp rope', 12),
-                ('Explorer\'s Pack', 'gear', 1, 59.0, 'Includes backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days rations, waterskin, 50 ft hemp rope', 10),
+                ('Potion of Healing', 'consumable', 1, 0.5, 'This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.', 50),
+                ('Backpack', 'gear', 1, 5.0, 'A leather backpack that can hold up to 30 pounds of gear.', 2),
+                ('Rations (1 day)', 'consumable', 5, 2.0, 'These are required to gain the benefits of a long rest. Each day\'s ration provides enough sustenance for one creature for 24 hours.', 1),
             ]
             
             for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
