@@ -93,6 +93,7 @@ class ActionPanel(QWidget):
         self.action_cards = {}  # ActionType -> ActionCard mapping
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
+        self.first_attack_this_round = True  # Track first attack per round for Savage Attacker
         self.character_features = {}  # Character class features (Fighting Style, etc.)
         self.equipped_weapons = {}  # Store equipped weapon data
         
@@ -741,6 +742,7 @@ class ActionPanel(QWidget):
             # For attack actions, add target monster and weapon data if available
             if action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
                 # Add weapon data to context
+                full_context['weapon'] = True  # Mark as weapon attack for Savage Attacker
                 if action_type in self.action_cards:
                     weapon_data = getattr(self.action_cards[action_type], 'weapon_data', None)
                     if weapon_data:
@@ -984,6 +986,11 @@ class ActionPanel(QWidget):
             else:
                 dice_rolls = [1]
                 dice_total = 1
+            
+            # Apply Savage Attacker feat if applicable (first attack per round only)
+            if 'd' in damage_dice:
+                dice_rolls = self._apply_savage_attacker(dice_rolls, int(num_dice), int(die_size), context)
+                dice_total = sum(dice_rolls)
             
             # Apply fighting style effects to dice rolls (e.g., Great Weapon Fighting)
             dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
@@ -1462,6 +1469,9 @@ class ActionPanel(QWidget):
             # Handle rage turn countdown
             self._update_rage_state()
             
+            # Reset Savage Attacker for new turn
+            self.first_attack_this_round = True
+            
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -1640,6 +1650,9 @@ class ActionPanel(QWidget):
                 
                 # Roll individual dice for breakdown
                 dice_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+                
+                # Apply Savage Attacker feat if applicable (first attack per round only)
+                dice_rolls = self._apply_savage_attacker(dice_rolls, num_dice, die_size, context)
                 
                 # Apply Great Weapon Fighting style if applicable
                 dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
@@ -2996,6 +3009,48 @@ class ActionPanel(QWidget):
                 parent.log_panel.log_combat(f"[FIGHTING STYLE] {style_name}: {description}")
                 break
             parent = parent.parent()
+    
+    def _apply_savage_attacker(self, dice_rolls: list, num_dice: int, die_size: int, context: Dict[str, Any]) -> list:
+        """Apply Savage Attacker feat - roll weapon damage dice twice, use higher roll (first attack per round only)."""
+        if not self.first_attack_this_round:
+            return dice_rolls
+            
+        # Check if character has Savage Attacker feat
+        character_feats = self.character_context.get('feats', [])
+        if 'Savage Attacker' not in character_feats:
+            return dice_rolls
+        
+        # Only apply to weapon attacks (not spell damage)
+        if not context.get('weapon', False):
+            return dice_rolls
+            
+        import random
+        
+        # Roll the same dice again
+        second_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+        
+        # Compare totals and use higher
+        first_total = sum(dice_rolls)
+        second_total = sum(second_rolls)
+        
+        if second_total > first_total:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[SAVAGE ATTACKER] First roll: {dice_rolls} = {first_total}, Second roll: {second_rolls} = {second_total} - Using higher!")
+                    break
+                parent = parent.parent()
+            self.first_attack_this_round = False  # Mark first attack used
+            return second_rolls
+        else:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[SAVAGE ATTACKER] First roll: {dice_rolls} = {first_total}, Second roll: {second_rolls} = {second_total} - Using first!")
+                    break
+                parent = parent.parent()
+            self.first_attack_this_round = False  # Mark first attack used
+            return dice_rolls
     
     def _apply_dueling_bonus(self, context: Dict[str, Any]) -> int:
         """Apply Dueling fighting style bonus (+2 damage when wielding one melee weapon in one hand and no other weapons)."""
