@@ -356,7 +356,7 @@ Training includes food and lodging (counts as a long rest)."""
                             updated_character = game_engine.load_character_sync(slot)
                             if updated_character:
                                 game_engine.current_character = updated_character
-                                print(f"[Training] Reloaded character: {updated_character.name} level {updated_character.level}, {updated_character.hit_points_max} HP")
+                                print(f"[Training] Reloaded character: {updated_character['name']} level {updated_character['level']}, {updated_character['hit_points_max']} HP")
                         break
                     parent = parent.parent()
                 

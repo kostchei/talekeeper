@@ -376,10 +376,10 @@ class ActionPanel(QWidget):
                 while parent:
                     if hasattr(parent, 'game_engine'):
                         character = parent.game_engine.current_character
-                        if character and hasattr(character, 'ability_uses') and "Second Wind" not in character.ability_uses:
+                        if character and isinstance(character, dict) and 'ability_uses' in character and "Second Wind" not in character['ability_uses']:
                             print("DEBUG: Initializing Second Wind for existing character")
-                            character.ability_uses["Second Wind"] = 1
-                            character.ability_uses_max["Second Wind"] = 1
+                            character['ability_uses']["Second Wind"] = 1
+                            character['ability_uses_max']["Second Wind"] = 1
                             uses_remaining = 1
                         break
                     parent = parent.parent()
@@ -1012,7 +1012,7 @@ class ActionPanel(QWidget):
                     while main_window and not hasattr(main_window, 'current_character'):
                         main_window = main_window.parent()
                     if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
-                        class_id = main_window.current_character.class_id
+                        class_id = main_window.current_character['class_id']
                         parent = self.parent()
                         while parent:
                             if hasattr(parent, 'log_panel'):
@@ -2340,7 +2340,7 @@ class ActionPanel(QWidget):
                 game_engine = parent.game_engine
                 character = game_engine.current_character
                 if character:
-                    uses = character.ability_uses.get(ability_name, 0)
+                    uses = character.get('ability_uses', {}).get(ability_name, 0)
                     return uses
                 break
             parent = parent.parent()
@@ -2357,27 +2357,27 @@ class ActionPanel(QWidget):
                 character = game_engine.current_character
                 if character:
                     print(f"DEBUG: Found character, checking {ability_name}")
-                    if not hasattr(character, 'ability_uses'):
+                    if 'ability_uses' not in character:
                         print(f"DEBUG: Character missing ability_uses field, initializing...")
-                        character.ability_uses = {}
-                        character.ability_uses_max = {}
+                        character['ability_uses'] = {}
+                        character['ability_uses_max'] = {}
                     
                     # Initialize Fighter abilities for existing characters that don't have them
-                    if ability_name == "Second Wind" and ability_name not in character.ability_uses:
+                    if ability_name == "Second Wind" and ability_name not in character.get('ability_uses', {}):
                         print(f"DEBUG: Initializing Second Wind for existing character")
-                        character.ability_uses["Second Wind"] = 1
-                        character.ability_uses_max["Second Wind"] = 1
-                    elif ability_name == "Action Surge" and ability_name not in character.ability_uses:
+                        character['ability_uses']["Second Wind"] = 1
+                        character['ability_uses_max']["Second Wind"] = 1
+                    elif ability_name == "Action Surge" and ability_name not in character.get('ability_uses', {}):
                         print(f"DEBUG: Initializing Action Surge for existing character")
-                        character.ability_uses["Action Surge"] = 1  
-                        character.ability_uses_max["Action Surge"] = 1
+                        character['ability_uses']["Action Surge"] = 1  
+                        character['ability_uses_max']["Action Surge"] = 1
                     
-                    current_uses = character.ability_uses.get(ability_name, 0)
+                    current_uses = character.get('ability_uses', {}).get(ability_name, 0)
                     print(f"DEBUG: Current uses of {ability_name}: {current_uses}")
                     
                     if current_uses > 0:
-                        character.ability_uses[ability_name] = current_uses - 1
-                        print(f"DEBUG: Decremented {ability_name} to {character.ability_uses[ability_name]}")
+                        character['ability_uses'][ability_name] = current_uses - 1
+                        print(f"DEBUG: Decremented {ability_name} to {character['ability_uses'][ability_name]}")
                         # Save character (save the whole game state)
                         try:
                             game_engine.save_game_sync()
@@ -2401,9 +2401,9 @@ class ActionPanel(QWidget):
                     game_engine = parent.game_engine
                     if hasattr(game_engine, 'current_character') and game_engine.current_character:
                         character = game_engine.current_character
-                        if hasattr(character, 'feat_resources'):
+                        if 'feat_resources' in character:
                             resource_key = f"{feat_name}_{resource_type}"
-                            resource_data = character.feat_resources.get(resource_key, {})
+                            resource_data = character['feat_resources'].get(resource_key, {})
                             return resource_data.get('current', 0)
                     break
                 parent = parent.parent()
@@ -2422,16 +2422,16 @@ class ActionPanel(QWidget):
                     game_engine = parent.game_engine
                     if hasattr(game_engine, 'current_character') and game_engine.current_character:
                         character = game_engine.current_character
-                        if not hasattr(character, 'feat_resources'):
+                        if 'feat_resources' not in character:
                             print(f"DEBUG: Character missing feat_resources field, initializing...")
-                            character.feat_resources = {}
+                            character['feat_resources'] = {}
                         
                         resource_key = f"{feat_name}_{resource_type}"
-                        if resource_key in character.feat_resources:
-                            current_uses = character.feat_resources[resource_key].get('current', 0)
+                        if resource_key in character['feat_resources']:
+                            current_uses = character['feat_resources'][resource_key].get('current', 0)
                             if current_uses > 0:
-                                character.feat_resources[resource_key]['current'] = current_uses - 1
-                                print(f"DEBUG: Decremented {resource_key} to {character.feat_resources[resource_key]['current']}")
+                                character['feat_resources'][resource_key]['current'] = current_uses - 1
+                                print(f"DEBUG: Decremented {resource_key} to {character['feat_resources'][resource_key]['current']}")
                                 # Save character
                                 try:
                                     game_engine.save_game_sync()
@@ -3756,7 +3756,7 @@ class ActionPanel(QWidget):
                         if game_engine.current_character:
                             # Reset Second Wind uses (normally 1 per short rest)
                             game_engine.update_character_resources_sync(
-                                game_engine.current_character.id,
+                                game_engine.current_character['id'],
                                 {"Second Wind": {"uses_remaining": 1, "max_uses": 1}}
                             )
                         break
@@ -3770,7 +3770,7 @@ class ActionPanel(QWidget):
                         game_engine = parent.game_engine
                         if game_engine.current_character:
                             game_engine.update_character_resources_sync(
-                                game_engine.current_character.id,
+                                game_engine.current_character['id'],
                                 {"Action Surge": {"uses_remaining": 1, "max_uses": 1}}
                             )
                         break

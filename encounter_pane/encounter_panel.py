@@ -2650,7 +2650,7 @@ class EncounterPanel(QWidget):
                 if hasattr(parent, 'game_engine') and hasattr(parent.game_engine, 'current_character'):
                     character = parent.game_engine.current_character
                     if character:
-                        return character.level
+                        return character['level']
                     break
                 parent = parent.parent()
             
@@ -2668,7 +2668,7 @@ class EncounterPanel(QWidget):
                 if hasattr(parent, 'game_engine') and hasattr(parent.game_engine, 'current_character'):
                     character = parent.game_engine.current_character
                     if character:
-                        return character.id
+                        return character['id']
                     break
                 parent = parent.parent()
             
@@ -3023,18 +3023,18 @@ class EncounterPanel(QWidget):
                     
                     if character:
                         # Add XP to character
-                        old_xp = character.experience_points
+                        old_xp = character['experience_points']
                         new_xp = old_xp + xp_value
                         
                         # Save XP to database immediately
-                        success = game_engine.update_character_xp_sync(character.id, new_xp)
+                        success = game_engine.update_character_xp_sync(character['id'], new_xp)
                         if success:
                             print(f"Character XP saved to database: {old_xp} -> {new_xp} (+{xp_value})")
-                            character.experience_points = new_xp
+                            character['experience_points'] = new_xp
                         else:
                             print(f"Failed to save XP to database, keeping in memory only")
                             # Still update in memory as fallback
-                            character.experience_points = new_xp
+                            character['experience_points'] = new_xp
                         
                         # Check if town tab should be shown (character can now level up)
                         self.refresh_character_data()
@@ -3330,13 +3330,13 @@ class EncounterPanel(QWidget):
                         # Add gold to character inventory
                         try:
                             # Update gold in inventory database
-                            success = game_engine.add_gold_to_character_sync(character.id, gold_amount)
+                            success = game_engine.add_gold_to_character_sync(character['id'], gold_amount)
                             if success:
                                 self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
-                                print(f"[TREASURE] Successfully added {gold_amount} GP to character {character.id}")
+                                print(f"[TREASURE] Successfully added {gold_amount} GP to character {character['id']}")
                                 
                                 # Refresh the equipment panel to show updated gold
-                                self._refresh_equipment_panel(game_engine, character.id)
+                                self._refresh_equipment_panel(game_engine, character['id'])
                             else:
                                 self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
                                 print(f"[TREASURE] Failed to add {gold_amount} GP to character inventory")
@@ -3374,19 +3374,19 @@ class EncounterPanel(QWidget):
                 return
             
             # Update rest timestamp
-            character.last_short_rest = datetime.now().isoformat()
+            character['last_short_rest'] = datetime.now().isoformat()
             
             # End rage if active (rage ends on any rest)
             self._end_rage_on_rest()
             
             # Recover short rest abilities (instant)
             recovered_abilities = []
-            if "Second Wind" in character.ability_uses:
-                character.ability_uses["Second Wind"] = character.ability_uses_max.get("Second Wind", 1)
+            if "Second Wind" in character.get('ability_uses', {}):
+                character['ability_uses']["Second Wind"] = character.get('ability_uses_max', {}).get("Second Wind", 1)
                 recovered_abilities.append("Second Wind")
             
-            if "Action Surge" in character.ability_uses:
-                character.ability_uses["Action Surge"] = character.ability_uses_max.get("Action Surge", 1) 
+            if "Action Surge" in character.get('ability_uses', {}):
+                character['ability_uses']["Action Surge"] = character.get('ability_uses_max', {}).get("Action Surge", 1) 
                 recovered_abilities.append("Action Surge")
             
             # Log recovery
@@ -3441,8 +3441,8 @@ class EncounterPanel(QWidget):
                     parent = parent.parent()
             else:
                 # Fallback to character object values
-                current_hp = character.hit_points_current
-                max_hp = character.hit_points_max
+                current_hp = character['hit_points_current']
+                max_hp = character['hit_points_max']
         except Exception as e:
             print(f"ERROR: Could not get HP: {e}")
             current_hp = character.hit_points_current
@@ -3465,7 +3465,7 @@ class EncounterPanel(QWidget):
             layout.addWidget(info_label)
         
         # Hit dice info
-        hit_dice_available = character.hit_dice_current
+        hit_dice_available = character['hit_dice_current']
         if hit_dice_available <= 0:
             no_dice_label = QLabel("[FAIL] No hit dice available!")
             no_dice_label.setStyleSheet("color: #ff6b6b; font-weight: bold;")
@@ -3502,7 +3502,7 @@ class EncounterPanel(QWidget):
             hit_die = hit_die_map.get(class_name, hit_die_map.get(class_id, hit_die_map.get(class_id.lower(), 8)))
             
             self._log_monster_action(f"[TARGET] DEBUG: class_id='{class_id}', class_name='{class_name}', hit_die=d{hit_die}")
-            con_mod = character.constitution_modifier
+            con_mod = character['constitution_modifier']
             
             dice_group = QGroupBox(f"Available Hit Dice: {hit_dice_available} × d{hit_die}")
             dice_layout = QVBoxLayout(dice_group)
@@ -3541,7 +3541,7 @@ class EncounterPanel(QWidget):
         if num_dice <= 0:
             return
             
-        if character.hit_dice_current < num_dice:
+        if character['hit_dice_current'] < num_dice:
             self._log_monster_action("[FAIL] Not enough hit dice available!")
             return
         
@@ -3554,24 +3554,24 @@ class EncounterPanel(QWidget):
         for i in range(num_dice):
             # Roll the hit die
             roll = dice_roller.roll(f"1d{hit_die}")
-            healing = roll + character.constitution_modifier
+            healing = roll + character['constitution_modifier']
             healing = max(1, healing)  # Minimum 1 HP per die
             total_healing += healing
-            rolls.append(f"d{hit_die}({roll})+{character.constitution_modifier}={healing}")
+            rolls.append(f"d{hit_die}({roll})+{character['constitution_modifier']}={healing}")
         
         # Apply healing (cannot exceed max HP) - use combat system fields
-        old_hp = getattr(character, 'current_hit_points', character.hit_points_current)
-        max_hp = getattr(character, 'max_hit_points', character.hit_points_max)
+        old_hp = character.get('current_hit_points', character['hit_points_current'])
+        max_hp = character.get('max_hit_points', character['hit_points_max'])
         new_hp = min(max_hp, old_hp + total_healing)
         actual_healing = new_hp - old_hp
         
         # Update both HP field sets to keep them in sync
-        if hasattr(character, 'current_hit_points'):
-            character.current_hit_points = new_hp
-        character.hit_points_current = new_hp
+        if 'current_hit_points' in character:
+            character['current_hit_points'] = new_hp
+        character['hit_points_current'] = new_hp
         
         # Spend the hit dice
-        character.hit_dice_current -= num_dice
+        character['hit_dice_current'] -= num_dice
         
         # Log the results
         roll_details = " + ".join(rolls)
@@ -3631,7 +3631,7 @@ class EncounterPanel(QWidget):
             reply = QMessageBox.question(
                 self, 
                 "Long Rest", 
-                f"Take a Long Rest?\n\n{character.name} will:\n• Restore all hit points\n• Restore all spell slots\n• Restore all long rest abilities\n• Restore half of spent hit dice\n\nThis represents 8 hours of rest in a safe location.",
+                f"Take a Long Rest?\n\n{character['name']} will:\n• Restore all hit points\n• Restore all spell slots\n• Restore all long rest abilities\n• Restore half of spent hit dice\n\nThis represents 8 hours of rest in a safe location.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.Yes
             )
@@ -3644,30 +3644,30 @@ class EncounterPanel(QWidget):
             # === D&D 5e LONG REST BENEFITS ===
             
             # 1. Restore all hit points to maximum
-            old_hp = character.hit_points_current
-            max_hp = character.hit_points_max
-            character.hit_points_current = max_hp
-            character.current_hit_points = max_hp  # Alternative field
+            old_hp = character['hit_points_current']
+            max_hp = character['hit_points_max']
+            character['hit_points_current'] = max_hp
+            character['current_hit_points'] = max_hp  # Alternative field
             self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
             
             # 2. Restore all spent hit dice (up to half maximum, minimum 1)
-            character_level = character.level
+            character_level = character['level']
             max_hit_dice = character_level
-            current_hit_dice = character.hit_dice_current
+            current_hit_dice = character['hit_dice_current']
             hit_dice_to_restore = max(1, max_hit_dice // 2)
             new_hit_dice = min(max_hit_dice, current_hit_dice + hit_dice_to_restore)
             
             if new_hit_dice > current_hit_dice:
-                character.hit_dice_current = new_hit_dice
+                character['hit_dice_current'] = new_hit_dice
                 self._log_monster_action(f"[DICE] Hit Dice restored: {current_hit_dice} -> {new_hit_dice} (gained {new_hit_dice - current_hit_dice})")
             
             # 3. Restore all spell slots
-            if hasattr(character, 'spell_slots_current') and character.spell_slots_current:
+            if 'spell_slots_current' in character and character['spell_slots_current']:
                 spell_slots_restored = []
-                for level, current_slots in character.spell_slots_current.items():
-                    max_slots = character.spell_slots_max.get(level, 0)
+                for level, current_slots in character['spell_slots_current'].items():
+                    max_slots = character.get('spell_slots_max', {}).get(level, 0)
                     if current_slots < max_slots:
-                        character.spell_slots_current[level] = max_slots
+                        character['spell_slots_current'][level] = max_slots
                         spell_slots_restored.append(f"Level {level}: {current_slots} -> {max_slots}")
                 
                 if spell_slots_restored:
@@ -3678,10 +3678,10 @@ class EncounterPanel(QWidget):
             abilities_restored = []
             
             for ability in long_rest_abilities:
-                if ability in character.ability_uses:
-                    max_uses = character.ability_uses_max.get(ability, 1)
-                    if character.ability_uses[ability] < max_uses:
-                        character.ability_uses[ability] = max_uses
+                if ability in character.get('ability_uses', {}):
+                    max_uses = character.get('ability_uses_max', {}).get(ability, 1)
+                    if character['ability_uses'][ability] < max_uses:
+                        character['ability_uses'][ability] = max_uses
                         abilities_restored.append(ability)
             
             if abilities_restored:
@@ -3690,12 +3690,12 @@ class EncounterPanel(QWidget):
             # 5. Reset action economy for new day (if in combat)
             if hasattr(self, 'current_combat_session') and self.current_combat_session:
                 # Reset action surge usage
-                if hasattr(character, 'action_surge_used'):
-                    character.action_surge_used = False
+                if 'action_surge_used' in character:
+                    character['action_surge_used'] = False
             
             # 6. Update rest timestamp
-            character.last_long_rest = datetime.now().isoformat()
-            character.updated_at = datetime.now().isoformat()
+            character['last_long_rest'] = datetime.now().isoformat()
+            character['updated_at'] = datetime.now().isoformat()
             
             # Save character to database (following DB-first pattern)
             game_engine.update_character_hp_sync(max_hp, max_hp)  # This also saves the character
@@ -3712,7 +3712,7 @@ class EncounterPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_info(f"[MOON] {character.name} completed a long rest - all resources restored")
+                        parent.log_panel.log_info(f"[MOON] {character['name']} completed a long rest - all resources restored")
                         break
                     parent = parent.parent()
             except:
