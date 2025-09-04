@@ -877,10 +877,10 @@ class MainWindow(QMainWindow):
         self.action_panel.load_character_feats(character_feats)
         
         # Load weapon masteries into action panel  
-        weapon_masteries = getattr(character, 'weapon_masteries', []) or []
+        weapon_masteries = character.get('weapon_masteries', []) or []
         self.action_panel.load_weapon_masteries(weapon_masteries)
 
-        self.log_panel.log_info(f"Welcome back, {character.name}!")
+        self.log_panel.log_info(f"Welcome back, {character['name']}!")
     
     def _show_load_character_dialog(self):
         """Show dialog to load a saved character."""
