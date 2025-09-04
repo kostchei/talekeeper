@@ -1145,16 +1145,8 @@ class EncounterPanel(QWidget):
         if self.town_tab is None:
             character_data = self._get_current_character_data()
             if character_data:
-                # Convert DTO to dictionary for town encounter
-                if hasattr(character_data, 'level'):
-                    char_dict = {
-                        'id': character_data.id,
-                        'name': character_data.name,
-                        'level': character_data.level,
-                        'experience_points': character_data.experience_points
-                    }
-                else:
-                    char_dict = character_data
+                # Character data is already a dictionary
+                char_dict = character_data
                 self.town_tab = TownEncounterPanel(char_dict, self)
                 self.town_tab_index = self.content_tabs.addTab(self.town_tab, "🏘️ Town")
         
@@ -1181,13 +1173,9 @@ class EncounterPanel(QWidget):
         if not character_data:
             return False
         
-        # Handle both DTO objects and dictionaries
-        if hasattr(character_data, 'level'):
-            current_level = character_data.level
-            current_xp = character_data.experience_points
-        else:
-            current_level = character_data.get('level', 1)
-            current_xp = character_data.get('experience_points', 0)
+        # Character data is always a dictionary now
+        current_level = character_data.get('level', 1)
+        current_xp = character_data.get('experience_points', 0)
         
         # XP thresholds for each level
         xp_thresholds = [
