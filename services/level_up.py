@@ -19,24 +19,28 @@ class LevelUpService:
         """Get current class levels for a character."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        result = {}
         
-        cursor.execute("""
-            SELECT class_name, level 
-            FROM character_class_levels 
-            WHERE character_id = ?
-        """, (character_id,))
-        
-        result = {class_name: level for class_name, level in cursor.fetchall()}
-        conn.close()
-        
-        # If no multi-class data exists, get from main character table
-        if not result:
-            cursor = conn.cursor()
-            cursor.execute("SELECT class_id, level FROM characters WHERE id = ?", (character_id,))
-            row = cursor.fetchone()
+        try:
+            cursor.execute("""
+                SELECT class_name, level 
+                FROM character_class_levels 
+                WHERE character_id = ?
+            """, (character_id,))
+            
+            result = {class_name: level for class_name, level in cursor.fetchall()}
+            
+            # If no multi-class data exists, get from main character table
+            if not result:
+                cursor.execute("SELECT class_id, level FROM characters WHERE id = ?", (character_id,))
+                row = cursor.fetchone()
+                if row:
+                    result[row[0]] = row[1]
+        except Exception as e:
+            print(f"Error getting character class levels: {e}")
+            result = {}
+        finally:
             conn.close()
-            if row:
-                result[row[0]] = row[1]
         
         return result
     
@@ -51,10 +55,10 @@ class LevelUpService:
             current_total_level = cursor.fetchone()[0]
             new_total_level = current_total_level + 1
             
-            # Check if character already has levels in this class
+            # Check if character already has levels in this class (case-insensitive)
             cursor.execute("""
                 SELECT level FROM character_class_levels 
-                WHERE character_id = ? AND class_name = ?
+                WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
             """, (character_id, class_choice))
             
             existing_class_level = cursor.fetchone()
@@ -65,7 +69,7 @@ class LevelUpService:
                 cursor.execute("""
                     UPDATE character_class_levels 
                     SET level = ? 
-                    WHERE character_id = ? AND class_name = ?
+                    WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
                 """, (new_class_level, character_id, class_choice))
             else:
                 # Add new class at level 1
@@ -75,17 +79,39 @@ class LevelUpService:
                 """, (character_id, class_choice, self._get_hit_die_for_class(class_choice)))
                 new_class_level = 1
             
-            # Update main character table
+            # Calculate hit point increase (use average for now: (die_size / 2) + 1 + CON modifier)
+            hit_die = self._get_hit_die_for_class(class_choice)
+            
+            # Get character's CON modifier
+            cursor.execute("SELECT constitution FROM characters WHERE id = ?", (character_id,))
+            con_score = cursor.fetchone()[0]
+            con_modifier = (con_score - 10) // 2
+            
+            # Calculate HP increase (average + CON mod)
+            hp_increase = (hit_die // 2 + 1) + con_modifier
+            hp_increase = max(1, hp_increase)  # Minimum 1 HP per level
+            
+            print(f"[LevelUp] HP increase: {hp_increase} (d{hit_die} average + {con_modifier} CON)")
+            
+            # Update main character table with level and HP
             cursor.execute("""
                 UPDATE characters 
-                SET level = ?, updated_at = datetime('now')
+                SET level = ?, 
+                    hit_points_max = hit_points_max + ?,
+                    hit_points_current = hit_points_current + ?,
+                    current_hit_points = current_hit_points + ?,
+                    max_hit_points = max_hit_points + ?,
+                    updated_at = datetime('now')
                 WHERE id = ?
-            """, (new_total_level, character_id))
+            """, (new_total_level, hp_increase, hp_increase, hp_increase, hp_increase, character_id))
             
             # Grant new class features (old system)
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
             
-            # Update features using new feature system
+            conn.commit()
+            conn.close()
+            
+            # Update features using new feature system (after closing main connection)
             try:
                 from core.feature_integration import FeatureSystemIntegration
                 feature_system = FeatureSystemIntegration(self.db_path)
@@ -96,15 +122,13 @@ class LevelUpService:
             except Exception as e:
                 print(f"[LevelUp] Warning: Failed to update new feature system: {e}")
             
-            conn.commit()
             return True
             
         except Exception as e:
             conn.rollback()
+            conn.close()
             print(f"Error leveling up character: {e}")
             return False
-        finally:
-            conn.close()
     
     def _get_hit_die_for_class(self, class_name: str) -> int:
         """Get hit die size for class."""
@@ -121,44 +145,73 @@ class LevelUpService:
     
     def _grant_class_features(self, cursor, character_id: str, class_name: str, class_level: int):
         """Grant class features for the new level."""
-        # Get features for this class and level
-        cursor.execute("""
-            SELECT feature_name, feature_type, usage_type, combat_effect, 
-                   conditions_granted, resource_pool, spell_slots
-            FROM class_features_detailed 
-            WHERE class_name = ? AND level_required = ?
-        """, (class_name, class_level))
+        print(f"[LevelUp] Granting level {class_level} features for {class_name}")
         
-        features = cursor.fetchall()
-        
-        for feature in features:
-            feature_name, feature_type, usage_type, combat_effect, conditions_granted, resource_pool, spell_slots = feature
-            
-            # Add to character_features table
+        # Add basic feature entry to character_features table
+        try:
             cursor.execute("""
                 INSERT OR REPLACE INTO character_features 
                 (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (character_id, feature_name, feature_type, usage_type, class_level, combat_effect, conditions_granted))
-            
-            # Handle special features
-            if resource_pool:
-                # Features like Lay on Hands
+            """, (character_id, f"{class_name} Level {class_level}", "passive", "permanent", class_level, f"Advanced to {class_name} level {class_level}", ""))
+        except Exception as e:
+            print(f"[LevelUp] Could not add basic feature entry: {e}")
+        
+        # Grant specific class features based on level
+        if class_name.lower() == 'fighter':
+            self._grant_fighter_features(cursor, character_id, class_level)
+        elif class_name.lower() == 'rogue':
+            self._grant_rogue_features(cursor, character_id, class_level)
+        # Add other classes as needed
+    
+    def _grant_fighter_features(self, cursor, character_id: str, level: int):
+        """Grant Fighter-specific features."""
+        try:
+            if level == 2:
+                # Grant Action Surge
                 cursor.execute("""
-                    INSERT OR REPLACE INTO character_resources 
-                    (character_id, resource_type, resource_name, current_value, max_value)
-                    VALUES (?, 'class_feature', ?, ?, ?)
-                """, (character_id, feature_name.lower().replace(' ', '_'), resource_pool, resource_pool))
-            
-            if spell_slots:
-                # Add spell slots
-                slots = json.loads(spell_slots)
-                for slot_level, slot_count in slots.items():
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO character_resources 
-                        (character_id, resource_type, resource_name, current_value, max_value)
-                        VALUES (?, 'spell_slot', ?, ?, ?)
-                    """, (character_id, f'level_{slot_level}', slot_count, slot_count))
+                    INSERT OR REPLACE INTO character_features 
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Action Surge", "action", "short_rest", 2, "Take one additional action on your turn", "action_surge"))
+                
+                # Update fighter-specific table if it exists
+                cursor.execute("""
+                    UPDATE fighter_features 
+                    SET action_surge_uses_max = 1, action_surge_uses_current = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                
+                print(f"[LevelUp] Granted Action Surge to Fighter")
+                
+            elif level == 3:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features 
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Martial Archetype", "passive", "permanent", 3, "Choose your Fighter subclass", "subclass_choice"))
+                
+            elif level == 5:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features 
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Extra Attack", "passive", "permanent", 5, "Attack twice when you take the Attack action", "extra_attack"))
+                
+                # Update fighter table
+                cursor.execute("""
+                    UPDATE fighter_features 
+                    SET extra_attacks = 2
+                    WHERE character_id = ?
+                """, (character_id,))
+                
+        except Exception as e:
+            print(f"[LevelUp] Error granting Fighter features: {e}")
+    
+    def _grant_rogue_features(self, cursor, character_id: str, level: int):
+        """Grant Rogue-specific features."""
+        # Add rogue features as needed
+        pass
     
     def get_next_level_features(self, character_id: str, class_choice: str) -> List[Dict]:
         """Get features that would be gained at next level in chosen class."""
@@ -166,24 +219,43 @@ class LevelUpService:
         current_class_level = class_levels.get(class_choice, 0)
         next_level = current_class_level + 1
         
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        # Return generic level benefits for now
+        # TODO: Integrate with proper feature system when available
         
-        cursor.execute("""
-            SELECT feature_name, combat_effect 
-            FROM class_features_detailed 
-            WHERE class_name = ? AND level_required = ?
-        """, (class_choice, next_level))
+        benefits = []
         
-        features = []
-        for row in cursor.fetchall():
-            features.append({
-                'name': row[0],
-                'description': row[1]
+        # Universal benefits
+        benefits.append({
+            'name': 'Hit Points',
+            'description': f'Gain hit points (1d{self._get_hit_die_for_class(class_choice)} + CON modifier)'
+        })
+        
+        benefits.append({
+            'name': 'Proficiency Bonus',
+            'description': f'Your proficiency bonus may increase at level {next_level}'
+        })
+        
+        # Class-specific benefits (basic implementation)
+        if class_choice.lower() == 'fighter':
+            if next_level == 2:
+                benefits.append({'name': 'Action Surge', 'description': 'Take one additional action on your turn'})
+            elif next_level == 3:
+                benefits.append({'name': 'Martial Archetype', 'description': 'Choose your Fighter subclass'})
+            elif next_level == 4:
+                benefits.append({'name': 'Ability Score Improvement', 'description': 'Increase ability scores or take a feat'})
+            elif next_level == 5:
+                benefits.append({'name': 'Extra Attack', 'description': 'Attack twice when you take the Attack action'})
+            elif next_level == 6:
+                benefits.append({'name': 'Ability Score Improvement', 'description': 'Increase ability scores or take a feat'})
+        
+        # Add generic benefit if no specific ones
+        if len(benefits) == 2:  # Only the universal ones
+            benefits.append({
+                'name': f'{class_choice.title()} Features',
+                'description': f'Class-specific improvements and new abilities'
             })
         
-        conn.close()
-        return features
+        return benefits
 
 
 level_up_service = LevelUpService()

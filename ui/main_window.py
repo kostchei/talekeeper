@@ -798,6 +798,9 @@ class MainWindow(QMainWindow):
         self.character_sheet.load_character_data(character_data)
         self.menu.update_game_info(character.name, character.level)
         self.menu.set_character_loaded(True)
+        
+        # Check if town tab should be shown (character may be able to level up)
+        self.encounter_pane.refresh_character_data()
 
         equipped_items = {}
         if character.equipment_main_hand:

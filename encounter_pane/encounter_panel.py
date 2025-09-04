@@ -28,6 +28,7 @@ import os
 import random
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
+from .town_encounter import TownEncounterPanel
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Optional, Dict
@@ -576,6 +577,10 @@ class EncounterPanel(QWidget):
         creation_layout.addWidget(self.creation_nav_frame)
         
         self._setup_character_creation_steps()
+        
+        # --- TOWN ENCOUNTER TAB ---
+        self.town_tab = None  # Will be created when needed
+        self.town_tab_index = -1  # Track town tab index
         
         # Add components to main layout
         self.main_layout.addWidget(self.content_tabs, 1)
@@ -1129,6 +1134,100 @@ class EncounterPanel(QWidget):
         self.set_exploration_mode()
         self.creation_step = 0
         self.character_creation_data = {}
+    
+    def show_town_encounter(self):
+        """Show the town encounter tab if level up is available"""
+        # Check if character can level up
+        if not self._can_character_level_up():
+            return
+        
+        # Create town tab if it doesn't exist
+        if self.town_tab is None:
+            character_data = self._get_current_character_data()
+            if character_data:
+                # Convert DTO to dictionary for town encounter
+                if hasattr(character_data, 'level'):
+                    char_dict = {
+                        'id': character_data.id,
+                        'name': character_data.name,
+                        'level': character_data.level,
+                        'experience_points': character_data.experience_points
+                    }
+                else:
+                    char_dict = character_data
+                self.town_tab = TownEncounterPanel(char_dict, self)
+                self.town_tab_index = self.content_tabs.addTab(self.town_tab, "🏘️ Town")
+        
+        # Show and switch to town tab
+        if self.town_tab_index >= 0:
+            self.content_tabs.setTabVisible(self.town_tab_index, True)
+            self.content_tabs.setCurrentIndex(self.town_tab_index)
+    
+    def hide_town_encounter(self):
+        """Hide the town encounter tab"""
+        if self.town_tab_index >= 0:
+            self.content_tabs.setTabVisible(self.town_tab_index, False)
+    
+    def remove_town_encounter(self):
+        """Remove the town encounter tab completely"""
+        if self.town_tab_index >= 0:
+            self.content_tabs.removeTab(self.town_tab_index)
+            self.town_tab = None
+            self.town_tab_index = -1
+    
+    def _can_character_level_up(self) -> bool:
+        """Check if current character can level up"""
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return False
+        
+        # Handle both DTO objects and dictionaries
+        if hasattr(character_data, 'level'):
+            current_level = character_data.level
+            current_xp = character_data.experience_points
+        else:
+            current_level = character_data.get('level', 1)
+            current_xp = character_data.get('experience_points', 0)
+        
+        # XP thresholds for each level
+        xp_thresholds = [
+            0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000,
+            100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000
+        ]
+        
+        if current_level >= 20:
+            return False  # Max level reached
+        
+        next_level_xp = xp_thresholds[current_level] if current_level < len(xp_thresholds) else xp_thresholds[-1]
+        return current_xp >= next_level_xp
+    
+    def _get_current_character_data(self) -> Optional[Dict[str, Any]]:
+        """Get current character data from game engine"""
+        try:
+            # Get game engine from parent
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine:
+                    game_engine = parent.game_engine
+                    if hasattr(game_engine, 'current_character') and game_engine.current_character:
+                        return game_engine.current_character
+                    break
+                parent = parent.parent()
+            return None
+        except Exception as e:
+            print(f"Error getting current character data: {e}")
+            return None
+    
+    def refresh_character_data(self):
+        """Refresh character data and check if town tab should be shown/hidden"""
+        can_level = self._can_character_level_up()
+        
+        if can_level and self.town_tab is None:
+            # Character can now level up - show town tab
+            self.show_town_encounter()
+        elif not can_level and self.town_tab is not None:
+            # Character can no longer level up - remove town tab
+            self.remove_town_encounter()
     
     def _setup_character_creation_steps(self):
         """Setup the character creation step widgets."""
@@ -2931,10 +3030,14 @@ class EncounterPanel(QWidget):
                         success = game_engine.update_character_xp_sync(character.id, new_xp)
                         if success:
                             print(f"Character XP saved to database: {old_xp} -> {new_xp} (+{xp_value})")
+                            character.experience_points = new_xp
                         else:
                             print(f"Failed to save XP to database, keeping in memory only")
                             # Still update in memory as fallback
                             character.experience_points = new_xp
+                        
+                        # Check if town tab should be shown (character can now level up)
+                        self.refresh_character_data()
                         
                         return
                     break
