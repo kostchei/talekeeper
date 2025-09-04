@@ -1085,6 +1085,21 @@ class ActionPanel(QWidget):
             # Apply weapon mastery effects on hit
             mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=total_damage, context=context)
             
+            # Apply mastery status effects to target
+            if mastery_effects:
+                # Apply Sap effect - target has disadvantage on next attack
+                if mastery_effects.get('sap'):
+                    target_monster.has_sap_disadvantage = True
+                    print(f"[MASTERY] Applied Sap to {target_monster.monster_name} - disadvantage on next attack")
+                
+                # Apply Vex effect - player has advantage on next attack against this target
+                if mastery_effects.get('vex'):
+                    self.vex_target_id = target_id
+                    print(f"[MASTERY] Applied Vex - advantage on next attack vs {target_monster.monster_name}")
+                
+                # Log any mastery effects
+                self._log_weapon_mastery_effects(mastery_effects)
+            
             # Log to combat panel
             parent = self.parent()
             while parent:
@@ -2578,8 +2593,8 @@ class ActionPanel(QWidget):
         self._update_card_availability()
     
     
-    def _log_weapon_mastery_effects(self, mastery_effects: Dict[str, Any]):
-        """Log weapon mastery effects to combat log."""
+    def _log_weapon_mastery_effects_old(self, mastery_effects: Dict[str, Any]):
+        """OLD VERSION - Log weapon mastery effects to combat log."""
         if not mastery_effects:
             return
         
@@ -3226,17 +3241,25 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    for effect_name, effect_data in mastery_effects.items():
-                        description = effect_data.get('description', 'Unknown mastery effect')
-                        
-                        if effect_name == 'graze_damage':
-                            parent.log_panel.log_combat(f"[SWORD] {description}")
-                        elif effect_name in ['topple', 'sap', 'push', 'slow', 'vex']:
-                            parent.log_panel.log_combat(f"[SWORD] {description}")
-                        elif effect_name in ['cleave', 'nick']:
-                            parent.log_panel.log_combat(f"[SWORD] {description}")
-                        else:
-                            parent.log_panel.log_combat(f"[SWORD] {description}")
+                    # Log specific mastery effects with clear descriptions
+                    if mastery_effects.get('sap'):
+                        parent.log_panel.log_combat("⚔️ [SAP] Target has disadvantage on its next attack roll")
+                    if mastery_effects.get('vex'):
+                        parent.log_panel.log_combat("⚔️ [VEX] You have advantage on your next attack against this target")
+                    if mastery_effects.get('slow'):
+                        parent.log_panel.log_combat("⚔️ [SLOW] Target's speed reduced by 10 feet until your next turn")
+                    if mastery_effects.get('push'):
+                        parent.log_panel.log_combat("⚔️ [PUSH] Target pushed 10 feet away")
+                    if mastery_effects.get('topple_dc'):
+                        dc = mastery_effects['topple_dc']
+                        parent.log_panel.log_combat(f"⚔️ [TOPPLE] Target must make CON save DC {dc} or fall prone")
+                    if mastery_effects.get('graze_damage'):
+                        damage = mastery_effects['graze_damage']
+                        parent.log_panel.log_combat(f"⚔️ [GRAZE] Deals {damage} damage even on a miss")
+                    if mastery_effects.get('cleave'):
+                        parent.log_panel.log_combat("⚔️ [CLEAVE] Can make an additional attack against another target within 5 feet")
+                    if mastery_effects.get('nick'):
+                        parent.log_panel.log_combat("⚔️ [NICK] Can make an additional light weapon attack")
                     break
                 parent = parent.parent()
         except Exception as e:
