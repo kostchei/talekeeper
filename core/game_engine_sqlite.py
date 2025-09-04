@@ -1823,6 +1823,7 @@ class GameEngineSQLite:
                     character['hit_points_temporary'], character['id']
                 ))
                 
+                conn.commit()
                 success = cursor.rowcount > 0
                 if success:
                     print(f"[SQLite] Saved character {character['name']} (ID: {character['id']})")
