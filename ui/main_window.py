@@ -1149,6 +1149,15 @@ class MainWindow(QMainWindow):
         
         # Calculate max HP: full hit die at level 1 + Con modifier
         max_hp = hit_die + con_modifier
+        
+        # Add species bonuses
+        if race_id == 'dwarf':
+            max_hp += character_data.get('level', 1)  # Dwarven Toughness: +1 per level
+            
+        # Add feat bonuses  
+        if 'Tough' in selected_feats:
+            max_hp += character_data.get('level', 1) * 2  # Tough feat: +2 per level
+        
         current_hp = max_hp  # Start at full health
         
         # Add HP fields to save data
