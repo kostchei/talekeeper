@@ -18,9 +18,11 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QGridLayout, QProgressBar, QCheckBox)
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QParallelAnimationGroup
+from PyQt6.QtGui import QPixmap
 from typing import Optional, Dict, Any
 from datetime import datetime
 import sqlite3
+import os
 
 
 class CharacterPanel(QWidget):
@@ -89,6 +91,21 @@ class CharacterPanel(QWidget):
         
         header_layout = QHBoxLayout(self.header_frame)
         header_layout.setContentsMargins(8, 3, 8, 3)
+        
+        # Character portrait
+        self.portrait_label = QLabel()
+        self.portrait_label.setObjectName("characterPortrait")
+        self.portrait_label.setFixedSize(30, 30)
+        self.portrait_label.setStyleSheet("""
+            QLabel#characterPortrait {
+                border: 1px solid #666;
+                border-radius: 3px;
+                background-color: #2d2d2d;
+            }
+        """)
+        self.portrait_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.portrait_label.setText("📸")  # Default emoji
+        header_layout.addWidget(self.portrait_label)
         
         # Character name as title (will be updated with actual character name)
         self.char_name_title = QLabel("Character Name")
@@ -1248,6 +1265,9 @@ class CharacterPanel(QWidget):
         race = character_data.get('race_name', 'Unknown Race')
         char_class = character_data.get('class_name', 'Unknown Class')
         
+        # Load character portrait
+        self._load_character_portrait(name)
+        
         self.char_name_title.setText(f"{name} - Level {level} {race} {char_class}")
         self.detail_title.setText(f"Character Details - {name}")
         
@@ -1331,6 +1351,40 @@ class CharacterPanel(QWidget):
         self._update_detail_panel()
 
         # Character data loaded successfully
+
+    def _load_character_portrait(self, character_name: str):
+        """Load character portrait from data/images/characters directory."""
+        try:
+            # Get path to character images directory
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            characters_dir = os.path.join(project_root, "data", "images", "characters")
+            
+            # Create safe filename from character name
+            import re
+            safe_name = character_name.lower().replace(' ', '_').replace('-', '_')
+            safe_name = re.sub(r'[^a-z0-9_]', '', safe_name)
+            
+            # Try common image extensions
+            for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                image_path = os.path.join(characters_dir, f"{safe_name}{ext}")
+                if os.path.exists(image_path):
+                    pixmap = QPixmap(image_path)
+                    if not pixmap.isNull():
+                        # Scale to fit the portrait label
+                        scaled_pixmap = pixmap.scaled(30, 30, Qt.AspectRatioMode.KeepAspectRatio, 
+                                                    Qt.TransformationMode.SmoothTransformation)
+                        self.portrait_label.setPixmap(scaled_pixmap)
+                        return
+            
+            # No image found - use default emoji
+            self.portrait_label.clear()
+            self.portrait_label.setText("📸")
+            
+        except Exception as e:
+            print(f"Error loading character portrait: {e}")
+            self.portrait_label.clear()
+            self.portrait_label.setText("📸")
 
     def _load_feats_and_features_from_db(self, character_id: str):
         """Fetch feats and class features for a character from SQLite."""

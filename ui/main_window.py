@@ -935,11 +935,17 @@ class MainWindow(QMainWindow):
             char_list = QListWidget()
             
             # Sort slots by last played (most recent first)
-            occupied_slots.sort(key=lambda s: s.last_played or s.created_at, reverse=True)
+            occupied_slots.sort(key=lambda s: s.get('last_played') or s.get('created_at'), reverse=True)
             
             for slot in occupied_slots:
-                # Create display text
-                last_played = "Never" if not slot['last_played'] else slot['last_played'].strftime("%Y-%m-%d %H:%M")
+                # Create display text  
+                from datetime import datetime
+                if slot.get('last_played'):
+                    last_played = slot['last_played'].strftime("%Y-%m-%d %H:%M")
+                elif slot.get('created_at'):
+                    last_played = slot['created_at'].strftime("%Y-%m-%d %H:%M")
+                else:
+                    last_played = datetime.now().strftime("%Y-%m-%d %H:%M")
                 item_text = f"Slot {slot['slot_number']}: {slot['character_name']} (Level {slot['character_level']})\n"
                 item_text += f"Location: {slot['current_location']} | Last Played: {last_played}"
                 

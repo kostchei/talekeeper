@@ -109,9 +109,8 @@ The game creates configuration files automatically:
 - Single-file Windows executable
 
 ## ToDo
-- Check 2 weapon fighting, dueling,  
-- Check nick, vex, sap,
-- Advantage/Disadvantage
+- Check 2 weapon fighting,  
+- Check nick,
 - level progression ( fighter, barbarian, rogue to 20 )
 - towns for selling stuff
 - items on monsters for use

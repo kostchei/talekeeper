@@ -148,12 +148,21 @@ class GameEngineSQLite:
                 feature_rows = cursor.fetchall()
                 features = {}
                 for row in feature_rows:
+                    # Parse mechanics JSON safely
+                    mechanics = {}
+                    if row['mechanics']:
+                        try:
+                            mechanics = json.loads(row['mechanics'])
+                        except json.JSONDecodeError:
+                            print(f"[Warning] Invalid JSON in mechanics for feature {row['feature_name']}: {row['mechanics']}")
+                            mechanics = {}
+                    
                     features[row['feature_name']] = {
                         'type': row['feature_type'],
                         'usage': row['usage_type'],
                         'level_gained': row['level_gained'],
                         'description': row['description'],
-                        'mechanics': json.loads(row['mechanics']) if row['mechanics'] else {}
+                        'mechanics': mechanics
                     }
                 
                 # Get weapon masteries

@@ -3221,12 +3221,20 @@ class EncounterPanel(QWidget):
         # Calculate individual treasure from each defeated monster
         total_individual_gp = 0
         treasure_details = []
+        all_item_drops = []
         
         for monster_name, monster_cr in self.defeated_monsters:
             individual_gp = self._roll_individual_treasure(monster_cr)
+            item_drops = self._roll_equipment_drops(monster_name, monster_cr)
+            
             if individual_gp > 0:
                 total_individual_gp += individual_gp
                 treasure_details.append(f"{monster_name}: {individual_gp} GP")
+            
+            if item_drops:
+                all_item_drops.extend(item_drops)
+                item_names = [item['name'] for item in item_drops]
+                treasure_details.append(f"{monster_name}: {', '.join(item_names)}")
         
         # Log individual treasure
         if total_individual_gp > 0:
@@ -3244,6 +3252,12 @@ class EncounterPanel(QWidget):
         total_treasure = total_individual_gp
         if total_treasure > 0:
             self._add_gold_to_character(total_treasure)
+        
+        # Add item drops to character's inventory
+        if all_item_drops:
+            self._add_items_to_character(all_item_drops)
+            item_summary = ', '.join([f"{item['name']}" for item in all_item_drops])
+            self._log_monster_action(f"🎒 Items Found: {item_summary}")
     
     def _roll_individual_treasure(self, monster_cr) -> int:
         """Roll individual treasure based on monster CR."""
@@ -3275,6 +3289,164 @@ class EncounterPanel(QWidget):
         else:
             # CR 17+: 2d8 × 1000 GP
             return sum(random.randint(1, 8) for _ in range(2)) * 1000
+    
+    def _roll_equipment_drops(self, monster_name: str, monster_cr) -> list:
+        """Roll for equipment drops based on monster CR and type."""
+        import random
+        import json
+        
+        # Convert CR to numeric value
+        if isinstance(monster_cr, str):
+            try:
+                if '/' in monster_cr:
+                    numerator, denominator = monster_cr.split('/')
+                    cr_numeric = float(numerator) / float(denominator)
+                else:
+                    cr_numeric = float(monster_cr)
+            except (ValueError, TypeError):
+                cr_numeric = 0
+        else:
+            cr_numeric = float(monster_cr) if monster_cr else 0
+        
+        # Base drop chance based on CR
+        drop_chance = min(0.3 + (cr_numeric * 0.05), 0.85)  # 30% + 5% per CR, max 85%
+        
+        if random.random() > drop_chance:
+            return []
+        
+        try:
+            # Load equipment data
+            with open('data/equipment.json', 'r') as f:
+                equipment_data = json.load(f)
+            
+            # Filter equipment based on monster type and CR
+            possible_drops = []
+            
+            # Determine monster category from name (basic categorization)
+            monster_type = self._categorize_monster(monster_name.lower())
+            
+            for item in equipment_data:
+                item_cr = self._get_item_cr_appropriateness(item, monster_type)
+                if item_cr <= cr_numeric + 2 and item.get('rarity', 'common').lower() in ['common', 'uncommon']:
+                    # Weight items by appropriateness
+                    weight = max(1, int(4 - abs(item_cr - cr_numeric)))
+                    for _ in range(weight):
+                        possible_drops.append(item)
+            
+            if not possible_drops:
+                return []
+            
+            # Roll number of items to drop (usually 1, occasionally 2)
+            num_items = 1 if random.random() < 0.8 else 2
+            
+            drops = []
+            for _ in range(min(num_items, len(possible_drops))):
+                if possible_drops:
+                    item = random.choice(possible_drops)
+                    drops.append(item.copy())
+                    # Remove to prevent duplicates
+                    possible_drops = [i for i in possible_drops if i['name'] != item['name']]
+            
+            return drops
+            
+        except Exception as e:
+            print(f"Error rolling equipment drops: {e}")
+            return []
+    
+    def _categorize_monster(self, monster_name: str) -> str:
+        """Categorize monster type for loot table purposes."""
+        name = monster_name.lower()
+        
+        if any(word in name for word in ['goblin', 'orc', 'hobgoblin', 'bandit', 'thug', 'guard', 'soldier']):
+            return 'humanoid_warrior'
+        elif any(word in name for word in ['skeleton', 'zombie', 'ghost', 'wraith', 'vampire']):
+            return 'undead'
+        elif any(word in name for word in ['dragon', 'wyrm', 'drake']):
+            return 'dragon'
+        elif any(word in name for word in ['wolf', 'bear', 'boar', 'deer', 'eagle']):
+            return 'beast'
+        elif any(word in name for word in ['wizard', 'mage', 'cultist', 'priest', 'acolyte']):
+            return 'spellcaster'
+        else:
+            return 'generic'
+    
+    def _get_item_cr_appropriateness(self, item: dict, monster_type: str) -> float:
+        """Get the CR level this item is appropriate for based on monster type."""
+        item_type = item.get('item_type', '').lower()
+        
+        # Base CR by item rarity
+        base_cr = {'common': 0, 'uncommon': 3, 'rare': 8, 'very rare': 13, 'legendary': 17}.get(
+            item.get('rarity', 'common').lower(), 0)
+        
+        # Adjust based on monster type preferences
+        if monster_type == 'humanoid_warrior':
+            if item_type in ['weapon', 'armor']:
+                base_cr -= 1  # Warriors more likely to have combat gear
+        elif monster_type == 'spellcaster':
+            if 'staff' in item.get('name', '').lower() or item_type in ['tool']:
+                base_cr -= 1  # Spellcasters more likely to have magical implements
+        elif monster_type == 'beast':
+            base_cr += 2  # Beasts less likely to have manufactured equipment
+        elif monster_type == 'undead':
+            if item_type in ['weapon', 'armor']:
+                base_cr += 0.5  # Undead might have deteriorated equipment
+        
+        return max(0, base_cr)
+    
+    def _add_items_to_character(self, items: list):
+        """Add dropped items to character inventory."""
+        try:
+            # Get game engine from parent for character update
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    
+                    if character:
+                        character_id = character['id']
+                        
+                        import sqlite3
+                        conn = sqlite3.connect("talekeeper.db")
+                        cursor = conn.cursor()
+                        
+                        for item in items:
+                            # Check if item already exists in inventory
+                            cursor.execute("""
+                                SELECT quantity FROM character_inventory 
+                                WHERE character_id = ? AND item_name = ? AND item_type = ?
+                            """, (character_id, item['name'], item['item_type']))
+                            
+                            existing = cursor.fetchone()
+                            
+                            if existing:
+                                # Update existing quantity
+                                new_quantity = existing[0] + 1
+                                cursor.execute("""
+                                    UPDATE character_inventory 
+                                    SET quantity = ?
+                                    WHERE character_id = ? AND item_name = ? AND item_type = ?
+                                """, (new_quantity, character_id, item['name'], item['item_type']))
+                            else:
+                                # Add new item
+                                cursor.execute("""
+                                    INSERT INTO character_inventory 
+                                    (character_id, item_name, item_type, quantity, is_equipped, equipment_slot) 
+                                    VALUES (?, ?, ?, 1, 0, NULL)
+                                """, (character_id, item['name'], item['item_type']))
+                        
+                        conn.commit()
+                        conn.close()
+                        
+                        # Force refresh inventory display
+                        if hasattr(parent, '_force_reload_character'):
+                            parent._force_reload_character()
+                    
+                    break
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error adding items to character: {e}")
     
     def _check_for_hoard(self, difficulty: str) -> str:
         """Check for hoard treasure based on encounter difficulty."""
