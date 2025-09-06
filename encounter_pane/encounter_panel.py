@@ -70,12 +70,27 @@ class CombatSession:
         )
         
         # Add character to action economy
+        # Check if character is a Fighter level 2+ for Action Surge
+        has_action_surge = False
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
+                    character = parent.game_engine.current_character
+                    if (character.get('class_id', '').lower() == 'fighter' and 
+                        character.get('level', 0) >= 2):
+                        has_action_surge = True
+                    break
+                parent = parent.parent()
+        except Exception:
+            pass  # Fallback to False if character data unavailable
+        
         self.action_economy.add_combatant(
             combatant_id=character_id,
             name="Player",
             combatant_type="character",
             movement_speed=30,
-            has_action_surge=False
+            has_action_surge=has_action_surge
         )
         
         self.is_active = True
@@ -3547,13 +3562,35 @@ class EncounterPanel(QWidget):
             
             # Recover short rest abilities (instant)
             recovered_abilities = []
+            
+            # Universal resource restoration system
+            try:
+                from services.character_resources import CharacterResourceService
+                resource_service = CharacterResourceService('talekeeper.db')
+                
+                # Restore all short rest resources
+                result = resource_service.restore_resources_by_rest_type(character['id'], 'short_rest')
+                if result.get('success', False):
+                    for resource in result.get('restored_resources', []):
+                        recovered_abilities.append(resource['resource_name'])
+                
+                # Refresh the character object with updated resource values
+                character = game_engine.get_character_by_id_sync(character['id'])
+                game_engine.current_character = character
+                        
+            except Exception as e:
+                print(f"Error restoring short rest resources: {e}")
+            
+            # Generic ability restoration (fallback)
             if "Second Wind" in character.get('ability_uses', {}):
                 character['ability_uses']["Second Wind"] = character.get('ability_uses_max', {}).get("Second Wind", 1)
-                recovered_abilities.append("Second Wind")
+                if 'Second Wind' not in recovered_abilities:
+                    recovered_abilities.append("Second Wind")
             
             if "Action Surge" in character.get('ability_uses', {}):
                 character['ability_uses']["Action Surge"] = character.get('ability_uses_max', {}).get("Action Surge", 1) 
-                recovered_abilities.append("Action Surge")
+                if 'Action Surge' not in recovered_abilities:
+                    recovered_abilities.append("Action Surge")
             
             # Log recovery
             if recovered_abilities:
@@ -3844,15 +3881,34 @@ class EncounterPanel(QWidget):
                     self._log_monster_action(f"✨ Spell slots restored: {', '.join(spell_slots_restored)}")
             
             # 4. Restore all long rest abilities
-            long_rest_abilities = ["Action Surge", "Second Wind", "Healing Potion"]  # Common ones
             abilities_restored = []
             
-            for ability in long_rest_abilities:
+            # Universal resource restoration system
+            try:
+                from services.character_resources import CharacterResourceService
+                resource_service = CharacterResourceService('talekeeper.db')
+                
+                # Restore all long rest resources
+                result = resource_service.restore_resources_by_rest_type(character['id'], 'long_rest')
+                if result.get('success', False):
+                    for resource in result.get('restored_resources', []):
+                        abilities_restored.append(resource['resource_name'])
+                
+                # Refresh the character object with updated resource values
+                character = game_engine.get_character_by_id_sync(character['id'])
+                game_engine.current_character = character
+                        
+            except Exception as e:
+                print(f"Error restoring long rest resources: {e}")
+            
+            # Generic ability restoration (fallback for other systems)
+            for ability in ["Healing Potion"]:  # Non-class specific abilities
                 if ability in character.get('ability_uses', {}):
                     max_uses = character.get('ability_uses_max', {}).get(ability, 1)
                     if character['ability_uses'][ability] < max_uses:
                         character['ability_uses'][ability] = max_uses
-                        abilities_restored.append(ability)
+                        if ability not in abilities_restored:
+                            abilities_restored.append(ability)
             
             if abilities_restored:
                 self._log_monster_action(f"[LIGHTNING] Abilities restored: {', '.join(abilities_restored)}")

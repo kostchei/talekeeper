@@ -375,9 +375,9 @@ class ActionPanel(QWidget):
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
         if action_type == ActionType.SECOND_WIND or action_type == 1000:  # Handle both enum and legacy ID
-            # Use the new fighter abilities service
-            from services.fighter_abilities import FighterAbilitiesService
-            fighter_service = FighterAbilitiesService()
+            # Use the unified resource system
+            from services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService('talekeeper.db')
             
             # Get character ID
             character_id = self.character_context.get('id')
@@ -385,8 +385,64 @@ class ActionPanel(QWidget):
                 print("DEBUG: No character ID for Second Wind")
                 return
             
-            # Use Second Wind
-            result = fighter_service.use_second_wind(character_id)
+            # Check if resource is available
+            second_wind_resource = resource_service.get_resource(character_id, 'Second Wind')
+            if not second_wind_resource or second_wind_resource.current_uses <= 0:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("⚔ [FAIL] No Second Wind uses remaining")
+                        break
+                    parent = parent.parent()
+                return
+            
+            # Use Second Wind resource
+            use_result = resource_service.use_resource(character_id, 'Second Wind')
+            if not use_result.get('success', False):
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"⚔ [FAIL] {use_result.get('error', 'Second Wind failed')}")
+                        break
+                    parent = parent.parent()
+                return
+            
+            # Roll healing (1d10 + Fighter level)
+            import random
+            healing_roll = random.randint(1, 10)
+            fighter_level = self.character_context.get('level', 1)
+            total_healing = healing_roll + fighter_level
+            
+            # Apply healing to character
+            current_hp = self.character_context.get('hit_points_current', 0)
+            max_hp = self.character_context.get('hit_points_max', 1)
+            new_hp = min(max_hp, current_hp + total_healing)
+            actual_healing = new_hp - current_hp
+            
+            # Update character HP
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine:
+                    parent.game_engine.update_character_hp_sync(new_hp, max_hp)
+                    self.character_context['hit_points_current'] = new_hp
+                    
+                    # Force character sheet refresh
+                    if hasattr(parent, 'character_panel'):
+                        parent.character_panel.update_display()
+                    elif hasattr(parent, '_force_reload_character'):
+                        parent._force_reload_character()
+                    break
+                parent = parent.parent()
+            
+            result = {
+                'success': True,
+                'healing_roll': healing_roll,
+                'level_bonus': fighter_level,
+                'total_healing': total_healing,
+                'actual_healing': actual_healing,
+                'new_hp': new_hp,
+                'uses_remaining': use_result['current_uses']
+            }
             
             # Log the result
             parent = self.parent()
@@ -413,9 +469,9 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
         
         elif action_type == ActionType.ACTION_SURGE:
-            # Use the fighter abilities service
-            from services.fighter_abilities import FighterAbilitiesService
-            fighter_service = FighterAbilitiesService()
+            # Use the unified resource system
+            from services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService('talekeeper.db')
             
             # Get character ID
             character_id = self.character_context.get('id')
@@ -423,19 +479,61 @@ class ActionPanel(QWidget):
                 print("DEBUG: No character ID for Action Surge")
                 return
             
-            # Use Action Surge
-            result = fighter_service.use_action_surge(character_id)
+            # Check if resource is available
+            action_surge_resource = resource_service.get_resource(character_id, 'Action Surge')
+            if not action_surge_resource or action_surge_resource.current_uses <= 0:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("⚔ [FAIL] No Action Surge uses remaining")
+                        break
+                    parent = parent.parent()
+                return
+            
+            # Use Action Surge resource
+            use_result = resource_service.use_resource(character_id, 'Action Surge')
+            if not use_result.get('success', False):
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"⚔ [FAIL] {use_result.get('error', 'Action Surge failed')}")
+                        break
+                    parent = parent.parent()
+                return
+            
+            # Apply Action Surge effect to action economy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_economy') and parent.action_economy:
+                    # Find the player's state in action economy
+                    for combatant_id, state in parent.action_economy.combatant_states.items():
+                        if combatant_id == character_id:
+                            if hasattr(state, 'use_action_surge'):
+                                if state.use_action_surge():
+                                    parent.log_panel.log_combat("⚡ Action Surge: Additional action available this turn!")
+                                else:
+                                    parent.log_panel.log_combat("[FAIL] Action Surge: Already used this turn")
+                            else:
+                                # Fallback: manually reset action availability
+                                state.action_available = True
+                                parent.log_panel.log_combat("⚡ Action Surge: Action restored for this turn!")
+                            break
+                    break
+                parent = parent.parent()
             
             # Log the result
+            result = {
+                'success': True,
+                'effect': 'Gain one additional action this turn (except Magic action)',
+                'uses_remaining': use_result['current_uses']
+            }
+            
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    if result['success']:
-                        parent.log_panel.log_combat(f"⚡ Action Surge! {result['effect']}")
-                        if result['uses_remaining'] > 0:
-                            parent.log_panel.log_combat(f"Action Surge uses remaining: {result['uses_remaining']}")
-                    else:
-                        parent.log_panel.log_combat(f"[FAIL] {result['error']}")
+                    parent.log_panel.log_combat(f"⚡ Action Surge! {result['effect']}")
+                    if result['uses_remaining'] > 0:
+                        parent.log_panel.log_combat(f"Action Surge uses remaining: {result['uses_remaining']}")
                     break
                 parent = parent.parent()
             
@@ -450,8 +548,16 @@ class ActionPanel(QWidget):
                             combatant_id = character_id
                             state = parent.encounter_panel.combat_session.action_economy.get_combatant_state(combatant_id)
                             if state:
-                                state.actions_available += 1  # Grant one more action
-                                parent.log_panel.log_combat("Additional action granted this turn!")
+                                # Use the proper Action Surge method in action economy
+                                if hasattr(state, 'use_action_surge'):
+                                    if state.use_action_surge():
+                                        parent.log_panel.log_combat("⚡ Action Surge: Additional action available this turn!")
+                                    else:
+                                        parent.log_panel.log_combat("[FAIL] Action Surge: Already used this turn")
+                                else:
+                                    # Fallback: manually reset action availability
+                                    state.action_available = True
+                                    parent.log_panel.log_combat("⚡ Action Surge: Action restored for this turn!")
                         break
                     parent = parent.parent()
         
@@ -524,7 +630,8 @@ class ActionPanel(QWidget):
     def _calculate_hit_bonus(self, weapon: Dict[str, Any], hand: str) -> int:
         """Calculate attack bonus for a weapon."""
         # Base proficiency bonus (assume level 1 = +2 for now)
-        prof_bonus = 2
+        from services.proficiency_bonus import get_proficiency_bonus_from_context
+        prof_bonus = get_proficiency_bonus_from_context(self.character_context)
         
         # Get relevant ability modifier (Str for most weapons, Dex for finesse)
         weapon_props = weapon.get('weapon_properties', [])
@@ -736,7 +843,7 @@ class ActionPanel(QWidget):
                 card.show()
                     
         elif self.current_category == ActionCategory.FREE:
-            free_actions = [ActionType.INTERACT]
+            free_actions = [ActionType.INTERACT, ActionType.ACTION_SURGE]
             for action_type in free_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -1040,9 +1147,22 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
                 break
             
-            # Always target first living monster (auto-switch)
-            target_monster = living_monsters[0]
-            current_target_id = target_monster.id
+            # Check if original target is still alive
+            target_monster = None
+            target_switched = False
+            
+            if current_target_id:
+                # Look for original target in living monsters
+                for monster in living_monsters:
+                    if monster.id == current_target_id:
+                        target_monster = monster
+                        break
+            
+            if not target_monster:
+                # Original target is dead or missing, switch to first available
+                target_monster = living_monsters[0]
+                current_target_id = target_monster.id
+                target_switched = True
             
             # Update context with current target
             attack_context = {**context, 'target_monster_id': current_target_id}
@@ -1053,8 +1173,10 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     if attack_num == 1:
                         parent.log_panel.log_combat(f"[ATTACK {attack_num}/{num_attacks}] {target_monster.monster_name}")
-                    else:
+                    elif target_switched:
                         parent.log_panel.log_combat(f"[EXTRA ATTACK {attack_num}/{num_attacks}] Switching to {target_monster.monster_name}")
+                    else:
+                        parent.log_panel.log_combat(f"[EXTRA ATTACK {attack_num}/{num_attacks}] {target_monster.monster_name}")
                     break
                 parent = parent.parent()
             
@@ -1096,7 +1218,8 @@ class ActionPanel(QWidget):
             return
         
         d20_roll = random.randint(1, 20)
-        prof_bonus = 2  # TODO: Get from character level
+        from services.proficiency_bonus import get_proficiency_bonus_from_context
+        prof_bonus = get_proficiency_bonus_from_context(context)
         
         # Get ability modifier for attack
         weapon_props = context.get('weapon_properties', [])
@@ -1677,7 +1800,8 @@ class ActionPanel(QWidget):
         from services.advantage_system import advantage_system, RollType, AdvantageState
         
         # Calculate attack bonus components
-        prof_bonus = 2  # TODO: Get from character level
+        from services.proficiency_bonus import get_proficiency_bonus_from_context
+        prof_bonus = get_proficiency_bonus_from_context(context)
         
         # Get ability modifier
         weapon_props = context.get('weapon_properties', [])
@@ -2575,6 +2699,7 @@ class ActionPanel(QWidget):
             ActionType.REST: "special",
             ActionType.OPPORTUNITY: "reaction",
             ActionType.SECOND_WIND: "bonus_action",
+            ActionType.ACTION_SURGE: "free",
             ActionType.NICK_MASTERY: "bonus_action",
             ActionType.CLEAVE_MASTERY: "bonus_action",
             ActionType.USE_POTION: "bonus_action",
@@ -3512,7 +3637,8 @@ class ActionPanel(QWidget):
                 if context.get('finesse'):  # Use DEX if finesse weapon
                     ability_mod = max(ability_mod, (context.get('dexterity', 10) - 10) // 2)
                 
-                prof_bonus = 2  # TODO: Get from character level
+                from services.proficiency_bonus import get_proficiency_bonus_from_context
+                prof_bonus = get_proficiency_bonus_from_context(context)
                 save_dc = 8 + ability_mod + prof_bonus
                 
                 effects['topple_dc'] = save_dc

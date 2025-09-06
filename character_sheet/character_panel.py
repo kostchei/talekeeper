@@ -1314,7 +1314,8 @@ class CharacterPanel(QWidget):
         self.speed_widget.value_label.setText(f"{speed} ft")
         
         # Update skills
-        proficiency_bonus = 2 + ((level - 1) // 4)  # D&D 5e proficiency scaling
+        from services.proficiency_bonus import get_proficiency_bonus
+        proficiency_bonus = get_proficiency_bonus(level)
         
         for skill_name, skill_widget in self.skill_widgets.items():
             ability = skill_widget.ability
@@ -1332,7 +1333,7 @@ class CharacterPanel(QWidget):
             ability_mod = (ability_score - 10) // 2
             
             # Check for saving throw proficiency
-            proficiency_bonus = 2  # Level 1 proficiency bonus
+            # Use same proficiency bonus as calculated above for skills
             prof_key = f"{ability_name[:3]}_save_proficient"
             is_proficient = self.character_data.get(prof_key, 0) == 1
             

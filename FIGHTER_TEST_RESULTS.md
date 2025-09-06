@@ -205,6 +205,101 @@ Result: {'success': True, 'healing_roll': 7, 'level_bonus': 6, 'total_healing': 
 
 The Fighter implementation has a **solid foundation** with working database schema, service layer, and basic integration. The core mechanics are implemented correctly - they just need UI connections to be fully playable.
 
-**For Barbarian implementation**: The same patterns will work well, but we need to solve the action card UI issue first.
+## ⚠️ **CRITICAL LESSON LEARNED: MECHANICS IMPLEMENTATION REQUIRES 4 LAYERS**
 
-**Key Success**: Database-driven approach with service pattern is working excellently and will scale to all 11 classes.
+**YOU CAN'T JUST IMPLEMENT MECHANICS - EVERY FEATURE NEEDS:**
+
+### 1. **Passive/Automatic** (happens without player input)
+- Example: Defense fighting style (+1 AC) - automatically calculated
+- Example: Extra attacks - automatically happen during Attack action
+- Implementation: Modify existing calculations/flows
+
+### 2. **Triggered/Situational** (happens when conditions are met)  
+- Example: Critical hits - triggered on natural 20
+- Example: Opportunity attacks - triggered by movement
+- Implementation: Event handlers in existing code paths
+
+### 3. **Action Cards** (player must click to activate)
+- Example: Second Wind - requires manual activation
+- Example: Action Surge - player chooses when to use
+- Implementation: Create ActionCard + add to appropriate action category (FREE/BONUS/ACTION)
+
+### 4. **Resource Management** (limited uses that refresh on rest)
+- Database columns: `ability_uses_current`, `ability_uses_max`
+- Service methods: `use_ability()`, `restore_on_rest()`
+- UI integration: Cards show uses remaining, disable when exhausted
+
+### **IMPLEMENTATION CHECKLIST FOR ANY NEW FEATURE:**
+- [ ] Database schema (if resource-based)
+- [ ] Service layer method (if active ability)  
+- [ ] Feature definition in character_features table
+- [ ] Action card creation (if player-activated)
+- [ ] Action card display in correct category (FREE/BONUS/ACTION/REACTION)
+- [ ] Action cost mapping
+- [ ] Rest system integration (if resource refreshes)
+- [ ] Combat log integration
+- [ ] UI state updates (character sheet, action cards)
+
+## ✅ **CRITICAL BREAKTHROUGH: UNIFIED RESOURCE SYSTEM**
+
+### **THE SCALABLE SOLUTION FOR ALL 11 CLASSES**
+
+**PROBLEM**: Class-specific resource columns don't scale to multiclass or 11 classes.
+
+**SOLUTION**: Unified `character_resources` table that scales infinitely:
+
+```sql
+CREATE TABLE character_resources (
+    character_id TEXT NOT NULL,
+    resource_name TEXT NOT NULL,        -- "Second Wind", "Rage", "Spell Slot Level 1"
+    current_uses INTEGER NOT NULL,
+    max_uses INTEGER NOT NULL,
+    rest_type TEXT NOT NULL,            -- "short_rest", "long_rest", "none"
+    source_class TEXT,                  -- "fighter", "barbarian", "wizard"
+    source_level INTEGER                -- Level when gained
+);
+```
+
+### **EXAMPLES - SCALES TO ALL SCENARIOS:**
+
+**Single Class Fighter Level 5:**
+- `("Second Wind", 1, 1, "short_rest", "fighter", 1)`
+- `("Action Surge", 1, 1, "short_rest", "fighter", 2)`
+
+**Multiclass Fighter 5/Barbarian 3:**
+- `("Second Wind", 1, 1, "short_rest", "fighter", 1)`
+- `("Action Surge", 1, 1, "short_rest", "fighter", 2)`
+- `("Rage", 3, 3, "long_rest", "barbarian", 1)`
+
+**Multiclass Fighter 2/Wizard 3:**
+- `("Second Wind", 1, 1, "short_rest", "fighter", 1)`
+- `("Action Surge", 1, 1, "short_rest", "fighter", 2)`
+- `("Spell Slot Level 1", 4, 4, "long_rest", "wizard", 1)`
+- `("Spell Slot Level 2", 2, 2, "long_rest", "wizard", 3)`
+
+### **UNIVERSAL REST SYSTEM:**
+
+**Short Rest:** `restore_resources_by_rest_type(character_id, "short_rest")`
+**Long Rest:** `restore_resources_by_rest_type(character_id, "long_rest")`
+
+**No more class-specific rest logic needed!**
+
+### **ACTION CARD INTEGRATION:**
+
+Action cards now check unified resources:
+```python
+resource = resource_service.get_resource(character_id, 'Second Wind')
+if not resource or resource.current_uses <= 0:
+    # Show "No uses remaining" message
+    return
+```
+
+### **KEY SUCCESS PATTERNS:**
+
+1. **Database Design**: One table scales to infinite classes and multiclass
+2. **Service Layer**: Universal resource service replaces all class-specific services
+3. **Rest System**: Single universal method handles all classes
+4. **Action Cards**: Single pattern for resource checking across all abilities
+5. **Level Progression**: Easy to update max_uses as character levels up
+
+**THIS PATTERN WORKS FOR ALL 11 CLASSES** - no more custom resource management needed!
