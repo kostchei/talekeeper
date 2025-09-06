@@ -860,6 +860,13 @@ class MainWindow(QMainWindow):
                 feature_system.initialize_character_features(character['id'])
                 available_features = feature_system.get_available_features(character['id'])
             
+            # Update fighter resources if fighter
+            if character['class_id'].lower() == 'fighter':
+                from services.fighter_abilities import FighterAbilitiesService
+                fighter_service = FighterAbilitiesService()
+                fighter_service.update_fighter_resources_for_level(character['id'], character['level'])
+                print(f"[DEBUG] Updated fighter resources for level {character['level']}")
+            
             # Convert feature list to dictionary format expected by action panel
             class_features = {}
             for feature_data in available_features:

@@ -206,6 +206,7 @@ tester.test_defense_style()  # or test_dueling_style(), etc.
 
 ## Code Style
 - No comments unless specifically requested
+- NEVER use Unicode characters - stick to ASCII only
 - Follow existing patterns in codebase
 - Use type hints where established
 - Fixed UI positions, no responsive layout

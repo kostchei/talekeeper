@@ -1,5 +1,18 @@
 # TaleKeeper TODO List
 
+Record all actions taken to a file for future reference 
+Create a “ all monsters randomly “ dnd baseline
+List all fighter abilities for each level in a doc.
+Plan out how to create those mechanically in a doc.
+Implement that plan.
+Record the issues.
+List all barbarian abilities for each level in a doc.
+Look at the fighter doc
+ Learn from what broke and why
+Plan out how to create the barbarian abilities based on the prior knowledge 
+Implement that plan.
+Record the issues….
+
 ## 🚨 Critical Issues
 - [ ] **Check Two-Weapon Fighting** - Verify off-hand attacks and damage modifiers
 - [ ] **Check Nick weapon mastery** - Light weapon extra attacks

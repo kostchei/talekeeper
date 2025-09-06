@@ -273,7 +273,7 @@ class ActionPanel(QWidget):
             return
         
         # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND, ActionType.RAGE, ActionType.LAY_ON_HANDS]
+        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, ActionType.LAY_ON_HANDS]
         for action_id in feature_action_types:
             if action_id in self.action_cards:
                 self.action_cards[action_id].deleteLater()
@@ -292,6 +292,15 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.SECOND_WIND] = card
+        
+        # Create Action Surge card if character has it (Fighter level 2+)
+        if 'Action Surge' in self.character_features:
+            description = "Gain one additional action this turn (not Magic action)"
+            card = ActionCard(ActionType.ACTION_SURGE, "⚡", "Action Surge", description)
+            card.feature_data = self.character_features['Action Surge']
+            card.action_triggered.connect(self._trigger_feature_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.ACTION_SURGE] = card
         
         # Create Rage card if character has it AND is a Barbarian
         if ('Rage' in self.character_features and 
@@ -366,65 +375,85 @@ class ActionPanel(QWidget):
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
         if action_type == ActionType.SECOND_WIND or action_type == 1000:  # Handle both enum and legacy ID
-            # Check if Second Wind is available first
-            print("DEBUG: Using Second Wind")
-            uses_remaining = self._get_ability_uses_remaining("Second Wind")
-            print(f"DEBUG: Second Wind uses before check: {uses_remaining}")
+            # Use the new fighter abilities service
+            from services.fighter_abilities import FighterAbilitiesService
+            fighter_service = FighterAbilitiesService()
             
-            if uses_remaining <= 0:
-                # Try to initialize for existing characters
+            # Get character ID
+            character_id = self.character_context.get('id')
+            if not character_id:
+                print("DEBUG: No character ID for Second Wind")
+                return
+            
+            # Use Second Wind
+            result = fighter_service.use_second_wind(character_id)
+            
+            # Log the result
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    if result['success']:
+                        parent.log_panel.log_combat(f"🩹 Second Wind: Rolled {result['healing_roll']} + {result['level_bonus']} = {result['total_healing']} healing")
+                        parent.log_panel.log_combat(f"❤️ Healed for {result['actual_healing']} HP (now at {result['new_hp']} HP)")
+                        if result['uses_remaining'] > 0:
+                            parent.log_panel.log_combat(f"Second Wind uses remaining: {result['uses_remaining']}")
+                    else:
+                        parent.log_panel.log_combat(f"[FAIL] {result['error']}")
+                    break
+                parent = parent.parent()
+            
+            # Update UI
+            if result['success']:
+                # Refresh character sheet to show new HP
                 parent = self.parent()
                 while parent:
-                    if hasattr(parent, 'game_engine'):
-                        character = parent.game_engine.current_character
-                        if character and isinstance(character, dict) and 'ability_uses' in character and "Second Wind" not in character['ability_uses']:
-                            print("DEBUG: Initializing Second Wind for existing character")
-                            character['ability_uses']["Second Wind"] = 1
-                            character['ability_uses_max']["Second Wind"] = 1
-                            uses_remaining = 1
+                    if hasattr(parent, 'character_panel'):
+                        parent.character_panel.update_display()
                         break
                     parent = parent.parent()
-                
-                # If still no uses, block the action
-                if uses_remaining <= 0:
-                    print("DEBUG: Second Wind blocked - no uses remaining")
-                    parent = self.parent()
-                    while parent:
-                        if hasattr(parent, 'log_panel'):
-                            parent.log_panel.log_combat(f"[FAIL] Second Wind exhausted - requires Short Rest!")
-                            break
-                        parent = parent.parent()
-                    return  # Block the action entirely
+        
+        elif action_type == ActionType.ACTION_SURGE:
+            # Use the fighter abilities service
+            from services.fighter_abilities import FighterAbilitiesService
+            fighter_service = FighterAbilitiesService()
             
-            level = self.character_context.get('level', 1)
-            healing_roll = f"1d10+{level}"
+            # Get character ID
+            character_id = self.character_context.get('id')
+            if not character_id:
+                print("DEBUG: No character ID for Action Surge")
+                return
             
-            # Find parent with log_panel for logging
+            # Use Action Surge
+            result = fighter_service.use_action_surge(character_id)
+            
+            # Log the result
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"🩹 Used Second Wind: Rolling {healing_roll} for healing")
+                    if result['success']:
+                        parent.log_panel.log_combat(f"⚡ Action Surge! {result['effect']}")
+                        if result['uses_remaining'] > 0:
+                            parent.log_panel.log_combat(f"Action Surge uses remaining: {result['uses_remaining']}")
+                    else:
+                        parent.log_panel.log_combat(f"[FAIL] {result['error']}")
                     break
                 parent = parent.parent()
             
-            # Import dice service for rolling
-            from services.dice import DiceRoller
-            dice_roller = DiceRoller()
-            healing = dice_roller.roll(healing_roll)
-            
-            # Apply healing to character
-            self._apply_healing_to_player(healing)
-            
-            # Log the healing result
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"❤️ Second Wind heals for {healing} hit points")
-                    break
-                parent = parent.parent()
-            
-            # Use ability - decrement uses remaining
-            self._use_ability("Second Wind")
+            # Update action economy if in combat
+            if result['success']:
+                # Grant additional action in combat
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'encounter_panel') and hasattr(parent.encounter_panel, 'combat_session'):
+                        # Reset action availability for this turn
+                        if parent.encounter_panel.combat_session and parent.encounter_panel.combat_session.action_economy:
+                            combatant_id = character_id
+                            state = parent.encounter_panel.combat_session.action_economy.get_combatant_state(combatant_id)
+                            if state:
+                                state.actions_available += 1  # Grant one more action
+                                parent.log_panel.log_combat("Additional action granted this turn!")
+                        break
+                    parent = parent.parent()
         
         elif action_type == ActionType.NICK_MASTERY:
             # Find parent with log_panel for logging
@@ -837,11 +866,34 @@ class ActionPanel(QWidget):
         attack_total, attack_breakdown = self._roll_attack(context)
         target_ac = 12  # TODO: Get from monster data, for now assume AC 12
         
-        hit = attack_total >= target_ac
+        # Check for critical hit (natural 20)
+        is_critical = attack_breakdown.get('d20_roll', 0) == 20
+        hit = attack_total >= target_ac or is_critical
         
         if hit:
             # Roll damage
             damage_total, damage_breakdown = self._roll_damage(context)
+            
+            # Double damage DICE ONLY on critical hit (not modifiers)
+            if is_critical:
+                # Roll the damage dice again (but NOT modifiers) and add to total
+                import random
+                damage_dice = context.get('damage_dice', '1d6')
+                if 'd' in damage_dice:
+                    dice_part = damage_dice.split('+')[0].split('-')[0].strip()
+                    try:
+                        num_dice, die_size = dice_part.split('d')
+                        num_dice = int(num_dice)
+                        die_size = int(die_size)
+                        # Roll additional dice for critical (same number as base weapon)
+                        crit_dice_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+                        crit_bonus = sum(crit_dice_rolls)
+                        damage_total += crit_bonus
+                        damage_breakdown['critical_dice'] = crit_dice_rolls
+                        damage_breakdown['critical_bonus'] = crit_bonus
+                        damage_breakdown['is_critical'] = True
+                    except:
+                        pass
             
             # Apply weapon mastery effects on hit
             mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=damage_total, context=context)
@@ -893,34 +945,21 @@ class ActionPanel(QWidget):
             self._trigger_monster_counter_attacks(encounter_panel)
     
     def _new_execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
-        """NEW ATTACK SYSTEM - Built from scratch with proper rage damage."""
+        """NEW ATTACK SYSTEM - Built from scratch with Fighter Extra Attacks support."""
         import random
         
         # Log to combat panel instead of print
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"[DEBUG] NEW ATTACK SYSTEM CALLED with {context.get('name', 'weapon')}")
-                parent.log_panel.log_combat(f"[DEBUG] Context: raging={context.get('raging', 'NOT_FOUND')}, class={context.get('class_id', 'NOT_FOUND')}")
-                parent.log_panel.log_combat(f"[DEBUG] Self character_context: {getattr(self, 'character_context', 'NO_CHAR_CONTEXT')}")
-                if hasattr(self, 'character_context') and self.character_context:
-                    parent.log_panel.log_combat(f"[DEBUG] Self context keys: {list(self.character_context.keys())}")
+                parent.log_panel.log_combat(f"[ATTACK] Starting attack sequence with {context.get('name', 'weapon')}")
                 break
             parent = parent.parent()
-        
-        # Get target info
-        target_id = context.get('target_monster_id')
-        weapon_name = context.get('name', 'weapon')
         
         # Get encounter panel
         encounter_panel = self._get_encounter_panel()
         if not encounter_panel:
             print("NEW ATTACK: No encounter panel found")
-            return
-            
-        target_monster = encounter_panel.get_selected_monster()
-        if not target_monster:
-            print(f"NEW ATTACK: Target monster {target_id} not found")
             return
         
         # Roll initiative if needed - add action_type to context
@@ -930,8 +969,118 @@ class ActionPanel(QWidget):
             # Monsters go first, player's attack is held and will execute after monsters' turns
             return
         
-        # Execute the attack
-        self._execute_attack_without_initiative(action_type, context, encounter_panel)
+        # Determine number of attacks based on class level and features
+        num_attacks = self._get_attack_count(context)
+        
+        if num_attacks == 1:
+            # Single attack - use existing logic
+            self._execute_attack_without_initiative(action_type, context, encounter_panel)
+        else:
+            # Multiple attacks - new logic with target switching
+            self._execute_multiple_attacks(action_type, context, encounter_panel, num_attacks)
+    
+    def _get_attack_count(self, context: Dict[str, Any]) -> int:
+        """Get number of attacks based on class features and levels."""
+        class_id = context.get('class_id', '').lower()
+        level = context.get('level', 1)
+        
+        # Fighter gets the most Extra Attacks (based on Fighter levels)
+        if class_id == 'fighter':
+            if level >= 20:
+                return 4  # Four attacks at level 20
+            elif level >= 11:
+                return 3  # Three attacks at level 11  
+            elif level >= 5:
+                return 2  # Two attacks at level 5
+            else:
+                return 1
+        
+        # Other classes with Extra Attack feature (cap at 2 attacks)
+        elif class_id in ['barbarian', 'paladin', 'ranger']:
+            if level >= 5:
+                return 2  # Only 2 attacks maximum
+            else:
+                return 1
+        
+        # Monks get multiple attacks through different mechanics (Flurry of Blows)
+        # but their Attack action is still just 1 attack
+        elif class_id == 'monk':
+            return 1  # Monk uses bonus action for extra attacks
+        
+        # All other classes get 1 attack
+        else:
+            return 1
+    
+    def _execute_multiple_attacks(self, action_type: ActionType, context: Dict[str, Any], encounter_panel, num_attacks: int):
+        """Execute multiple attacks, allowing target switching if enemies are killed."""
+        
+        # Get initial target
+        current_target_id = context.get('target_monster_id')
+        weapon_name = context.get('name', 'weapon')
+        
+        # Log start of attack sequence
+        class_name = context.get('class_id', 'character').capitalize()
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"⚔️ {class_name} Extra Attack: Making {num_attacks} attacks with {weapon_name}")
+                break
+            parent = parent.parent()
+        
+        for attack_num in range(1, num_attacks + 1):
+            # Get living monsters for targeting
+            living_monsters = encounter_panel.get_living_monsters()
+            if not living_monsters:
+                # No targets left
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"[ATTACK] No more targets remaining after {attack_num - 1} attacks")
+                        break
+                    parent = parent.parent()
+                break
+            
+            # Always target first living monster (auto-switch)
+            target_monster = living_monsters[0]
+            current_target_id = target_monster.id
+            
+            # Update context with current target
+            attack_context = {**context, 'target_monster_id': current_target_id}
+            
+            # Log which attack this is
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    if attack_num == 1:
+                        parent.log_panel.log_combat(f"[ATTACK {attack_num}/{num_attacks}] {target_monster.monster_name}")
+                    else:
+                        parent.log_panel.log_combat(f"[EXTRA ATTACK {attack_num}/{num_attacks}] Switching to {target_monster.monster_name}")
+                    break
+                parent = parent.parent()
+            
+            # Execute this attack
+            self._execute_attack_without_initiative(action_type, attack_context, encounter_panel)
+            
+            # Small delay between attacks for readability
+            from PyQt6.QtTest import QTest
+            QTest.qWait(500)
+        
+        # After all attacks, check for monster counter-attacks
+        self._update_action_economy(action_type)
+        living_monsters_after = encounter_panel.get_living_monsters()
+        
+        if not living_monsters_after:
+            # All monsters defeated
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("🏆 All enemies defeated!")
+                    break
+                parent = parent.parent()
+            self._end_combat(encounter_panel)
+        else:
+            # Trigger monster counter-attacks after full attack sequence
+            self._trigger_monster_counter_attacks(encounter_panel)
     
     def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
         """Execute the attack without rolling initiative (used for immediate attacks and pending attacks)."""
@@ -1752,6 +1901,9 @@ class ActionPanel(QWidget):
                     bonus_str = f" ({' '.join(bonus_parts)})" if bonus_parts else ""
                     
                     if hit and damage_breakdown:
+                        # Check for critical hit
+                        is_critical = damage_breakdown.get('is_critical', False) or d20 == 20
+                        
                         # Build damage roll breakdown
                         dice_rolls = damage_breakdown['dice_rolls']
                         dice_total = damage_breakdown['dice_total']
@@ -1788,11 +1940,24 @@ class ActionPanel(QWidget):
                             
                             damage_bonus_str = f" ({' '.join(damage_parts)})" if damage_parts else ""
                             
+                            # Add critical hit dice to display (show the extra dice rolled)
+                            crit_dice = damage_breakdown.get('critical_dice', [])
+                            crit_bonus = damage_breakdown.get('critical_bonus', 0)
+                            crit_str = ""
+                            if crit_dice:
+                                crit_str = f" + [{', '.join(map(str, crit_dice))}] = {crit_bonus} (critical)"
+                            
+                            # Log with critical hit notation
+                            if is_critical:
+                                parent.log_panel.log_combat(
+                                    f"⚡ CRITICAL HIT! {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
+                                )
+                            else:
+                                parent.log_panel.log_combat(
+                                    f"[ATTACK] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
+                                )
                             parent.log_panel.log_combat(
-                                f"[ATTACK] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
-                            )
-                            parent.log_panel.log_combat(
-                                f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str} = {damage_total} damage"
+                                f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str}{crit_str} = {damage_total} damage"
                             )
                         else:
                             parent.log_panel.log_combat(

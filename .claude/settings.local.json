@@ -42,7 +42,9 @@
       "WebFetch(domain:green-mud-0d844ea00.azurestaticapps.net)",
       "Bash(git clone:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(copy talekeeper.db talekeeper_backup.db)",
+      "Bash(wmic:*)"
     ],
     "deny": []
   }

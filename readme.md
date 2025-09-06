@@ -109,9 +109,23 @@ The game creates configuration files automatically:
 - Single-file Windows executable
 
 ## ToDo
-- Check 2 weapon fighting,  
+-Record all actions taken to a file for future reference 
+Create a “ all monsters randomly “ dnd baseline
+List all fighter abilities for each level in a doc.
+Plan out how to create those mechanically in a doc.
+Implement that plan.
+Record the issues.
+List all barbarian abilities for each level in a doc.
+Look at the fighter doc
+ Learn from what broke and why
+Plan out how to create the barbarian abilities based on the prior knowledge 
+Implement that plan.
+Record the issues….
+ 
+Check 2 weapon fighting,  
 - Check nick,
 - level progression ( fighter, barbarian, rogue to 20 )
+-- fighter, check each level..
 - towns for selling stuff
 - items on monsters for use
 - training costs
