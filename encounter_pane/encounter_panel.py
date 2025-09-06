@@ -3631,17 +3631,18 @@ class EncounterPanel(QWidget):
                                    QPushButton, QSpinBox, QDialogButtonBox, QGroupBox)
         from PyQt6.QtCore import Qt
         
-        # Always allow hit dice spending - get HP from character sheet display
+        # Get current HP - prioritize fresh data from game engine
         try:
             parent = self.parent()
             while parent:
-                if hasattr(parent, 'character_sheet'):
-                    hp_text = parent.character_sheet.hp_widget.value_label.text()
-                    if '/' in hp_text:
-                        current_str, max_str = hp_text.split('/')
-                        current_hp, max_hp = int(current_str.strip()), int(max_str.strip())
+                if hasattr(parent, 'game_engine') and parent.game_engine:
+                    # Get fresh character data from database
+                    fresh_character = parent.game_engine.get_character_by_id_sync(character['id'])
+                    if fresh_character:
+                        current_hp = fresh_character['hit_points_current']
+                        max_hp = fresh_character['hit_points_max']
                         break
-                    parent = parent.parent()
+                parent = parent.parent()
             else:
                 # Fallback to character object values
                 current_hp = character['hit_points_current']
