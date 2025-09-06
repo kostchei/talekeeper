@@ -1534,68 +1534,75 @@ class CharacterPanel(QWidget):
         
         # === FEATS ===
         character_feats = self.character_data.get('feats', [])
-        if character_feats:
-            features_text += "=== FEATS ===\n"
-            
-            # Get feat details from database if available
-            if char_id:
-                try:
-                    conn = sqlite3.connect("talekeeper.db")
-                    cursor = conn.cursor()
+        
+        # Always try to get feat details from database if we have char_id
+        if char_id:
+            try:
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT cf.feat_name, cf.feat_source, f.category
+                    FROM character_feats cf
+                    LEFT JOIN feats f ON cf.feat_name = f.name
+                    WHERE cf.character_id = ? 
+                    ORDER BY cf.feat_source, cf.feat_name
+                """, (char_id,))
+                
+                feat_data = cursor.fetchall()
+                
+                if feat_data:
+                    features_text += "=== FEATS ===\n"
                     
-                    cursor.execute("""
-                        SELECT feat_name, feat_source 
-                        FROM character_feats 
-                        WHERE character_id = ? 
-                        ORDER BY feat_source, feat_name
-                    """, (char_id,))
+                    # Group feats by source
+                    background_feats = []
+                    species_feats = []
+                    class_feats = []
+                    fighting_styles = []
+                    other_feats = []
                     
-                    feat_data = cursor.fetchall()
+                    for feat_name, feat_source, feat_category in feat_data:
+                        # Check if it's a fighting style by category
+                        if feat_category == 'fighting_style':
+                            fighting_styles.append(feat_name)
+                        elif feat_source == 'background':
+                            background_feats.append(feat_name)
+                        elif feat_source == 'species':
+                            species_feats.append(feat_name)
+                        elif feat_source in ['class', 'fighting_style']:
+                            class_feats.append(feat_name)
+                        else:
+                            other_feats.append(feat_name)
                     
-                    if feat_data:
-                        # Group feats by source
-                        background_feats = []
-                        species_feats = []
-                        class_feats = []
-                        other_feats = []
-                        
-                        for feat_name, feat_source in feat_data:
-                            if feat_source == 'background':
-                                background_feats.append(feat_name)
-                            elif feat_source == 'species':
-                                species_feats.append(feat_name)
-                            elif feat_source in ['class', 'fighting_style']:
-                                class_feats.append(feat_name)
-                            else:
-                                other_feats.append(feat_name)
-                        
-                        if background_feats:
-                            features_text += f"• Background Origin Feat: {', '.join(background_feats)}\n"
-                        if class_feats:
-                            for feat in class_feats:
-                                if 'fighting style' in feat.lower():
-                                    features_text += f"• Fighting Style: {feat}\n"
-                                else:
-                                    features_text += f"• {feat}\n"
-                        if species_feats:
-                            features_text += f"• Species Feat: {', '.join(species_feats)}\n"
-                        if other_feats:
-                            for feat in other_feats:
-                                features_text += f"• {feat}\n"
-                    else:
-                        # Fallback to simple list
-                        for feat_name in character_feats:
-                            features_text += f"• {feat_name}\n"
+                    if background_feats:
+                        features_text += f"• Background Origin Feat: {', '.join(background_feats)}\n"
+                    if fighting_styles:
+                        for style in fighting_styles:
+                            features_text += f"• Fighting Style: {style}\n"
+                    if class_feats:
+                        for feat in class_feats:
+                            features_text += f"• {feat}\n"
+                    if species_feats:
+                        features_text += f"• Species Feat: {', '.join(species_feats)}\n"
+                    if other_feats:
+                        for feat in other_feats:
+                            features_text += f"• {feat}\n"
                     
-                    conn.close()
-                except Exception as e:
-                    print(f"Error loading feat details: {e}")
+                    features_text += "\n"
+                
+                conn.close()
+            except Exception as e:
+                print(f"Error loading feat details: {e}")
+                if character_feats:
+                    features_text += "=== FEATS ===\n"
                     for feat_name in character_feats:
                         features_text += f"• {feat_name}\n"
-            else:
-                for feat_name in character_feats:
-                    features_text += f"• {feat_name}\n"
-            
+                    features_text += "\n"
+        elif character_feats:
+            # Fallback if no char_id but we have feats in memory
+            features_text += "=== FEATS ===\n"
+            for feat_name in character_feats:
+                features_text += f"• {feat_name}\n"
             features_text += "\n"
         
         # === PROFICIENCIES ===

@@ -3243,13 +3243,19 @@ class EncounterPanel(QWidget):
                 self._log_monster_action(f"  └─ {detail}")
         
         # Check for encounter hoard based on difficulty
+        hoard_gp = 0
         if hasattr(self, 'current_encounter') and self.current_encounter:
             hoard_treasure = self._check_for_hoard(self.current_encounter.difficulty if hasattr(self.current_encounter, 'difficulty') else 'moderate')
             if hoard_treasure:
                 self._log_monster_action(f"🏆 {hoard_treasure}")
+                # Extract GP amount from hoard string (e.g., "A Hoard with 200 GP and 0 magical items")
+                import re
+                gp_match = re.search(r'(\d+) GP', hoard_treasure)
+                if gp_match:
+                    hoard_gp = int(gp_match.group(1))
         
         # Add treasure to character's inventory/gold
-        total_treasure = total_individual_gp
+        total_treasure = total_individual_gp + hoard_gp
         if total_treasure > 0:
             self._add_gold_to_character(total_treasure)
         

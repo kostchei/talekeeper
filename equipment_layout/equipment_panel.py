@@ -880,9 +880,7 @@ class EquipmentPanel(QWidget):
         # Update attack displays
         self._update_attack_displays()
         
-        # Calculate and emit AC change
-        new_ac = self._calculate_armor_class()
-        self.ac_changed.emit(new_ac)
+        # Don't emit AC changes - let game engine handle AC calculation
     
     def _update_attack_displays(self):
         """Update all attack display rows."""
@@ -997,49 +995,6 @@ class EquipmentPanel(QWidget):
         spellcasting_mod = (self.character_dexterity - 10) // 2  # Placeholder
         return prof_bonus + spellcasting_mod
     
-    def _calculate_armor_class(self):
-        """Calculate total AC from equipped armor, shield, and dexterity using equipment service."""
-        dex_mod = (self.character_dexterity - 10) // 2
-        con_mod = (getattr(self, 'character_constitution', 10) - 10) // 2
-        
-        # Base AC with no armor
-        ac = 10 + dex_mod
-        
-        # Check if character is a Barbarian for Unarmored Defense
-        is_barbarian = getattr(self, 'character_class', '').lower() == 'barbarian'
-        
-        # Find equipped armor (only chest armor prevents unarmored defense)
-        armor_item = None
-        for slot, item in self.equipped_items.items():
-            if slot == EquipmentSlot.ARMOR:
-                armor_item = item
-                break
-        
-        # Calculate AC with equipped armor using equipment service
-        if armor_item:
-            armor_name = armor_item.get('name')
-            if armor_name:
-                ac = equipment_service.get_armor_ac(armor_name, dex_mod)
-        else:
-            # No armor equipped - Barbarian Unarmored Defense applies
-            if is_barbarian:
-                # Barbarian Unarmored Defense: AC = 10 + Dex + Con (only for barbarians)
-                ac = 10 + dex_mod + con_mod
-        
-        # Add shield AC bonus if equipped (shields work with unarmored defense)
-        shield_item = None
-        for slot, item in self.equipped_items.items():
-            if slot == EquipmentSlot.OFF_HAND and item.get('item_type') == 'shield':
-                shield_item = item
-                break
-        
-        if shield_item:
-            shield_name = shield_item.get('name')
-            if shield_name:
-                shield_bonus = equipment_service.get_shield_ac_bonus(shield_name)
-                ac += shield_bonus
-        
-        return max(ac, 1)  # AC can't be less than 1
     
     def _calculate_main_hand_attack_bonus(self):
         """Calculate attack bonus for main hand weapon."""

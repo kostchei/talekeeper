@@ -791,6 +791,14 @@ class MainWindow(QMainWindow):
         """Helper method to load a character into the UI."""
         self.log_panel.log_system(log_message)
         
+        # Recalculate AC to ensure Defense fighting style and other bonuses are applied
+        character_id = character['id']
+        if self.game_engine.recalculate_character_stats_sync(character_id):
+            # Reload character to get updated AC
+            character = self.game_engine.load_character_sync(character['save_slot_number'])
+            if character:
+                self.log_panel.log_info(f"Character stats recalculated (AC: {character['armor_class']})")
+        
         # Convert character DTO to display format
         character_data = self._convert_dto_to_display(character)
         
