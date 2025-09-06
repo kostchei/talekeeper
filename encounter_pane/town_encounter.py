@@ -897,8 +897,8 @@ class ShopInterface(QWidget):
                 # Add new item
                 cursor.execute("""
                     INSERT INTO character_inventory 
-                    (character_id, item_name, item_type, quantity, is_equipped, equipment_slot) 
-                    VALUES (?, ?, ?, ?, 0, NULL)
+                    (character_id, item_name, item_type, quantity, equipped) 
+                    VALUES (?, ?, ?, ?, 0)
                 """, (character_id, item_data['name'], item_data['item_type'], quantity))
             
             conn.commit()
@@ -954,8 +954,8 @@ class ShopInterface(QWidget):
                 # Create new gold entry
                 cursor.execute("""
                     INSERT INTO character_inventory 
-                    (character_id, item_name, item_type, quantity, is_equipped, equipment_slot) 
-                    VALUES (?, 'Gold Pieces', 'treasure', ?, 0, NULL)
+                    (character_id, item_name, item_type, quantity, equipped) 
+                    VALUES (?, 'Gold Pieces', 'treasure', ?, 0)
                 """, (character_id, amount))
             
             conn.commit()

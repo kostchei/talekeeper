@@ -3437,8 +3437,8 @@ class EncounterPanel(QWidget):
                                 # Add new item
                                 cursor.execute("""
                                     INSERT INTO character_inventory 
-                                    (character_id, item_name, item_type, quantity, is_equipped, equipment_slot) 
-                                    VALUES (?, ?, ?, 1, 0, NULL)
+                                    (character_id, item_name, item_type, quantity, equipped) 
+                                    VALUES (?, ?, ?, 1, 0)
                                 """, (character_id, item['name'], item['item_type']))
                         
                         conn.commit()

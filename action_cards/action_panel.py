@@ -2178,7 +2178,7 @@ class ActionPanel(QWidget):
         try:
             print(f"⚔ [DEBUG] {monster_instance.monster_name} is attacking!")
             
-            # Get monster's first action (usually their main attack)
+            # Get monster's actions
             actions = monster_stats.get('action', [])
             if not actions:
                 print(f"⚔ [DEBUG] {monster_instance.monster_name} has no actions available")
@@ -2186,15 +2186,88 @@ class ActionPanel(QWidget):
             
             print(f"⚔ [DEBUG] {monster_instance.monster_name} has {len(actions)} actions available")
             
-            main_action = actions[0]  # Use first action
-            action_name = main_action.get('name', 'Attack')
+            # Check if first action is Multiattack
+            first_action = actions[0]
+            if first_action.get('name', '').lower() == 'multiattack':
+                # Parse multiattack to determine number of attacks and which attack to use
+                multiattack_entries = first_action.get('entries', [])
+                if multiattack_entries:
+                    multiattack_text = multiattack_entries[0].lower()
+                    print(f"⚔ [DEBUG] Multiattack: {multiattack_text}")
+                    
+                    # Parse multiattack in different formats
+                    import re
+                    attacks_to_make = []
+                    
+                    # Format 1: "one with its bite and one with its claws" - check this FIRST
+                    if 'one with its' in multiattack_text or 'two with its' in multiattack_text:
+                        # Find all "one with its X" or "two with its Y" patterns
+                        attack_patterns = re.findall(r'(one|two) with its (\w+)', multiattack_text)
+                        for count_word, attack_name in attack_patterns:
+                            count = 2 if count_word == 'two' else 1
+                            attacks_to_make.append((attack_name, count))
+                    
+                    # Format 2: "three tentacle attacks"
+                    elif re.search(r'(\w+) (\w+) attacks?$', multiattack_text):
+                        pattern1 = re.search(r'(\w+) (\w+) attacks?$', multiattack_text)
+                        count_word = pattern1.group(1)
+                        attack_name = pattern1.group(2)
+                        count_map = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5}
+                        attack_count = count_map.get(count_word, 1)
+                        attacks_to_make = [(attack_name, attack_count)]
+                    
+                    # Format 3: "makes two attacks" (generic) - fallback
+                    elif 'makes two attacks' in multiattack_text:
+                        # Use first available weapon attack, make it twice
+                        for action in actions[1:]:
+                            action_name = action.get('name', '').lower()
+                            if any(weapon in action_name for weapon in ['bite', 'claw', 'sword', 'spear', 'axe']):
+                                attacks_to_make = [(action_name.split()[0], 2)]  # Just the weapon name
+                                break
+                    
+                    print(f"⚔ [DEBUG] Parsed attacks: {attacks_to_make}")
+                    
+                    # Execute all parsed attacks
+                    if attacks_to_make:
+                        for attack_name, attack_count in attacks_to_make:
+                            # Find the actual attack action by name
+                            attack_action = None
+                            for action in actions[1:]:  # Skip multiattack action
+                                if attack_name.lower() in action.get('name', '').lower():
+                                    attack_action = action
+                                    break
+                            
+                            if attack_action:
+                                print(f"⚔ [DEBUG] Making {attack_count} {attack_name} attacks")
+                                for i in range(attack_count):
+                                    self._execute_single_monster_attack(monster_instance, attack_action, monster_stats, encounter_panel, i+1, attack_count)
+                            else:
+                                print(f"⚔ [DEBUG] Could not find {attack_name} attack action")
+                        return
+                    else:
+                        print(f"⚔ [DEBUG] Could not parse multiattack format: {multiattack_text}")
+                        # Fall back to first non-multiattack action
+                        if len(actions) > 1:
+                            self._execute_single_monster_attack(monster_instance, actions[1], monster_stats, encounter_panel)
+                            return
+            
+            # Single attack (no multiattack or fallback)
+            main_action = first_action
+            self._execute_single_monster_attack(monster_instance, main_action, monster_stats, encounter_panel)
+            
+        except Exception as e:
+            print(f"Error executing monster attack: {e}")
+    
+    def _execute_single_monster_attack(self, monster_instance, action, monster_stats: dict, encounter_panel, attack_num: int = 1, total_attacks: int = 1):
+        """Execute a single attack from a monster action."""
+        try:
+            action_name = action.get('name', 'Attack')
             
             # Parse the attack from the action entry
-            attack_info = self._parse_monster_attack(main_action, monster_stats)
+            attack_info = self._parse_monster_attack(action, monster_stats)
             if not attack_info:
                 return
-            
-            # Roll monster's attack with advantage/disadvantage
+
             import random
             from services.advantage_system import advantage_system, RollType
             
@@ -2237,11 +2310,11 @@ class ActionPanel(QWidget):
                 
                 # Log the attack
                 self._log_monster_attack_result(True, monster_instance.monster_name, action_name, 
-                                              attack_roll, player_ac, damage_total, attack_info, roll_breakdown)
+                                              attack_roll, player_ac, damage_total, attack_info, roll_breakdown, attack_num, total_attacks)
             else:
                 # Attack missed
                 self._log_monster_attack_result(False, monster_instance.monster_name, action_name, 
-                                              attack_roll, player_ac, 0, attack_info, roll_breakdown)
+                                              attack_roll, player_ac, 0, attack_info, roll_breakdown, attack_num, total_attacks)
                 
         except Exception as e:
             print(f"Error executing monster attack: {e}")
@@ -2433,23 +2506,35 @@ class ActionPanel(QWidget):
             return 0
     
     def _log_monster_attack_result(self, hit: bool, monster_name: str, action_name: str, 
-                                  attack_roll: int, player_ac: int, damage: int, attack_info: dict, roll_breakdown: dict = None):
+                                  attack_roll: int, player_ac: int, damage: int, attack_info: dict, roll_breakdown: dict = None, attack_num: int = 1, total_attacks: int = 1):
         """Log monster attack results with advantage/disadvantage information."""
         try:
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    # Format attack roll with advantage/disadvantage info
+                    # Extract d20 roll and bonus for better display
+                    hit_bonus = attack_info.get('hit_bonus', 0)
+                    
+                    # Format attack roll with d20 breakdown
                     if roll_breakdown and roll_breakdown.get('type') != 'normal':
+                        # For advantage/disadvantage, show the rolls and bonus
                         roll_desc = roll_breakdown.get('description', f'{attack_roll}')
-                        attack_display = f"Attack: {roll_desc} = {attack_roll}"
+                        d20_roll = attack_roll - hit_bonus
+                        attack_display = f"Attack: {roll_desc} + {hit_bonus} = {attack_roll}"
                     else:
-                        attack_display = f"Attack: {attack_roll}"
+                        # For normal rolls, show d20 + bonus
+                        d20_roll = attack_roll - hit_bonus
+                        attack_display = f"Attack: {d20_roll} + {hit_bonus} = {attack_roll}"
+                    
+                    # Add attack number for multiattack
+                    attack_prefix = f"👹 {monster_name}"
+                    if total_attacks > 1:
+                        attack_prefix += f" (Attack {attack_num}/{total_attacks})"
                     
                     if hit:
-                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} hits! {attack_display} vs AC {player_ac} for {damage} damage")
+                        parent.log_panel.log_combat(f"{attack_prefix} {action_name} hits! {attack_display} vs AC {player_ac} for {damage} damage")
                     else:
-                        parent.log_panel.log_combat(f"👹 {monster_name} {action_name} misses! {attack_display} vs AC {player_ac}")
+                        parent.log_panel.log_combat(f"{attack_prefix} {action_name} misses! {attack_display} vs AC {player_ac}")
                     break
                 parent = parent.parent()
                 
