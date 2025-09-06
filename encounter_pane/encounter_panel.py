@@ -482,11 +482,26 @@ class EncounterPanel(QWidget):
         encounters_layout.setContentsMargins(1, 1, 1, 1)
         
         # Encounters list widget (was missing)
-        from PyQt6.QtWidgets import QListWidget
-        self.encounters_list = QListWidget()
-        self.encounters_list.setObjectName("encountersList")
-        self.encounters_list.setMaximumHeight(100)
-        encounters_layout.addWidget(self.encounters_list)
+        # Encounter details area (for XP budget info) - AT THE TOP
+        self.encounter_details_text = QTextEdit()
+        self.encounter_details_text.setObjectName("encounterDetailsText")
+        self.encounter_details_text.setReadOnly(True)
+        self.encounter_details_text.setMaximumHeight(120)
+        self.encounter_details_text.setPlainText("Click 'Generate Random Encounter' to see encounter details...")
+        self.encounter_details_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                border: 2px solid #4CAF50;
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 12px;
+                font-family: 'Consolas', 'Courier New', monospace;
+            }
+        """)
+        encounters_layout.addWidget(self.encounter_details_text)
+        
+        # Removed unused encounters list - it was just taking up space
         
         # Generate encounter button
         self.generate_encounter_btn = QPushButton("Generate Random Encounter")
@@ -949,6 +964,16 @@ class EncounterPanel(QWidget):
         QPushButton#rollButton:pressed {{
             background-color: {palette['accent_primary']};
         }}
+        
+        QTextEdit#sceneText, QTextEdit#environmentText {{
+            background-color: {palette['surface']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+        }}
         """
         self.setStyleSheet(style_sheet)
     
@@ -1047,7 +1072,26 @@ class EncounterPanel(QWidget):
     
     def update_scene_description(self, description: str):
         """Update the main scene description."""
+        print(f"[SCENE] Setting: {description[:50]}...")
         self.scene_text.setPlainText(description)
+        
+        # Use very visible styling
+        self.scene_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                border: 2px solid #4CAF50;
+                border-radius: 6px;
+                padding: 10px;
+                font-size: 14px;
+                font-family: 'Consolas', 'Courier New', monospace;
+                line-height: 1.5;
+            }
+        """)
+        
+        # Ensure visibility
+        self.scene_text.raise_()
+        self.scene_text.show()
     
     def update_environment_details(self, details: str):
         """Update environmental information."""
@@ -2626,15 +2670,67 @@ class EncounterPanel(QWidget):
                     traceback.print_exc()
                     continue
             
-            # Update scene description
+            # Update scene description with encounter budget details
             difficulty_desc = encounter_data['difficulty'].capitalize()
-            monster_names = [m['name'] for m in encounter_data['monsters']]
-            if len(monster_names) == 1:
-                desc = f"A {difficulty_desc.lower()} encounter appears: {monster_names[0]}!"
+            total_xp = encounter_data.get('total_xp', 0)
+            level = encounter_data.get('level', character_level)
+            
+            # Build monster list with individual XP
+            monster_details = []
+            for monster in encounter_data['monsters']:
+                monster_xp = monster.get('xp', 0)
+                cr = monster.get('cr', '?')
+                
+                # Format CR display (handle fractions)
+                if isinstance(cr, (int, float)):
+                    if cr < 1:
+                        # Convert decimal to fraction for display
+                        if cr == 0.125:
+                            cr_display = "1/8"
+                        elif cr == 0.25:
+                            cr_display = "1/4"  
+                        elif cr == 0.5:
+                            cr_display = "1/2"
+                        else:
+                            cr_display = str(cr)
+                    else:
+                        cr_display = str(int(cr))
+                else:
+                    cr_display = str(cr)
+                    
+                monster_details.append(f"{monster['name']} (CR {cr_display}, {monster_xp} XP)")
+            
+            # Create detailed encounter description
+            if len(monster_details) == 1:
+                monsters_text = monster_details[0]
             else:
-                desc = f"A {difficulty_desc.lower()} encounter appears: {', '.join(monster_names)}!"
+                monsters_text = '\n'.join([f"• {detail}" for detail in monster_details])
+            
+            # Get the XP budget for this difficulty level
+            try:
+                from encounter_pane.encounter_generator import XP_BUDGETS
+                budget_entry = next((entry for entry in XP_BUDGETS if entry["Level"] == level), None)
+                if budget_entry:
+                    max_budget = budget_entry.get(difficulty_desc, "Unknown")
+                    budget_info = f"XP Budget: {total_xp} / {max_budget} ({difficulty_desc})"
+                else:
+                    budget_info = f"XP Budget: {total_xp} ({difficulty_desc})"
+            except:
+                budget_info = f"XP Budget: {total_xp} ({difficulty_desc})"
+            
+            desc = f"""== {difficulty_desc} Encounter (Level {level}) ==
+
+{monsters_text}
+
+{budget_info}
+Character Level: {character_level}"""
             
             self.update_scene_description(desc)
+            
+            # Also update the encounter details in the Encounters tab
+            if hasattr(self, 'encounter_details_text'):
+                self.encounter_details_text.setPlainText(desc)
+                print(f"[ENCOUNTER] Updated encounter details: {desc[:50]}...")
             
             # Switch to encounter mode
             self.set_encounter_mode()
