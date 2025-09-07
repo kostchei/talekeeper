@@ -134,9 +134,24 @@ class TrainingHallInterface(QWidget):
     
     def _setup_ui(self):
         """Setup the training hall interface"""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        # Create a scroll area for the training hall
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Create the main content widget
+        content_widget = QWidget()
+        scroll_area.setWidget(content_widget)
+        
+        # Main layout with reduced margins and spacing
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.addWidget(scroll_area)
+        
+        layout = QVBoxLayout(content_widget)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
         
         # Title
         title_label = QLabel("🏛️ TRAINING HALL")
@@ -144,30 +159,21 @@ class TrainingHallInterface(QWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
         
-        # Training info frame
-        self.info_frame = QFrame()
-        self.info_frame.setObjectName("trainingInfoFrame")
-        info_layout = QVBoxLayout(self.info_frame)
-        
+        # Training info (remove unnecessary frame)
         self.training_info_label = QLabel()
         self.training_info_label.setObjectName("trainingInfo")
         self.training_info_label.setWordWrap(True)
-        info_layout.addWidget(self.training_info_label)
+        self.training_info_label.setStyleSheet("border: 1px solid #666; padding: 8px; background: #f5f5f5;")
+        layout.addWidget(self.training_info_label)
         
-        layout.addWidget(self.info_frame)
-        
-        # Class selection (for multiclassing)
-        self.class_selection_frame = QFrame()
-        self.class_selection_frame.setObjectName("classSelectionFrame")
-        class_layout = QVBoxLayout(self.class_selection_frame)
-        
+        # Class selection (remove unnecessary frame)
         class_title = QLabel("Choose Class to Advance:")
         class_title.setObjectName("sectionTitle")
-        class_layout.addWidget(class_title)
+        class_title.setStyleSheet("font-weight: bold; margin-top: 5px;")
+        layout.addWidget(class_title)
         
         # Radio buttons for class selection
         self.class_button_group = QButtonGroup()
-        self.class_buttons_layout = QVBoxLayout()
         
         available_classes = self.level_up_service.get_available_classes()
         character_id = self.character_data.get('id', '')
@@ -195,26 +201,19 @@ class TrainingHallInterface(QWidget):
             
             radio_btn.toggled.connect(lambda checked, cls=class_name: self._class_selected(cls, checked))
             self.class_button_group.addButton(radio_btn, i)
-            self.class_buttons_layout.addWidget(radio_btn)
+            layout.addWidget(radio_btn)
         
-        class_layout.addLayout(self.class_buttons_layout)
-        layout.addWidget(self.class_selection_frame)
-        
-        # Features preview
-        self.features_frame = QFrame()
-        self.features_frame.setObjectName("featuresFrame")
-        features_layout = QVBoxLayout(self.features_frame)
-        
+        # Features preview (remove unnecessary frame)
         features_title = QLabel("Features You'll Gain:")
         features_title.setObjectName("sectionTitle")
-        features_layout.addWidget(features_title)
+        features_title.setStyleSheet("font-weight: bold; margin-top: 10px;")
+        layout.addWidget(features_title)
         
         self.features_list = QLabel()
         self.features_list.setObjectName("featuresList")
         self.features_list.setWordWrap(True)
-        features_layout.addWidget(self.features_list)
-        
-        layout.addWidget(self.features_frame)
+        self.features_list.setStyleSheet("border: 1px solid #666; padding: 8px; background: #f9f9f9;")
+        layout.addWidget(self.features_list)
         
         # ASI/Feat selection frame (initially hidden)
         self.asi_feat_frame = QFrame()
@@ -377,7 +376,8 @@ Training includes food and lodging (counts as a long rest)."""
         
         # Add ASI/Feat information if applicable
         if self.is_asi_level:
-            if self.asi_radio.isChecked():
+            feat_data = self.feat_combo.currentData()
+            if feat_data == "ASI":
                 asi_changes = [f"+{bonus} {ability.capitalize()}" for ability, bonus in self.asi_allocation.items() if bonus > 0]
                 if asi_changes:
                     advancement_summary += f"Ability Score Improvements: {', '.join(asi_changes)}\n"
@@ -395,7 +395,8 @@ Training includes food and lodging (counts as a long rest)."""
             
             # Apply ASI/Feat choices if this is an ASI level
             if success and self.is_asi_level:
-                if self.asi_radio.isChecked():
+                feat_data = self.feat_combo.currentData()
+                if feat_data == "ASI":
                     self._apply_asi_increases(character_id)
                 elif self.selected_feat:
                     self._apply_feat_selection(character_id)
@@ -439,7 +440,7 @@ Training includes food and lodging (counts as a long rest)."""
             
             cursor.execute("""
                 SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
+                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
             """, (character_id,))
             
             result = cursor.fetchone()
@@ -473,96 +474,122 @@ Training includes food and lodging (counts as a long rest)."""
     def _setup_asi_feat_selection(self):
         """Setup ASI/feat selection interface for ASI levels"""
         layout = QVBoxLayout(self.asi_feat_frame)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
         # Title
-        asi_title = QLabel("🎯 ABILITY SCORE IMPROVEMENT")
+        asi_title = QLabel("🎯 FEAT SELECTION")
         asi_title.setObjectName("asiTitle")
         asi_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        asi_title.setStyleSheet("font-weight: bold; color: #c44; margin: 5px;")
         layout.addWidget(asi_title)
         
-        # Choice: ASI vs Feat
-        choice_frame = QFrame()
-        choice_layout = QHBoxLayout(choice_frame)
+        # Feat selection dropdown
+        feat_label = QLabel("Choose your advancement:")
+        feat_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
+        layout.addWidget(feat_label)
         
-        self.asi_radio = QRadioButton("Ability Score Improvement (+2 total)")
-        self.asi_radio.setChecked(True)  # Default to ASI
-        self.asi_radio.toggled.connect(self._on_asi_feat_choice)
-        choice_layout.addWidget(self.asi_radio)
+        self.feat_combo = QComboBox()
+        self.feat_combo.setObjectName("featCombo")
         
-        self.feat_radio = QRadioButton("Choose a Feat")
-        self.feat_radio.toggled.connect(self._on_asi_feat_choice)
-        choice_layout.addWidget(self.feat_radio)
+        # Add ASI as the first (default) option
+        self.feat_combo.addItem("Ability Score Improvement (+2 points)", "ASI")
         
-        layout.addWidget(choice_frame)
-        
-        # ASI allocation section
-        self.asi_section = QFrame()
-        self.asi_section.setObjectName("asiSection")
-        asi_section_layout = QVBoxLayout(self.asi_section)
-        
-        asi_info = QLabel("Distribute 2 points among your ability scores (max +1 per ability per level):")
-        asi_info.setWordWrap(True)
-        asi_section_layout.addWidget(asi_info)
-        
-        # Create spinboxes for each ability score
-        self.asi_spinboxes = {}
-        abilities = [('str', 'Strength'), ('dex', 'Dexterity'), ('con', 'Constitution'), 
-                    ('int', 'Intelligence'), ('wis', 'Wisdom'), ('cha', 'Charisma')]
-        
-        for ability, full_name in abilities:
-            ability_frame = QFrame()
-            ability_layout = QHBoxLayout(ability_frame)
+        # Add available feats (exclude boon feats - only available at level 19+)
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, description FROM feats WHERE name NOT LIKE '%Boon%' ORDER BY name")
+            feats = cursor.fetchall()
+            conn.close()
             
-            label = QLabel(f"{full_name}:")
-            label.setMinimumWidth(80)
-            ability_layout.addWidget(label)
+            for feat_name, feat_description in feats:
+                # Truncate description for dropdown
+                short_desc = feat_description[:80] + "..." if len(feat_description) > 80 else feat_description
+                self.feat_combo.addItem(f"{feat_name} - {short_desc}", feat_name)
+        except Exception as e:
+            print(f"Error loading feats: {e}")
+            # Add some default feats as fallback
+            default_feats = [
+                ("Tough", "+2 HP per level"),
+                ("Alert", "+5 initiative, can't be surprised"),
+                ("Lucky", "3 luck points per long rest")
+            ]
+            for feat_name, desc in default_feats:
+                self.feat_combo.addItem(f"{feat_name} - {desc}", feat_name)
+        
+        self.feat_combo.currentTextChanged.connect(self._on_feat_selection_changed)
+        layout.addWidget(self.feat_combo)
+        
+        # ASI allocation section (only shows when ASI is selected)
+        self.asi_section = QFrame()
+        self.asi_section.setStyleSheet("background: #e8f4f8; padding: 8px; border: 1px solid #4a90e2; border-radius: 4px;")
+        asi_layout = QVBoxLayout(self.asi_section)
+        asi_layout.setContentsMargins(5, 5, 5, 5)
+        asi_layout.setSpacing(3)
+        
+        asi_info = QLabel("Distribute +2 points among your ability scores (no ability can exceed 20):")
+        asi_info.setWordWrap(True)
+        asi_info.setStyleSheet("font-weight: bold; margin-bottom: 5px;")
+        asi_layout.addWidget(asi_info)
+        
+        # Create compact spinboxes for each ability score
+        self.asi_spinboxes = {}
+        abilities = [('strength', 'STR'), ('dexterity', 'DEX'), ('constitution', 'CON'), 
+                    ('intelligence', 'INT'), ('wisdom', 'WIS'), ('charisma', 'CHA')]
+        
+        for ability, short_name in abilities:
+            ability_layout = QHBoxLayout()
             
             current_score = self.character_data.get(ability, 10)
-            current_label = QLabel(f"({current_score})")
-            current_label.setMinimumWidth(30)
-            ability_layout.addWidget(current_label)
+            label = QLabel(f"{short_name}: {current_score}")
+            label.setMinimumWidth(60)
+            ability_layout.addWidget(label)
             
             spinbox = QSpinBox()
-            spinbox.setRange(0, 1)  # Max +1 per ability per level
+            # Can allocate up to +2, but total ability score can't exceed 20
+            max_increase = min(2, 20 - current_score)
+            spinbox.setRange(0, max(0, max_increase))
             spinbox.setValue(0)
+            spinbox.setMaximumWidth(50)
             spinbox.valueChanged.connect(self._on_asi_allocation_changed)
             ability_layout.addWidget(spinbox)
             
+            ability_layout.addStretch()  # Push everything left
             self.asi_spinboxes[ability] = spinbox
-            asi_section_layout.addWidget(ability_frame)
+            asi_layout.addLayout(ability_layout)
         
         # Points remaining label
         self.points_remaining_label = QLabel("Points remaining: 2")
-        self.points_remaining_label.setObjectName("pointsLabel")
-        asi_section_layout.addWidget(self.points_remaining_label)
+        self.points_remaining_label.setStyleSheet("font-weight: bold; color: #c44;")
+        asi_layout.addWidget(self.points_remaining_label)
         
         layout.addWidget(self.asi_section)
         
-        # Feat selection section  
-        self.feat_section = QFrame()
-        self.feat_section.setObjectName("featSection")
-        self.feat_section.hide()  # Hidden by default
-        feat_section_layout = QVBoxLayout(self.feat_section)
+        # Initialize ASI tracking
+        self.asi_allocation = {}
+        self.selected_feat = None
+    
+    def _on_feat_selection_changed(self, text):
+        """Handle feat/ASI selection changes"""
+        data = self.feat_combo.currentData()
         
-        feat_info = QLabel("Choose a feat (some feats provide ability score bonuses):")
-        feat_info.setWordWrap(True)
-        feat_section_layout.addWidget(feat_info)
-        
-        self.feat_combo = QComboBox()
-        self.feat_combo.addItem("Choose a feat...", None)
-        self.feat_combo.currentTextChanged.connect(self._on_feat_selected)
-        feat_section_layout.addWidget(self.feat_combo)
-        
-        self.feat_description = QLabel()
-        self.feat_description.setObjectName("featDescription")
-        self.feat_description.setWordWrap(True)
-        self.feat_description.hide()
-        feat_section_layout.addWidget(self.feat_description)
-        
-        layout.addWidget(self.feat_section)
-        
-        # Load available feats
-        self._load_available_feats()
+        if data == "ASI":
+            # Show ASI info, set selected_feat to None for ASI
+            self.selected_feat = None
+            self.asi_section.show()
+            self._update_points_remaining()  # Check if points are allocated
+        else:
+            # Hide ASI info, set selected feat
+            self.selected_feat = {"name": data} if data else None
+            self.asi_section.hide()
+            self.train_button.setEnabled(data is not None)
+    
+    def _update_points_remaining(self):
+        """Update the points remaining display and button state"""
+        if hasattr(self, 'asi_spinboxes'):
+            self._on_asi_allocation_changed()  # Reuse the same logic
     
     def _load_available_feats(self):
         """Load available feats from database"""
@@ -580,46 +607,44 @@ Training includes food and lodging (counts as a long rest)."""
         except Exception as e:
             print(f"Error loading feats: {e}")
     
-    def _on_asi_feat_choice(self):
-        """Handle ASI vs Feat radio button selection"""
-        if self.asi_radio.isChecked():
-            self.asi_section.show()
-            self.feat_section.hide()
-            self.available_asi_points = 2
-            self._update_points_remaining()
-        else:
-            self.asi_section.hide()
-            self.feat_section.show()
-            self.available_asi_points = 0
     
     def _on_asi_allocation_changed(self):
-        """Handle changes to ASI point allocation"""
+        """Handle ASI point allocation changes"""
+        # Calculate total points allocated
         total_allocated = sum(spinbox.value() for spinbox in self.asi_spinboxes.values())
+        points_remaining = 2 - total_allocated
         
-        # Ensure we don't go over 2 points
+        # If over-allocated, adjust the sender spinbox
         if total_allocated > 2:
-            # Find the spinbox that was just changed and reduce it
             sender = self.sender()
             if sender and isinstance(sender, QSpinBox):
-                sender.setValue(sender.value() - 1)
-                return
+                # Reduce the value by the excess amount
+                excess = total_allocated - 2
+                sender.setValue(sender.value() - excess)
+                total_allocated = 2
+                points_remaining = 0
         
-        self.available_asi_points = 2 - total_allocated
-        self._update_points_remaining()
+        self.points_remaining_label.setText(f"Points remaining: {points_remaining}")
         
-        # Update asi_allocation dictionary
+        # Update max values for all spinboxes based on remaining points
         for ability, spinbox in self.asi_spinboxes.items():
-            self.asi_allocation[ability] = spinbox.value()
-    
-    def _update_points_remaining(self):
-        """Update the points remaining label"""
-        self.points_remaining_label.setText(f"Points remaining: {self.available_asi_points}")
+            current_score = self.character_data.get(ability, 10)
+            current_allocation = spinbox.value()
+            
+            # Max increase is either remaining points + current allocation, or what gets us to 20
+            remaining_plus_current = points_remaining + current_allocation
+            max_for_ability = min(remaining_plus_current, 20 - current_score)
+            spinbox.setMaximum(max(0, max_for_ability))
         
-        # Enable/disable training button based on whether allocation is complete
-        if self.asi_radio.isChecked():
-            self.train_button.setEnabled(self.available_asi_points == 0)
-        else:
-            self.train_button.setEnabled(self.selected_feat is not None)
+        # Update ASI allocation dictionary
+        self.asi_allocation = {}
+        for ability, spinbox in self.asi_spinboxes.items():
+            if spinbox.value() > 0:
+                self.asi_allocation[ability] = spinbox.value()
+        
+        # Enable training button only if exactly 2 points are allocated
+        self.train_button.setEnabled(total_allocated == 2)
+    
     
     def _on_feat_selected(self, feat_name):
         """Handle feat selection"""
@@ -637,31 +662,24 @@ Training includes food and lodging (counts as a long rest)."""
     def _apply_asi_increases(self, character_id: str):
         """Apply ability score increases to character"""
         try:
+            print(f"[ASI] Applying ASI increases: {self.asi_allocation}")
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
             
             # Apply each ability score increase
             for ability, increase in self.asi_allocation.items():
                 if increase > 0:
-                    # Map short names to full column names
-                    ability_columns = {
-                        'str': 'strength',
-                        'dex': 'dexterity', 
-                        'con': 'constitution',
-                        'int': 'intelligence',
-                        'wis': 'wisdom',
-                        'cha': 'charisma'
-                    }
+                    # Map full ability names to column names (ability names are already full names)
+                    valid_abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']
                     
-                    column_name = ability_columns.get(ability)
-                    if column_name:
+                    if ability in valid_abilities:
                         cursor.execute(f"""
                             UPDATE characters 
-                            SET {column_name} = {column_name} + ? 
+                            SET {ability} = {ability} + ? 
                             WHERE id = ?
                         """, (increase, character_id))
                         
-                        print(f"[ASI] Increased {column_name} by {increase}")
+                        print(f"[ASI] Increased {ability} by {increase}")
             
             conn.commit()
             conn.close()
@@ -974,7 +992,7 @@ class ShopInterface(QWidget):
             
             cursor.execute("""
                 SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
+                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
             """, (character_id,))
             
             result = cursor.fetchone()
@@ -1250,7 +1268,7 @@ class ShopInterface(QWidget):
             # Check if gold entry exists
             cursor.execute("""
                 SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
+                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
             """, (character_id,))
             
             result = cursor.fetchone()
