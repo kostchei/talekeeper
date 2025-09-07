@@ -326,6 +326,9 @@ class GameEngineSQLite:
     def get_save_slots_sync(self) -> List[Dict[str, Any]]:
         """Get all save slots."""
         try:
+            # Clean up orphaned slots first
+            self._cleanup_orphaned_slots()
+            
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
@@ -369,6 +372,29 @@ class GameEngineSQLite:
         except Exception as e:
             print(f"Error loading save slots: {e}")
             return []
+    
+    def _cleanup_orphaned_slots(self):
+        """Clean up save slots that are marked as occupied but have no character."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Update orphaned slots to be unoccupied
+                cursor.execute("""
+                    UPDATE save_slots 
+                    SET is_occupied = 0, character_name = NULL, character_level = NULL 
+                    WHERE is_occupied = 1 
+                    AND id NOT IN (SELECT DISTINCT save_slot_id FROM characters WHERE save_slot_id IS NOT NULL)
+                """)
+                
+                orphaned_count = cursor.rowcount
+                if orphaned_count > 0:
+                    print(f"[SQLite] Cleaned up {orphaned_count} orphaned save slots")
+                
+                conn.commit()
+                
+        except Exception as e:
+            print(f"Error cleaning up orphaned slots: {e}")
     
     def get_character_fighting_styles(self, character_id: str) -> List[str]:
         """Get character's fighting styles from character_features table."""
@@ -642,6 +668,7 @@ class GameEngineSQLite:
                 
                 character_row = cursor.fetchone()
                 if not character_row:
+                    # Silently return False for empty slots (no error logging)
                     return False
                 
                 character_id = character_row['id']
@@ -657,6 +684,7 @@ class GameEngineSQLite:
                 """, (save_slot,))
                 
                 conn.commit()
+                print(f"[SQLite] Deleted character from slot {save_slot}")
                 return True
                 
         except Exception as e:

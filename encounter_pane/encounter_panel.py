@@ -236,6 +236,7 @@ class Encounter:
         self._player_initiative_breakdown = roll_breakdown
         
         # Roll initiative for each monster
+        self.monster_initiative_rolls = {}  # Store rolls for logging
         for instance in monster_instances:
             if instance.is_alive:
                 # Get monster DEX modifier from monster data
@@ -249,6 +250,14 @@ class Encounter:
                 # Roll initiative for this monster
                 monster_roll = random.randint(1, 20)
                 instance.initiative = monster_roll + dex_modifier
+                
+                # Store the roll breakdown for logging
+                self.monster_initiative_rolls[instance.id] = {
+                    'name': monster_name,
+                    'd20_roll': monster_roll,
+                    'dex_modifier': dex_modifier,
+                    'total': instance.initiative
+                }
         
         # Mark initiative as rolled
         self.initiative_rolled = True
@@ -501,7 +510,11 @@ class EncounterPanel(QWidget):
         """)
         encounters_layout.addWidget(self.encounter_details_text)
         
-        # Removed unused encounters list - it was just taking up space
+        # Encounters list widget  
+        self.encounters_list = QListWidget()
+        self.encounters_list.setObjectName("encountersList")
+        self.encounters_list.setMaximumHeight(150)  # Keep it compact
+        encounters_layout.addWidget(self.encounters_list)
         
         # Generate encounter button
         self.generate_encounter_btn = QPushButton("Generate Random Encounter")
@@ -1117,6 +1130,11 @@ class EncounterPanel(QWidget):
         self.current_encounter_id = None
         self.current_encounter = None  # Clear encounter tracking
         self.selected_monster_id = None  # Clear selection
+        
+        # Clear encounters list
+        if hasattr(self, 'encounters_list'):
+            self.encounters_list.clear()
+        
         if self.encounter_mode in ["encounter", "combat"]:
             self.set_exploration_mode()
     

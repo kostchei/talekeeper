@@ -2217,6 +2217,10 @@ class ActionPanel(QWidget):
     def _log_initiative_results(self, player_initiative: int, initiative_order: list, player_dex_mod: int):
         """Log the initiative results to show turn order."""
         try:
+            # Get encounter panel to access the current encounter with roll data
+            encounter_panel = self._get_encounter_panel()
+            current_encounter = getattr(encounter_panel, 'current_encounter', None) if encounter_panel else None
+            
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -2226,33 +2230,48 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat("=" * 50)
                     
                     # Log player initiative with advantage/disadvantage info
-                    initiative_breakdown = getattr(current_encounter, '_player_initiative_breakdown', None)
+                    initiative_breakdown = getattr(current_encounter, '_player_initiative_breakdown', None) if current_encounter else None
                     if initiative_breakdown:
                         roll_desc = initiative_breakdown.get('description', f'd20({player_initiative - player_dex_mod})')
                         dex_bonus_str = f" +{player_dex_mod} DEX" if player_dex_mod >= 0 else f" {player_dex_mod} DEX"
-                        parent.log_panel.log_combat(f"[PLAYER] Initiative: {roll_desc}{dex_bonus_str} = {player_initiative}")
+                        parent.log_panel.log_combat(f"🎲 Player Initiative: {roll_desc}{dex_bonus_str} = {player_initiative}")
                     else:
                         # Fallback for old format
                         d20_roll = player_initiative - player_dex_mod
                         dex_bonus_str = f"+{player_dex_mod}" if player_dex_mod >= 0 else str(player_dex_mod)
-                        parent.log_panel.log_combat(f"[PLAYER] Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
+                        parent.log_panel.log_combat(f"🎲 Player Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {player_initiative}")
                     
-                    # Log monster initiatives
+                    # Log monster initiatives with dice rolls
+                    monster_rolls = getattr(current_encounter, 'monster_initiative_rolls', {}) if current_encounter else {}
                     for entry in initiative_order:
                         if entry['type'] == 'monster':
-                            parent.log_panel.log_combat(f"[MONSTER] {entry['name']} initiative: {entry['initiative']}")
+                            # Try to find the roll data for this monster
+                            roll_data = None
+                            for instance_id, roll_info in monster_rolls.items():
+                                if roll_info['name'] == entry['name']:
+                                    roll_data = roll_info
+                                    break
+                            
+                            if roll_data:
+                                d20_roll = roll_data['d20_roll']
+                                dex_mod = roll_data['dex_modifier']
+                                dex_bonus_str = f"+{dex_mod}" if dex_mod >= 0 else str(dex_mod)
+                                parent.log_panel.log_combat(f"🎲 {entry['name']} Initiative: d20({d20_roll}) {dex_bonus_str} DEX = {entry['initiative']}")
+                            else:
+                                # Fallback if no roll data
+                                parent.log_panel.log_combat(f"🎲 {entry['name']} Initiative: {entry['initiative']}")
                     
                     # Log turn order prominently
                     parent.log_panel.log_combat("-" * 30)
                     turn_order = " -> ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
-                    parent.log_panel.log_combat(f"[TURN ORDER] {turn_order}")
+                    parent.log_panel.log_combat(f"⚔ TURN ORDER: {turn_order}")
                     parent.log_panel.log_combat("-" * 30)
                     
                     # Announce who goes first
                     if initiative_order:
                         first_actor = initiative_order[0]
                         if first_actor['type'] == 'player':
-                            parent.log_panel.log_combat("[FIRST TURN] You go first!")
+                            parent.log_panel.log_combat("⚔ [FIRST TURN] You go first!")
                         else:
                             parent.log_panel.log_combat(f"[FIRST TURN] {first_actor['name']} goes first!")
                     
