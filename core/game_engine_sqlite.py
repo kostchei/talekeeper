@@ -323,6 +323,34 @@ class GameEngineSQLite:
             print(f"Error loading character from slot {save_slot}: {e}")
             return None
     
+    def get_character_by_id_sync(self, character_id: str) -> Optional[Dict[str, Any]]:
+        """Load character by character ID."""
+        try:
+            print(f"[SQLite] Loading character by ID: {character_id}")
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Get the character data with save slot info
+                cursor.execute("""
+                    SELECT c.*, s.save_name, s.current_location, s.last_played, s.slot_number
+                    FROM characters c
+                    JOIN save_slots s ON c.save_slot_id = s.id
+                    WHERE c.id = ?
+                """, (character_id,))
+                
+                character_row = cursor.fetchone()
+                if not character_row:
+                    print(f"[SQLite] No character found with ID {character_id}")
+                    return None
+                
+                # Get the save slot and reload using the existing method
+                slot_number = character_row['slot_number']
+                return self.load_character_sync(slot_number)
+                
+        except Exception as e:
+            print(f"[SQLite] Error loading character by ID {character_id}: {e}")
+            return None
+    
     def get_save_slots_sync(self) -> List[Dict[str, Any]]:
         """Get all save slots."""
         try:

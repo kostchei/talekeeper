@@ -4003,10 +4003,16 @@ Character Level: {character_level}"""
                 from services.character_resources import CharacterResourceService
                 resource_service = CharacterResourceService('talekeeper.db')
                 
+                # Restore all short rest resources (long rest includes short rest benefits)
+                short_result = resource_service.restore_resources_by_rest_type(character['id'], 'short_rest')
+                if short_result.get('success', False):
+                    for resource in short_result.get('restored_resources', []):
+                        abilities_restored.append(resource['resource_name'])
+                
                 # Restore all long rest resources
-                result = resource_service.restore_resources_by_rest_type(character['id'], 'long_rest')
-                if result.get('success', False):
-                    for resource in result.get('restored_resources', []):
+                long_result = resource_service.restore_resources_by_rest_type(character['id'], 'long_rest')
+                if long_result.get('success', False):
+                    for resource in long_result.get('restored_resources', []):
                         abilities_restored.append(resource['resource_name'])
                 
                 # Refresh the character object with updated resource values

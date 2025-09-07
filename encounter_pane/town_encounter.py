@@ -253,14 +253,20 @@ class TrainingHallInterface(QWidget):
             return
             
         character_id = self.character_data.get('id', '')
+        current_level = self.character_data.get('level', 1)
+        print(f"[Training] Checking ASI for {self.selected_class} at level {current_level} -> {current_level + 1}")
+        
         self.is_asi_level = self.level_up_service.is_asi_level(character_id, self.selected_class)
+        print(f"[Training] Is ASI level: {self.is_asi_level}")
         
         if self.is_asi_level:
             self.asi_feat_frame.show()
             self._update_points_remaining()  # Update button state
+            print(f"[Training] Showing feat selection UI")
         else:
             self.asi_feat_frame.hide()
             self.train_button.setEnabled(True)  # Normal training available
+            print(f"[Training] No feat at this level")
     
     def _update_training_info(self):
         """Update training information display"""

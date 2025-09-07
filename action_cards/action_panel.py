@@ -517,63 +517,25 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
                 return
             
-            # Apply Action Surge effect to action economy
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'action_economy') and parent.action_economy:
-                    # Find the player's state in action economy
-                    for combatant_id, state in parent.action_economy.combatant_states.items():
-                        if combatant_id == character_id:
-                            if hasattr(state, 'use_action_surge'):
-                                if state.use_action_surge():
-                                    parent.log_panel.log_combat("⚡ Action Surge: Additional action available this turn!")
-                                else:
-                                    parent.log_panel.log_combat("[FAIL] Action Surge: Already used this turn")
-                            else:
-                                # Fallback: manually reset action availability
-                                state.action_available = True
-                                parent.log_panel.log_combat("⚡ Action Surge: Action restored for this turn!")
-                            break
-                    break
-                parent = parent.parent()
-            
-            # Log the result
-            result = {
-                'success': True,
-                'effect': 'Gain one additional action this turn (except Magic action)',
-                'uses_remaining': use_result['current_uses']
-            }
-            
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"⚡ Action Surge! {result['effect']}")
-                    if result['uses_remaining'] > 0:
-                        parent.log_panel.log_combat(f"Action Surge uses remaining: {result['uses_remaining']}")
-                    break
-                parent = parent.parent()
-            
-            # Update action economy if in combat
-            if result['success']:
-                # Grant additional action in combat
+            # Set Action Surge state in character context
+            if 'action_surge_extra_action_available' not in self.character_context:
+                self.character_context['action_surge_extra_action_available'] = True
+                self.character_context['action_surge_used_this_turn'] = True
+                
+                # Log successful Action Surge
                 parent = self.parent()
                 while parent:
-                    if hasattr(parent, 'encounter_panel') and hasattr(parent.encounter_panel, 'combat_session'):
-                        # Reset action availability for this turn
-                        if parent.encounter_panel.combat_session and parent.encounter_panel.combat_session.action_economy:
-                            combatant_id = character_id
-                            state = parent.encounter_panel.combat_session.action_economy.get_combatant_state(combatant_id)
-                            if state:
-                                # Use the proper Action Surge method in action economy
-                                if hasattr(state, 'use_action_surge'):
-                                    if state.use_action_surge():
-                                        parent.log_panel.log_combat("⚡ Action Surge: Additional action available this turn!")
-                                    else:
-                                        parent.log_panel.log_combat("[FAIL] Action Surge: Already used this turn")
-                                else:
-                                    # Fallback: manually reset action availability
-                                    state.action_available = True
-                                    parent.log_panel.log_combat("⚡ Action Surge: Action restored for this turn!")
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("⚡ Action Surge! Additional action available this turn!")
+                        parent.log_panel.log_combat(f"Action Surge uses remaining: {use_result['current_uses']}")
+                        break
+                    parent = parent.parent()
+            else:
+                # Already used Action Surge this turn
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("[FAIL] Action Surge: Already used this turn")
                         break
                     parent = parent.parent()
         
@@ -1439,9 +1401,20 @@ class ActionPanel(QWidget):
             print(f"NEW ATTACK: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            # Use the working monster attack system (bypassing broken initiative system for now)
-            print(f"NEW ATTACK: Using working monster counter-attack system")
-            self._trigger_monster_counter_attacks(encounter_panel)
+            # Check if Action Surge extra action is available before monsters react
+            if self.character_context.get('action_surge_extra_action_available', False):
+                self.character_context['action_surge_extra_action_available'] = False
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("⚡ Action Surge: Taking second action before monsters react!")
+                        break
+                    parent = parent.parent()
+                return  # Skip monster reactions, player gets another action
+            else:
+                # Use the working monster attack system (bypassing broken initiative system for now)
+                print(f"NEW ATTACK: Using working monster counter-attack system")
+                self._trigger_monster_counter_attacks(encounter_panel)
     
     def _execute_remaining_initiative_turns(self, encounter_panel, current_encounter):
         """Execute remaining monster turns in initiative order after player's turn."""
@@ -1622,6 +1595,17 @@ class ActionPanel(QWidget):
     def _trigger_monster_counter_attacks(self, encounter_panel):
         """Trigger counter-attacks from all living monsters after player's action."""
         try:
+            # Reset Action Surge flags - player's turn is now complete
+            if self.character_context.get('action_surge_used_this_turn', False):
+                self.character_context['action_surge_used_this_turn'] = False
+                self.character_context['action_surge_extra_action_available'] = False
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("[DEBUG] Action Surge flags reset - turn complete")
+                        break
+                    parent = parent.parent()
+            
             print(f"DEBUG: _trigger_monster_counter_attacks called, encounter_mode: {encounter_panel.encounter_mode}")
             
             # Check if we're in combat/encounter mode and have living monsters

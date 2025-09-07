@@ -26,11 +26,23 @@ class LevelUpService:
             result = cursor.fetchone()
             if result:
                 current_class_level = result[0]
+                print(f"[LevelUp] Found existing {class_choice} level {current_class_level} in character_class_levels")
             else:
-                # If no existing level in this class, they'd be getting level 1
-                current_class_level = 0
+                # If no existing level in this class, check if it's their primary class
+                cursor.execute("""
+                    SELECT level, class_id FROM characters 
+                    WHERE id = ?
+                """, (character_id,))
+                char_result = cursor.fetchone()
+                if char_result and char_result[1] and char_result[1].lower() == class_choice.lower():
+                    current_class_level = char_result[0]
+                    print(f"[LevelUp] Using primary class {class_choice} level {current_class_level}")
+                else:
+                    current_class_level = 0
+                    print(f"[LevelUp] No existing levels in {class_choice}, would be level 1")
             
             next_class_level = current_class_level + 1
+            print(f"[LevelUp] Checking if {class_choice} level {next_class_level} is an ASI level")
             
             # Define ASI levels for each class (D&D 2024 SRD)
             asi_levels = {
@@ -51,9 +63,11 @@ class LevelUpService:
             class_name = class_choice.lower()
             if class_name in asi_levels:
                 is_asi = next_class_level in asi_levels[class_name]
+                print(f"[LevelUp] {class_name} level {next_class_level}: ASI levels are {asi_levels[class_name]}, is_asi={is_asi}")
             else:
                 # Default ASI levels for unknown classes
                 is_asi = next_class_level in [4, 8, 12, 16, 19]
+                print(f"[LevelUp] Unknown class {class_name}, using default ASI levels, is_asi={is_asi}")
             
             conn.close()
             return is_asi
@@ -180,6 +194,23 @@ class LevelUpService:
                 print(f"[LevelUp] Updated feature system for {class_choice} level {new_class_level} (total level {new_total_level})")
             except Exception as e:
                 print(f"[LevelUp] Warning: Failed to update new feature system: {e}")
+            
+            # Initialize/update resources for the new level
+            try:
+                from services.character_resources import CharacterResourceService
+                resource_service = CharacterResourceService(self.db_path)
+                
+                # Re-initialize resources based on new total level
+                if class_choice.lower() == 'fighter':
+                    result = resource_service.initialize_fighter_resources(character_id, new_total_level)
+                    print(f"[LevelUp] Updated Fighter resources: {result.get('resources_added', [])}")
+                elif class_choice.lower() == 'barbarian':
+                    result = resource_service.initialize_barbarian_resources(character_id, new_total_level)
+                    print(f"[LevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
+                # Add other classes as needed
+                
+            except Exception as e:
+                print(f"[LevelUp] Warning: Failed to update resources: {e}")
             
             return True
             

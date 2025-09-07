@@ -217,16 +217,24 @@ class CharacterResourceService:
             return False
     
     def initialize_fighter_resources(self, character_id: str, level: int) -> Dict[str, Any]:
-        """Initialize Fighter resources based on level."""
-        resources_added = []
+        """Initialize/update Fighter resources based on level."""
+        resources_updated = []
         
         # Second Wind (level 1+)
+        # D&D 2024: 2 uses at L1, 3 at L4, 4 at L10
         if level >= 1:
+            if level >= 10:
+                second_wind_uses = 4
+            elif level >= 4:
+                second_wind_uses = 3
+            else:
+                second_wind_uses = 2
+            
             success = self.add_resource(
-                character_id, "Second Wind", 1, "short_rest", "fighter", 1
+                character_id, "Second Wind", second_wind_uses, "short_rest", "fighter", 1
             )
             if success:
-                resources_added.append("Second Wind")
+                resources_updated.append(f"Second Wind ({second_wind_uses} uses)")
         
         # Action Surge (level 2+)
         if level >= 2:
@@ -235,7 +243,7 @@ class CharacterResourceService:
                 character_id, "Action Surge", action_surge_uses, "short_rest", "fighter", 2
             )
             if success:
-                resources_added.append("Action Surge")
+                resources_updated.append(f"Action Surge ({action_surge_uses} uses)")
         
         # Indomitable (level 9+)
         if level >= 9:
@@ -244,13 +252,13 @@ class CharacterResourceService:
                 character_id, "Indomitable", indomitable_uses, "long_rest", "fighter", 9
             )
             if success:
-                resources_added.append("Indomitable")
+                resources_updated.append(f"Indomitable ({indomitable_uses} uses)")
         
         return {
             'success': True,
             'character_id': character_id,
             'level': level,
-            'resources_added': resources_added
+            'resources_added': resources_updated  # Keep same key for compatibility
         }
     
     def initialize_barbarian_resources(self, character_id: str, level: int) -> Dict[str, Any]:
