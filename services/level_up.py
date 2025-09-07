@@ -11,6 +11,57 @@ class LevelUpService:
     def __init__(self, db_path: str = "talekeeper.db"):
         self.db_path = db_path
     
+    def is_asi_level(self, character_id: str, class_choice: str) -> bool:
+        """Check if next level grants ASI for the selected class."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Get character's current level in the chosen class
+            cursor.execute("""
+                SELECT level FROM character_class_levels 
+                WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
+            """, (character_id, class_choice))
+            
+            result = cursor.fetchone()
+            if result:
+                current_class_level = result[0]
+            else:
+                # If no existing level in this class, they'd be getting level 1
+                current_class_level = 0
+            
+            next_class_level = current_class_level + 1
+            
+            # Define ASI levels for each class (D&D 2024 SRD)
+            asi_levels = {
+                'fighter': [4, 6, 8, 12, 14, 16],  # Fighter gets extra ASIs
+                'rogue': [4, 8, 10, 12, 16],       # Rogue gets extra ASI at 10
+                'barbarian': [4, 8, 12, 16],
+                'bard': [4, 8, 12, 16],
+                'cleric': [4, 8, 12, 16],
+                'druid': [4, 8, 12, 16],
+                'monk': [4, 8, 12, 16],
+                'paladin': [4, 8, 12, 16],
+                'ranger': [4, 8, 12, 16],
+                'sorcerer': [4, 8, 12, 16],
+                'warlock': [4, 8, 12, 16],
+                'wizard': [4, 8, 12, 16]
+            }
+            
+            class_name = class_choice.lower()
+            if class_name in asi_levels:
+                is_asi = next_class_level in asi_levels[class_name]
+            else:
+                # Default ASI levels for unknown classes
+                is_asi = next_class_level in [4, 8, 12, 16, 19]
+            
+            conn.close()
+            return is_asi
+            
+        except Exception as e:
+            print(f"Error checking ASI level: {e}")
+            return False
+    
     def get_available_classes(self) -> List[str]:
         """Get list of available classes for leveling."""
         return ['Barbarian', 'Cleric', 'Paladin', 'Rogue', 'Warlock', 'Wizard', 'Fighter']

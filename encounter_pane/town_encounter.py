@@ -124,6 +124,10 @@ class TrainingHallInterface(QWidget):
         self.character_data = character_data
         self.level_up_service = LevelUpService()
         self.selected_class = None
+        self.is_asi_level = False
+        self.selected_feat = None
+        self.asi_allocation = {'str': 0, 'dex': 0, 'con': 0, 'int': 0, 'wis': 0, 'cha': 0}
+        self.available_asi_points = 0
         
         self._setup_ui()
         self._update_training_info()
@@ -174,7 +178,13 @@ class TrainingHallInterface(QWidget):
         
         for i, class_name in enumerate(available_classes):
             radio_btn = QRadioButton(class_name)
-            current_level = current_classes.get(class_name, 0)
+            # Case-insensitive lookup for current level
+            current_level = 0
+            for stored_class, level in current_classes.items():
+                if stored_class.lower() == class_name.lower():
+                    current_level = level
+                    break
+            
             if current_level > 0:
                 radio_btn.setText(f"{class_name} (Level {current_level})")
                 if len(current_classes) == 1:  # Auto-select if only one class
@@ -206,6 +216,13 @@ class TrainingHallInterface(QWidget):
         
         layout.addWidget(self.features_frame)
         
+        # ASI/Feat selection frame (initially hidden)
+        self.asi_feat_frame = QFrame()
+        self.asi_feat_frame.setObjectName("asiFeatFrame")
+        self.asi_feat_frame.hide()  # Hidden by default
+        self._setup_asi_feat_selection()
+        layout.addWidget(self.asi_feat_frame)
+        
         # Training button
         self.train_button = QPushButton("Begin Training")
         self.train_button.setObjectName("trainButton")
@@ -224,10 +241,26 @@ class TrainingHallInterface(QWidget):
             self.selected_class = class_name
             try:
                 self._update_features_preview()
+                self._check_asi_level()
             except Exception as e:
                 print(f"Error updating features preview: {e}")
                 # Show fallback message
                 self.features_list.setText(f"Features will be available when advancing {class_name}.")
+    
+    def _check_asi_level(self):
+        """Check if this is an ASI level and show/hide ASI selection"""
+        if not self.selected_class:
+            return
+            
+        character_id = self.character_data.get('id', '')
+        self.is_asi_level = self.level_up_service.is_asi_level(character_id, self.selected_class)
+        
+        if self.is_asi_level:
+            self.asi_feat_frame.show()
+            self._update_points_remaining()  # Update button state
+        else:
+            self.asi_feat_frame.hide()
+            self.train_button.setEnabled(True)  # Normal training available
     
     def _update_training_info(self):
         """Update training information display"""
@@ -330,18 +363,36 @@ Training includes food and lodging (counts as a long rest)."""
                               f"You need {cost} gold pieces but only have {current_gold}.")
             return
         
+        # Prepare advancement summary
+        advancement_summary = f"Begin training in {self.selected_class}?\n\n"
+        advancement_summary += f"Cost: {cost} gold\n"
+        advancement_summary += f"Time: {days} days\n"
+        advancement_summary += f"You will advance to level {current_level + 1}.\n\n"
+        
+        # Add ASI/Feat information if applicable
+        if self.is_asi_level:
+            if self.asi_radio.isChecked():
+                asi_changes = [f"+{bonus} {ability.capitalize()}" for ability, bonus in self.asi_allocation.items() if bonus > 0]
+                if asi_changes:
+                    advancement_summary += f"Ability Score Improvements: {', '.join(asi_changes)}\n"
+            elif self.selected_feat:
+                advancement_summary += f"Feat: {self.selected_feat['name']}\n"
+        
         # Confirm training
-        reply = QMessageBox.question(self, "Confirm Training",
-                                   f"Begin training in {self.selected_class}?\n\n"
-                                   f"Cost: {cost} gold\n"
-                                   f"Time: {days} days\n"
-                                   f"You will advance to level {current_level + 1}.",
+        reply = QMessageBox.question(self, "Confirm Training", advancement_summary,
                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         
         if reply == QMessageBox.StandardButton.Yes:
             # Perform the level up
             character_id = self.character_data.get('id', '')
             success = self.level_up_service.level_up_character(character_id, self.selected_class)
+            
+            # Apply ASI/Feat choices if this is an ASI level
+            if success and self.is_asi_level:
+                if self.asi_radio.isChecked():
+                    self._apply_asi_increases(character_id)
+                elif self.selected_feat:
+                    self._apply_feat_selection(character_id)
             
             if success:
                 # Deduct gold
@@ -412,6 +463,261 @@ Training includes food and lodging (counts as a long rest)."""
             
         except Exception as e:
             print(f"Error deducting gold: {e}")
+    
+    def _setup_asi_feat_selection(self):
+        """Setup ASI/feat selection interface for ASI levels"""
+        layout = QVBoxLayout(self.asi_feat_frame)
+        
+        # Title
+        asi_title = QLabel("🎯 ABILITY SCORE IMPROVEMENT")
+        asi_title.setObjectName("asiTitle")
+        asi_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(asi_title)
+        
+        # Choice: ASI vs Feat
+        choice_frame = QFrame()
+        choice_layout = QHBoxLayout(choice_frame)
+        
+        self.asi_radio = QRadioButton("Ability Score Improvement (+2 total)")
+        self.asi_radio.setChecked(True)  # Default to ASI
+        self.asi_radio.toggled.connect(self._on_asi_feat_choice)
+        choice_layout.addWidget(self.asi_radio)
+        
+        self.feat_radio = QRadioButton("Choose a Feat")
+        self.feat_radio.toggled.connect(self._on_asi_feat_choice)
+        choice_layout.addWidget(self.feat_radio)
+        
+        layout.addWidget(choice_frame)
+        
+        # ASI allocation section
+        self.asi_section = QFrame()
+        self.asi_section.setObjectName("asiSection")
+        asi_section_layout = QVBoxLayout(self.asi_section)
+        
+        asi_info = QLabel("Distribute 2 points among your ability scores (max +1 per ability per level):")
+        asi_info.setWordWrap(True)
+        asi_section_layout.addWidget(asi_info)
+        
+        # Create spinboxes for each ability score
+        self.asi_spinboxes = {}
+        abilities = [('str', 'Strength'), ('dex', 'Dexterity'), ('con', 'Constitution'), 
+                    ('int', 'Intelligence'), ('wis', 'Wisdom'), ('cha', 'Charisma')]
+        
+        for ability, full_name in abilities:
+            ability_frame = QFrame()
+            ability_layout = QHBoxLayout(ability_frame)
+            
+            label = QLabel(f"{full_name}:")
+            label.setMinimumWidth(80)
+            ability_layout.addWidget(label)
+            
+            current_score = self.character_data.get(ability, 10)
+            current_label = QLabel(f"({current_score})")
+            current_label.setMinimumWidth(30)
+            ability_layout.addWidget(current_label)
+            
+            spinbox = QSpinBox()
+            spinbox.setRange(0, 1)  # Max +1 per ability per level
+            spinbox.setValue(0)
+            spinbox.valueChanged.connect(self._on_asi_allocation_changed)
+            ability_layout.addWidget(spinbox)
+            
+            self.asi_spinboxes[ability] = spinbox
+            asi_section_layout.addWidget(ability_frame)
+        
+        # Points remaining label
+        self.points_remaining_label = QLabel("Points remaining: 2")
+        self.points_remaining_label.setObjectName("pointsLabel")
+        asi_section_layout.addWidget(self.points_remaining_label)
+        
+        layout.addWidget(self.asi_section)
+        
+        # Feat selection section  
+        self.feat_section = QFrame()
+        self.feat_section.setObjectName("featSection")
+        self.feat_section.hide()  # Hidden by default
+        feat_section_layout = QVBoxLayout(self.feat_section)
+        
+        feat_info = QLabel("Choose a feat (some feats provide ability score bonuses):")
+        feat_info.setWordWrap(True)
+        feat_section_layout.addWidget(feat_info)
+        
+        self.feat_combo = QComboBox()
+        self.feat_combo.addItem("Choose a feat...", None)
+        self.feat_combo.currentTextChanged.connect(self._on_feat_selected)
+        feat_section_layout.addWidget(self.feat_combo)
+        
+        self.feat_description = QLabel()
+        self.feat_description.setObjectName("featDescription")
+        self.feat_description.setWordWrap(True)
+        self.feat_description.hide()
+        feat_section_layout.addWidget(self.feat_description)
+        
+        layout.addWidget(self.feat_section)
+        
+        # Load available feats
+        self._load_available_feats()
+    
+    def _load_available_feats(self):
+        """Load available feats from database"""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT id, name, description FROM feats ORDER BY name")
+            feats = cursor.fetchall()
+            
+            for feat_id, name, description in feats:
+                self.feat_combo.addItem(name, {'id': feat_id, 'name': name, 'description': description})
+            
+            conn.close()
+        except Exception as e:
+            print(f"Error loading feats: {e}")
+    
+    def _on_asi_feat_choice(self):
+        """Handle ASI vs Feat radio button selection"""
+        if self.asi_radio.isChecked():
+            self.asi_section.show()
+            self.feat_section.hide()
+            self.available_asi_points = 2
+            self._update_points_remaining()
+        else:
+            self.asi_section.hide()
+            self.feat_section.show()
+            self.available_asi_points = 0
+    
+    def _on_asi_allocation_changed(self):
+        """Handle changes to ASI point allocation"""
+        total_allocated = sum(spinbox.value() for spinbox in self.asi_spinboxes.values())
+        
+        # Ensure we don't go over 2 points
+        if total_allocated > 2:
+            # Find the spinbox that was just changed and reduce it
+            sender = self.sender()
+            if sender and isinstance(sender, QSpinBox):
+                sender.setValue(sender.value() - 1)
+                return
+        
+        self.available_asi_points = 2 - total_allocated
+        self._update_points_remaining()
+        
+        # Update asi_allocation dictionary
+        for ability, spinbox in self.asi_spinboxes.items():
+            self.asi_allocation[ability] = spinbox.value()
+    
+    def _update_points_remaining(self):
+        """Update the points remaining label"""
+        self.points_remaining_label.setText(f"Points remaining: {self.available_asi_points}")
+        
+        # Enable/disable training button based on whether allocation is complete
+        if self.asi_radio.isChecked():
+            self.train_button.setEnabled(self.available_asi_points == 0)
+        else:
+            self.train_button.setEnabled(self.selected_feat is not None)
+    
+    def _on_feat_selected(self, feat_name):
+        """Handle feat selection"""
+        feat_data = self.feat_combo.currentData()
+        if feat_data:
+            self.selected_feat = feat_data
+            self.feat_description.setText(feat_data['description'] or "No description available.")
+            self.feat_description.show()
+            self.train_button.setEnabled(True)
+        else:
+            self.selected_feat = None
+            self.feat_description.hide()
+            self.train_button.setEnabled(False)
+    
+    def _apply_asi_increases(self, character_id: str):
+        """Apply ability score increases to character"""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            # Apply each ability score increase
+            for ability, increase in self.asi_allocation.items():
+                if increase > 0:
+                    # Map short names to full column names
+                    ability_columns = {
+                        'str': 'strength',
+                        'dex': 'dexterity', 
+                        'con': 'constitution',
+                        'int': 'intelligence',
+                        'wis': 'wisdom',
+                        'cha': 'charisma'
+                    }
+                    
+                    column_name = ability_columns.get(ability)
+                    if column_name:
+                        cursor.execute(f"""
+                            UPDATE characters 
+                            SET {column_name} = {column_name} + ? 
+                            WHERE id = ?
+                        """, (increase, character_id))
+                        
+                        print(f"[ASI] Increased {column_name} by {increase}")
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            print(f"Error applying ASI increases: {e}")
+    
+    def _apply_feat_selection(self, character_id: str):
+        """Apply selected feat to character"""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            # Add feat to character_feats table
+            cursor.execute("""
+                INSERT OR REPLACE INTO character_feats (character_id, feat_name, feat_id)
+                VALUES (?, ?, ?)
+            """, (character_id, self.selected_feat['name'], self.selected_feat['id']))
+            
+            # Check if feat has ability score bonuses and apply them
+            cursor.execute("""
+                SELECT ability_score_increases FROM feats WHERE id = ?
+            """, (self.selected_feat['id'],))
+            
+            result = cursor.fetchone()
+            if result and result[0] and result[0] != '{}':
+                try:
+                    import json
+                    bonuses = json.loads(result[0])
+                    
+                    # Apply any ability score bonuses from the feat
+                    for ability, bonus in bonuses.items():
+                        if bonus > 0:
+                            ability_columns = {
+                                'str': 'strength', 'strength': 'strength',
+                                'dex': 'dexterity', 'dexterity': 'dexterity',
+                                'con': 'constitution', 'constitution': 'constitution', 
+                                'int': 'intelligence', 'intelligence': 'intelligence',
+                                'wis': 'wisdom', 'wisdom': 'wisdom',
+                                'cha': 'charisma', 'charisma': 'charisma'
+                            }
+                            
+                            column_name = ability_columns.get(ability.lower())
+                            if column_name:
+                                cursor.execute(f"""
+                                    UPDATE characters 
+                                    SET {column_name} = {column_name} + ? 
+                                    WHERE id = ?
+                                """, (bonus, character_id))
+                                
+                                print(f"[Feat] {self.selected_feat['name']} increased {column_name} by {bonus}")
+                        
+                except json.JSONDecodeError:
+                    print(f"Could not parse ability score increases for feat: {self.selected_feat['name']}")
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"[Feat] Applied feat: {self.selected_feat['name']}")
+            
+        except Exception as e:
+            print(f"Error applying feat selection: {e}")
 
 
 class ShopInterface(QWidget):
