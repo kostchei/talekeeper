@@ -55,6 +55,7 @@ class ActionType(Enum):
     
     # Class Features
     RAGE = "rage"
+    RECKLESS_ATTACK = "reckless_attack"
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
     
@@ -208,7 +209,8 @@ class ActionPanel(QWidget):
                 (ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch"),
             ],
             ActionCategory.FREE: [
-                (ActionType.INTERACT, "✋", "Interact", "Interact with objects or environment"),
+                (ActionType.INTERACT, "[HAND]", "Interact", "Interact with objects or environment"),
+                (ActionType.RECKLESS_ATTACK, "[RECKLESS]", "Reckless Attack", "Toggle advantage on STR attacks (enemies get advantage too)"),
             ],
             ActionCategory.REACTION: [
                 (ActionType.OPPORTUNITY, "[LIGHTNING]", "Opportunity", "Make an opportunity attack"),
@@ -273,7 +275,7 @@ class ActionPanel(QWidget):
             return
         
         # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, ActionType.LAY_ON_HANDS]
+        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, ActionType.RECKLESS_ATTACK, ActionType.LAY_ON_HANDS]
         for action_id in feature_action_types:
             if action_id in self.action_cards:
                 self.action_cards[action_id].deleteLater()
@@ -310,6 +312,20 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered) 
             self.action_cards[ActionType.RAGE] = card
+        
+        # Create Reckless Attack card if character has it AND is a Barbarian level 2+
+        if ('Reckless Attack' in self.character_features and 
+            self.character_context and 
+            self.character_context.get('class_id', '').lower() in ['barbarian']):
+            is_active = self.character_context.get('reckless_attack_active', False)
+            display_text = "RECKLESS ACTIVE" if is_active else "Reckless Attack"
+            card = ActionCard(ActionType.RECKLESS_ATTACK, "[RECKLESS]", display_text, "Toggle advantage on STR attacks (enemies get advantage too)")
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+            if is_active:
+                card.setProperty("reckless_active", True)
+                card.setStyleSheet("QPushButton[reckless_active=\"true\"] { background-color: #8B0000; border: 2px solid #FF4444; }")
+            self.action_cards[ActionType.RECKLESS_ATTACK] = card
         
         # Create Lay on Hands card if character has it
         if 'Lay on Hands' in self.character_features:
@@ -843,7 +859,7 @@ class ActionPanel(QWidget):
                 card.show()
                     
         elif self.current_category == ActionCategory.FREE:
-            free_actions = [ActionType.INTERACT, ActionType.ACTION_SURGE]
+            free_actions = [ActionType.INTERACT, ActionType.ACTION_SURGE, ActionType.RECKLESS_ATTACK]
             for action_type in free_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -918,6 +934,8 @@ class ActionPanel(QWidget):
                 # Handle class features
                 elif action_type == ActionType.RAGE:
                     self._use_rage()
+                elif action_type == ActionType.RECKLESS_ATTACK:
+                    self._toggle_reckless_attack()
                 elif action_type == ActionType.LAY_ON_HANDS:
                     self._use_lay_on_hands()
                 
@@ -1222,25 +1240,22 @@ class ActionPanel(QWidget):
             print(f"NEW ATTACK: Target monster {target_id} not found")
             return
         
-        d20_roll = random.randint(1, 20)
-        from services.proficiency_bonus import get_proficiency_bonus_from_context
-        prof_bonus = get_proficiency_bonus_from_context(context)
+        # Use the proper advantage-aware attack roll system
+        attack_total, attack_breakdown = self._roll_attack(context)
+        d20_roll = attack_breakdown['d20_roll']
+        prof_bonus = attack_breakdown['proficiency']
+        ability_mod = attack_breakdown['ability_mod']
+        ability_name = attack_breakdown['ability_name']
         
-        # Get ability modifier for attack
-        weapon_props = context.get('weapon_properties', [])
-        if 'finesse' in [p.lower() for p in weapon_props] if weapon_props else False:
-            str_mod = (context.get('strength', 10) - 10) // 2
-            dex_mod = (context.get('dexterity', 10) - 10) // 2
-            ability_mod = max(str_mod, dex_mod)
-            ability_name = "STR" if str_mod >= dex_mod else "DEX"
-        else:
-            ability_mod = (context.get('strength', 10) - 10) // 2
-            ability_name = "STR"
+        # Get roll description for logging (includes advantage/disadvantage info)
+        roll_details = attack_breakdown.get('roll_details', {})
+        roll_desc = roll_details.get('description', f"d20({d20_roll})")
         
-        # Add fighting style attack bonuses
+        # attack_total and modifiers are already calculated by _roll_attack()
+        # Just get fighting style bonus if needed (though it should already be included)
         fighting_style_attack_bonus = self._get_fighting_style_attack_bonus(context)
-        
-        attack_total = d20_roll + prof_bonus + ability_mod + fighting_style_attack_bonus
+        if fighting_style_attack_bonus > 0:
+            attack_total += fighting_style_attack_bonus
         target_ac = 12  # TODO: Get from monster data
         
         hit = attack_total >= target_ac
@@ -1307,6 +1322,7 @@ class ActionPanel(QWidget):
                 is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
                 
                 if (class_id and class_id.lower() == 'barbarian' and is_raging):
+                    weapon_props = context.get('weapon_properties', [])
                     is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
                     if not is_ranged:
                         # Get actual barbarian level from character context (single-class barbarian)
@@ -1389,7 +1405,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     parent.log_panel.log_combat(
-                        f"[ATTACK] {weapon_name} hits {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"[ATTACK] {weapon_name} hits {target_monster.monster_name}! Attack: {roll_desc} (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
                     )
                     parent.log_panel.log_combat(
                         f"💥 NEW Damage: {dice_str} = {dice_total}{bonus_str} = {total_damage} damage"
@@ -1410,7 +1426,7 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'log_panel'):
                     parent.log_panel.log_combat(
-                        f"[ATTACK] {weapon_name} misses {target_monster.monster_name}! Attack: d20({d20_roll}) (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"[ATTACK] {weapon_name} misses {target_monster.monster_name}! Attack: {roll_desc} (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
                     )
                     break
                 parent = parent.parent()
@@ -1746,6 +1762,9 @@ class ActionPanel(QWidget):
             # Handle rage turn countdown
             self._update_rage_state()
             
+            # Handle Reckless Attack automatic deactivation
+            self._update_reckless_attack_state()
+            
             # Reset Savage Attacker for new turn
             self.first_attack_this_round = True
             
@@ -1786,6 +1805,30 @@ class ActionPanel(QWidget):
         else:
             # Continue rage
             self.character_context['rage_turns_remaining'] = turns_remaining - 1
+    
+    def _update_reckless_attack_state(self):
+        """Update Reckless Attack state at the start of each turn."""
+        # Reckless Attack automatically deactivates at start of barbarian's next turn
+        if self.character_context.get('reckless_attack_active', False):
+            self.character_context['reckless_attack_active'] = False
+            
+            # Update the card appearance
+            if ActionType.RECKLESS_ATTACK in self.action_cards:
+                card = self.action_cards[ActionType.RECKLESS_ATTACK]
+                card.name_label.setText("Reckless Attack")
+                card.setProperty("reckless_active", False)
+                card.setStyleSheet("")
+            
+            # Log the deactivation
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("WARNING: Reckless Attack ended - you no longer have advantage, but enemies no longer have advantage against you.")
+                        break
+                    parent = parent.parent()
+            except Exception as e:
+                print(f"Error logging reckless attack end: {e}")
     
     def _get_encounter_panel(self):
         """Get the encounter panel from the main window."""
@@ -1830,6 +1873,11 @@ class ActionPanel(QWidget):
         if self.lucky_advantage_active:
             advantage_sources.append("Lucky feat")
             self.lucky_advantage_active = False  # Consume the Lucky advantage
+        
+        # Check for Reckless Attack advantage (only on Strength-based attacks)
+        if (self.character_context.get('reckless_attack_active', False) and 
+            ability_name == "STR"):
+            advantage_sources.append("Reckless Attack")
         
         # Check for Vex weapon mastery advantage
         current_target_id = context.get('target_monster_id')
@@ -2438,6 +2486,10 @@ class ActionPanel(QWidget):
             if self.lucky_disadvantage_active:
                 disadvantage_sources.append("Lucky feat")
                 self.lucky_disadvantage_active = False  # Consume the Lucky disadvantage
+            
+            # Check for Reckless Attack advantage (enemies get advantage against reckless barbarian)
+            if self.character_context.get('reckless_attack_active', False):
+                advantage_sources.append("Reckless Attack")
             
             # Calculate advantage state and roll
             advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
@@ -4065,6 +4117,48 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"Error logging rage activation: {e}")
+    
+    def _toggle_reckless_attack(self):
+        """Toggle Reckless Attack state for barbarian."""
+        # Check if character is a barbarian with Reckless Attack
+        if not (self.character_context.get('class_id', '').lower() == 'barbarian' and 
+                self._has_class_feature('Reckless Attack')):
+            return
+        
+        # Toggle the state
+        current_state = self.character_context.get('reckless_attack_active', False)
+        new_state = not current_state
+        self.character_context['reckless_attack_active'] = new_state
+        
+        # Update the card appearance and text
+        if ActionType.RECKLESS_ATTACK in self.action_cards:
+            card = self.action_cards[ActionType.RECKLESS_ATTACK]
+            if new_state:
+                card.name_label.setText("RECKLESS ACTIVE")
+                card.setProperty("reckless_active", True)
+                card.setStyleSheet("QWidget[reckless_active=\"true\"] { background-color: #8B0000; border: 2px solid #FF4444; }")
+            else:
+                card.name_label.setText("Reckless Attack")
+                card.setProperty("reckless_active", False)
+                card.setStyleSheet("")
+        
+        # Log the state change
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    if new_state:
+                        parent.log_panel.log_combat("[RECKLESS] Reckless Attack activated! You have advantage on STR attacks, but enemies have advantage against you.")
+                    else:
+                        parent.log_panel.log_combat("[RECKLESS] Reckless Attack deactivated.")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging reckless attack toggle: {e}")
+        
+        # Refresh attack cards to show advantage state
+        self._create_weapon_cards()
+        self._update_visible_cards()
     
     def _has_lay_on_hands_uses(self) -> bool:
         """Check if paladin has Lay on Hands uses remaining."""
