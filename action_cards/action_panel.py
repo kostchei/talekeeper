@@ -3991,7 +3991,36 @@ class ActionPanel(QWidget):
     
     def _use_rage(self):
         """Activate barbarian rage."""
-        if not self._has_rage_uses():
+        # Use the unified resource system
+        from services.character_resources import CharacterResourceService
+        resource_service = CharacterResourceService('talekeeper.db')
+        
+        # Get character ID
+        character_id = self.character_context.get('id')
+        if not character_id:
+            print("DEBUG: No character ID for Rage")
+            return
+        
+        # Check if resource is available
+        rage_resource = resource_service.get_resource(character_id, 'Rage')
+        if not rage_resource or rage_resource.current_uses <= 0:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("[FAIL] No Rage uses remaining (requires Long Rest)")
+                    break
+                parent = parent.parent()
+            return
+        
+        # Use Rage resource
+        use_result = resource_service.use_resource(character_id, 'Rage')
+        if not use_result.get('success', False):
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[FAIL] {use_result.get('error', 'Rage failed')}")
+                    break
+                parent = parent.parent()
             return
         
         # Track rage state
@@ -4007,7 +4036,12 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("[RAGE] RAGE activated! +2 damage, resistance to physical damage, advantage on STR checks/saves")
+                    # Calculate rage damage bonus based on level
+                    level = self.character_context.get('level', 1)
+                    rage_damage = 4 if level >= 16 else (3 if level >= 9 else 2)
+                    
+                    parent.log_panel.log_combat(f"[RAGE] RAGE activated! +{rage_damage} damage, resistance to physical damage, advantage on STR checks/saves")
+                    parent.log_panel.log_combat(f"Rage uses remaining: {use_result['current_uses']}/{use_result['max_uses']}")
                     break
                 parent = parent.parent()
         except Exception as e:
@@ -4208,34 +4242,31 @@ class ActionPanel(QWidget):
     def _restore_short_rest_abilities(self):
         """Restore abilities that recharge on short rest."""
         try:
-            # Restore Second Wind
-            if self._has_class_feature('Second Wind'):
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'game_engine'):
-                        game_engine = parent.game_engine
-                        if game_engine.current_character:
-                            # Reset Second Wind uses (normally 1 per short rest)
-                            game_engine.update_character_resources_sync(
-                                game_engine.current_character['id'],
-                                {"Second Wind": {"uses_remaining": 1, "max_uses": 1}}
-                            )
-                        break
-                    parent = parent.parent()
-                    
-            # Restore Action Surge (Fighter level 2+)
-            if self._has_class_feature('Action Surge'):
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'game_engine'):
-                        game_engine = parent.game_engine
-                        if game_engine.current_character:
-                            game_engine.update_character_resources_sync(
-                                game_engine.current_character['id'],
-                                {"Action Surge": {"uses_remaining": 1, "max_uses": 1}}
-                            )
-                        break
-                    parent = parent.parent()
+            # Use the character resource service to restore short rest resources
+            from services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService('talekeeper.db')
+            
+            character_id = self.character_context.get('id')
+            if not character_id:
+                print("DEBUG: No character ID for short rest restoration")
+                return
+            
+            # Restore all short rest resources
+            result = resource_service.restore_resources_by_rest_type(character_id, 'short_rest')
+            
+            if result.get('success'):
+                restored = result.get('restored_resources', [])
+                if restored:
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            for resource in restored:
+                                if resource['gained'] > 0:
+                                    parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
+                            break
+                        parent = parent.parent()
+            else:
+                print(f"DEBUG: Failed to restore short rest resources: {result.get('error')}")
                     
         except Exception as e:
             print(f"Error restoring short rest abilities: {e}")
@@ -4243,14 +4274,40 @@ class ActionPanel(QWidget):
     def _restore_all_abilities(self):
         """Restore all abilities (long rest)."""
         try:
-            # First restore short rest abilities
-            self._restore_short_rest_abilities()
+            # Use the character resource service to restore all resources
+            from services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService('talekeeper.db')
             
-            # Restore spell slots (if any)
+            character_id = self.character_context.get('id')
+            if not character_id:
+                print("DEBUG: No character ID for long rest restoration")
+                return
+            
+            # Restore short rest resources first
+            short_result = resource_service.restore_resources_by_rest_type(character_id, 'short_rest')
+            
+            # Then restore long rest resources
+            long_result = resource_service.restore_resources_by_rest_type(character_id, 'long_rest')
+            
+            # Log restored resources
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    # Log short rest resources
+                    if short_result.get('success'):
+                        for resource in short_result.get('restored_resources', []):
+                            if resource['gained'] > 0:
+                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
+                    
+                    # Log long rest resources
+                    if long_result.get('success'):
+                        for resource in long_result.get('restored_resources', []):
+                            if resource['gained'] > 0:
+                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
+                    break
+                parent = parent.parent()
+            
             # TODO: Implement spell slot restoration when spellcasting is added
-            
-            # Restore other long rest abilities
-            # TODO: Add class-specific long rest abilities like rage, lay on hands, etc.
             
         except Exception as e:
             print(f"Error restoring all abilities: {e}")

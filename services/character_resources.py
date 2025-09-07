@@ -253,6 +253,42 @@ class CharacterResourceService:
             'resources_added': resources_added
         }
     
+    def initialize_barbarian_resources(self, character_id: str, level: int) -> Dict[str, Any]:
+        """Initialize Barbarian resources based on level."""
+        resources_added = []
+        
+        # Rage uses (level 1+)
+        # 2 at 1st, 3 at 3rd, 4 at 6th, 5 at 12th, 6 at 17th, unlimited at 20th
+        if level >= 20:
+            rage_uses = 999  # Effectively unlimited
+        elif level >= 17:
+            rage_uses = 6
+        elif level >= 12:
+            rage_uses = 5
+        elif level >= 6:
+            rage_uses = 4
+        elif level >= 3:
+            rage_uses = 3
+        else:
+            rage_uses = 2
+        
+        success = self.add_resource(
+            character_id, "Rage", rage_uses, "long_rest", "barbarian", 1
+        )
+        if success:
+            resources_added.append("Rage")
+        
+        # Note: Reckless Attack doesn't consume resources (at-will ability)
+        # Note: Danger Sense is passive
+        # Note: Brutal Critical is passive
+        
+        return {
+            'success': True,
+            'character_id': character_id,
+            'level': level,
+            'resources_added': resources_added
+        }
+    
     def get_resources_summary(self, character_id: str) -> Dict[str, Any]:
         """Get a summary of all character resources for UI display."""
         resources = self.get_character_resources(character_id)

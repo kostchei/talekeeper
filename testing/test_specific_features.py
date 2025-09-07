@@ -222,6 +222,8 @@ class FightingStyleTester(TaleKeeperTestBase):
                 'intelligence': 10,
                 'wisdom': 12,
                 'charisma': 10,
+                'hit_points_max': 12,  # 10 (fighter d10) + 2 (con mod)
+                'hit_points_current': 12,
                 'feats': [fighting_style] if fighting_style else []
             }
             

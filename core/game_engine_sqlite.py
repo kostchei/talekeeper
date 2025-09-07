@@ -292,6 +292,29 @@ class GameEngineSQLite:
                 # Feat effects should already be applied and stored in database during character creation
                 # No need to apply them again during loading to avoid double application
                 
+                # Check and initialize character resources if missing (for existing characters)
+                try:
+                    from services.character_resources import CharacterResourceService
+                    resource_service = CharacterResourceService(self.db_path)
+                    
+                    # Check if character has resources
+                    existing_resources = resource_service.get_character_resources(character_id)
+                    
+                    # If no resources exist, initialize them based on class
+                    if not existing_resources:
+                        level = character_dict.get('level', 1)
+                        class_name = character_dict.get('class_name', '')
+                        
+                        if class_name == 'Fighter':
+                            result = resource_service.initialize_fighter_resources(character_id, level)
+                            print(f"[SQLite] Initialized missing Fighter resources for existing character: {result['resources_added']}")
+                        elif class_name == 'Barbarian':
+                            result = resource_service.initialize_barbarian_resources(character_id, level)
+                            print(f"[SQLite] Initialized missing Barbarian resources for existing character: {result['resources_added']}")
+                    
+                except Exception as e:
+                    print(f"[SQLite] Warning: Failed to check/initialize character resources: {e}")
+                
                 # Set current character
                 self.current_character = character_dict
                 return character_dict
@@ -555,6 +578,23 @@ class GameEngineSQLite:
                     print(f"[SQLite] Initialized new feature system for character {character_id}")
                 except Exception as e:
                     print(f"[SQLite] Warning: Failed to initialize new feature system: {e}")
+                
+                # Initialize character resources (Second Wind, Action Surge, etc.)
+                try:
+                    from services.character_resources import CharacterResourceService
+                    resource_service = CharacterResourceService(self.db_path)
+                    
+                    # Initialize resources based on class
+                    if character_data['class_id'] == 'fighter':
+                        result = resource_service.initialize_fighter_resources(character_id, character_data.get('level', 1))
+                        print(f"[SQLite] Initialized Fighter resources: {result['resources_added']}")
+                    elif character_data['class_id'] == 'barbarian':
+                        result = resource_service.initialize_barbarian_resources(character_id, character_data.get('level', 1))
+                        print(f"[SQLite] Initialized Barbarian resources: {result['resources_added']}")
+                    # Add other class resource initialization here as needed
+                    
+                except Exception as e:
+                    print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
                 
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")

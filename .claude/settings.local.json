@@ -52,7 +52,8 @@
       "Bash(mv:*)",
       "Bash(git stash push:*)",
       "Bash(sed:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(dir:*)"
     ],
     "deny": []
   }

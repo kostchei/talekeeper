@@ -222,7 +222,7 @@ class TaleKeeperTestBase:
         self.test_results.append(result)
         
         # Print immediate feedback
-        status = "✓" if passed else "✗"
+        status = "PASS" if passed else "FAIL"
         print(f"{status} {test_name}: {message}")
         
         return result
@@ -613,7 +613,7 @@ class TestRunner:
         
         for result in self.results:
             status_class = "passed" if result.passed else "failed"
-            status_text = "✓ PASS" if result.passed else "✗ FAIL"
+            status_text = "PASS" if result.passed else "FAIL"
             
             screenshot_html = ""
             if result.screenshot_path:
