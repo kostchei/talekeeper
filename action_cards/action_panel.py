@@ -887,6 +887,11 @@ class ActionPanel(QWidget):
                 if self.target_monster_id:
                     full_context['target_monster_id'] = self.target_monster_id
                     
+                    # D&D 2024 COMPLIANCE: Check if it's the player's turn
+                    if not self._is_player_turn_d20():
+                        self._log_to_combat_panel("⚔ It's not your turn!")
+                        return
+                    
                     print(f"ROUTING: About to call _new_execute_attack with action_type={action_type}")
                     # NEW ATTACK SYSTEM - Build from scratch
                     self._new_execute_attack(action_type, full_context)
@@ -4333,6 +4338,49 @@ class ActionPanel(QWidget):
         """Get available spell slots of given level."""
         # Simple implementation - would need to track spell slots properly
         return 1 if self._has_class_feature('Spellcasting') or self._has_class_feature('Pact Magic') else 0
+    
+    def _is_player_turn_d20(self) -> bool:
+        """Check if it's the player's turn using D&D 2024 rules."""
+        try:
+            # Get encounter panel to check combat state
+            encounter_panel = self._get_encounter_panel()
+            if not encounter_panel:
+                return True  # No encounter, player can act
+                
+            # Check if there's an active encounter
+            current_encounter = getattr(encounter_panel, 'current_encounter', None)
+            if not current_encounter:
+                return True  # No active encounter, player can act
+                
+            # If combat hasn't started yet, player can start it
+            if not getattr(current_encounter, 'combat_started', False):
+                return True
+                
+            # Check the initiative order and whose turn it is
+            initiative_order = getattr(current_encounter, 'initiative_order', [])
+            current_turn_index = getattr(current_encounter, 'current_turn_index', 0)
+            
+            if not initiative_order or current_turn_index >= len(initiative_order):
+                return True  # No initiative order or invalid index, allow action
+                
+            # Get current actor
+            current_actor = initiative_order[current_turn_index]
+            
+            # If it's the player's turn, allow action
+            return current_actor.get('type') == 'player'
+            
+        except Exception as e:
+            print(f"Error checking player turn: {e}")
+            return True  # Default to allowing action if there's an error
+    
+    def _log_to_combat_panel(self, message: str):
+        """Log message to combat panel."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(message)
+                break
+            parent = parent.parent()
 
 
 class ActionCard(QWidget):

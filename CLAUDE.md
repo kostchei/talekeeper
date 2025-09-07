@@ -43,7 +43,12 @@ python -m mypy main.py
 ```
 TaleKeeper/
 ├── main.py                 # Entry point
-├── talekeeper.db           # SQLite database
+├── talekeeper.db           # SQLite database (auto-created)
+├── database/               # Database management
+│   ├── database_init.py      # Database initialization
+│   ├── schema/                # Database schema files
+│   ├── seeds/                 # Game data (D&D rules)
+│   └── migrations/            # Database updates
 ├── core/
 │   ├── game_engine_sqlite.py  # Main game coordinator
 │   ├── feature_integration.py # Feature system
@@ -77,6 +82,36 @@ The project includes a comprehensive Qt6-based testing framework that can:
 - Action card availability
 - Combat calculations
 - Level progression
+
+## Database Initialization
+
+### Fresh Clone Experience
+When cloning the repository for the first time:
+1. The database is automatically created on first run
+2. Schema is loaded from `database/schema/`
+3. Game data (classes, races, items) loaded from `database/seeds/`
+4. Migrations are tracked in `schema_migrations` table
+
+### Database Management Commands
+```bash
+# Force recreate database (backs up existing)
+python database/database_init.py --force
+
+# Initialize with dev/test data
+python database/database_init.py --dev
+
+# Verify database integrity
+python database/database_init.py --verify
+
+# Run application with dev mode
+python main.py --dev
+```
+
+### Migration System
+- Place new migrations in `database/migrations/` as SQL files
+- Name format: `XXX_description.sql` (e.g., `002_add_fighter_features.sql`)
+- Migrations run automatically on startup
+- Failed migrations (e.g., duplicate columns) are handled gracefully
 
 ## Known Issues & Bug Areas
 

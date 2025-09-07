@@ -73,11 +73,35 @@ def main():
             logger.warning(f"Font file not found at {font_path}")
             app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
-        # Check database exists (JSON files now migrated to database)
+        # Initialize database if needed
+        from database.database_init import DatabaseInitializer
+        
+        db_initializer = DatabaseInitializer("talekeeper.db")
+        
+        # Check if database exists
         if not Path("talekeeper.db").exists():
-            print("ERROR: talekeeper.db not found")
-            print("Please run the migration script to set up the database")
-            return
+            logger.info("No database found - initializing new database...")
+            
+            # Check for dev mode
+            dev_mode = "--dev" in sys.argv or os.environ.get("TALEKEEPER_DEV") == "true"
+            
+            if not db_initializer.initialize(dev_mode=dev_mode):
+                error_msg = "Failed to initialize database. Please check the logs."
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+            
+            logger.info("Database initialized successfully")
+        else:
+            # Database exists, check for migrations
+            logger.info("Checking for database updates...")
+            if not db_initializer.check_and_apply_migrations():
+                logger.warning("Failed to apply migrations, continuing with existing database")
+        
+        # Verify database integrity
+        if not db_initializer.verify_database():
+            error_msg = "Database verification failed. The database may be corrupted."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
         
         # Check critical equipment data still exists (hasn't been migrated yet)
         required_data_files = [
@@ -93,19 +117,6 @@ def main():
             error_msg = f"Missing required data files:\n" + "\n".join(f"- {f}" for f in missing_files)
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
-        
-        # Check if SQLite database exists
-        sqlite_db_path = Path("talekeeper.db")
-        if not sqlite_db_path.exists():
-            logger.info("No SQLite database found - creating new database...")
-            # Create fresh database with schema
-            import sqlite3
-            conn = sqlite3.connect("talekeeper.db")
-            with open("database_schema.sql", "r") as f:
-                schema_sql = f.read()
-            conn.executescript(schema_sql)
-            conn.close()
-            logger.info("Created fresh SQLite database")
         
         # Initialize SQLite game engine
         game_engine = GameEngineSQLite()

@@ -44,7 +44,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(copy talekeeper.db talekeeper_backup.db)",
-      "Bash(wmic:*)"
+      "Bash(wmic:*)",
+      "Bash(git pull:*)",
+      "Bash(mkdir:*)",
+      "Bash(move database_schema_full.sql databaseschema001_initial_schema.sql)",
+      "Bash(move database_schema_full.sql database/schema/001_initial_schema.sql)",
+      "Bash(mv:*)",
+      "Bash(git stash push:*)",
+      "Bash(sed:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

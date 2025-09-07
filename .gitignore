@@ -164,6 +164,7 @@ cython_debug/
 
 # TaleKeeper Desktop specific
 talekeeper.db
+talekeeper.db.backup.*
 talekeeper.log
 config/settings.json
 config/keybindings.json
@@ -171,10 +172,19 @@ config/keybindings.json
 # User-created data (keep structure, ignore content)
 saves/
 screenshots/
+data/saves/
 
 # Development database backups
 *.db.backup
 *.sqlite.backup
+
+# Dev/test databases (but keep schema and seeds)
+database/dev.db
+database/test.db
+# But DO track schema and seed files
+!database/schema/
+!database/seeds/
+!database/migrations/
 
 # Windows specific
 Thumbs.db

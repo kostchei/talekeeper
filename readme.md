@@ -24,6 +24,36 @@ A single-player D&D 2024 tactical RPG for Windows. Experience classic tabletop R
 
 ```
 
+## 🚀 Quick Start
+
+### From Source
+```bash
+# Clone the repository
+git clone https://github.com/kostchei/talekeeper
+cd talekeeper
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the game (database auto-initializes on first run)
+python main.py
+
+# Optional: Run with dev mode for test data
+python main.py --dev
+```
+
+### Database Management
+```bash
+# Initialize/reset database
+python database/database_init.py --force
+
+# Run with development data
+python database/database_init.py --dev
+
+# Verify database integrity
+python database/database_init.py --verify
+```
+
 ## 🎮 How to Play
 
 1. **Character Creation**: Choose race, class, background, and generate ability scores
@@ -42,12 +72,15 @@ A single-player D&D 2024 tactical RPG for Windows. Experience classic tabletop R
 ```
 TaleKeeper/
 ├── main.py              # Application entry point
-├── run_game.py          # Safe launcher with dependency checks
-├── core/                # Core game systems (IndexedDB engine)
-├── models/              # Dataclass models for IndexedDB
+├── talekeeper.db        # SQLite database (auto-created)
+├── database/            # Database management
+│   ├── schema/          # Database schema files
+│   ├── seeds/           # Game data (classes, races, items)
+│   └── migrations/      # Database updates
+├── core/                # Core game systems
 ├── services/            # Business logic (dice, combat)
 ├── ui/                  # PyQt6 user interface
-├── data/                # D&D 2024 game data (JSON)
+├── data/                # Legacy game data (JSON)
 ├── assets/              # Fonts and images
 ├── config/              # Settings and configuration
 ├── log/                 # Logging panel component

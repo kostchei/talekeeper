@@ -486,7 +486,7 @@ class EncounterPanel(QWidget):
         self.encounter_details_text = QTextEdit()
         self.encounter_details_text.setObjectName("encounterDetailsText")
         self.encounter_details_text.setReadOnly(True)
-        self.encounter_details_text.setMaximumHeight(120)
+        self.encounter_details_text.setMaximumHeight(80)
         self.encounter_details_text.setPlainText("Click 'Generate Random Encounter' to see encounter details...")
         self.encounter_details_text.setStyleSheet("""
             QTextEdit {
