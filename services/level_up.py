@@ -144,45 +144,24 @@ class LevelUpService:
                 """, (character_id, class_choice, self._get_hit_die_for_class(class_choice)))
                 new_class_level = 1
             
-            # Calculate hit point increase (use average for now: (die_size / 2) + 1 + CON modifier)
-            hit_die = self._get_hit_die_for_class(class_choice)
-            
-            # Get character's CON modifier
-            cursor.execute("SELECT constitution FROM characters WHERE id = ?", (character_id,))
-            con_score = cursor.fetchone()[0]
-            con_modifier = (con_score - 10) // 2
-            
-            # Calculate HP increase (average + CON mod)
-            base_hp_increase = (hit_die // 2 + 1) + con_modifier
-            base_hp_increase = max(1, base_hp_increase)  # Minimum 1 HP per level
-            
-            # Add species bonuses
-            species_hp_bonus = self._get_species_hp_bonus(cursor, character_id)
-            
-            # Add feat bonuses  
-            feat_hp_bonus = self._get_feat_hp_bonus(cursor, character_id)
-            
-            total_hp_increase = base_hp_increase + species_hp_bonus + feat_hp_bonus
-            
-            print(f"[LevelUp] HP increase: {total_hp_increase} (d{hit_die} average + {con_modifier} CON + {species_hp_bonus} species + {feat_hp_bonus} feats)")
-            
-            # Update main character table with level and HP
+            # Update main character table with level (HP will be recalculated properly below)
             cursor.execute("""
                 UPDATE characters 
                 SET level = ?, 
-                    hit_points_max = hit_points_max + ?,
-                    hit_points_current = hit_points_current + ?,
-                    current_hit_points = current_hit_points + ?,
-                    max_hit_points = max_hit_points + ?,
                     updated_at = datetime('now')
                 WHERE id = ?
-            """, (new_total_level, total_hp_increase, total_hp_increase, total_hp_increase, total_hp_increase, character_id))
+            """, (new_total_level, character_id))
             
             # Grant new class features (old system)
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
             
             conn.commit()
             conn.close()
+            
+            # Recalculate HP properly with all bonuses (species, feats, etc.)
+            hp_recalculated = self.recalculate_character_hp(character_id)
+            if hp_recalculated:
+                print(f"[LevelUp] HP recalculated for level {new_total_level}")
             
             # Update features using new feature system (after closing main connection)
             try:
