@@ -1,16 +1,28 @@
-name: Build Windows Executable
+name: Build Windows Executable [DEPRECATED]
+
+# DEPRECATED: This workflow is currently disabled due to deprecated action versions
+# To re-enable in the future:
+# 1. Update actions/upload-artifact from v3 to v4 (line 74)
+# 2. Verify all other action versions are current:
+#    - actions/checkout@v4 (OK)
+#    - actions/setup-python@v4 (check for v5)
+#    - softprops/action-gh-release@v1 (check for v2)
+# 3. Test the workflow after updates
+# 4. Remove the 'if: false' condition below
 
 on:
-  push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:  # Manual trigger only while deprecated
+  # Disabled triggers - uncomment when re-enabling:
+  # push:
+  #   branches: [ main, develop ]
+  #   tags: [ 'v*' ]
+  # pull_request:
+  #   branches: [ main ]
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    if: false  # Workflow disabled - remove this line when re-enabling
     
     steps:
     - name: Checkout code
@@ -71,7 +83,7 @@ jobs:
         Move-Item "dist/TaleKeeper.exe" "dist/TaleKeeper-$version-windows.exe"
     
     - name: Upload executable as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3  # TODO: Update to v4 when re-enabling
       with:
         name: TaleKeeper-Windows-${{ steps.version.outputs.version }}
         path: dist/TaleKeeper-*.exe
