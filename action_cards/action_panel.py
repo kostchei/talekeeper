@@ -466,7 +466,12 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     if result['success']:
                         parent.log_panel.log_combat(f"🩹 Second Wind: Rolled {result['healing_roll']} + {result['level_bonus']} = {result['total_healing']} healing")
-                        parent.log_panel.log_combat(f"❤️ Healed for {result['actual_healing']} HP (now at {result['new_hp']} HP)")
+                        old_hp = result['new_hp'] - result['actual_healing']
+                        max_hp = result.get('max_hp', result['new_hp'])  # Fallback if max_hp not provided
+                        if result['actual_healing'] < result['total_healing']:
+                            parent.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} -> {result['new_hp']}/{max_hp} (healed {result['actual_healing']}, max HP reached)")
+                        else:
+                            parent.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} -> {result['new_hp']}/{max_hp} (healed {result['actual_healing']})")
                         if result['uses_remaining'] > 0:
                             parent.log_panel.log_combat(f"Second Wind uses remaining: {result['uses_remaining']}")
                     else:
@@ -2590,24 +2595,52 @@ class ActionPanel(QWidget):
                     character_data = parent.character_sheet.character_data
                     
                     # Apply damage to current HP
-                    current_hp = character_data.get('current_hit_points', 0)
+                    current_hp = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+                    max_hp = character_data.get('max_hit_points', character_data.get('hit_points_max', 0))
+                    
+                    # If HP fields are missing, try to extract from character sheet display
+                    if max_hp == 0:
+                        hp_display = parent.character_sheet.hp_widget.value_label.text()
+                        
+                        # Try to parse "9/14" format
+                        if '/' in hp_display:
+                            try:
+                                current_str, max_str = hp_display.split('/')
+                                current_hp = int(current_str.strip())
+                                max_hp = int(max_str.strip())
+                                
+                                # Update character_data with the parsed values
+                                character_data['current_hit_points'] = current_hp
+                                character_data['max_hit_points'] = max_hp
+                                character_data['hit_points_current'] = current_hp
+                                character_data['hit_points_max'] = max_hp
+                                
+                            except (ValueError, AttributeError):
+                                max_hp = 0
+                        else:
+                            max_hp = 0
+                    
                     new_hp = max(0, current_hp - damage)
+                    
+                    # Update both field name variants for compatibility
                     character_data['current_hit_points'] = new_hp
+                    character_data['hit_points_current'] = new_hp
                     
                     # Update character sheet display
                     parent.character_sheet.load_character_data(character_data)
                     
-                    # Log rage resistance after damage is applied
-                    if rage_resistance_applied:
-                        try:
-                            log_parent = self.parent()
-                            while log_parent:
-                                if hasattr(log_parent, 'log_panel'):
-                                    log_parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
-                                    break
-                                log_parent = log_parent.parent()
-                        except Exception as e:
-                            print(f"Error logging rage resistance: {e}")
+                    # Log damage with HP tracking (similar to monster damage)
+                    log_parent = self.parent()
+                    while log_parent:
+                        if hasattr(log_parent, 'log_panel'):
+                            # Log HP change
+                            log_parent.log_panel.log_combat(f"    Player HP: {current_hp}/{max_hp} -> {new_hp}/{max_hp}")
+                            
+                            # Log rage resistance if applicable
+                            if rage_resistance_applied:
+                                log_parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
+                            break
+                        log_parent = log_parent.parent()
                     
                     return new_hp
                 parent = parent.parent()

@@ -180,6 +180,7 @@ class FighterAbilitiesService:
                 'total_healing': total_healing,
                 'actual_healing': actual_healing,
                 'new_hp': new_hp,
+                'max_hp': max_hp,
                 'uses_remaining': row['second_wind_uses_current'] - 1
             }
     
