@@ -390,30 +390,49 @@ class ActionCardTester(TaleKeeperTestBase):
     def test_fighting_styles(self) -> bool:
         """Test fighting style implementation"""
         try:
-            # This would test specific fighting styles
-            # For demonstration, we'll check if fighting style UI elements exist
+            game_engine = GameEngineSQLite()
             
-            fighting_styles = ["Defense", "Dueling", "Great Weapon Fighting", 
-                             "Protection", "Two-Weapon Fighting", "Archery"]
+            # Find the first occupied save slot
+            save_slots = game_engine.get_save_slots_sync()
+            occupied_slots = [s for s in save_slots if s['is_occupied']]
+            if not occupied_slots:
+                self.record_result("fighting_styles", False, "No occupied save slots found")
+                return False
             
-            found_styles = []
-            all_labels = self.find_widgets_by_type(QLabel)
-            all_buttons = self.find_widgets_by_type(QPushButton)
+            first_slot_number = occupied_slots[0]['slot_number']
+
+            # Load a character known to have a fighting style
+            character = game_engine.load_character_sync(first_slot_number)
+            if not character:
+                self.record_result("fighting_styles", False, f"Could not load test character from slot {first_slot_number}")
+                return False
+
+            character = game_engine.load_character_sync(first_slot_number)
+            if not character:
+                self.record_result("fighting_styles", False, f"Could not load test character from slot {first_slot_number}")
+                return False
+
+            self.window._load_character_into_ui(character, f"Test loading from slot {first_slot_number}")
+            QTest.qWait(500) # Wait for character to load
+
+            # Access the feature manager from the action panel
+            action_panel = self.window.action_panel
+            feature_manager = action_panel.feature_manager
+
+            # Check if the fighting style feature is loaded
+            fighting_style_feature = None
+            for feature in feature_manager.features.values():
+                if feature.name.startswith("Fighting Style:"):
+                    fighting_style_feature = feature
+                    break
             
-            for widget in all_labels + all_buttons:
-                text = self.get_widget_text(widget)
-                for style in fighting_styles:
-                    if style.lower() in text.lower():
-                        found_styles.append(style)
-                        break
-            
-            if found_styles:
+            if fighting_style_feature:
                 self.record_result("fighting_styles", True,
-                                 f"Found references to: {', '.join(found_styles)}")
+                                 f"Found fighting style feature: {fighting_style_feature.name}")
                 return True
             else:
                 self.record_result("fighting_styles", False,
-                                 "No fighting style references found")
+                                 "Fighting style feature not found in FeatureManager")
                 return False
             
         except Exception as e:

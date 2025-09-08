@@ -1512,24 +1512,27 @@ class GameEngineSQLite:
                 ac += shield_bonus
                 print(f"[SQLite] Added shield {equipped_shield}: +{shield_bonus} AC")
             
-            # Apply Defense fighting style bonus (+1 AC when wearing armor)
-            if equipped_armor:  # Only applies when wearing armor
-                print(f"[SQLite] Checking for Defense fighting style for character {character_id}")
-                with self._get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT feat_name FROM character_feats 
-                        WHERE character_id = ? AND feat_name = 'Defense'
-                    """, (character_id,))
-                    has_defense = cursor.fetchone()
-                
-                print(f"[SQLite] Defense check result: {has_defense}")
-                if has_defense:
-                    ac += 1
-                    print(f"[SQLite] Defense fighting style: +1 AC (total now {ac})")
-                else:
-                    print(f"[SQLite] No Defense fighting style found")
+            # Apply bonuses from passive features like Defense fighting style
+            from core.class_features import FeatureManager, PassiveFeature
+            feature_manager = FeatureManager(self.db_path)
+            feature_manager.load_character_features(character_id)
+            context = {'is_wearing_armor': equipped_armor is not None}
             
+            all_modifications = {}
+            # a simple character dict is needed for the can_use check
+            char_for_features = {'id': character_id, 'class_name': class_id, 'level': 1}
+
+            for feature in feature_manager.features.values():
+                if isinstance(feature, PassiveFeature):
+                    result = feature.apply(char_for_features, context)
+                    if result.get('success'):
+                        all_modifications.update(result.get('modifications', {}))
+
+            ac_bonus_from_features = all_modifications.get('ac_bonus', 0)
+            if ac_bonus_from_features > 0:
+                ac += ac_bonus_from_features
+                print(f"[SQLite] Added +{ac_bonus_from_features} AC from features")
+
             return ac
             
         except Exception as e:

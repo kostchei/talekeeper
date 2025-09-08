@@ -22,6 +22,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict, Any, List
 from enum import Enum
+from core.class_features import FeatureManager, PassiveFeature
 
 print("DEBUG: action_panel.py module loaded/imported at line 25")
 
@@ -123,7 +124,18 @@ class ActionPanel(QWidget):
         self.cooldown_timer = QTimer()
         self.cooldown_timer.timeout.connect(self._update_cooldowns)
         self.cooldown_timer.start(1000)  # Update every second
+        self.feature_manager = FeatureManager()
     
+    def _get_feature_modifications(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Get all modifications from passive features for the given context."""
+        all_modifications = {}
+        for feature in self.feature_manager.features.values():
+            if isinstance(feature, PassiveFeature):
+                result = feature.apply(self.character_context, context)
+                if result.get('success'):
+                    all_modifications.update(result.get('modifications', {}))
+        return all_modifications
+
     def _setup_ui(self):
         """Initialize the action panel UI components."""
         # Main layout
@@ -654,19 +666,24 @@ class ActionPanel(QWidget):
         magic_bonus = weapon.get('damage_bonus', 0)
         
         # Get feature-based damage bonuses (rage, dueling, etc.)
-        weapon_context = {
-            'weapon_properties': weapon_props,
-            'damage_type': weapon.get('damage_type', 'physical')
+        context = {
+            'is_melee_attack': not ('ranged' in weapon_props or weapon.get('damage_type') == 'ranged'),
+            'is_one_handed': 'two-handed' not in weapon_props,
+            'off_hand_empty': not self.equipped_weapons.get('off_hand'),
+            'is_off_hand_attack': is_off_hand,
+            'is_two_handed_weapon': 'two-handed' in weapon_props or 'versatile' in weapon_props,
+            'is_wearing_armor': self.character_context.get('equipment_armor') is not None,
+            'weapon': weapon,
         }
-        feature_bonuses = self._get_all_damage_bonuses(weapon_context)
-        total_feature_bonus = sum(feature_bonuses.values())
-        
+        feature_mods = self._get_feature_modifications(context)
+        damage_bonus_from_features = feature_mods.get('damage_bonus', 0)
+
         # Off-hand attacks don't get feature bonuses if the feature is melee-only
-        if is_off_hand and 'Rage' in feature_bonuses:
+        if is_off_hand and 'Rage' in feature_mods:
             # Rage applies to both main-hand and off-hand attacks
             pass  # Keep the rage bonus for off-hand
-        
-        total_bonus = ability_mod + magic_bonus + total_feature_bonus
+
+        total_bonus = ability_mod + magic_bonus + damage_bonus_from_features
         
         if total_bonus > 0:
             return f"{damage_dice}+{total_bonus} {damage_type}"
@@ -1215,7 +1232,11 @@ class ActionPanel(QWidget):
         
         # attack_total and modifiers are already calculated by _roll_attack()
         # Just get fighting style bonus if needed (though it should already be included)
-        fighting_style_attack_bonus = self._get_fighting_style_attack_bonus(context)
+        context_for_features = {
+            'is_ranged_attack': 'ranged' in context.get('weapon_properties', []) or context.get('damage_type') == 'ranged'
+        }
+        feature_mods = self._get_feature_modifications(context_for_features)
+        fighting_style_attack_bonus = feature_mods.get('attack_bonus', 0)
         if fighting_style_attack_bonus > 0:
             attack_total += fighting_style_attack_bonus
         target_ac = 12  # TODO: Get from monster data
@@ -1241,13 +1262,34 @@ class ActionPanel(QWidget):
                 dice_rolls = [1]
                 dice_total = 1
             
+            # Get feature modifications
+            context_for_features = {
+                'is_melee_attack': not ('ranged' in context.get('weapon_properties', []) or context.get('damage_type') == 'ranged'),
+                'is_one_handed': 'two-handed' not in context.get('weapon_properties', []),
+                'off_hand_empty': not self.equipped_weapons.get('off_hand'),
+                'is_off_hand_attack': context.get('action_type') == ActionType.ATTACK_OFF_HAND,
+                'is_two_handed_weapon': 'two-handed' in context.get('weapon_properties', []) or 'versatile' in context.get('weapon_properties', []),
+                'is_wearing_armor': self.character_context.get('equipment_armor') is not None,
+                'weapon': context,
+            }
+            feature_mods = self._get_feature_modifications(context_for_features)
+
             # Apply Savage Attacker feat if applicable (first attack per round only)
             if 'd' in damage_dice:
-                dice_rolls = self._apply_savage_attacker(dice_rolls, int(num_dice), int(die_size), context)
+                # This logic should be moved to a feat handler
+                # dice_rolls = self._apply_savage_attacker(dice_rolls, int(num_dice), int(die_size), context)
                 dice_total = sum(dice_rolls)
             
             # Apply fighting style effects to dice rolls (e.g., Great Weapon Fighting)
-            dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
+            if feature_mods.get('reroll_damage_1_2'):
+                import random
+                rerolled_dice = []
+                for roll in dice_rolls:
+                    if roll in [1, 2]:
+                        rerolled_dice.append(random.randint(1, int(die_size)))
+                    else:
+                        rerolled_dice.append(roll)
+                dice_rolls = rerolled_dice
             dice_total = sum(dice_rolls)
             
             # === DAMAGE BONUSES ===
@@ -1257,77 +1299,22 @@ class ActionPanel(QWidget):
             damage_bonuses[ability_name] = ability_mod
             
             # Fighting style damage bonuses
-            fighting_style_bonus = self._get_fighting_style_damage_bonus(context)
-            if fighting_style_bonus > 0:
-                damage_bonuses['fighting_style'] = fighting_style_bonus
+            damage_bonus_from_features = feature_mods.get('damage_bonus', 0)
+            if damage_bonus_from_features > 0:
+                damage_bonuses['fighting_style'] = damage_bonus_from_features
+
+            if feature_mods.get('add_ability_mod_to_offhand_damage'):
+                damage_bonuses['two_weapon_fighting'] = ability_mod
             
             # RAGE DAMAGE BONUS - BARBARIAN ONLY (SCALES WITH LEVEL)
-            # Check if character is a barbarian and raging
-            try:
-                # Get class_id from context first, then from character_context, then from database
-                class_id = context.get('class_id') or (self.character_context.get('class_id') if hasattr(self, 'character_context') else None)
-                
-                if not class_id:
-                    # Last resort: get from current character in main window
-                    main_window = self.parent()
-                    while main_window and not hasattr(main_window, 'current_character'):
-                        main_window = main_window.parent()
-                    if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
-                        class_id = main_window.current_character['class_id']
-                        parent = self.parent()
-                        while parent:
-                            if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
-                                break
-                            parent = parent.parent()
-                
-                is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
-                
-                if (class_id and class_id.lower() == 'barbarian' and is_raging):
-                    weapon_props = context.get('weapon_properties', [])
-                    is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
+            if self.character_context.get('raging', False):
+                class_id = self.character_context.get('class_id', '').lower()
+                if class_id == 'barbarian':
+                    is_ranged = 'ranged' in context.get('weapon_properties', []) or context.get('damage_type') == 'ranged'
                     if not is_ranged:
-                        # Get actual barbarian level from character context (single-class barbarian)
-                        barbarian_level = self.character_context.get('level', 1)
-                        parent = self.parent()
-                        while parent:
-                            if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
-                                break
-                            parent = parent.parent()
-                        
-                        # Get rage damage bonus from database by looking up barbarian abilities
-                        rage_bonus = self._get_rage_damage_from_database(barbarian_level)
-                        
-                        if rage_bonus > 0:
-                            damage_bonuses['rage'] = rage_bonus
-                            parent = self.parent()
-                            while parent:
-                                if hasattr(parent, 'log_panel'):
-                                    parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
-                                    break
-                                parent = parent.parent()
-                        else:
-                            parent = self.parent()
-                            while parent:
-                                if hasattr(parent, 'log_panel'):
-                                    parent.log_panel.log_combat(f"[DEBUG] No rage damage in database for level {barbarian_level}")
-                                    break
-                                parent = parent.parent()
-                else:
-                    parent = self.parent()
-                    while parent:
-                        if hasattr(parent, 'log_panel'):
-                            parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging={is_raging}")
-                            break
-                        parent = parent.parent()
-            except Exception as e:
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
-                        break
-                    parent = parent.parent()
+                        level = self.character_context.get('level', 1)
+                        rage_bonus = 2 if level < 9 else (3 if level < 16 else 4)
+                        damage_bonuses['rage'] = rage_bonus
             
             # Calculate total damage
             total_damage = dice_total + sum(damage_bonuses.values())
@@ -1515,82 +1502,6 @@ class ActionPanel(QWidget):
             print(f"DATABASE ERROR: Unexpected error in _get_barbarian_level_from_database: {e}")
             return 0
     
-    def _get_rage_damage_from_database(self, barbarian_level: int) -> int:
-        """Get rage damage bonus from database by looking up barbarian features."""
-        print(f"DATABASE: _get_rage_damage_from_database called with barbarian_level={barbarian_level}")
-        
-        if barbarian_level <= 0:
-            print(f"DATABASE ERROR: _get_rage_damage_from_database - Invalid barbarian level: {barbarian_level}")
-            return 0
-        
-        try:
-            import sqlite3
-            
-            print(f"DATABASE: Opening connection to query rage damage for level {barbarian_level}")
-            
-            # Get character ID from context
-            character_id = self.character_context.get('id', '')
-            if not character_id:
-                print(f"DATABASE ERROR: No character_id in context")
-                return 0
-            
-            # Query barbarian_features table for this character's rage damage
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            
-            query = """
-                SELECT rage_damage_bonus FROM barbarian_features 
-                WHERE character_id = ?
-                AND level = ?
-            """
-            print(f"DATABASE: Executing query: {query} with character_id={character_id}, level={barbarian_level}")
-            
-            cursor.execute(query, (character_id, barbarian_level))
-            
-            result = cursor.fetchone()
-            conn.close()
-            
-            print(f"DATABASE: Query result: {result}")
-            
-            if result and result[0]:
-                try:
-                    rage_damage = int(result[0])
-                    feature_name = result[1]
-                    level_required = result[2]
-                    
-                    if rage_damage > 0:
-                        print(f"DATABASE SUCCESS: Found rage damage +{rage_damage} from '{feature_name}' (level {level_required}) for barbarian level {barbarian_level}")
-                        return rage_damage
-                    else:
-                        print(f"DATABASE ERROR: Rage damage is 0 from '{feature_name}' (level {level_required})")
-                        return 0
-                        
-                except (ValueError, TypeError) as e:
-                    print(f"DATABASE ERROR: Could not parse damage_bonus '{result[0]}' as integer: {e}")
-                    return 0
-            else:
-                print(f"DATABASE ERROR: No rage damage found in class_features_detailed for barbarian level {barbarian_level}")
-                
-                # Debug: Show what IS in the table
-                conn = sqlite3.connect("talekeeper.db")
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT feature_name, level_required, damage_bonus FROM class_features_detailed 
-                    WHERE class_name = 'Barbarian' AND feature_name LIKE '%rage%'
-                    ORDER BY level_required
-                """)
-                debug_results = cursor.fetchall()
-                conn.close()
-                
-                print(f"DATABASE DEBUG: Available barbarian rage features: {debug_results}")
-                return 0
-                
-        except sqlite3.Error as e:
-            print(f"DATABASE ERROR: SQLite error in _get_rage_damage_from_database: {e}")
-            return 0
-        except Exception as e:
-            print(f"DATABASE ERROR: Unexpected error in _get_rage_damage_from_database: {e}")
-            return 0
     
     def _trigger_monster_counter_attacks(self, encounter_panel):
         """Trigger counter-attacks from all living monsters after player's action."""
@@ -2950,6 +2861,8 @@ class ActionPanel(QWidget):
         print(f"ACTION PANEL: Setting character context with keys: {list(context.keys())}")
         print(f"ACTION PANEL: class_id = {context.get('class_id', 'NOT_FOUND')}")
         self.character_context = context
+        if self.character_context and self.character_context.get('id'):
+            self.feature_manager.load_character_features(self.character_context['id'])
         self._update_card_availability()
         # Update potion card to show count
         self._update_potion_card()
@@ -3067,88 +2980,8 @@ class ActionPanel(QWidget):
                 break
             parent = parent.parent()
     
-    def _get_dueling_bonus(self, context: Dict[str, Any]) -> int:
-        """Check if character gets Dueling fighting style bonus (+2 damage)."""
-        if not self.character_context:
-            return 0
-        
-        # Check if character has Dueling fighting style
-        character_feats = getattr(self, 'character_feats', [])
-        if "Dueling" not in character_feats:
-            return 0
-        
-        # Check weapon requirements: one-handed melee weapon
-        weapon_props = context.get('weapon_properties', [])
-        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        
-        # Must not be two-handed or ranged
-        is_two_handed = 'two-handed' in weapon_props_lower
-        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
-        
-        if is_two_handed or is_ranged:
-            return 0
-        
-        # Check if off-hand is free (no off-hand weapon or shield)
-        # With the new system, two-handed weapons occupy both slots, so this check works perfectly
-        off_hand_item = self.character_context.get('equipment_off_hand')
-        shield_item = self.character_context.get('equipment_shield')
-        
-        if off_hand_item or shield_item:
-            return 0
-        
-        # Dueling bonus is now logged in damage breakdown automatically
-        
-        return 2
     
-    def _get_rage_damage_bonus(self, context: Dict[str, Any]) -> int:
-        """Check if Barbarian gets rage damage bonus (+2 to melee weapon attacks)."""
-        if not self.character_context:
-            return 0
-        
-        # Only applies if raging
-        if not self.character_context.get('raging', False):
-            return 0
-        
-        # Only applies to melee weapon attacks (not ranged or spells)
-        weapon_props = context.get('weapon_properties', [])
-        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
-        
-        if is_ranged:
-            return 0
-        
-        # Check if character is a Barbarian
-        class_id = self.character_context.get('class_id', '').lower()
-        if class_id != 'barbarian':
-            return 0
-        
-        return 2  # +2 damage from rage
     
-    def _get_all_damage_bonuses(self, context: Dict[str, Any]) -> dict:
-        """Get all feature-based damage bonuses and their values."""
-        bonuses = {}
-        
-        # Dueling Fighting Style
-        dueling_bonus = self._get_dueling_bonus(context)
-        if dueling_bonus > 0:
-            bonuses['Dueling'] = dueling_bonus
-        
-        # Barbarian Rage
-        rage_bonus = self._get_rage_damage_bonus(context)
-        if rage_bonus > 0:
-            bonuses['Rage'] = rage_bonus
-        
-        # Great Weapon Master (if implemented later)
-        # gwm_bonus = self._get_great_weapon_master_bonus(context)
-        # if gwm_bonus > 0:
-        #     bonuses['Great Weapon Master'] = gwm_bonus
-        
-        # Sharpshooter (if implemented later)
-        # sharpshooter_bonus = self._get_sharpshooter_bonus(context) 
-        # if sharpshooter_bonus > 0:
-        #     bonuses['Sharpshooter'] = sharpshooter_bonus
-        
-        return bonuses
     
     def _use_healing_potion(self, context: Dict[str, Any]):
         """Use a healing potion to restore hit points."""
@@ -3333,239 +3166,6 @@ class ActionPanel(QWidget):
         print(f"[DEBUG] Character {character_id} has potions: {has_potions}")
         return has_potions
     
-    def _apply_fighting_style_effects(self, dice_rolls: list, context: Dict[str, Any]) -> list:
-        """Apply fighting style effects to damage dice rolls."""
-        if not self.character_context:
-            return dice_rolls
-        
-        # Get character's fighting styles
-        character_feats = getattr(self, 'character_feats', [])
-        
-        # Apply Great Weapon Fighting (modifies dice rolls)
-        if "Great Weapon Fighting" in character_feats:
-            dice_rolls = self._apply_great_weapon_fighting(dice_rolls, context)
-        
-        return dice_rolls
-    
-    def _get_fighting_style_attack_bonus(self, context: Dict[str, Any]) -> int:
-        """Get attack bonus from fighting styles."""
-        if not self.character_context:
-            return 0
-        
-        character_feats = getattr(self, 'character_feats', [])
-        bonus = 0
-        
-        # Archery: +2 to ranged weapon attacks
-        if "Archery" in character_feats:
-            weapon_props = context.get('weapon_properties', [])
-            weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-            
-            # Check if this is a ranged weapon attack (not thrown melee weapons)
-            is_ranged_weapon = any(prop in weapon_props_lower for prop in ['ranged'])
-            weapon_name = context.get('name', '').lower()
-            is_bow_or_crossbow = any(bow_type in weapon_name for bow_type in ['bow', 'crossbow', 'sling'])
-            
-            if is_ranged_weapon or is_bow_or_crossbow:
-                bonus += 2
-                self._log_fighting_style("Archery", "Attack", "+2 to ranged weapon attack")
-        
-        return bonus
-    
-    def _get_fighting_style_damage_bonus(self, context: Dict[str, Any]) -> int:
-        """Get damage bonus from fighting styles."""
-        if not self.character_context:
-            return 0
-        
-        character_feats = getattr(self, 'character_feats', [])
-        bonus = 0
-        
-        # Dueling: +2 damage when wielding a melee weapon in one hand and no other weapons
-        if "Dueling" in character_feats:
-            bonus += self._apply_dueling_bonus(context)
-        
-        # Thrown Weapon Fighting: +2 damage to thrown weapon attacks when used at range
-        if "Thrown Weapon Fighting" in character_feats:
-            weapon_props = context.get('weapon_properties', [])
-            weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-            
-            # Must be a thrown weapon used as a ranged attack
-            if 'thrown' in weapon_props_lower and context.get('is_ranged_attack', False):
-                bonus += 2
-                self._log_fighting_style("Thrown Weapon Fighting", "Damage", "+2 to thrown weapon damage")
-        
-        # Two-Weapon Fighting: Add ability modifier to off-hand attack damage
-        if "Two-Weapon Fighting" in character_feats:
-            # Only applies to off-hand attacks where ability modifier would normally be excluded
-            if context.get('action_type') == ActionType.ATTACK_OFF_HAND:
-                # In D&D, off-hand attacks don't normally get ability modifier unless you have this fighting style
-                # So we need to add it back in
-                if context.get('strength'):
-                    str_mod = (context.get('strength', 10) - 10) // 2
-                else:
-                    str_mod = (context.get('dexterity', 10) - 10) // 2
-                
-                # Only add if the weapon qualifies for two-weapon fighting (light weapons)
-                weapon_props = context.get('weapon_properties', [])
-                weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-                
-                if 'light' in weapon_props_lower:
-                    bonus += str_mod
-                    self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to light off-hand weapon")
-        
-        return bonus
-    
-    def _get_fighting_style_ac_bonus(self) -> int:
-        """Get AC bonus from fighting styles."""
-        if not self.character_context:
-            return 0
-        
-        character_feats = getattr(self, 'character_feats', [])
-        
-        # Defense: +1 AC while wearing armor
-        if "Defense" in character_feats:
-            # Check if character is actually wearing armor by checking equipped items
-            # This would need integration with equipment system to be fully accurate
-            # For now, use a heuristic: if AC is significantly above base AC + DEX, assume armor
-            current_ac = self.character_context.get('armor_class', 10)
-            dex_mod = ((self.character_context.get('dexterity', 10) - 10) // 2)
-            base_unarmored_ac = 10 + dex_mod
-            
-            # If AC is more than 2 points above unarmored AC, assume wearing armor
-            if current_ac >= base_unarmored_ac + 2:
-                return 1
-        
-        return 0
-    
-    def _log_fighting_style(self, style_name: str, bonus_type: str, description: str):
-        """Log fighting style bonuses to combat log."""
-        parent = self.parent()
-        while parent:
-            if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"[FIGHTING STYLE] {style_name}: {description}")
-                break
-            parent = parent.parent()
-    
-    def _apply_savage_attacker(self, dice_rolls: list, num_dice: int, die_size: int, context: Dict[str, Any]) -> list:
-        """Apply Savage Attacker feat - roll weapon damage dice twice, use higher roll (first attack per round only)."""
-        if not self.first_attack_this_round:
-            return dice_rolls
-            
-        # Check if character has Savage Attacker feat
-        character_feats = self.character_context.get('feats', [])
-        if 'Savage Attacker' not in character_feats:
-            return dice_rolls
-        
-        # Only apply to weapon attacks (not spell damage)
-        if not context.get('weapon', False):
-            return dice_rolls
-            
-        import random
-        
-        # Roll the same dice again
-        second_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
-        
-        # Compare totals and use higher
-        first_total = sum(dice_rolls)
-        second_total = sum(second_rolls)
-        
-        if second_total > first_total:
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"[SAVAGE ATTACKER] First roll: {dice_rolls} = {first_total}, Second roll: {second_rolls} = {second_total} - Using higher!")
-                    break
-                parent = parent.parent()
-            self.first_attack_this_round = False  # Mark first attack used
-            return second_rolls
-        else:
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"[SAVAGE ATTACKER] First roll: {dice_rolls} = {first_total}, Second roll: {second_rolls} = {second_total} - Using first!")
-                    break
-                parent = parent.parent()
-            self.first_attack_this_round = False  # Mark first attack used
-            return dice_rolls
-    
-    def _apply_dueling_bonus(self, context: Dict[str, Any]) -> int:
-        """Apply Dueling fighting style bonus (+2 damage when wielding one melee weapon in one hand and no other weapons)."""
-        weapon_props = context.get('weapon_properties', [])
-        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        
-        # Must be a melee weapon (not ranged)
-        weapon_name = context.get('name', '').lower()
-        is_ranged_weapon = any(ranged_type in weapon_name for ranged_type in ['bow', 'crossbow', 'sling'])
-        if is_ranged_weapon or 'ranged' in weapon_props_lower:
-            return 0
-        
-        # Must not be two-handed
-        if 'two-handed' in weapon_props_lower:
-            return 0
-        
-        # Must not be using versatile weapon with two hands (simplified: assume one-handed use)
-        # Must not be using a shield or second weapon (simplified check)
-        action_type = context.get('action_type')
-        
-        # Only applies to main-hand attacks (not off-hand, since that implies two weapons)
-        if action_type == ActionType.ATTACK_OFF_HAND:
-            return 0
-        
-        # If all conditions met, apply dueling bonus
-        self._log_fighting_style("Dueling", "Damage", "+2 damage (wielding one melee weapon in one hand)")
-        return 2
-    
-    def _apply_great_weapon_fighting(self, dice_rolls: list, context: Dict[str, Any]) -> list:
-        """Apply Great Weapon Fighting: reroll 1s and 2s on melee weapons with two-handed or heavy property."""
-        weapon_props = context.get('weapon_properties', [])
-        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        
-        # Great Weapon Fighting requires a melee weapon with two-handed OR heavy property
-        # Used with two hands (two-handed weapons are always two-handed, versatile can be used two-handed)
-        is_two_handed = 'two-handed' in weapon_props_lower
-        is_heavy = 'heavy' in weapon_props_lower  
-        is_versatile = 'versatile' in weapon_props_lower
-        
-        # Must be two-handed OR heavy, and used as a melee weapon
-        if not (is_two_handed or is_heavy or is_versatile):
-            return dice_rolls
-        
-        # Get the damage die size from context to reroll correctly
-        damage_dice = context.get('damage_dice', '1d6')
-        die_size = 6  # Default
-        if 'd' in damage_dice:
-            try:
-                _, die_size_str = damage_dice.split('d')
-                # Handle cases like "2d6+1" by extracting just the die size
-                die_size = int(die_size_str.split('+')[0].split('-')[0])
-            except:
-                die_size = 6  # Fallback
-        
-        # Apply Great Weapon Fighting (2024 rules): treat 1s and 2s as 3s
-        modified_rolls = []
-        changes_made = []
-        
-        for roll in dice_rolls:
-            if roll <= 2:
-                # Treat 1s and 2s as 3s
-                modified_rolls.append(3)
-                changes_made.append((roll, 3))
-            else:
-                modified_rolls.append(roll)
-        
-        # Log the fighting style effect if changes were made
-        if changes_made:
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    original_str = ', '.join(map(str, dice_rolls))
-                    modified_str = ', '.join(map(str, modified_rolls))
-                    change_details = ', '.join([f"{old}→{new}" for old, new in changes_made])
-                    weapon_type = "two-handed" if is_two_handed else "heavy" if is_heavy else "versatile"
-                    parent.log_panel.log_combat(f"[FIGHTING STYLE] Great Weapon Fighting: [{original_str}] → [{modified_str}] ({weapon_type} weapon: {change_details})")
-                    break
-                parent = parent.parent()
-        
-        return modified_rolls
     
     def _apply_weapon_mastery_effects(self, weapon_name: str, attack_total: int, target_ac: int, hit: bool, damage_total: int, context: Dict[str, Any]) -> Dict[str, Any]:
         """Apply weapon mastery effects using simplified database-driven logic."""

@@ -264,24 +264,63 @@ class ActionSurge(ResourceFeature):
 
 class FightingStyle(PassiveFeature):
     """Fighter's Fighting Style feature."""
-    
-    STYLES = {
-        "archery": {"attack_bonus_ranged": 2},
-        "defense": {"armor_class": 1},
-        "dueling": {"damage_bonus_one_handed": 2},
-        "great_weapon_fighting": {"reroll_damage_1_2": True},
-        "protection": {"shield_ally_bonus": True},
-        "two_weapon_fighting": {"offhand_damage_ability": True}
-    }
-    
+
     def __init__(self, style: str):
+        # The modifiers will be calculated dynamically in the apply method,
+        # so we pass an empty dict to the super constructor.
         super().__init__(
             name=f"Fighting Style: {style.title()}",
             description=f"Specialized combat training in {style} style",
-            modifiers=self.STYLES.get(style, {}),
+            modifiers={},
             requirements=FeatureRequirement(class_name="Fighter")
         )
-        self.style = style
+        self.style = style.lower().replace(" ", "_")
+
+    def apply(self, character: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Apply the fighting style's effects based on the character and context.
+        The context dictionary can contain information about the action being taken,
+        such as the weapon used, if it's an attack, etc.
+        """
+        if not self.can_use(character, context):
+            return {"success": False, "reason": "Requirements not met"}
+
+        context = context or {}
+        modifications = {}
+
+        if self.style == "archery":
+            if context.get('is_ranged_attack', False):
+                modifications['attack_bonus'] = 2
+
+        elif self.style == "defense":
+            # This requires knowing if the character is wearing armor.
+            if context.get('is_wearing_armor', False):
+                modifications['ac_bonus'] = 1
+
+        elif self.style == "dueling":
+            # Requires a melee weapon in one hand and no other weapons.
+            is_melee = context.get('is_melee_attack', False)
+            is_one_handed = context.get('is_one_handed', False)
+            off_hand_empty = context.get('off_hand_empty', False)
+            if is_melee and is_one_handed and off_hand_empty:
+                modifications['damage_bonus'] = 2
+
+        elif self.style == "great_weapon_fighting":
+            # This affects dice rolls, not a flat bonus.
+            # We add a flag that the combat calculation logic can use.
+            is_melee = context.get('is_melee_attack', False)
+            is_two_handed_weapon = context.get('is_two_handed_weapon', False)
+            if is_melee and is_two_handed_weapon:
+                modifications['reroll_damage_1_2'] = True
+
+        elif self.style == "two_weapon_fighting":
+            # Applies to the off-hand attack.
+            if context.get('is_off_hand_attack', False):
+                modifications['add_ability_mod_to_offhand_damage'] = True
+
+        # Protection is a reaction and is handled separately.
+
+        return {"success": True, "modifications": modifications}
 
 
 # Barbarian Features  
@@ -537,7 +576,7 @@ class FeatureManager:
         level = char_row['level']
         
         # Load class-specific features based on level
-        self._load_class_features(class_name, level)
+        self._load_class_features(character_id, class_name.title(), level)
         
         # Load any custom features from character_features table
         cursor.execute("""
@@ -552,7 +591,7 @@ class FeatureManager:
         
         conn.close()
     
-    def _load_class_features(self, class_name: str, level: int) -> None:
+    def _load_class_features(self, character_id: str, class_name: str, level: int) -> None:
         """Load features for a specific class up to a given level."""
         class_features = {
             "Fighter": [
@@ -580,7 +619,7 @@ class FeatureManager:
                         if feature_name == "fighting_style":
                             # Special handling for fighting style
                             # Get the actual style from database or default
-                            style = self._get_fighting_style(class_name)
+                            style = self._get_fighting_style(character_id)
                             feature = FightingStyle(style)
                         else:
                             feature = self.feature_registry[feature_name]()
