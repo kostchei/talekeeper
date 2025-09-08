@@ -613,6 +613,7 @@ def build_stylesheet(palette: dict[str, str]) -> str:
     }}
     """
 
+# POTENTIAL_DEAD_CODE: Function 'get_theme_names' appears unused
 def get_theme_names() -> list[str]:
     """Return list of available theme names."""
     return ["light", "dark"]

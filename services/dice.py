@@ -306,6 +306,7 @@ def d20(modifier: int = 0, advantage: bool = False, disadvantage: bool = False) 
     notation = f"1d20{modifier:+d}" if modifier else "1d20"
     return dice.roll(notation, advantage, disadvantage)
 
+# POTENTIAL_DEAD_CODE: Function 'attack_roll' appears unused
 def attack_roll(bonus: int, advantage: bool = False, disadvantage: bool = False) -> Tuple[int, bool, bool]:
     """
     Make an attack roll.
@@ -324,9 +325,11 @@ def attack_roll(bonus: int, advantage: bool = False, disadvantage: bool = False)
     is_fumble = base_roll == 1
     
     return total, is_critical, is_fumble
+# POTENTIAL_DEAD_CODE: Function 'saving_throw' appears unused
 
 def saving_throw(ability_mod: int, proficiency: int = 0, advantage: bool = False) -> int:
     """Make a saving throw"""
+    # POTENTIAL_DEAD_CODE: Function 'skill_check' appears unused
     return d20(ability_mod + proficiency, advantage)
 
 def skill_check(ability_mod: int, proficiency: int = 0, expertise: bool = False, advantage: bool = False) -> int:

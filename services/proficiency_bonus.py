@@ -36,6 +36,7 @@ def get_proficiency_bonus_from_context(context: dict) -> int:
     return get_proficiency_bonus(level)
 
 
+# POTENTIAL_DEAD_CODE: Function 'get_proficiency_bonus_from_character' appears unused
 def get_proficiency_bonus_from_character(character: dict) -> int:
     """Get proficiency bonus from character dict."""
     level = character.get('level', 1)

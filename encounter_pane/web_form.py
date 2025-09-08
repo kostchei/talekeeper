@@ -23,6 +23,7 @@ FORM_TEMPLATE = '''
 '''
 
 @app.route('/', methods=['GET', 'POST'])
+# POTENTIAL_DEAD_CODE: Function 'index' appears unused
 def index():
     if request.method == 'POST':
         frame = CampaignFrame(
