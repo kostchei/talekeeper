@@ -112,6 +112,11 @@ class ActionPanel(QWidget):
         self.character_id = None  # Current character ID for action tracking
         self.action_economy_enabled = True  # Toggle for action economy enforcement
         
+        # Turn state system for multiple attacks per turn
+        self.player_turn_active = False
+        self.used_bonus_action_this_turn = False
+        self.awaiting_followup_choice = False
+        
         # Set fixed size (center + right columns only)
         self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
         self.setAutoFillBackground(True)  # Ensure background is filled
@@ -407,7 +412,7 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat("[FAIL] No Second Wind uses remaining")
+                        parent.log_panel.log_combat("⚔ [FAIL] No Second Wind uses remaining")
                         break
                     parent = parent.parent()
                 return
@@ -418,7 +423,7 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"[FAIL] {use_result.get('error', 'Second Wind failed')}")
+                        parent.log_panel.log_combat(f"⚔ [FAIL] {use_result.get('error', 'Second Wind failed')}")
                         break
                     parent = parent.parent()
                 return
@@ -506,7 +511,7 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat("[FAIL] No Action Surge uses remaining")
+                        parent.log_panel.log_combat("⚔ [FAIL] No Action Surge uses remaining")
                         break
                     parent = parent.parent()
                 return
@@ -517,7 +522,7 @@ class ActionPanel(QWidget):
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"[FAIL] {use_result.get('error', 'Action Surge failed')}")
+                        parent.log_panel.log_combat(f"⚔ [FAIL] {use_result.get('error', 'Action Surge failed')}")
                         break
                     parent = parent.parent()
                 return
@@ -858,6 +863,21 @@ class ActionPanel(QWidget):
             # Add character context
             full_context = {**context, **self.character_context}
             
+            # Special handling for follow-up attacks during turn
+            if self.awaiting_followup_choice and action_type == ActionType.ATTACK_OFF_HAND:
+                print(f"[FOLLOWUP] Off-hand attack selected during follow-up choice")
+                # Clear the follow-up timer
+                if hasattr(self, 'followup_timer'):
+                    self.followup_timer.stop()
+                # Mark bonus action as used
+                self.used_bonus_action_this_turn = True
+                # Execute the attack
+                encounter_panel = self._get_encounter_panel()
+                if encounter_panel and self.target_monster_id:
+                    full_context['target_monster_id'] = self.target_monster_id
+                    self._execute_attack_without_initiative(action_type, full_context, encounter_panel)
+                return
+            
             # For attack actions, add target monster and weapon data if available
             if action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
                 # Add weapon data to context
@@ -1037,9 +1057,15 @@ class ActionPanel(QWidget):
             print(f"DEBUG: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            # Monsters still alive, trigger counter-attacks
-            print(f"DEBUG: About to trigger counter-attacks after player attack")
-            self._trigger_monster_counter_attacks(encounter_panel)
+            # Monsters still alive - check what to do next
+            if self.awaiting_followup_choice and action_type == ActionType.ATTACK_OFF_HAND:
+                # This was a follow-up off-hand attack - end the turn now
+                print(f"DEBUG: Off-hand follow-up attack complete, ending turn")
+                self._end_player_turn(encounter_panel)
+            else:
+                # Check for follow-up attacks before ending turn
+                print(f"DEBUG: Attack complete, checking for follow-up attacks")
+                self._check_for_followup_attacks(action_type, context, encounter_panel)
     
     def _new_execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
         """NEW ATTACK SYSTEM - Built from scratch with Fighter Extra Attacks support."""
@@ -1120,7 +1146,7 @@ class ActionPanel(QWidget):
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"[ATTACK] {class_name} Extra Attack: Making {num_attacks} attacks with {weapon_name}")
+                parent.log_panel.log_combat(f"⚔️ {class_name} Extra Attack: Making {num_attacks} attacks with {weapon_name}")
                 break
             parent = parent.parent()
         
@@ -1597,6 +1623,145 @@ class ActionPanel(QWidget):
             print(f"DATABASE ERROR: Unexpected error in _get_rage_damage_from_database: {e}")
             return 0
     
+    def _check_for_followup_attacks(self, last_attack_type: ActionType, context: Dict[str, Any], encounter_panel):
+        """Check if player can make follow-up attacks (off-hand, Nick) before ending turn."""
+        followup_options = []
+        
+        # Check for off-hand attack if main-hand was with light weapon
+        if last_attack_type == ActionType.ATTACK_MAIN_HAND:
+            if self._can_make_offhand_attack(context):
+                followup_options.append('offhand')
+                print(f"[FOLLOWUP] Off-hand attack available")
+        
+        # Check for Nick mastery (can be used with any Nick weapon attack)
+        if self._can_use_nick_mastery(context):
+            followup_options.append('nick')
+            print(f"[FOLLOWUP] Nick mastery attack available")
+        
+        if followup_options:
+            print(f"[FOLLOWUP] {len(followup_options)} follow-up options available")
+            self._present_followup_options(followup_options, context, encounter_panel)
+        else:
+            print(f"[FOLLOWUP] No follow-up attacks available, ending turn")
+            self._end_player_turn(encounter_panel)
+    
+    def _can_make_offhand_attack(self, context: Dict[str, Any]) -> bool:
+        """Check if player can make an off-hand attack."""
+        if self.used_bonus_action_this_turn:
+            print(f"[FOLLOWUP] Off-hand not available: bonus action already used")
+            return False
+        
+        # Check if main-hand weapon is light
+        weapon_props = context.get('weapon_properties', [])
+        if not weapon_props:
+            print(f"[FOLLOWUP] Off-hand not available: no weapon properties")
+            return False
+            
+        weapon_props_lower = [prop.lower() for prop in weapon_props]
+        if 'light' not in weapon_props_lower:
+            print(f"[FOLLOWUP] Off-hand not available: main-hand weapon is not light")
+            return False
+        
+        # Check if off-hand weapon exists and is light
+        off_hand_weapon = self.equipped_weapons.get('off_hand')
+        if not off_hand_weapon:
+            print(f"[FOLLOWUP] Off-hand not available: no off-hand weapon equipped")
+            return False
+            
+        off_hand_props = off_hand_weapon.get('properties', [])
+        if not off_hand_props:
+            print(f"[FOLLOWUP] Off-hand not available: off-hand weapon has no properties")
+            return False
+            
+        off_hand_props_lower = [prop.lower() for prop in off_hand_props]
+        if 'light' not in off_hand_props_lower:
+            print(f"[FOLLOWUP] Off-hand not available: off-hand weapon is not light")
+            return False
+        
+        print(f"[FOLLOWUP] Off-hand attack available: both weapons are light")
+        return True
+    
+    def _can_use_nick_mastery(self, context: Dict[str, Any]) -> bool:
+        """Check if player can use Nick mastery for additional attack."""
+        if self.used_bonus_action_this_turn:
+            print(f"[FOLLOWUP] Nick not available: bonus action already used")
+            return False
+        
+        # Check if weapon has Nick mastery
+        weapon_masteries = context.get('weapon_masteries', [])
+        if 'Nick' not in weapon_masteries:
+            print(f"[FOLLOWUP] Nick not available: weapon doesn't have Nick mastery")
+            return False
+        
+        print(f"[FOLLOWUP] Nick mastery available")
+        return True
+    
+    def _present_followup_options(self, options: list, context: Dict[str, Any], encounter_panel):
+        """Present follow-up attack options to player."""
+        self.awaiting_followup_choice = True
+        self.player_turn_active = True
+        
+        # For now, just present first available option
+        # Later we can add UI for multiple choices
+        if 'offhand' in options:
+            print(f"[FOLLOWUP] Presenting off-hand attack option")
+            self._prompt_offhand_attack(context, encounter_panel)
+        elif 'nick' in options:
+            print(f"[FOLLOWUP] Presenting Nick mastery attack option")
+            self._prompt_nick_attack(context, encounter_panel)
+        else:
+            self._end_player_turn(encounter_panel)
+    
+    def _prompt_offhand_attack(self, context: Dict[str, Any], encounter_panel):
+        """Prompt player for off-hand attack."""
+        # Get parent to log message
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[CHOICE] Off-hand attack available! Click off-hand weapon or wait 3 seconds to end turn.")
+                break
+            parent = parent.parent()
+        
+        # Set timer to auto-end turn after 3 seconds
+        from PyQt6.QtCore import QTimer
+        self.followup_timer = QTimer()
+        self.followup_timer.timeout.connect(lambda: self._end_player_turn(encounter_panel))
+        self.followup_timer.setSingleShot(True)
+        self.followup_timer.start(3000)  # 3 seconds
+    
+    def _prompt_nick_attack(self, context: Dict[str, Any], encounter_panel):
+        """Prompt player for Nick mastery attack."""
+        # Get parent to log message
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[CHOICE] Nick mastery available! Click weapon again or wait 3 seconds to end turn.")
+                break
+            parent = parent.parent()
+        
+        # Set timer to auto-end turn after 3 seconds
+        from PyQt6.QtCore import QTimer
+        self.followup_timer = QTimer()
+        self.followup_timer.timeout.connect(lambda: self._end_player_turn(encounter_panel))
+        self.followup_timer.setSingleShot(True)
+        self.followup_timer.start(3000)  # 3 seconds
+    
+    def _end_player_turn(self, encounter_panel):
+        """End the player's turn and trigger monster attacks."""
+        print(f"[TURN] Player turn ending")
+        
+        # Clear any pending follow-up state
+        if hasattr(self, 'followup_timer'):
+            self.followup_timer.stop()
+            
+        self.player_turn_active = False
+        self.used_bonus_action_this_turn = False
+        self.awaiting_followup_choice = False
+        
+        # Now trigger monster attacks
+        print(f"[TURN] Triggering monster counter-attacks")
+        self._trigger_monster_counter_attacks(encounter_panel)
+
     def _trigger_monster_counter_attacks(self, encounter_panel):
         """Trigger counter-attacks from all living monsters after player's action."""
         try:
@@ -2301,14 +2466,14 @@ class ActionPanel(QWidget):
                     # Log turn order prominently
                     parent.log_panel.log_combat("-" * 30)
                     turn_order = " -> ".join([f"{entry['name']} ({entry['initiative']})" for entry in initiative_order])
-                    parent.log_panel.log_combat(f"[TURN] TURN ORDER: {turn_order}")
+                    parent.log_panel.log_combat(f"⚔ TURN ORDER: {turn_order}")
                     parent.log_panel.log_combat("-" * 30)
                     
                     # Announce who goes first
                     if initiative_order:
                         first_actor = initiative_order[0]
                         if first_actor['type'] == 'player':
-                            parent.log_panel.log_combat("[TURN] You go first!")
+                            parent.log_panel.log_combat("⚔ [FIRST TURN] You go first!")
                         else:
                             parent.log_panel.log_combat(f"[FIRST TURN] {first_actor['name']} goes first!")
                     
@@ -3769,23 +3934,23 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     # Log specific mastery effects with clear descriptions
                     if mastery_effects.get('sap'):
-                        parent.log_panel.log_combat("[MASTERY] SAP: Target has disadvantage on its next attack roll")
+                        parent.log_panel.log_combat("⚔️ [SAP] Target has disadvantage on its next attack roll")
                     if mastery_effects.get('vex'):
-                        parent.log_panel.log_combat("[MASTERY] VEX: You have advantage on your next attack against this target")
+                        parent.log_panel.log_combat("⚔️ [VEX] You have advantage on your next attack against this target")
                     if mastery_effects.get('slow'):
-                        parent.log_panel.log_combat("[MASTERY] SLOW: Target's speed reduced by 10 feet until your next turn")
+                        parent.log_panel.log_combat("⚔️ [SLOW] Target's speed reduced by 10 feet until your next turn")
                     if mastery_effects.get('push'):
-                        parent.log_panel.log_combat("[MASTERY] PUSH: Target pushed 10 feet away")
+                        parent.log_panel.log_combat("⚔️ [PUSH] Target pushed 10 feet away")
                     if mastery_effects.get('topple_dc'):
                         dc = mastery_effects['topple_dc']
-                        parent.log_panel.log_combat(f"[MASTERY] TOPPLE: Target must make CON save DC {dc} or fall prone")
+                        parent.log_panel.log_combat(f"⚔️ [TOPPLE] Target must make CON save DC {dc} or fall prone")
                     if mastery_effects.get('graze_damage'):
                         damage = mastery_effects['graze_damage']
-                        parent.log_panel.log_combat(f"[MASTERY] GRAZE: Deals {damage} damage even on a miss")
+                        parent.log_panel.log_combat(f"⚔️ [GRAZE] Deals {damage} damage even on a miss")
                     if mastery_effects.get('cleave'):
-                        parent.log_panel.log_combat("[MASTERY] CLEAVE: Can make an additional attack against another target within 5 feet")
+                        parent.log_panel.log_combat("⚔️ [CLEAVE] Can make an additional attack against another target within 5 feet")
                     if mastery_effects.get('nick'):
-                        parent.log_panel.log_combat("[MASTERY] NICK: Can make an additional light weapon attack")
+                        parent.log_panel.log_combat("⚔️ [NICK] Can make an additional light weapon attack")
                     break
                 parent = parent.parent()
         except Exception as e:

@@ -15,7 +15,6 @@ Supported Effects:
 
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
-from services.equipment_database import EquipmentDatabase
 
 
 @dataclass
@@ -72,13 +71,22 @@ class WeaponMasteryProcessor:
     def get_available_masteries_for_weapon(self, weapon_name: str) -> List[str]:
         """Get weapon masteries available for a specific weapon type from equipment data."""
         try:
-            # Load equipment data from database
-            equipment_db = EquipmentDatabase()
-            weapon = equipment_db.get_equipment_by_name(weapon_name)
+            import json
+            import os
             
-            if weapon and weapon.get('item_type') == 'weapon':
-                mastery = weapon.get('weapon_mastery')
-                return [mastery] if mastery else []
+            # Load equipment data
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)
+            equipment_file_path = os.path.join(project_root, "data", "equipment.json")
+            
+            with open(equipment_file_path, 'r', encoding='utf-8') as f:
+                equipment_data = json.load(f)
+            
+            # Find the weapon and return its mastery
+            for item in equipment_data:
+                if item.get('item_type') == 'weapon' and item.get('name') == weapon_name:
+                    mastery = item.get('weapon_mastery')
+                    return [mastery] if mastery else []
             
             return []
             

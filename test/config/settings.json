@@ -1,0 +1,11 @@
+{
+  "auto_save_interval": 300,
+  "difficulty": "normal",
+  "sound_enabled": true,
+  "music_volume": 0.7,
+  "sfx_volume": 0.8,
+  "window_width": 1200,
+  "window_height": 800,
+  "theme": "dark",
+  "last_character_slot": 6
+}

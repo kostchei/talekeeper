@@ -28,7 +28,6 @@ import os
 import random
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
-from services.equipment_database import EquipmentDatabase
 from .town_encounter import TownEncounterPanel
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
@@ -3434,7 +3433,7 @@ Character Level: {character_level}"""
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"[XP] Gained {xp_value} XP for defeating {monster_name}")
+                    parent.log_panel.log_combat(f"💰 Gained {xp_value} XP for defeating {monster_name}")
                     break
                 parent = parent.parent()
         except Exception as e:
@@ -3548,7 +3547,7 @@ Character Level: {character_level}"""
         layout.setContentsMargins(1, 1, 1, 1)
         
         # Title
-        title = QLabel("Loot")
+        title = QLabel("💰 Loot")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight: bold; color: #ffdd44; font-size: 14px;")
         layout.addWidget(title)
@@ -3632,7 +3631,7 @@ Character Level: {character_level}"""
         
         # Log individual treasure
         if total_individual_gp > 0:
-            self._log_monster_action(f"[LOOT] Individual Treasure: {total_individual_gp} GP total")
+            self._log_monster_action(f"💰 Individual Treasure: {total_individual_gp} GP total")
             for detail in treasure_details:
                 self._log_monster_action(f"  └─ {detail}")
         
@@ -3716,8 +3715,8 @@ Character Level: {character_level}"""
         
         try:
             # Load equipment data
-            equipment_db = EquipmentDatabase()
-            equipment_data = equipment_db.get_all_equipment()
+            with open('data/equipment.json', 'r') as f:
+                equipment_data = json.load(f)
             
             # Filter equipment based on monster type and CR
             possible_drops = []
@@ -3892,16 +3891,16 @@ Character Level: {character_level}"""
                             # Update gold in inventory database
                             success = game_engine.add_gold_to_character_sync(character['id'], gold_amount)
                             if success:
-                                self._log_monster_action(f"[GOLD] Gained {gold_amount} gold pieces!")
+                                self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
                                 print(f"[TREASURE] Successfully added {gold_amount} GP to character {character['id']}")
                                 
                                 # Refresh the equipment panel to show updated gold
                                 self._refresh_equipment_panel(game_engine, character['id'])
                             else:
-                                self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                                self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
                                 print(f"[TREASURE] Failed to add {gold_amount} GP to character inventory")
                         except Exception as e:
-                            self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                            self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
                             print(f"[TREASURE] Error adding gold: {e}")
                         return
                     break
@@ -3912,7 +3911,7 @@ Character Level: {character_level}"""
     
     def _handle_short_rest_action(self):
         """Handle clicking the Short Rest action card."""
-        self._log_monster_action("[REST] Taking a short rest...")
+        self._log_monster_action("💤 Taking a short rest...")
         self._perform_short_rest()
     
     def _perform_short_rest(self):
@@ -4164,10 +4163,10 @@ Character Level: {character_level}"""
         roll_details = " + ".join(rolls)
         if actual_healing < total_healing:
             self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"[HEAL] HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
         else:
             self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"[HEAL] HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing})")
+            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing})")
         
         # Update status label
         status_label.setText(f"Current HP: {new_hp}/{max_hp}")
@@ -4180,7 +4179,7 @@ Character Level: {character_level}"""
         
         # Close dialog if at full health
         if new_hp >= max_hp:
-            self._log_monster_action("[HEAL] Fully healed!")
+            self._log_monster_action("💚 Fully healed!")
             dialog.accept()
     
     def _update_character_sheet_hp(self, current_hp: int, max_hp: int):
@@ -4235,7 +4234,7 @@ Character Level: {character_level}"""
             max_hp = character['hit_points_max']
             character['hit_points_current'] = max_hp
             character['current_hit_points'] = max_hp  # Alternative field
-            self._log_monster_action(f"[HEAL] HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
+            self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
             
             # 2. Restore all spent hit dice (up to half maximum, minimum 1)
             character_level = character['level']

@@ -103,7 +103,20 @@ def main():
             logger.error(error_msg)
             raise RuntimeError(error_msg)
         
-        # Equipment data is now loaded from database, no file check needed
+        # Check critical equipment data still exists (hasn't been migrated yet)
+        #required_data_files = [
+        #    "data/equipment.json"
+        ]
+        
+        missing_files = []
+        for file_path in required_data_files:
+            if not Path(file_path).exists():
+                missing_files.append(file_path)
+        
+        if missing_files:
+            error_msg = f"Missing required data files:\n" + "\n".join(f"- {f}" for f in missing_files)
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
         
         # Initialize SQLite game engine
         game_engine = GameEngineSQLite()

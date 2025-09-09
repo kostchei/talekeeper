@@ -19,7 +19,6 @@ from typing import Optional, List, Dict, Any
 import sqlite3
 import json
 from services.level_up import LevelUpService
-from services.equipment_database import EquipmentDatabase
 
 
 class TownEncounterCard(QFrame):
@@ -765,17 +764,20 @@ class ShopInterface(QWidget):
     def _load_shop_inventory(self):
         """Load shop inventory from equipment data"""
         try:
-            equipment_db = EquipmentDatabase()
-            equipment_data = equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
+            with open('data/equipment.json', 'r') as f:
+                equipment_data = json.load(f)
                 
             # Filter items that would be available in a general store
+            # Exclude rare/magical items, include basic equipment
             for item in equipment_data:
-                # Add markup for shop prices (25% increase)
-                shop_price = int(item.get('cost_gp', 0) * 1.25)
-                if shop_price > 0:  # Only items with a cost
-                    shop_item = item.copy()
-                    shop_item['shop_price'] = shop_price
-                    self.shop_inventory.append(shop_item)
+                rarity = item.get('rarity', 'common').lower()
+                if rarity in ['common', 'uncommon']:
+                    # Add markup for shop prices (25% increase)
+                    shop_price = int(item.get('cost_gp', 0) * 1.25)
+                    if shop_price > 0:  # Only items with a cost
+                        shop_item = item.copy()
+                        shop_item['shop_price'] = shop_price
+                        self.shop_inventory.append(shop_item)
                         
         except Exception as e:
             print(f"Error loading shop inventory: {e}")
@@ -801,8 +803,11 @@ class ShopInterface(QWidget):
             conn.close()
             
             # Load equipment data to get item details and prices
-            equipment_db = EquipmentDatabase()
-            equipment_lookup = equipment_db.get_equipment_lookup()
+            with open('data/equipment.json', 'r') as f:
+                equipment_data = json.load(f)
+            
+            # Create lookup for equipment details
+            equipment_lookup = {item['name']: item for item in equipment_data}
             
             self.character_inventory = []
             for item_name, item_type, quantity in inventory_items:

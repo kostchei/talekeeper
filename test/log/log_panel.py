@@ -442,11 +442,11 @@ class LogPanel(QWidget):
         # Format the message
         level_prefix = {
             LogLevel.INFO: "",
-            LogLevel.WARNING: "[WARN] ",
+            LogLevel.WARNING: "⚠ ",
             LogLevel.ERROR: "[FAIL] ",
-            LogLevel.COMBAT: "[COMBAT] ",
+            LogLevel.COMBAT: "⚔ ",
             LogLevel.DICE: "[DICE] ",
-            LogLevel.SYSTEM: "[SYSTEM] "
+            LogLevel.SYSTEM: "⚙ "
         }
         
         formatted_message = f"[{timestamp.strftime('%H:%M:%S')}] {level_prefix.get(level, '')}{message}\n"
@@ -538,11 +538,11 @@ class LogPanel(QWidget):
         # Format the message
         level_prefix = {
             LogLevel.INFO: "",
-            LogLevel.WARNING: "[WARN] ",
+            LogLevel.WARNING: "⚠ ",
             LogLevel.ERROR: "[FAIL] ",
-            LogLevel.COMBAT: "[COMBAT] ",
+            LogLevel.COMBAT: "⚔ ",
             LogLevel.DICE: "[DICE] ",
-            LogLevel.SYSTEM: "[SYSTEM] "
+            LogLevel.SYSTEM: "⚙ "
         }
         
         formatted_message = f"[{timestamp}] {level_prefix.get(level, '')}{message}\n"

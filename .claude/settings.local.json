@@ -56,7 +56,13 @@
       "Bash(dir:*)",
       "Bash(git push:*)",
       "Bash(rg:*)",
-      "Bash(del test_skill_selection.py)"
+      "Bash(del test_skill_selection.py)",
+      "Bash(rsync:*)",
+      "Bash(find:*)",
+      "Bash(for:*)",
+      "Bash(do cp -r $dir test/)",
+      "Bash(done)",
+      "Bash(del:*)"
     ],
     "deny": []
   }
