@@ -3863,18 +3863,164 @@ Character Level: {character_level}"""
         chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
         
         if random.random() <= chance:
-            # Roll hoard treasure: 2d4 × 100 GP and 1d4-1 magical items
-            hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
-            hoard_gp = hoard_gp_dice * 100
+            # Get highest monster CR from current encounter to determine hoard table
+            max_cr = 0
+            if hasattr(self, 'current_encounter') and self.current_encounter:
+                if hasattr(self.current_encounter, 'monster_instances'):
+                    for instance in self.current_encounter.monster_instances:
+                        try:
+                            if hasattr(instance, 'monster_cr'):
+                                cr_str = instance.monster_cr
+                                if '/' in cr_str:
+                                    numerator, denominator = cr_str.split('/')
+                                    cr_numeric = float(numerator) / float(denominator)
+                                else:
+                                    cr_numeric = float(cr_str)
+                                max_cr = max(max_cr, cr_numeric)
+                        except (ValueError, TypeError, AttributeError):
+                            continue
             
-            magic_items_roll = random.randint(1, 4) - 1
-            magic_items = max(0, magic_items_roll)  # Minimum 0 items
+            # Use D&D 2024 hoard table based on CR
+            if max_cr <= 4:
+                # CR 0-4: 2d4 × 100 GP and 1d4-1 magical items
+                hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
+                hoard_gp = hoard_gp_dice * 100
+                magic_items_roll = random.randint(1, 4) - 1
+            elif max_cr <= 10:
+                # CR 5-10: 8d10 × 100 GP and 1d3 magical items
+                hoard_gp_dice = sum(random.randint(1, 10) for _ in range(8))
+                hoard_gp = hoard_gp_dice * 100
+                magic_items_roll = random.randint(1, 3)
+            elif max_cr <= 16:
+                # CR 11-16: 8d8 × 1,000 GP and 1d4 magical items
+                hoard_gp_dice = sum(random.randint(1, 8) for _ in range(8))
+                hoard_gp = hoard_gp_dice * 1000
+                magic_items_roll = random.randint(1, 4)
+            else:
+                # CR 17+: 6d10 × 10,000 GP and 1d6 magical items
+                hoard_gp_dice = sum(random.randint(1, 10) for _ in range(6))
+                hoard_gp = hoard_gp_dice * 10000
+                magic_items_roll = random.randint(1, 6)
             
-            magic_text = f" and {magic_items} magical item{'s' if magic_items != 1 else ''}" if magic_items > 0 else " and no magical items"
+            magic_items = max(0, magic_items_roll)  # Minimum 0 items for CR 0-4 only
+            
+            # Generate actual magical items based on rarity
+            generated_items = []
+            if magic_items > 0:
+                generated_items = self._generate_hoard_magic_items(magic_items, max_cr)
+            
+            if generated_items:
+                item_names = [item['name'] for item in generated_items]
+                magic_text = f" and {len(generated_items)} magical item{'s' if len(generated_items) != 1 else ''}: {', '.join(item_names)}"
+                
+                # Add items to character inventory
+                self._add_magic_items_to_character(generated_items)
+            else:
+                magic_text = " and no magical items"
             
             return f"A Hoard with {hoard_gp} GP{magic_text}"
         
         return None
+    
+    def _generate_hoard_magic_items(self, count: int, monster_cr: float) -> list:
+        """Generate magical items for hoard treasure based on CR and loot plan."""
+        from services.treasure_rarity import TreasureRaritySystem
+        import random
+        
+        # Convert CR to character level equivalent for rarity system
+        # CR 0-4 maps to levels 1-4, CR 5-10 to levels 5-10, etc.
+        if monster_cr <= 4:
+            char_level = min(4, max(1, int(monster_cr) + 1))
+        elif monster_cr <= 10:
+            char_level = min(10, max(5, int(monster_cr)))
+        elif monster_cr <= 16:
+            char_level = min(16, max(11, int(monster_cr)))
+        else:
+            char_level = min(20, max(17, int(monster_cr)))
+        
+        rarity_system = TreasureRaritySystem()
+        generated_items = []
+        
+        # Loot plan items by rarity
+        loot_items = {
+            'common': [
+                'Potion of Healing', '1st Level Spell Scroll', 'Silvered Weapon',
+                'Rapier', 'Longsword', 'Greatsword', 'Greataxe', 'Staff', 'Scimitar', 'Spear',
+                'Studded Leather Armor', 'Chain Mail', 'Scale Mail'
+            ],
+            'uncommon': [
+                'Potion of Greater Healing', '2nd Level Spell Scroll', '3rd Level Spell Scroll',
+                'Luckstone', 'Shield +1', 'Weapon +1', 'Cloak of Protection',
+                'Adamantine Breastplate', 'Adamantine Half Plate', 'Adamantine Plate',
+                'Bag of Holding', 'Breastplate', 'Half Plate', 'Splint Armor', 'Plate Armor'
+            ],
+            'rare': [
+                'Potion of Superior Healing', '4th Level Spell Scroll', '5th Level Spell Scroll',
+                'Plate Armor +1', 'Studded Leather +1', 'Elven Chain', 'Weapon +2',
+                'Shield +2', 'Bracers of Defense', 'Ring of Protection', 'Ring of Spell Storing',
+                'Belt of Hill Giant Strength', 'Cloak of Displacement', 'Ring of Resistance'
+            ],
+            'very rare': [
+                'Potion of Supreme Healing', '6th Level Spell Scroll', '7th Level Spell Scroll',
+                'Plate Armor +2', 'Studded Leather +2', 'Weapon +3', 'Shield +3',
+                'Illusionist\'s Bracers', 'Staff of Power', 'Belt of Stone Giant Strength',
+                'Manual of Gainful Exercise', 'Tome of Clear Thought'
+            ],
+            'legendary': [
+                'Plate Armor +3', 'Studded Leather +3', 'Robe of the Archmagi',
+                'Holy Avenger', 'Vorpal Sword', 'Sword of Answering', 'Defender',
+                'Staff of the Magi', '8th Level Spell Scroll', '9th Level Spell Scroll',
+                'Belt of Cloud Giant Strength', 'Deck of Many Things'
+            ]
+        }
+        
+        for _ in range(count):
+            # Roll for rarity based on character level equivalent
+            rarity = rarity_system.get_rarity_for_level(char_level)
+            
+            # Get available items for this rarity
+            available_items = loot_items.get(rarity, loot_items['common'])
+            
+            if available_items:
+                item_name = random.choice(available_items)
+                
+                # Create item dict
+                magic_item = {
+                    'name': item_name,
+                    'rarity': rarity,
+                    'item_type': 'magic_item'
+                }
+                
+                generated_items.append(magic_item)
+        
+        return generated_items
+    
+    def _add_magic_items_to_character(self, magic_items: list):
+        """Add magical items to character inventory."""
+        try:
+            # Get game engine from parent for character update
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    
+                    if character:
+                        for item in magic_items:
+                            # Log the item acquisition
+                            self._log_monster_action(f"[MAGIC] Found {item['name']} ({item['rarity']})")
+                            
+                            # For now, just log - TODO: Add actual inventory integration
+                            print(f"[HOARD] Magic item for character {character['id']}: {item['name']} ({item['rarity']})")
+                        
+                        # Refresh equipment panel
+                        self._refresh_equipment_panel(game_engine, character['id'])
+                        break
+                        
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error adding magic items to character: {e}")
     
     def _add_gold_to_character(self, gold_amount: int):
         """Add gold to the current character."""

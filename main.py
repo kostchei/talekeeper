@@ -68,10 +68,8 @@ def main():
                 logger.info(f"Loaded custom font: {family}")
             else:
                 logger.warning(f"Failed to load font from {font_path}")
-                app.setFont(QFont("Times New Roman", 12))  # Fallback font
         else:
             logger.warning(f"Font file not found at {font_path}")
-            app.setFont(QFont("Times New Roman", 12))  # Fallback font
         
         # Initialize database if needed
         from database.database_init import DatabaseInitializer
