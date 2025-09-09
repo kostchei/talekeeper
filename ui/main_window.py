@@ -1131,6 +1131,8 @@ class MainWindow(QMainWindow):
             'features': class_features,
             'weapon_masteries': weapon_masteries,
             'proficiencies': proficiencies,
+            'selected_class_skills': character_data.get('selected_class_skills', []),
+            'selected_species_skills': character_data.get('selected_species_skills', []),
             
             # Spells and magic
             'spells': spells,

@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Dict, List, Set, Optional, Tuple
+from typing import Dict, List, Set, Optional, Tuple, Any
 from services.proficiency_bonus import get_proficiency_bonus
 
 
@@ -13,6 +13,7 @@ class ProficiencySystem:
     def initialize_character_proficiencies(self, character_id: str, class_id: str, 
                                           background: Optional[str] = None,
                                           race_id: Optional[str] = None,
+                                          selected_skills: List[str] = None,
                                           conn=None) -> bool:
         try:
             # Use provided connection or create new one
@@ -47,16 +48,44 @@ class ProficiencySystem:
                     VALUES (?, 'armor', ?, 'class')
                 """, (character_id, prof[0]))
             
-            cursor.execute("""
-                SELECT skill FROM class_skill_proficiencies WHERE class_id = ?
-            """, (class_id,))
-            skill_profs = cursor.fetchall()
-            for prof in skill_profs:
+            # Handle class skill selections (chosen by player, not auto-assigned)
+            if selected_skills:
+                for skill in selected_skills:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies 
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, 'skill', ?, 'class')
+                    """, (character_id, skill))
+            
+            # Add background proficiencies (fixed, not chosen)
+            if background:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_proficiencies 
-                    (character_id, proficiency_type, proficiency_name, source)
-                    VALUES (?, 'skill', ?, 'class')
-                """, (character_id, prof[0]))
+                    SELECT proficiency_type, proficiency_name 
+                    FROM background_proficiencies 
+                    WHERE background_id = ? AND proficiency_name NOT LIKE 'choice_%'
+                """, (background,))
+                bg_profs = cursor.fetchall()
+                for prof_type, prof_name in bg_profs:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies 
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, ?, ?, 'background')
+                    """, (character_id, prof_type, prof_name))
+            
+            # Add species proficiencies (fixed ones, not choices)
+            if race_id:
+                cursor.execute("""
+                    SELECT proficiency_type, proficiency_name 
+                    FROM species_proficiencies 
+                    WHERE species_id = ? AND proficiency_name IS NOT NULL
+                """, (race_id,))
+                species_profs = cursor.fetchall()
+                for prof_type, prof_name in species_profs:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies 
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, ?, ?, 'species')
+                    """, (character_id, prof_type, prof_name))
             
             cursor.execute("""
                 SELECT ability FROM class_saving_throws WHERE class_id = ?
@@ -365,3 +394,149 @@ class ProficiencySystem:
         except Exception as e:
             print(f"[Proficiency] Error calculating attack bonus: {e}")
             return ability_mod
+    
+    def get_class_skill_choices(self, class_id: str) -> Dict[str, Any]:
+        """Get skill selection options for a class."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT skill_count, available_skills 
+                    FROM class_skill_choices 
+                    WHERE class_id = ?
+                """, (class_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    import json
+                    return {
+                        'count': result[0],
+                        'available': json.loads(result[1])
+                    }
+                return {'count': 0, 'available': []}
+                
+        except Exception as e:
+            print(f"[Proficiency] Error getting class skill choices: {e}")
+            return {'count': 0, 'available': []}
+    
+    def get_background_proficiencies(self, background_id: str) -> Dict[str, List[str]]:
+        """Get fixed proficiencies from a background."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT proficiency_type, proficiency_name 
+                    FROM background_proficiencies 
+                    WHERE background_id = ?
+                """, (background_id,))
+                
+                proficiencies = {'skill': [], 'tool': [], 'language': []}
+                for prof_type, prof_name in cursor.fetchall():
+                    if prof_type in proficiencies and not prof_name.startswith('choice_'):
+                        proficiencies[prof_type].append(prof_name)
+                
+                return proficiencies
+                
+        except Exception as e:
+            print(f"[Proficiency] Error getting background proficiencies: {e}")
+            return {'skill': [], 'tool': [], 'language': []}
+    
+    def get_species_proficiencies(self, species_id: str) -> Dict[str, Any]:
+        """Get proficiencies and choices from a species."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT proficiency_type, proficiency_name, choice_count, available_options 
+                    FROM species_proficiencies 
+                    WHERE species_id = ?
+                """, (species_id,))
+                
+                fixed = {'skill': [], 'tool': [], 'language': [], 'weapon': []}
+                choices = []
+                
+                for prof_type, prof_name, choice_count, available_options in cursor.fetchall():
+                    if prof_name:  # Fixed proficiency
+                        if prof_type in fixed:
+                            fixed[prof_type].append(prof_name)
+                    elif choice_count > 0:  # Choice
+                        import json
+                        choices.append({
+                            'type': prof_type,
+                            'count': choice_count,
+                            'options': json.loads(available_options) if available_options else []
+                        })
+                
+                return {'fixed': fixed, 'choices': choices}
+                
+        except Exception as e:
+            print(f"[Proficiency] Error getting species proficiencies: {e}")
+            return {'fixed': {'skill': [], 'tool': [], 'language': [], 'weapon': []}, 'choices': []}
+    
+    def add_feat_proficiencies(self, character_id: str, feat_name: str, selected_proficiencies: List[str] = None, conn=None) -> bool:
+        """Add proficiencies from a feat (like Skilled)."""
+        try:
+            should_close = False
+            if conn is None:
+                conn = self._get_connection()
+                should_close = True
+            
+            cursor = conn.cursor()
+            
+            # Handle known feats that grant proficiencies
+            if feat_name.lower() == 'skilled':
+                # Skilled feat: Choose 3 skill proficiencies
+                if selected_proficiencies and len(selected_proficiencies) <= 3:
+                    for skill in selected_proficiencies:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO character_proficiencies 
+                            (character_id, proficiency_type, proficiency_name, source)
+                            VALUES (?, 'skill', ?, 'feat')
+                        """, (character_id, skill))
+                else:
+                    print(f"[Proficiency] Warning: Skilled feat requires exactly 3 skill selections")
+                    
+            elif feat_name.lower() == 'weapon master':
+                # Weapon Master feat: Choose 4 simple or martial weapons
+                if selected_proficiencies and len(selected_proficiencies) <= 4:
+                    for weapon in selected_proficiencies:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO character_proficiencies 
+                            (character_id, proficiency_type, proficiency_name, source)
+                            VALUES (?, 'weapon', ?, 'feat')
+                        """, (character_id, weapon))
+                        
+            elif feat_name.lower() == 'lightly armored':
+                # Lightly Armored: Light armor proficiency
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_proficiencies 
+                    (character_id, proficiency_type, proficiency_name, source)
+                    VALUES (?, 'armor', 'light', 'feat')
+                """, (character_id,))
+                
+            elif feat_name.lower() == 'moderately armored':
+                # Moderately Armored: Medium armor and shields
+                for armor_type in ['medium', 'shields']:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies 
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, 'armor', ?, 'feat')
+                    """, (character_id, armor_type))
+                    
+            elif feat_name.lower() == 'heavily armored':
+                # Heavily Armored: Heavy armor
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_proficiencies 
+                    (character_id, proficiency_type, proficiency_name, source)
+                    VALUES (?, 'armor', 'heavy', 'feat')
+                """, (character_id,))
+            
+            if should_close:
+                conn.commit()
+                conn.close()
+            
+            return True
+            
+        except Exception as e:
+            print(f"[Proficiency] Error adding feat proficiencies: {e}")
+            return False

@@ -54,7 +54,9 @@
       "Bash(sed:*)",
       "Bash(git checkout:*)",
       "Bash(dir:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(rg:*)",
+      "Bash(del test_skill_selection.py)"
     ],
     "deny": []
   }

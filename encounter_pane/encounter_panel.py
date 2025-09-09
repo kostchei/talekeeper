@@ -1450,6 +1450,23 @@ class EncounterPanel(QWidget):
         
         content_layout.addWidget(feat_frame)
         
+        # Species skill selection area (initially hidden)
+        self.species_skill_frame = QFrame()
+        species_skill_layout = QVBoxLayout(self.species_skill_frame)
+        
+        self.species_skill_label = QLabel("Species Skill Choice")
+        self.species_skill_label.setObjectName("sectionLabel")
+        species_skill_layout.addWidget(self.species_skill_label)
+        
+        # Container for species skill selection widgets
+        self.species_skill_container = QWidget()
+        self.species_skill_layout = QVBoxLayout(self.species_skill_container)
+        species_skill_layout.addWidget(self.species_skill_container)
+        
+        # Initially hide the species skill selection
+        self.species_skill_frame.hide()
+        layout.addWidget(self.species_skill_frame)
+        
         # Description area (for background/species)
         self.bg_species_description = QTextEdit()
         self.bg_species_description.setObjectName("bgSpeciesDescription")
@@ -1693,12 +1710,15 @@ class EncounterPanel(QWidget):
         # Get class name
         selected_class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
         
-        # Handle Fighter-specific features
+        # Add skill selection for all classes
+        self._setup_class_skill_selection(selected_class_name.lower())
+        
+        # Handle class-specific features
         if selected_class_name == "Fighter":
             self._setup_fighter_features()
         else:
             # For non-Fighter classes, show placeholder text
-            info_label = QLabel(f"{selected_class_name} class features will be implemented soon.")
+            info_label = QLabel(f"{selected_class_name} other class features will be implemented soon.")
             info_label.setStyleSheet("color: #888;")
             self.class_features_layout.addWidget(info_label)
     
@@ -1761,7 +1781,246 @@ class EncounterPanel(QWidget):
         self.fighting_style_combo.currentIndexChanged.connect(self._on_fighting_style_selected)
         
         self.class_features_layout.addWidget(fighting_style_group)
+    
+    def _setup_class_skill_selection(self, class_id: str):
+        """Setup skill selection interface for the selected class."""
+        # Query database for class skill choices
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            # Get skill choices for this class
+            cursor.execute("""
+                SELECT skill_count, available_skills 
+                FROM class_skill_choices 
+                WHERE class_id = ?
+            """, (class_id,))
+            
+            skill_choice_data = cursor.fetchone()
+            conn.close()
+            
+            if not skill_choice_data:
+                # No skill choices defined for this class
+                return
+            
+            skill_count, available_skills_json = skill_choice_data
+            available_skills = json.loads(available_skills_json)
+            
+        except Exception as e:
+            print(f"Error loading class skill choices: {e}")
+            return
         
+        # Create skill selection group
+        skill_group = QGroupBox(f"Class Skills - Choose {skill_count}")
+        skill_layout = QVBoxLayout(skill_group)
+        
+        skill_description = QLabel(f"Choose {skill_count} skill{'s' if skill_count != 1 else ''} from your class list:")
+        skill_description.setWordWrap(True)
+        skill_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        skill_layout.addWidget(skill_description)
+        
+        # Create checkboxes for available skills
+        self.class_skill_checkboxes = {}
+        skill_grid_layout = QGridLayout()
+        
+        for i, skill in enumerate(available_skills):
+            checkbox = QCheckBox(skill)
+            checkbox.setObjectName("skillCheckbox")
+            
+            # Connect to limit selection
+            checkbox.stateChanged.connect(lambda state, s=skill: self._on_class_skill_toggled(s, state, skill_count))
+            
+            self.class_skill_checkboxes[skill] = checkbox
+            
+            # Arrange in 2 columns
+            row = i // 2
+            col = i % 2
+            skill_grid_layout.addWidget(checkbox, row, col)
+        
+        skill_layout.addLayout(skill_grid_layout)
+        
+        # Add selected skills count display
+        self.selected_skills_count_label = QLabel(f"Selected: 0 / {skill_count}")
+        self.selected_skills_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+        skill_layout.addWidget(self.selected_skills_count_label)
+        
+        self.class_features_layout.addWidget(skill_group)
+    
+    def _on_class_skill_toggled(self, skill_name: str, state: int, max_skills: int):
+        """Handle class skill checkbox toggle with selection limit."""
+        # Count currently selected skills
+        selected_count = sum(1 for cb in self.class_skill_checkboxes.values() if cb.isChecked())
+        
+        # If trying to select more than allowed, prevent it
+        if state == 2 and selected_count > max_skills:  # 2 = Qt.CheckState.Checked
+            # Uncheck this box
+            self.class_skill_checkboxes[skill_name].setChecked(False)
+            return
+        
+        # Update count display
+        actual_selected = sum(1 for cb in self.class_skill_checkboxes.values() if cb.isChecked())
+        self.selected_skills_count_label.setText(f"Selected: {actual_selected} / {max_skills}")
+        
+        # Update selection color
+        if actual_selected == max_skills:
+            self.selected_skills_count_label.setStyleSheet("font-weight: bold; color: #50c878;")  # Green when complete
+        elif actual_selected > max_skills:
+            self.selected_skills_count_label.setStyleSheet("font-weight: bold; color: #ff6b6b;")  # Red when over
+        else:
+            self.selected_skills_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")  # Blue when incomplete
+        
+        # Store selected skills in character creation data
+        selected_skills = [skill for skill, cb in self.class_skill_checkboxes.items() if cb.isChecked()]
+        self.character_creation_data['selected_class_skills'] = selected_skills
+    
+    def _setup_species_skill_selection(self, species_id: str):
+        """Setup skill selection interface for the selected species."""
+        # Clear existing species skill widgets
+        for i in reversed(range(self.species_skill_layout.count())):
+            child = self.species_skill_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        # Query database for species skill choices
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            # Get skill choices for this species
+            cursor.execute("""
+                SELECT proficiency_type, proficiency_name, choice_count, available_options 
+                FROM species_proficiencies 
+                WHERE species_id = ? AND proficiency_type = 'skill'
+            """, (species_id,))
+            
+            species_proficiencies = cursor.fetchall()
+            conn.close()
+            
+            # Check if there are any skill choices to make
+            skill_choices = [row for row in species_proficiencies if row[2] > 0]  # choice_count > 0
+            
+            if not skill_choices:
+                # Hide species skill selection frame
+                self.species_skill_frame.hide()
+                return
+            
+            # Show species skill selection frame
+            self.species_skill_frame.show()
+            
+            for choice_data in skill_choices:
+                proficiency_type, proficiency_name, choice_count, available_options_json = choice_data
+                
+                if available_options_json:
+                    available_options = json.loads(available_options_json)
+                else:
+                    continue
+                
+                # Handle special case for "any" skill choice
+                if available_options == ["any"]:
+                    # Get all skills from a standard skill list
+                    all_skills = [
+                        "Acrobatics", "Animal Handling", "Arcana", "Athletics", 
+                        "Deception", "History", "Insight", "Intimidation", 
+                        "Investigation", "Medicine", "Nature", "Perception", 
+                        "Performance", "Persuasion", "Religion", "Sleight of Hand", 
+                        "Stealth", "Survival"
+                    ]
+                    available_options = all_skills
+                
+                # Create skill selection widget
+                skill_choice_widget = QWidget()
+                skill_choice_layout = QVBoxLayout(skill_choice_widget)
+                
+                choice_label = QLabel(f"Choose {choice_count} skill{'s' if choice_count != 1 else ''}:")
+                choice_label.setStyleSheet("color: #666; font-style: italic;")
+                skill_choice_layout.addWidget(choice_label)
+                
+                # Create skill selection method based on count
+                if choice_count == 1:
+                    # Use combo box for single selection
+                    skill_combo = QComboBox()
+                    skill_combo.addItem("Select a skill...", None)
+                    
+                    for skill in available_options:
+                        skill_combo.addItem(skill, skill)
+                    
+                    skill_combo.currentIndexChanged.connect(
+                        lambda idx, combo=skill_combo: self._on_species_skill_selected(combo)
+                    )
+                    
+                    skill_choice_layout.addWidget(skill_combo)
+                    
+                    # Store reference for later use
+                    if not hasattr(self, 'species_skill_widgets'):
+                        self.species_skill_widgets = []
+                    self.species_skill_widgets.append(skill_combo)
+                    
+                else:
+                    # Use checkboxes for multiple selection
+                    self.species_skill_checkboxes = {}
+                    skill_grid = QGridLayout()
+                    
+                    for i, skill in enumerate(available_options):
+                        checkbox = QCheckBox(skill)
+                        checkbox.stateChanged.connect(
+                            lambda state, s=skill: self._on_species_skill_toggled(s, state, choice_count)
+                        )
+                        self.species_skill_checkboxes[skill] = checkbox
+                        
+                        row = i // 2
+                        col = i % 2
+                        skill_grid.addWidget(checkbox, row, col)
+                    
+                    skill_choice_layout.addLayout(skill_grid)
+                    
+                    # Add selection count label
+                    self.species_skills_count_label = QLabel(f"Selected: 0 / {choice_count}")
+                    self.species_skills_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+                    skill_choice_layout.addWidget(self.species_skills_count_label)
+                
+                self.species_skill_layout.addWidget(skill_choice_widget)
+                
+        except Exception as e:
+            print(f"Error loading species skill choices: {e}")
+            # Hide the frame on error
+            self.species_skill_frame.hide()
+    
+    def _on_species_skill_selected(self, combo_widget):
+        """Handle single species skill selection from combo box."""
+        selected_skill = combo_widget.currentData()
+        if selected_skill:
+            # Store in character creation data
+            if 'selected_species_skills' not in self.character_creation_data:
+                self.character_creation_data['selected_species_skills'] = []
+            self.character_creation_data['selected_species_skills'] = [selected_skill]
+    
+    def _on_species_skill_toggled(self, skill_name: str, state: int, max_skills: int):
+        """Handle species skill checkbox toggle with selection limit."""
+        # Count currently selected skills
+        selected_count = sum(1 for cb in self.species_skill_checkboxes.values() if cb.isChecked())
+        
+        # If trying to select more than allowed, prevent it
+        if state == 2 and selected_count > max_skills:  # 2 = Qt.CheckState.Checked
+            self.species_skill_checkboxes[skill_name].setChecked(False)
+            return
+        
+        # Update count display
+        actual_selected = sum(1 for cb in self.species_skill_checkboxes.values() if cb.isChecked())
+        self.species_skills_count_label.setText(f"Selected: {actual_selected} / {max_skills}")
+        
+        # Update selection color
+        if actual_selected == max_skills:
+            self.species_skills_count_label.setStyleSheet("font-weight: bold; color: #50c878;")
+        elif actual_selected > max_skills:
+            self.species_skills_count_label.setStyleSheet("font-weight: bold; color: #ff6b6b;")
+        else:
+            self.species_skills_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+        
+        # Store selected skills in character creation data
+        selected_skills = [skill for skill, cb in self.species_skill_checkboxes.items() if cb.isChecked()]
+        self.character_creation_data['selected_species_skills'] = selected_skills
         
     
     def _on_fighting_style_selected(self):
@@ -2085,6 +2344,9 @@ class EncounterPanel(QWidget):
             # Reset species feat selection when changing species
             if not is_human:
                 self.species_feat_combo.setCurrentIndex(0)
+            
+            # Setup species skill selection
+            self._setup_species_skill_selection(species_data.get('id', species_name))
     
     def _update_bg_species_description(self):
         """Update the combined background/species description."""
@@ -2401,7 +2663,9 @@ class EncounterPanel(QWidget):
             'level': 1,
             'experience_points': 0,
             'equipment_choices': {},
-            'saving_throw_proficiencies': saving_throw_profs
+            'saving_throw_proficiencies': saving_throw_profs,
+            'selected_class_skills': self.character_creation_data.get('selected_class_skills', []),
+            'selected_species_skills': self.character_creation_data.get('selected_species_skills', [])
         }
 
         # Record selected equipment options - break down combination strings

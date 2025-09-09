@@ -576,11 +576,18 @@ class GameEngineSQLite:
                     """, (character_id, feat_name, 'character_creation', character_data.get('level', 1)))
                 
                 # Initialize proficiencies using the proficiency system (pass the connection)
+                selected_class_skills = character_data.get('selected_class_skills', [])
+                selected_species_skills = character_data.get('selected_species_skills', [])
+                
+                # Combine all selected skills
+                all_selected_skills = selected_class_skills + selected_species_skills
+                
                 self.proficiency_system.initialize_character_proficiencies(
                     character_id, 
                     character_data['class_id'],
                     character_data.get('background_id'),
                     character_data.get('race_id'),
+                    selected_skills=all_selected_skills,
                     conn=conn
                 )
                 
