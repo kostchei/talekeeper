@@ -10,6 +10,7 @@ import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
+from services.proficiency_system import ProficiencySystem
 
 # DTOs no longer needed - using direct dictionaries from SQL queries
 
@@ -22,6 +23,7 @@ class GameEngineSQLite:
         self.settings = {}
         self._load_settings()
         self._ensure_tables_exist()
+        self.proficiency_system = ProficiencySystem(db_path)
         
     def _get_connection(self) -> sqlite3.Connection:
         """Get database connection with foreign keys enabled."""
@@ -573,12 +575,18 @@ class GameEngineSQLite:
                         VALUES (?, ?, ?, ?)
                     """, (character_id, feat_name, 'character_creation', character_data.get('level', 1)))
                 
-                # Insert proficiencies
+                # Initialize proficiencies using the proficiency system (pass the connection)
+                self.proficiency_system.initialize_character_proficiencies(
+                    character_id, 
+                    character_data['class_id'],
+                    character_data.get('background_id'),
+                    character_data.get('race_id'),
+                    conn=conn
+                )
+                
+                # Add any additional skill proficiencies from character creation
                 for prof in character_data.get('proficiencies', []):
-                    cursor.execute("""
-                        INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
-                        VALUES (?, ?, ?, ?)
-                    """, (character_id, 'skill', prof, 'character_creation'))
+                    self.proficiency_system.add_proficiency(character_id, 'skill', prof, 'character_creation', conn=conn)
                 
                 # Insert features
                 for feature_name, feature_data in character_data.get('features', {}).items():
@@ -1805,18 +1813,11 @@ class GameEngineSQLite:
                     return False, "Character not found"
                 
                 if item_type == 'armor':
-                    armor_type = item_data.get('armor_type', 'light')
-                    
-                    # Check armor proficiency based on class
-                    cursor.execute("""
-                        SELECT armor_proficiencies FROM classes WHERE id = ?
-                    """, (char_row['class_id'],))
-                    
-                    class_row = cursor.fetchone()
-                    if class_row and class_row['armor_proficiencies']:
-                        proficiencies = json.loads(class_row['armor_proficiencies'])
-                        if armor_type not in proficiencies and 'all' not in proficiencies:
-                            return False, f"Not proficient with {armor_type} armor"
+                    # Check armor proficiency using proficiency system
+                    armor_name = item_data.get('name', '')
+                    is_proficient, message = self.proficiency_system.is_proficient_with_armor(character_id, armor_name)
+                    if not is_proficient:
+                        return False, message
                     
                     # Check Strength requirement
                     strength_req = item_data.get('strength_requirement', 0)
@@ -1824,16 +1825,16 @@ class GameEngineSQLite:
                         return False, f"Requires Strength {strength_req} (you have {char_row['strength']})"
                         
                 elif item_type == 'shield':
-                    # Check shield proficiency
-                    cursor.execute("""
-                        SELECT armor_proficiencies FROM classes WHERE id = ?
-                    """, (char_row['class_id'],))
-                    
-                    class_row = cursor.fetchone()
-                    if class_row and class_row['armor_proficiencies']:
-                        proficiencies = json.loads(class_row['armor_proficiencies'])
-                        if 'shield' not in proficiencies and 'all' not in proficiencies:
-                            return False, "Not proficient with shields"
+                    # Check shield proficiency using proficiency system
+                    if not self.proficiency_system.is_proficient_with_shield(character_id):
+                        return False, "Not proficient with shields"
+                
+                elif item_type == 'weapon':
+                    # Check weapon proficiency using proficiency system
+                    weapon_name = item_data.get('name', '')
+                    is_proficient, message = self.proficiency_system.is_proficient_with_weapon(character_id, weapon_name)
+                    if not is_proficient:
+                        return False, message
             
             return True, ""
             

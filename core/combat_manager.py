@@ -12,6 +12,8 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from services.proficiency_system import ProficiencySystem
+from services.proficiency_bonus import get_proficiency_bonus
 
 class ActionType(Enum):
     ACTION = "action"
@@ -94,6 +96,7 @@ class CombatManager:
         self.current_round: Optional[CombatRound] = None
         self.combat_active: bool = False
         self.combat_log: List[str] = []
+        self.proficiency_system = ProficiencySystem(db_path)
         
     def add_player_combatant(self, character_data: Dict[str, Any]) -> Combatant:
         """Add player character to combat"""
@@ -506,7 +509,24 @@ class CombatManager:
         
         # Attack roll
         d20_roll = random.randint(1, 20)
-        attack_bonus = weapon_data.get('attack_bonus', 0)
+        
+        # Calculate attack bonus with proficiency if applicable
+        base_attack_bonus = weapon_data.get('attack_bonus', 0)
+        
+        # Add proficiency bonus for player attacks
+        if attacker.type == CombatantType.PLAYER:
+            weapon_name = weapon_data.get('name', '')
+            is_proficient, _ = self.proficiency_system.is_proficient_with_weapon(attacker.id, weapon_name)
+            
+            if is_proficient and attacker.level:
+                prof_bonus = get_proficiency_bonus(attacker.level)
+                attack_bonus = base_attack_bonus + prof_bonus
+            else:
+                attack_bonus = base_attack_bonus
+        else:
+            # Monsters already have proficiency built into their attack bonus
+            attack_bonus = base_attack_bonus
+        
         total_attack = d20_roll + attack_bonus
         
         self.log(f"[COMBAT] [ATTACK {attack_num}/{total_attacks}] {target.name}")

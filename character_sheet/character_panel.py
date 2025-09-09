@@ -294,6 +294,23 @@ class CharacterPanel(QWidget):
         self.features_text.setPlainText("Racial traits, class features, and special abilities will appear here...")
         features_layout.addWidget(self.features_text, 1)
         
+        # === PROFICIENCIES SECTION ===
+        self.proficiencies_frame = QFrame()
+        self.proficiencies_frame.setObjectName("proficienciesFrame")
+        prof_layout = QVBoxLayout(self.proficiencies_frame)
+        prof_layout.setContentsMargins(5, 5, 5, 5)
+        
+        prof_header = QLabel("Proficiencies")
+        prof_header.setObjectName("sectionHeader")
+        prof_layout.addWidget(prof_header)
+        
+        self.proficiencies_text = QTextEdit()
+        self.proficiencies_text.setObjectName("proficienciesText")
+        self.proficiencies_text.setReadOnly(True)
+        self.proficiencies_text.setPlainText("Loading proficiencies...")
+        self.proficiencies_text.setMaximumHeight(80)
+        prof_layout.addWidget(self.proficiencies_text)
+        
         # === SPELLS SECTION (if applicable) ===
         self.spells_frame = QFrame()
         self.spells_frame.setObjectName("spellsFrame")
@@ -334,6 +351,7 @@ class CharacterPanel(QWidget):
         # Add all sections to detail panel
         self.detail_layout.addWidget(self.detail_header)
         self.detail_layout.addWidget(self.xp_frame, 1)  # Replaced skills with XP section
+        self.detail_layout.addWidget(self.proficiencies_frame, 1)
         self.detail_layout.addWidget(self.features_frame, 1)
         self.detail_layout.addWidget(self.spells_frame, 1)
     
@@ -1315,27 +1333,55 @@ class CharacterPanel(QWidget):
         
         # Update skills
         from services.proficiency_bonus import get_proficiency_bonus
+        from services.proficiency_system import ProficiencySystem
         proficiency_bonus = get_proficiency_bonus(level)
+        proficiency_system = ProficiencySystem()
+        
+        # Get character proficiencies
+        character_id = character_data.get('id')
+        char_proficiencies = proficiency_system.get_character_proficiencies(character_id) if character_id else {
+            'skill': [], 'saving_throw': [], 'weapon': [], 'armor': [], 'tool': [], 'language': []
+        }
+        skill_proficiencies = char_proficiencies.get('skill', [])
         
         for skill_name, skill_widget in self.skill_widgets.items():
             ability = skill_widget.ability
             ability_score = abilities.get(ability, 10)
             ability_mod = (ability_score - 10) // 2
             
-            # For now, assume no proficiencies (could be enhanced later)
-            skill_bonus = ability_mod
+            # Check if proficient in this skill
+            is_proficient = skill_name in skill_proficiencies
+            skill_bonus = ability_mod + (proficiency_bonus if is_proficient else 0)
             bonus_text = f"+{skill_bonus}" if skill_bonus >= 0 else str(skill_bonus)
             skill_widget.bonus_label.setText(bonus_text)
+            
+            # Update proficiency indicator (diamond for proficient)
+            if hasattr(skill_widget, 'prof_label'):
+                skill_widget.prof_label.setText("♦" if is_proficient else "○")
+                skill_widget.prof_label.setStyleSheet(
+                    "color: #FFD700; font-size: 10px;" if is_proficient else "color: #3a3a3a; font-size: 10px;"
+                )
         
         # Update saving throws
+        save_proficiencies = char_proficiencies.get('saving_throw', [])
+        
+        # Map short ability names to full names for proficiency lookup
+        ability_name_map = {
+            'STR': 'strength',
+            'DEX': 'dexterity', 
+            'CON': 'constitution',
+            'INT': 'intelligence',
+            'WIS': 'wisdom',
+            'CHA': 'charisma'
+        }
+        
         for ability_name, saving_throw_widget in self.saving_throw_widgets.items():
             ability_score = abilities.get(ability_name, 10)
             ability_mod = (ability_score - 10) // 2
             
-            # Check for saving throw proficiency
-            # Use same proficiency bonus as calculated above for skills
-            prof_key = f"{ability_name[:3]}_save_proficient"
-            is_proficient = self.character_data.get(prof_key, 0) == 1
+            # Check for saving throw proficiency using new proficiency system
+            full_ability_name = ability_name_map.get(ability_name, ability_name.lower())
+            is_proficient = full_ability_name in [save.lower() for save in save_proficiencies]
             
             save_bonus = ability_mod + (proficiency_bonus if is_proficient else 0)
             bonus_text = f"+{save_bonus}" if save_bonus >= 0 else str(save_bonus)
@@ -1609,37 +1655,53 @@ class CharacterPanel(QWidget):
         # === PROFICIENCIES ===
         if char_id:
             try:
-                conn = sqlite3.connect("talekeeper.db")
-                cursor = conn.cursor()
+                from services.proficiency_system import ProficiencySystem
+                proficiency_system = ProficiencySystem()
+                char_proficiencies = proficiency_system.get_character_proficiencies(char_id)
                 
-                cursor.execute("""
-                    SELECT proficiency_type, proficiency_name 
-                    FROM character_proficiencies 
-                    WHERE character_id = ? 
-                    ORDER BY proficiency_type, proficiency_name
-                """, (char_id,))
+                prof_text = ""
                 
-                proficiencies = cursor.fetchall()
+                # Armor proficiencies
+                if char_proficiencies.get('armor'):
+                    armor_list = []
+                    for armor in char_proficiencies['armor']:
+                        if armor == 'shields':
+                            armor_list.append('Shields')
+                        else:
+                            armor_list.append(f"{armor.title()} armor")
+                    prof_text += f"Armor: {', '.join(armor_list)}\n"
                 
-                if proficiencies:
-                    features_text += "=== PROFICIENCIES ===\n"
+                # Weapon proficiencies
+                if char_proficiencies.get('weapon'):
+                    weapon_list = []
+                    for weapon in char_proficiencies['weapon']:
+                        if weapon in ['simple', 'martial']:
+                            weapon_list.append(f"{weapon.title()} weapons")
+                        else:
+                            weapon_list.append(weapon.title())
+                    prof_text += f"Weapons: {', '.join(weapon_list)}\n"
+                
+                # Skill proficiencies (already shown in main panel)
+                if char_proficiencies.get('skill'):
+                    prof_text += f"Skills: {', '.join(char_proficiencies['skill'])}\n"
+                
+                # Tool proficiencies
+                if char_proficiencies.get('tool'):
+                    prof_text += f"Tools: {', '.join(char_proficiencies['tool'])}\n"
+                
+                # Language proficiencies
+                if char_proficiencies.get('language'):
+                    prof_text += f"Languages: {', '.join(char_proficiencies['language'])}\n"
+                
+                # Update proficiencies text widget
+                if prof_text:
+                    self.proficiencies_text.setPlainText(prof_text)
+                else:
+                    self.proficiencies_text.setPlainText("No proficiencies found")
                     
-                    # Group by type
-                    prof_by_type = {}
-                    for prof_type, prof_name in proficiencies:
-                        if prof_type not in prof_by_type:
-                            prof_by_type[prof_type] = []
-                        prof_by_type[prof_type].append(prof_name)
-                    
-                    for prof_type, prof_list in prof_by_type.items():
-                        type_label = prof_type.replace('_', ' ').title()
-                        features_text += f"• {type_label}: {', '.join(prof_list)}\n"
-                    
-                    features_text += "\n"
-                
-                conn.close()
             except Exception as e:
                 print(f"Error loading proficiencies: {e}")
+                self.proficiencies_text.setPlainText("Error loading proficiencies")
         
         
         # Set the complete features text  
