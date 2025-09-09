@@ -3941,59 +3941,352 @@ Character Level: {character_level}"""
         rarity_system = TreasureRaritySystem()
         generated_items = []
         
-        # Loot plan items by rarity
-        loot_items = {
-            'common': [
-                'Potion of Healing', '1st Level Spell Scroll', 'Silvered Weapon',
-                'Rapier', 'Longsword', 'Greatsword', 'Greataxe', 'Staff', 'Scimitar', 'Spear',
-                'Studded Leather Armor', 'Chain Mail', 'Scale Mail'
-            ],
-            'uncommon': [
-                'Potion of Greater Healing', '2nd Level Spell Scroll', '3rd Level Spell Scroll',
-                'Luckstone', 'Shield +1', 'Weapon +1', 'Cloak of Protection',
-                'Adamantine Breastplate', 'Adamantine Half Plate', 'Adamantine Plate',
-                'Bag of Holding', 'Breastplate', 'Half Plate', 'Splint Armor', 'Plate Armor'
-            ],
-            'rare': [
-                'Potion of Superior Healing', '4th Level Spell Scroll', '5th Level Spell Scroll',
-                'Plate Armor +1', 'Studded Leather +1', 'Elven Chain', 'Weapon +2',
-                'Shield +2', 'Bracers of Defense', 'Ring of Protection', 'Ring of Spell Storing',
-                'Belt of Hill Giant Strength', 'Cloak of Displacement', 'Ring of Resistance'
-            ],
-            'very rare': [
-                'Potion of Supreme Healing', '6th Level Spell Scroll', '7th Level Spell Scroll',
-                'Plate Armor +2', 'Studded Leather +2', 'Weapon +3', 'Shield +3',
-                'Illusionist\'s Bracers', 'Staff of Power', 'Belt of Stone Giant Strength',
-                'Manual of Gainful Exercise', 'Tome of Clear Thought'
-            ],
-            'legendary': [
-                'Plate Armor +3', 'Studded Leather +3', 'Robe of the Archmagi',
-                'Holy Avenger', 'Vorpal Sword', 'Sword of Answering', 'Defender',
-                'Staff of the Magi', '8th Level Spell Scroll', '9th Level Spell Scroll',
-                'Belt of Cloud Giant Strength', 'Deck of Many Things'
-            ]
-        }
+        # Get character equipment for prioritization
+        character_equipment = self._get_character_equipment()
         
         for _ in range(count):
             # Roll for rarity based on character level equivalent
             rarity = rarity_system.get_rarity_for_level(char_level)
             
-            # Get available items for this rarity
-            available_items = loot_items.get(rarity, loot_items['common'])
+            # Get priority item for this rarity if available
+            priority_item = self._get_priority_item(rarity, character_equipment)
             
-            if available_items:
-                item_name = random.choice(available_items)
-                
-                # Create item dict
-                magic_item = {
-                    'name': item_name,
-                    'rarity': rarity,
-                    'item_type': 'magic_item'
-                }
-                
-                generated_items.append(magic_item)
+            if priority_item:
+                generated_items.append(priority_item)
+            else:
+                # Fall back to random items from remaining pool
+                fallback_item = self._get_random_item(rarity)
+                if fallback_item:
+                    generated_items.append(fallback_item)
         
         return generated_items
+    
+    def _get_character_equipment(self) -> dict:
+        """Get current character's equipped items and class info."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    character = parent.game_engine.current_character
+                    if character:
+                        # Get equipped items and class info
+                        equipped_items = {}
+                        
+                        # Get main hand weapon
+                        if character.get('main_hand_weapon'):
+                            equipped_items['main_hand'] = character['main_hand_weapon']
+                        
+                        # Get armor
+                        if character.get('armor'):
+                            equipped_items['armor'] = character['armor']
+                        
+                        # Get shield
+                        if character.get('shield'):
+                            equipped_items['shield'] = character['shield']
+                        
+                        # Get class for proficiency checking
+                        equipped_items['class'] = character.get('class', '')
+                        equipped_items['character_id'] = character.get('id')
+                        
+                        return equipped_items
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error getting character equipment: {e}")
+        
+        return {}
+    
+    def _check_weapon_proficiency(self, weapon_name: str, character_class: str) -> bool:
+        """Check if character class is proficient with weapon type."""
+        import sqlite3
+        
+        try:
+            # Get weapon proficiencies from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT weapon_proficiencies
+                FROM classes 
+                WHERE name = ?
+            """, (character_class,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return False
+            
+            proficiencies = [p.strip().lower() for p in result[0].split(',')]
+            weapon_name_lower = weapon_name.lower()
+            
+            # Check specific proficiencies
+            if 'all weapons' in proficiencies or 'simple weapons,martial weapons' in ','.join(proficiencies):
+                return True
+            
+            if 'martial weapons' in proficiencies:
+                martial_weapons = ['longsword', 'greatsword', 'greataxe', 'rapier', 'scimitar']
+                if any(weapon in weapon_name_lower for weapon in martial_weapons):
+                    return True
+            
+            if 'simple weapons' in proficiencies:
+                simple_weapons = ['staff', 'quarterstaff', 'spear', 'dagger']
+                if any(weapon in weapon_name_lower for weapon in simple_weapons):
+                    return True
+            
+            # Check specific weapon proficiencies
+            for prof in proficiencies:
+                if prof in weapon_name_lower or weapon_name_lower in prof:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error checking weapon proficiency: {e}")
+            return False
+    
+    def _check_item_proficiency(self, item_name: str, character_class: str) -> bool:
+        """Check if character can use this magic item."""
+        import sqlite3
+        
+        try:
+            # Get item type from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT item_type, weapon_category
+                FROM equipment 
+                WHERE name = ?
+            """, (item_name,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return True  # Default allow if item not found
+            
+            item_type, weapon_category = result
+            
+            # Check proficiency based on item type
+            if item_type in ['wand', 'rod', 'holy symbol', 'focus']:
+                return self._check_item_type_proficiency(item_type, character_class)
+            elif item_type == 'weapon':
+                return self._check_weapon_proficiency(item_name, character_class)
+            else:
+                # Most other items (armor, consumables, etc.) can be used by anyone
+                return True
+                
+        except Exception as e:
+            print(f"Error checking item proficiency: {e}")
+            return True  # Default to allowing if error occurs
+    
+    def _check_item_type_proficiency(self, item_type: str, character_class: str) -> bool:
+        """Check if character class is proficient with this item type."""
+        import sqlite3
+        
+        try:
+            # Get item proficiencies from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT item_proficiencies
+                FROM classes 
+                WHERE name = ?
+            """, (character_class,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return False
+            
+            proficiencies = [p.strip().lower() for p in result[0].split(',')]
+            item_type_lower = item_type.lower()
+            
+            return item_type_lower in proficiencies
+            
+        except Exception as e:
+            print(f"Error checking item type proficiency: {e}")
+            return False
+    
+    def _check_attunement_requirement(self, item_name: str, character_class: str) -> bool:
+        """Check if character meets attunement requirements for magic item."""
+        import sqlite3
+        
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT attunement_requirement 
+                FROM equipment 
+                WHERE name = ? AND is_magical = 1
+            """, (item_name,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return True  # No attunement requirement
+            
+            requirement = result[0].lower()
+            class_lower = character_class.lower()
+            
+            # Check specific requirements
+            if requirement == 'any':
+                return True
+            elif requirement == 'spellcaster':
+                spellcasters = ['wizard', 'sorcerer', 'warlock', 'cleric', 'druid', 'bard']
+                return class_lower in spellcasters
+            elif ',' in requirement:
+                # Multiple classes (e.g., "cleric,paladin")
+                allowed_classes = [c.strip() for c in requirement.split(',')]
+                return class_lower in allowed_classes
+            else:
+                # Single class requirement
+                return class_lower == requirement
+                
+        except Exception as e:
+            print(f"Error checking attunement requirement: {e}")
+            return True  # Default to allowing if error occurs
+    
+    def _get_priority_item(self, rarity: str, character_equipment: dict) -> dict:
+        """Get priority item based on current equipment and proficiency."""
+        import random
+        
+        character_class = character_equipment.get('class', '')
+        main_hand = character_equipment.get('main_hand', '')
+        
+        # Priority slots by rarity
+        priority_slots = {
+            'uncommon': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+1'),
+                'protection': self._get_protection_item(character_equipment, 'uncommon'),
+                'armor': self._get_armor_upgrade(character_equipment, 'uncommon')
+            },
+            'rare': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+2'),
+                'protection': self._get_protection_item(character_equipment, 'rare'),
+                'armor': self._get_armor_upgrade(character_equipment, 'rare')
+            },
+            'very rare': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+3'),
+                'protection': self._get_protection_item(character_equipment, 'very rare'),
+                'armor': self._get_armor_upgrade(character_equipment, 'very rare')
+            }
+        }
+        
+        slots = priority_slots.get(rarity, {})
+        if slots:
+            # Check each priority slot
+            for slot_name, item in slots.items():
+                if item and not self._character_has_item(item['name'], character_equipment.get('character_id')):
+                    return item
+        
+        return None
+    
+    def _get_weapon_upgrade(self, current_weapon: str, character_class: str, bonus: str) -> dict:
+        """Get weapon upgrade based on current weapon."""
+        if not current_weapon:
+            return None
+        
+        weapon_name = current_weapon.lower()
+        
+        # Map current weapon to upgrade
+        upgrade_map = {
+            'longsword': f'Longsword {bonus}',
+            'rapier': f'Rapier {bonus}',
+            'greatsword': f'Greatsword {bonus}',
+            'greataxe': f'Greataxe {bonus}',
+            'scimitar': f'Scimitar {bonus}',
+            'spear': f'Spear {bonus}',
+            'staff': f'Staff {bonus}',
+            'quarterstaff': f'Staff {bonus}'
+        }
+        
+        for weapon, upgrade in upgrade_map.items():
+            if weapon in weapon_name:
+                if self._check_item_proficiency(upgrade, character_class):
+                    return {'name': upgrade, 'rarity': self._get_rarity_for_bonus(bonus), 'item_type': 'weapon'}
+        
+        return None
+    
+    def _get_protection_item(self, character_equipment: dict, rarity: str) -> dict:
+        """Get protection item based on character needs."""
+        character_class = character_equipment.get('class', '').lower()
+        
+        protection_items = {
+            'uncommon': ['Cloak of Protection', 'Shield +1'],
+            'rare': ['Ring of Protection', 'Shield +2'],
+            'very rare': ['Shield +3']
+        }
+        
+        items = protection_items.get(rarity, [])
+        if items and self._check_item_proficiency(items[0], character_class):
+            return {'name': items[0], 'rarity': rarity, 'item_type': 'protection'}
+        
+        return None
+    
+    def _get_armor_upgrade(self, character_equipment: dict, rarity: str) -> dict:
+        """Get armor upgrade based on current armor."""
+        current_armor = character_equipment.get('armor', '')
+        if not current_armor:
+            return None
+        
+        armor_name = current_armor.lower()
+        
+        upgrade_map = {
+            'uncommon': {
+                'studded leather': 'Studded Leather +1',
+                'chain mail': 'Chain Mail +1',
+                'plate': 'Plate Armor +1'
+            },
+            'rare': {
+                'studded leather': 'Studded Leather +1',
+                'plate': 'Plate Armor +1'
+            },
+            'very rare': {
+                'studded leather': 'Studded Leather +2',
+                'plate': 'Plate Armor +2'
+            }
+        }
+        
+        upgrades = upgrade_map.get(rarity, {})
+        for armor_type, upgrade in upgrades.items():
+            if armor_type in armor_name:
+                return {'name': upgrade, 'rarity': rarity, 'item_type': 'armor'}
+        
+        return None
+    
+    def _get_random_item(self, rarity: str) -> dict:
+        """Get random item from remaining pool."""
+        import random
+        
+        fallback_items = {
+            'common': ['Potion of Healing', '1st Level Spell Scroll'],
+            'uncommon': ['Potion of Greater Healing', '2nd Level Spell Scroll', 'Bag of Holding'],
+            'rare': ['Potion of Superior Healing', '4th Level Spell Scroll', 'Ring of Spell Storing'],
+            'very rare': ['Potion of Supreme Healing', '6th Level Spell Scroll'],
+            'legendary': ['8th Level Spell Scroll', 'Deck of Many Things']
+        }
+        
+        items = fallback_items.get(rarity, fallback_items['common'])
+        if items:
+            item_name = random.choice(items)
+            return {'name': item_name, 'rarity': rarity, 'item_type': 'consumable'}
+        
+        return None
+    
+    def _get_rarity_for_bonus(self, bonus: str) -> str:
+        """Get rarity based on bonus."""
+        bonus_map = {'+1': 'uncommon', '+2': 'rare', '+3': 'very rare'}
+        return bonus_map.get(bonus, 'common')
+    
+    def _character_has_item(self, item_name: str, character_id: str) -> bool:
+        """Check if character already has this item."""
+        # TODO: Implement inventory check
+        return False
     
     def _add_magic_items_to_character(self, magic_items: list):
         """Add magical items to character inventory."""

@@ -28,8 +28,9 @@
 - **Protection gear**:
   - Cloak of Protection (if +3 dex or above, unarmored defence, or not prof with medium/heavy armor)
   - Otherwise: Adamantine Breastplate (proficient in stealth), Adamantine Halfplate (medium armor only), Adamantine Platemail (heavy armor)
-- Bag of Holding
 - **Armor**: Breast Plate, Half Plate, Splint Armor, Plate Armor
+- Bag of Holding
+
 
 ## Rare Items
 - **Armor**: +1 platemail, +1 studded leather, Elven chainmail (needs 13 str, AC 17, no prof or dex required), elven chain vest (warlock/wizard)
