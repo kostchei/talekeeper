@@ -2116,14 +2116,14 @@ class ActionPanel(QWidget):
                             # Log with critical hit notation
                             if is_critical:
                                 parent.log_panel.log_combat(
-                                    f"⚡ CRITICAL HIT! {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
+                                    f"[CRITICAL HIT!] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
                                 )
                             else:
                                 parent.log_panel.log_combat(
                                     f"[ATTACK] {weapon} hits {target}! Attack: {roll_desc}{bonus_str} = {total} vs AC {target_ac}"
                                 )
                             parent.log_panel.log_combat(
-                                f"💥 Damage: {dice_str} = {dice_total}{damage_bonus_str}{crit_str} = {damage_total} damage"
+                                f"[DAMAGE] {dice_str} = {dice_total}{damage_bonus_str}{crit_str} = {damage_total} damage"
                             )
                         else:
                             parent.log_panel.log_combat(

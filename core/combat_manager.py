@@ -70,6 +70,7 @@ class Combatant:
     # For players
     class_name: Optional[str] = None
     level: Optional[int] = None
+    equipped_armor: Optional[str] = None  # Track equipped armor for adamantine check
     extra_attacks: int = 0
 
 @dataclass 
@@ -122,7 +123,8 @@ class CombatManager:
             initiative_bonus=initiative_bonus,
             class_name=character_data.get('class_id'),
             level=character_data.get('level', 1),
-            extra_attacks=extra_attacks
+            extra_attacks=extra_attacks,
+            equipped_armor=character_data.get('equipment_armor')  # Include equipped armor
         )
         
         self.combatants[character_id] = combatant
@@ -576,12 +578,27 @@ class CombatManager:
         attack_bonus = action.attack_bonus or 0
         total_attack = d20_roll + attack_bonus
         
-        # Check for hit
-        hit = total_attack >= target.armor_class
+        # Check for critical hit (natural 20)
+        is_critical = d20_roll == 20
+        
+        # Check if target is wearing adamantine armor (negates critical hits)
+        if is_critical and target.type == CombatantType.PLAYER and target.equipped_armor:
+            if 'adamantine' in target.equipped_armor.lower():
+                self.log(f"[ADAMANTINE] {target.name}'s adamantine armor prevents the critical hit!")
+                is_critical = False
+        
+        # Check for hit (critical always hits)
+        hit = total_attack >= target.armor_class or d20_roll == 20
         
         if hit:
             # Damage roll
             damage = self._roll_damage(action.damage_dice or '1d6')
+            
+            # Double damage dice on critical hit
+            if is_critical:
+                crit_damage = self._roll_damage(action.damage_dice or '1d6')
+                damage += crit_damage
+                self.log(f"[CRITICAL HIT!] {attacker.name} scores a critical hit!")
             
             # Apply damage
             target.hit_points -= damage
@@ -589,13 +606,17 @@ class CombatManager:
                 target.hit_points = 0
                 target.is_alive = False
             
-            self.log(f"[COMBAT] [HIT] {attacker.name} {action.name} hits! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class} for {damage} damage")
+            if is_critical:
+                self.log(f"[COMBAT] [CRITICAL HIT!] {attacker.name} {action.name} critically hits! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class} for {damage} damage")
+            else:
+                self.log(f"[COMBAT] [HIT] {attacker.name} {action.name} hits! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class} for {damage} damage")
             
             return {
                 'hit': True,
                 'attack_roll': total_attack, 
                 'damage': damage,
-                'target_hp': target.hit_points
+                'target_hp': target.hit_points,
+                'is_critical': is_critical
             }
         else:
             self.log(f"[COMBAT] [MISS] {attacker.name} {action.name} misses! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class}")
