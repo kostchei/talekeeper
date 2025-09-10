@@ -410,14 +410,13 @@ Training includes food and lodging (counts as a long rest)."""
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'game_engine'):
-                        # Find the character's save slot and reload
                         game_engine = parent.game_engine
-                        if hasattr(game_engine, 'settings') and 'last_character_slot' in game_engine.settings:
-                            slot = game_engine.settings['last_character_slot']
-                            updated_character = game_engine.load_character_sync(slot)
-                            if updated_character:
-                                game_engine.current_character = updated_character
-                                print(f"[Training] Reloaded character: {updated_character['name']} level {updated_character['level']}, {updated_character['hit_points_max']} HP")
+                        # Reload character directly by ID instead of relying on last_character_slot
+                        updated_character = game_engine.get_character_by_id_sync(character_id)
+                        if updated_character:
+                            game_engine.current_character = updated_character
+                            print(f"[Training] Reloaded character: {updated_character['name']} "
+                                  f"level {updated_character['level']}, {updated_character['hit_points_max']} HP")
                         break
                     parent = parent.parent()
                 
