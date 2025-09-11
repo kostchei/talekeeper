@@ -28,6 +28,7 @@ import os
 import random
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
+from services.equipment_database import EquipmentDatabase
 from .town_encounter import TownEncounterPanel
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
@@ -443,16 +444,16 @@ class EncounterPanel(QWidget):
         """Initialize the encounter panel UI components."""
         # Main layout
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(1, 1, 1, 1)
+        self.main_layout.setSpacing(1)
         
         # === CONTENT TABS ===
         self.content_tabs = QTabWidget()
         self.content_tabs.setObjectName("contentTabs")
-        
-        # --- MAIN CONTENT TAB ---
+
+        # --- DESCRIPTION TAB ---
         self.main_content_tab = QWidget()
-        self.content_tabs.addTab(self.main_content_tab, "Scene")
+        self.content_tabs.addTab(self.main_content_tab, "Description")
         
         main_content_layout = QVBoxLayout(self.main_content_tab)
         main_content_layout.setContentsMargins(1, 1, 1, 1)
@@ -468,111 +469,25 @@ class EncounterPanel(QWidget):
         self.action_buttons_frame = QFrame()
         self.action_buttons_frame.setObjectName("actionButtonsFrame")
         action_buttons_layout = QHBoxLayout(self.action_buttons_frame)
-        
-        self.investigate_btn = QPushButton("Investigate")
-        self.investigate_btn.clicked.connect(lambda: self.exploration_action.emit("investigate"))
-        action_buttons_layout.addWidget(self.investigate_btn)
-        
-        self.rest_btn = QPushButton("Rest")
-        self.rest_btn.clicked.connect(lambda: self.exploration_action.emit("rest"))
-        action_buttons_layout.addWidget(self.rest_btn)
-        
-        self.search_btn = QPushButton("Search")
-        self.search_btn.clicked.connect(lambda: self.exploration_action.emit("search"))
-        action_buttons_layout.addWidget(self.search_btn)
-        
-        main_content_layout.addWidget(self.action_buttons_frame)
-        
-        # --- ENCOUNTERS TAB ---
-        self.encounters_tab = QWidget()
-        self.content_tabs.addTab(self.encounters_tab, "Encounters")
-        
-        encounters_layout = QVBoxLayout(self.encounters_tab)
-        encounters_layout.setContentsMargins(1, 1, 1, 1)
-        
-        # Encounters list widget (was missing)
-        # Encounter details area (for XP budget info) - AT THE TOP
-        self.encounter_details_text = QTextEdit()
-        self.encounter_details_text.setObjectName("encounterDetailsText")
-        self.encounter_details_text.setReadOnly(True)
-        self.encounter_details_text.setMaximumHeight(80)
-        self.encounter_details_text.setPlainText("Click 'Generate Random Encounter' to see encounter details...")
-        self.encounter_details_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #1a1a1a;
-                color: #ffffff;
-                border: 2px solid #4CAF50;
-                border-radius: 6px;
-                padding: 8px;
-                font-size: 12px;
-                font-family: 'Consolas', 'Courier New', monospace;
-            }
-        """)
-        encounters_layout.addWidget(self.encounter_details_text)
-        
-        # Encounters list widget  
-        self.encounters_list = QListWidget()
-        self.encounters_list.setObjectName("encountersList")
-        self.encounters_list.setMaximumHeight(150)  # Keep it compact
-        encounters_layout.addWidget(self.encounters_list)
-        
-        # Generate encounter button
-        self.generate_encounter_btn = QPushButton("Generate Random Encounter")
-        self.generate_encounter_btn.clicked.connect(self._generate_encounter)
-        encounters_layout.addWidget(self.generate_encounter_btn)
-        
-        # Monster cards container (grid layout for multiple rows)
-        self.monsters_frame = QFrame()
-        self.monsters_frame.setObjectName("monstersFrame")
-        from PyQt6.QtWidgets import QGridLayout
-        self.monsters_layout = QGridLayout(self.monsters_frame)
-        self.monsters_layout.setContentsMargins(1, 1, 1, 1)
-        self.monsters_layout.setSpacing(5)
-        self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        encounters_layout.addWidget(self.monsters_frame)
-        
-        
-        # --- ENVIRONMENT TAB ---
-        self.environment_tab = QWidget()
-        self.content_tabs.addTab(self.environment_tab, "Environment")
-        
-        env_layout = QVBoxLayout(self.environment_tab)
-        env_layout.setContentsMargins(1, 1, 1, 1)
-        
-        # Environment details
-        self.environment_text = QTextEdit()
-        self.environment_text.setObjectName("environmentText")
-        self.environment_text.setReadOnly(True)
-        self.environment_text.setPlainText("Environment details and hazards will be displayed here...")
-        env_layout.addWidget(self.environment_text)
-        
-        # Environmental action buttons
-        self.env_actions_frame = QFrame()
-        env_actions_layout = QHBoxLayout(self.env_actions_frame)
-        
-        self.climb_btn = QPushButton("Climb")
-        self.climb_btn.clicked.connect(lambda: self.exploration_action.emit("climb"))
-        env_actions_layout.addWidget(self.climb_btn)
-        
-        self.swim_btn = QPushButton("Swim") 
-        self.swim_btn.clicked.connect(lambda: self.exploration_action.emit("swim"))
-        env_actions_layout.addWidget(self.swim_btn)
-        
-        self.hide_btn = QPushButton("Hide")
-        self.hide_btn.clicked.connect(lambda: self.exploration_action.emit("hide"))
-        env_actions_layout.addWidget(self.hide_btn)
-        
-        # Long Rest button - NEW
+
+        self.travel_btn = QPushButton("Travel")
+        self.travel_btn.clicked.connect(lambda: self.exploration_action.emit("travel"))
+        action_buttons_layout.addWidget(self.travel_btn)
+
+        self.downtime_btn = QPushButton("Downtime")
+        self.downtime_btn.clicked.connect(lambda: self.exploration_action.emit("downtime"))
+        action_buttons_layout.addWidget(self.downtime_btn)
+
         self.long_rest_btn = QPushButton("Long Rest")
         self.long_rest_btn.clicked.connect(self._perform_long_rest)
         self.long_rest_btn.setStyleSheet("""
             QPushButton {
                 background-color: #2a4a2a;
-                border: 2px solid #4a6a4a;
+                border: 1px solid #4a6a4a;
                 border-radius: 4px;
                 color: #88ff88;
                 font-weight: bold;
-                padding: 4px 8px;
+                padding: 1px;
             }
             QPushButton:hover {
                 background-color: #3a5a3a;
@@ -582,14 +497,64 @@ class EncounterPanel(QWidget):
                 background-color: #1a3a1a;
             }
         """)
-        env_actions_layout.addWidget(self.long_rest_btn)
+        action_buttons_layout.addWidget(self.long_rest_btn)
+
+        main_content_layout.addWidget(self.action_buttons_frame)
+
+        # --- ENCOUNTER TAB ---
+        self.encounters_tab = QWidget()
+        self.content_tabs.addTab(self.encounters_tab, "Encounter")
         
-        env_layout.addWidget(self.env_actions_frame)
+        encounters_layout = QVBoxLayout(self.encounters_tab)
+        encounters_layout.setContentsMargins(1, 1, 1, 1)
         
+        # Encounters list widget
+        self.encounters_list = QListWidget()
+        self.encounters_list.setObjectName("encountersList")
+        self.encounters_list.setMaximumHeight(150)  # Keep it compact
+        encounters_layout.addWidget(self.encounters_list)
+
+        # Generate encounter button
+        self.generate_encounter_btn = QPushButton("Generate Random Encounter")
+        self.generate_encounter_btn.clicked.connect(self._generate_encounter)
+        encounters_layout.addWidget(self.generate_encounter_btn)
+
+        # Encounter action buttons
+        self.encounter_actions_frame = QFrame()
+        encounter_actions_layout = QHBoxLayout(self.encounter_actions_frame)
+
+        self.influence_btn = QPushButton("Influence")
+        self.influence_btn.clicked.connect(lambda: self.encounter_action_requested.emit("influence"))
+        encounter_actions_layout.addWidget(self.influence_btn)
+
+        self.search_btn = QPushButton("Search")
+        self.search_btn.clicked.connect(lambda: self.encounter_action_requested.emit("search"))
+        encounter_actions_layout.addWidget(self.search_btn)
+
+        self.study_btn = QPushButton("Study")
+        self.study_btn.clicked.connect(lambda: self.encounter_action_requested.emit("study"))
+        encounter_actions_layout.addWidget(self.study_btn)
+
+        self.hide_btn = QPushButton("Hide")
+        self.hide_btn.clicked.connect(lambda: self.encounter_action_requested.emit("hide"))
+        encounter_actions_layout.addWidget(self.hide_btn)
+
+        encounters_layout.addWidget(self.encounter_actions_frame)
+
+        # Monster cards container (grid layout for multiple rows)
+        self.monsters_frame = QFrame()
+        self.monsters_frame.setObjectName("monstersFrame")
+        from PyQt6.QtWidgets import QGridLayout
+        self.monsters_layout = QGridLayout(self.monsters_frame)
+        self.monsters_layout.setContentsMargins(1, 1, 1, 1)
+        self.monsters_layout.setSpacing(1)
+        self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        encounters_layout.addWidget(self.monsters_frame)
+
         # --- CHARACTER CREATION TAB ---
         self.character_creation_tab = QWidget()
         self.content_tabs.addTab(self.character_creation_tab, "Create Character")
-        self.content_tabs.setTabVisible(3, False)  # Hidden initially
+        self.content_tabs.setTabVisible(2, False)  # Hidden initially
         
         creation_layout = QVBoxLayout(self.character_creation_tab)
         creation_layout.setContentsMargins(1, 1, 1, 1)
@@ -639,14 +604,14 @@ class EncounterPanel(QWidget):
             background-color: #1e1e1e;
             border: 1px solid #444444;
             border-radius: 4px;
-            padding: 5px;
+            padding: 1px;
         }
         
         QLabel#sectionLabel {
             color: #ffffff;
             font-size: 14px;
             font-weight: bold;
-            padding: 5px;
+            padding: 1px;
         }
         
         QTabWidget#contentTabs {
@@ -669,8 +634,8 @@ class EncounterPanel(QWidget):
             border: 1px solid #444444;
             border-bottom: none;
             border-radius: 4px 4px 0px 0px;
-            padding: 6px 12px;
-            margin: 2px;
+            padding: 1px;
+            margin: 1px;
         }
         
         QTabBar::tab:selected {
@@ -683,12 +648,12 @@ class EncounterPanel(QWidget):
             background-color: #3a3a3a;
         }
         
-        QTextEdit#sceneText, QTextEdit#environmentText {
+        QTextEdit#sceneText {
             background-color: #151515;
             color: #ffffff;
             border: 1px solid #555555;
             border-radius: 4px;
-            padding: 8px;
+            padding: 1px;
             font-size: 13px;
             line-height: 1.4;
         }
@@ -702,7 +667,7 @@ class EncounterPanel(QWidget):
         }
         
         QListWidget#encountersList::item {
-            padding: 8px;
+            padding: 1px;
             border-bottom: 1px solid #333333;
         }
         
@@ -720,7 +685,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #666666;
             border-radius: 4px;
-            padding: 8px 12px;
+            padding: 1px;
             font-weight: bold;
         }
         
@@ -742,7 +707,7 @@ class EncounterPanel(QWidget):
             color: #50c878;
             font-size: 18px;
             font-weight: bold;
-            padding: 10px 0px;
+            padding: 1px;
         }
         
         QListWidget#classSelectionList, QListWidget#backgroundList, QListWidget#speciesList, QListWidget#equipmentList {
@@ -754,7 +719,7 @@ class EncounterPanel(QWidget):
         }
         
         QListWidget#classSelectionList::item, QListWidget#backgroundList::item, QListWidget#speciesList::item {
-            padding: 8px;
+            padding: 1px;
             border-bottom: 1px solid #333333;
         }
         
@@ -768,7 +733,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #555555;
             border-radius: 4px;
-            padding: 8px;
+            padding: 1px;
             font-size: 12px;
         }
         
@@ -786,17 +751,17 @@ class EncounterPanel(QWidget):
         QLabel#pointsRemaining {
             color: #ff9500;
             font-weight: bold;
-            padding: 10px 0px;
+            padding: 1px;
         }
         
         QLabel#classStatsInfo {
             color: #4a90e2;
             font-weight: bold;
-            padding: 5px 0px;
+            padding: 1px;
             background-color: #1e1e1e;
             border: 1px solid #4a90e2;
             border-radius: 4px;
-            padding: 8px;
+            padding: 1px;
         }
         
         QLabel#rolledScore {
@@ -809,7 +774,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             font-weight: bold;
             font-size: 14px;
-            padding: 4px;
+            padding: 1px;
         }
         
         QPushButton#createCharacterBtn {
@@ -817,7 +782,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #50c878;
             border-radius: 6px;
-            padding: 12px 20px;
+            padding: 1px;
             font-size: 14px;
             font-weight: bold;
         }
@@ -833,7 +798,7 @@ class EncounterPanel(QWidget):
         /* Monster Card Styles - Matching Action Card Aesthetic */
         QFrame#monsterCard {
             background-color: #2d2d2d;
-            border: 2px solid #555555;
+            border: 1px solid #555555;
             border-radius: 8px;
         }
         
@@ -843,7 +808,7 @@ class EncounterPanel(QWidget):
         
         QFrame#monsterCard[selected="true"] {
             border-color: #4a90e2;
-            border-width: 3px;
+            border-width: 1px;
             background-color: #3d3d4d;
         }
         
@@ -886,7 +851,7 @@ class EncounterPanel(QWidget):
         style_sheet = f"""
         EncounterPanel {{
             background-color: {palette['background']};
-            border: 2px solid {palette['border']};
+            border: 1px solid {palette['border']};
             border-radius: 8px;
         }}
         
@@ -905,8 +870,8 @@ class EncounterPanel(QWidget):
         QTabBar::tab {{
             background-color: {palette['surface']};
             color: {palette['text']};
-            padding: 6px 12px;
-            margin-right: 2px;
+            padding: 1px;
+            margin-right: 1px;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
             border: 1px solid {palette['border']};
@@ -938,7 +903,7 @@ class EncounterPanel(QWidget):
         }}
         
         QListWidget::item {{
-            padding: 4px;
+            padding: 1px;
             border-bottom: 1px solid {palette['border']};
         }}
         
@@ -947,7 +912,7 @@ class EncounterPanel(QWidget):
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 6px 12px;
+            padding: 1px;
             font-size: 11px;
             font-weight: bold;
         }}
@@ -965,7 +930,7 @@ class EncounterPanel(QWidget):
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 1px;
             font-size: 12px;
             font-weight: bold;
         }}
@@ -978,12 +943,12 @@ class EncounterPanel(QWidget):
             background-color: {palette['accent_primary']};
         }}
         
-        QTextEdit#sceneText, QTextEdit#environmentText {{
+        QTextEdit#sceneText {{
             background-color: {palette['surface']};
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 8px;
+            padding: 1px;
             font-size: 13px;
             line-height: 1.4;
         }}
@@ -1071,17 +1036,16 @@ class EncounterPanel(QWidget):
         encounter_mode = self.encounter_mode == "encounter"
         combat_mode = self.encounter_mode == "combat"
         
-        # Main content buttons
-        self.investigate_btn.setEnabled(exploration_mode)
-        self.rest_btn.setEnabled(not combat_mode)
-        self.search_btn.setEnabled(exploration_mode)
-        
-        # Combat buttons (removed - combat now starts automatically)
-        
-        # Environment buttons
-        self.climb_btn.setEnabled(not combat_mode)
-        self.swim_btn.setEnabled(not combat_mode)
-        self.hide_btn.setEnabled(not combat_mode)
+        # Description buttons
+        self.travel_btn.setEnabled(exploration_mode)
+        self.downtime_btn.setEnabled(exploration_mode)
+        self.long_rest_btn.setEnabled(not combat_mode)
+
+        # Encounter buttons
+        self.influence_btn.setEnabled(encounter_mode)
+        self.search_btn.setEnabled(encounter_mode)
+        self.study_btn.setEnabled(encounter_mode)
+        self.hide_btn.setEnabled(encounter_mode)
     
     def update_scene_description(self, description: str):
         """Update the main scene description."""
@@ -1093,9 +1057,9 @@ class EncounterPanel(QWidget):
             QTextEdit {
                 background-color: #1a1a1a;
                 color: #ffffff;
-                border: 2px solid #4CAF50;
+                border: 1px solid #4CAF50;
                 border-radius: 6px;
-                padding: 10px;
+                padding: 1px;
                 font-size: 14px;
                 font-family: 'Consolas', 'Courier New', monospace;
                 line-height: 1.5;
@@ -1105,10 +1069,6 @@ class EncounterPanel(QWidget):
         # Ensure visibility
         self.scene_text.raise_()
         self.scene_text.show()
-    
-    def update_environment_details(self, details: str):
-        """Update environmental information."""
-        self.environment_text.setPlainText(details)
     
     def add_encounter(self, encounter_data: Dict[str, Any]):
         """Add an encounter to the list."""
@@ -1730,7 +1690,7 @@ class EncounterPanel(QWidget):
         
         fs_description = QLabel("Choose a Fighting Style feat. This represents your martial training specialty.")
         fs_description.setWordWrap(True)
-        fs_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        fs_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 1px;")
         fs_layout.addWidget(fs_description)
         
         self.fighting_style_combo = QComboBox()
@@ -1817,7 +1777,7 @@ class EncounterPanel(QWidget):
         
         skill_description = QLabel(f"Choose {skill_count} skill{'s' if skill_count != 1 else ''} from your class list:")
         skill_description.setWordWrap(True)
-        skill_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        skill_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 1px;")
         skill_layout.addWidget(skill_description)
         
         # Create checkboxes for available skills
@@ -3067,7 +3027,7 @@ Character Level: {character_level}"""
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(1, 1, 1, 1)
-        layout.setSpacing(2)
+        layout.setSpacing(1)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         # Monster image
@@ -3334,7 +3294,7 @@ Character Level: {character_level}"""
                         widget.setStyleSheet("""
                             QFrame#monsterCard {
                                 background-color: #1a1a1a;
-                                border: 2px solid #444444;
+                                border: 1px solid #444444;
                                 border-radius: 8px;
                                 opacity: 0.6;
                             }
@@ -3433,7 +3393,7 @@ Character Level: {character_level}"""
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"💰 Gained {xp_value} XP for defeating {monster_name}")
+                    parent.log_panel.log_combat(f"[XP] Gained {xp_value} XP for defeating {monster_name}")
                     break
                 parent = parent.parent()
         except Exception as e:
@@ -3537,7 +3497,7 @@ Character Level: {character_level}"""
         card.setStyleSheet("""
             QWidget {
                 background-color: #2a4a2a;
-                border: 2px solid #4a6a4a;
+                border: 1px solid #4a6a4a;
                 border-radius: 8px;
                 margin: 1px;
             }
@@ -3547,7 +3507,7 @@ Character Level: {character_level}"""
         layout.setContentsMargins(1, 1, 1, 1)
         
         # Title
-        title = QLabel("💰 Loot")
+        title = QLabel("Loot")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight: bold; color: #ffdd44; font-size: 14px;")
         layout.addWidget(title)
@@ -3575,7 +3535,7 @@ Character Level: {character_level}"""
         card.setStyleSheet("""
             QWidget {
                 background-color: #4a4a2a;
-                border: 2px solid #6a6a4a;
+                border: 1px solid #6a6a4a;
                 border-radius: 8px;
                 margin: 1px;
             }
@@ -3631,7 +3591,7 @@ Character Level: {character_level}"""
         
         # Log individual treasure
         if total_individual_gp > 0:
-            self._log_monster_action(f"💰 Individual Treasure: {total_individual_gp} GP total")
+            self._log_monster_action(f"[LOOT] Individual Treasure: {total_individual_gp} GP total")
             for detail in treasure_details:
                 self._log_monster_action(f"  └─ {detail}")
         
@@ -3715,8 +3675,8 @@ Character Level: {character_level}"""
         
         try:
             # Load equipment data
-            with open('data/equipment.json', 'r') as f:
-                equipment_data = json.load(f)
+            equipment_db = EquipmentDatabase()
+            equipment_data = equipment_db.get_all_equipment()
             
             # Filter equipment based on monster type and CR
             possible_drops = []
@@ -3862,18 +3822,457 @@ Character Level: {character_level}"""
         chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
         
         if random.random() <= chance:
-            # Roll hoard treasure: 2d4 × 100 GP and 1d4-1 magical items
-            hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
-            hoard_gp = hoard_gp_dice * 100
+            # Get highest monster CR from current encounter to determine hoard table
+            max_cr = 0
+            if hasattr(self, 'current_encounter') and self.current_encounter:
+                if hasattr(self.current_encounter, 'monster_instances'):
+                    for instance in self.current_encounter.monster_instances:
+                        try:
+                            if hasattr(instance, 'monster_cr'):
+                                cr_str = instance.monster_cr
+                                if '/' in cr_str:
+                                    numerator, denominator = cr_str.split('/')
+                                    cr_numeric = float(numerator) / float(denominator)
+                                else:
+                                    cr_numeric = float(cr_str)
+                                max_cr = max(max_cr, cr_numeric)
+                        except (ValueError, TypeError, AttributeError):
+                            continue
             
-            magic_items_roll = random.randint(1, 4) - 1
-            magic_items = max(0, magic_items_roll)  # Minimum 0 items
+            # Use D&D 2024 hoard table based on CR
+            if max_cr <= 4:
+                # CR 0-4: 2d4 × 100 GP and 1d4-1 magical items
+                hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
+                hoard_gp = hoard_gp_dice * 100
+                magic_items_roll = random.randint(1, 4) - 1
+            elif max_cr <= 10:
+                # CR 5-10: 8d10 × 100 GP and 1d3 magical items
+                hoard_gp_dice = sum(random.randint(1, 10) for _ in range(8))
+                hoard_gp = hoard_gp_dice * 100
+                magic_items_roll = random.randint(1, 3)
+            elif max_cr <= 16:
+                # CR 11-16: 8d8 × 1,000 GP and 1d4 magical items
+                hoard_gp_dice = sum(random.randint(1, 8) for _ in range(8))
+                hoard_gp = hoard_gp_dice * 1000
+                magic_items_roll = random.randint(1, 4)
+            else:
+                # CR 17+: 6d10 × 10,000 GP and 1d6 magical items
+                hoard_gp_dice = sum(random.randint(1, 10) for _ in range(6))
+                hoard_gp = hoard_gp_dice * 10000
+                magic_items_roll = random.randint(1, 6)
             
-            magic_text = f" and {magic_items} magical item{'s' if magic_items != 1 else ''}" if magic_items > 0 else " and no magical items"
+            magic_items = max(0, magic_items_roll)  # Minimum 0 items for CR 0-4 only
+            
+            # Generate actual magical items based on rarity
+            generated_items = []
+            if magic_items > 0:
+                generated_items = self._generate_hoard_magic_items(magic_items, max_cr)
+            
+            if generated_items:
+                item_names = [item['name'] for item in generated_items]
+                magic_text = f" and {len(generated_items)} magical item{'s' if len(generated_items) != 1 else ''}: {', '.join(item_names)}"
+                
+                # Add items to character inventory
+                self._add_magic_items_to_character(generated_items)
+            else:
+                magic_text = " and no magical items"
             
             return f"A Hoard with {hoard_gp} GP{magic_text}"
         
         return None
+    
+    def _generate_hoard_magic_items(self, count: int, monster_cr: float) -> list:
+        """Generate magical items for hoard treasure based on CR and loot plan."""
+        from services.treasure_rarity import TreasureRaritySystem
+        import random
+        
+        # Convert CR to character level equivalent for rarity system
+        # CR 0-4 maps to levels 1-4, CR 5-10 to levels 5-10, etc.
+        if monster_cr <= 4:
+            char_level = min(4, max(1, int(monster_cr) + 1))
+        elif monster_cr <= 10:
+            char_level = min(10, max(5, int(monster_cr)))
+        elif monster_cr <= 16:
+            char_level = min(16, max(11, int(monster_cr)))
+        else:
+            char_level = min(20, max(17, int(monster_cr)))
+        
+        rarity_system = TreasureRaritySystem()
+        generated_items = []
+        
+        # Get character equipment for prioritization
+        character_equipment = self._get_character_equipment()
+        
+        for _ in range(count):
+            # Roll for rarity based on character level equivalent
+            rarity = rarity_system.get_rarity_for_level(char_level)
+            
+            # Get priority item for this rarity if available
+            priority_item = self._get_priority_item(rarity, character_equipment)
+            
+            if priority_item:
+                generated_items.append(priority_item)
+            else:
+                # Fall back to random items from remaining pool
+                fallback_item = self._get_random_item(rarity)
+                if fallback_item:
+                    generated_items.append(fallback_item)
+        
+        return generated_items
+    
+    def _get_character_equipment(self) -> dict:
+        """Get current character's equipped items and class info."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    character = parent.game_engine.current_character
+                    if character:
+                        # Get equipped items and class info
+                        equipped_items = {}
+                        
+                        # Get main hand weapon
+                        if character.get('main_hand_weapon'):
+                            equipped_items['main_hand'] = character['main_hand_weapon']
+                        
+                        # Get armor
+                        if character.get('armor'):
+                            equipped_items['armor'] = character['armor']
+                        
+                        # Get shield
+                        if character.get('shield'):
+                            equipped_items['shield'] = character['shield']
+                        
+                        # Get class for proficiency checking
+                        equipped_items['class'] = character.get('class', '')
+                        equipped_items['character_id'] = character.get('id')
+                        
+                        return equipped_items
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error getting character equipment: {e}")
+        
+        return {}
+    
+    def _check_weapon_proficiency(self, weapon_name: str, character_class: str) -> bool:
+        """Check if character class is proficient with weapon type."""
+        import sqlite3
+        
+        try:
+            # Get weapon proficiencies from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT weapon_proficiencies
+                FROM classes 
+                WHERE name = ?
+            """, (character_class,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return False
+            
+            proficiencies = [p.strip().lower() for p in result[0].split(',')]
+            weapon_name_lower = weapon_name.lower()
+            
+            # Check specific proficiencies
+            if 'all weapons' in proficiencies or 'simple weapons,martial weapons' in ','.join(proficiencies):
+                return True
+            
+            if 'martial weapons' in proficiencies:
+                martial_weapons = ['longsword', 'greatsword', 'greataxe', 'rapier', 'scimitar']
+                if any(weapon in weapon_name_lower for weapon in martial_weapons):
+                    return True
+            
+            if 'simple weapons' in proficiencies:
+                simple_weapons = ['staff', 'quarterstaff', 'spear', 'dagger']
+                if any(weapon in weapon_name_lower for weapon in simple_weapons):
+                    return True
+            
+            # Check specific weapon proficiencies
+            for prof in proficiencies:
+                if prof in weapon_name_lower or weapon_name_lower in prof:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error checking weapon proficiency: {e}")
+            return False
+    
+    def _check_item_proficiency(self, item_name: str, character_class: str) -> bool:
+        """Check if character can use this magic item."""
+        import sqlite3
+        
+        try:
+            # Get item type from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT item_type, weapon_category
+                FROM equipment 
+                WHERE name = ?
+            """, (item_name,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return True  # Default allow if item not found
+            
+            item_type, weapon_category = result
+            
+            # Check proficiency based on item type
+            if item_type in ['wand', 'rod', 'holy symbol', 'focus']:
+                return self._check_item_type_proficiency(item_type, character_class)
+            elif item_type == 'weapon':
+                return self._check_weapon_proficiency(item_name, character_class)
+            else:
+                # Most other items (armor, consumables, etc.) can be used by anyone
+                return True
+                
+        except Exception as e:
+            print(f"Error checking item proficiency: {e}")
+            return True  # Default to allowing if error occurs
+    
+    def _check_item_type_proficiency(self, item_type: str, character_class: str) -> bool:
+        """Check if character class is proficient with this item type."""
+        import sqlite3
+        
+        try:
+            # Get item proficiencies from database
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT item_proficiencies
+                FROM classes 
+                WHERE name = ?
+            """, (character_class,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return False
+            
+            proficiencies = [p.strip().lower() for p in result[0].split(',')]
+            item_type_lower = item_type.lower()
+            
+            return item_type_lower in proficiencies
+            
+        except Exception as e:
+            print(f"Error checking item type proficiency: {e}")
+            return False
+    
+    def _check_attunement_requirement(self, item_name: str, character_class: str) -> bool:
+        """Check if character meets attunement requirements for magic item."""
+        import sqlite3
+        
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT attunement_requirement 
+                FROM equipment 
+                WHERE name = ? AND is_magical = 1
+            """, (item_name,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result or not result[0]:
+                return True  # No attunement requirement
+            
+            requirement = result[0].lower()
+            class_lower = character_class.lower()
+            
+            # Check specific requirements
+            if requirement == 'any':
+                return True
+            elif requirement == 'spellcaster':
+                spellcasters = ['wizard', 'sorcerer', 'warlock', 'cleric', 'druid', 'bard']
+                return class_lower in spellcasters
+            elif ',' in requirement:
+                # Multiple classes (e.g., "cleric,paladin")
+                allowed_classes = [c.strip() for c in requirement.split(',')]
+                return class_lower in allowed_classes
+            else:
+                # Single class requirement
+                return class_lower == requirement
+                
+        except Exception as e:
+            print(f"Error checking attunement requirement: {e}")
+            return True  # Default to allowing if error occurs
+    
+    def _get_priority_item(self, rarity: str, character_equipment: dict) -> dict:
+        """Get priority item based on current equipment and proficiency."""
+        import random
+        
+        character_class = character_equipment.get('class', '')
+        main_hand = character_equipment.get('main_hand', '')
+        
+        # Priority slots by rarity
+        priority_slots = {
+            'uncommon': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+1'),
+                'protection': self._get_protection_item(character_equipment, 'uncommon'),
+                'armor': self._get_armor_upgrade(character_equipment, 'uncommon')
+            },
+            'rare': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+2'),
+                'protection': self._get_protection_item(character_equipment, 'rare'),
+                'armor': self._get_armor_upgrade(character_equipment, 'rare')
+            },
+            'very rare': {
+                'weapon_upgrade': self._get_weapon_upgrade(main_hand, character_class, '+3'),
+                'protection': self._get_protection_item(character_equipment, 'very rare'),
+                'armor': self._get_armor_upgrade(character_equipment, 'very rare')
+            }
+        }
+        
+        slots = priority_slots.get(rarity, {})
+        if slots:
+            # Check each priority slot
+            for slot_name, item in slots.items():
+                if item and not self._character_has_item(item['name'], character_equipment.get('character_id')):
+                    return item
+        
+        return None
+    
+    def _get_weapon_upgrade(self, current_weapon: str, character_class: str, bonus: str) -> dict:
+        """Get weapon upgrade based on current weapon."""
+        if not current_weapon:
+            return None
+        
+        weapon_name = current_weapon.lower()
+        
+        # Map current weapon to upgrade
+        upgrade_map = {
+            'longsword': f'Longsword {bonus}',
+            'rapier': f'Rapier {bonus}',
+            'greatsword': f'Greatsword {bonus}',
+            'greataxe': f'Greataxe {bonus}',
+            'scimitar': f'Scimitar {bonus}',
+            'spear': f'Spear {bonus}',
+            'staff': f'Staff {bonus}',
+            'quarterstaff': f'Staff {bonus}'
+        }
+        
+        for weapon, upgrade in upgrade_map.items():
+            if weapon in weapon_name:
+                if self._check_item_proficiency(upgrade, character_class):
+                    return {'name': upgrade, 'rarity': self._get_rarity_for_bonus(bonus), 'item_type': 'weapon'}
+        
+        return None
+    
+    def _get_protection_item(self, character_equipment: dict, rarity: str) -> dict:
+        """Get protection item based on character needs."""
+        character_class = character_equipment.get('class', '').lower()
+        
+        protection_items = {
+            'uncommon': ['Cloak of Protection', 'Shield +1'],
+            'rare': ['Ring of Protection', 'Shield +2'],
+            'very rare': ['Shield +3']
+        }
+        
+        items = protection_items.get(rarity, [])
+        if items and self._check_item_proficiency(items[0], character_class):
+            return {'name': items[0], 'rarity': rarity, 'item_type': 'protection'}
+        
+        return None
+    
+    def _get_armor_upgrade(self, character_equipment: dict, rarity: str) -> dict:
+        """Get armor upgrade based on current armor."""
+        current_armor = character_equipment.get('armor', '')
+        if not current_armor:
+            return None
+        
+        armor_name = current_armor.lower()
+        
+        upgrade_map = {
+            'uncommon': {
+                'studded leather': 'Studded Leather +1',
+                'chain mail': 'Chain Mail +1',
+                'plate': 'Plate Armor +1'
+            },
+            'rare': {
+                'studded leather': 'Studded Leather +1',
+                'plate': 'Plate Armor +1'
+            },
+            'very rare': {
+                'studded leather': 'Studded Leather +2',
+                'plate': 'Plate Armor +2'
+            }
+        }
+        
+        upgrades = upgrade_map.get(rarity, {})
+        for armor_type, upgrade in upgrades.items():
+            if armor_type in armor_name:
+                return {'name': upgrade, 'rarity': rarity, 'item_type': 'armor'}
+        
+        return None
+    
+    def _get_random_item(self, rarity: str) -> dict:
+        """Get random item from remaining pool."""
+        import random
+        
+        fallback_items = {
+            'common': ['Potion of Healing', '1st Level Spell Scroll'],
+            'uncommon': ['Potion of Greater Healing', '2nd Level Spell Scroll', 'Bag of Holding'],
+            'rare': ['Potion of Superior Healing', '4th Level Spell Scroll', 'Ring of Spell Storing'],
+            'very rare': ['Potion of Supreme Healing', '6th Level Spell Scroll'],
+            'legendary': ['8th Level Spell Scroll', 'Deck of Many Things']
+        }
+        
+        items = fallback_items.get(rarity, fallback_items['common'])
+        if items:
+            item_name = random.choice(items)
+            return {'name': item_name, 'rarity': rarity, 'item_type': 'consumable'}
+        
+        return None
+    
+    def _get_rarity_for_bonus(self, bonus: str) -> str:
+        """Get rarity based on bonus."""
+        bonus_map = {'+1': 'uncommon', '+2': 'rare', '+3': 'very rare'}
+        return bonus_map.get(bonus, 'common')
+    
+    def _character_has_item(self, item_name: str, character_id: str) -> bool:
+        """Check if character already has this item."""
+        # TODO: Implement inventory check
+        return False
+    
+    def _add_magic_items_to_character(self, magic_items: list):
+        """Add magical items to character inventory."""
+        try:
+            # Get game engine from parent for character update
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    game_engine = parent.game_engine
+                    character = game_engine.current_character
+                    
+                    if character:
+                        for item in magic_items:
+                            # Log the item acquisition
+                            self._log_monster_action(f"[MAGIC] Found {item['name']} ({item['rarity']})")
+                            
+                            # For now, just log - TODO: Add actual inventory integration
+                            print(f"[HOARD] Magic item for character {character['id']}: {item['name']} ({item['rarity']})")
+                        
+                        # Refresh equipment panel
+                        self._refresh_equipment_panel(game_engine, character['id'])
+                        break
+                        
+                parent = parent.parent()
+                
+        except Exception as e:
+            print(f"Error adding magic items to character: {e}")
     
     def _add_gold_to_character(self, gold_amount: int):
         """Add gold to the current character."""
@@ -3891,16 +4290,16 @@ Character Level: {character_level}"""
                             # Update gold in inventory database
                             success = game_engine.add_gold_to_character_sync(character['id'], gold_amount)
                             if success:
-                                self._log_monster_action(f"💰 Gained {gold_amount} gold pieces!")
+                                self._log_monster_action(f"[GOLD] Gained {gold_amount} gold pieces!")
                                 print(f"[TREASURE] Successfully added {gold_amount} GP to character {character['id']}")
                                 
                                 # Refresh the equipment panel to show updated gold
                                 self._refresh_equipment_panel(game_engine, character['id'])
                             else:
-                                self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                                self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
                                 print(f"[TREASURE] Failed to add {gold_amount} GP to character inventory")
                         except Exception as e:
-                            self._log_monster_action(f"💰 Found {gold_amount} gold pieces, but couldn't add to inventory!")
+                            self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
                             print(f"[TREASURE] Error adding gold: {e}")
                         return
                     break
@@ -3911,7 +4310,7 @@ Character Level: {character_level}"""
     
     def _handle_short_rest_action(self):
         """Handle clicking the Short Rest action card."""
-        self._log_monster_action("💤 Taking a short rest...")
+        self._log_monster_action("[REST] Taking a short rest...")
         self._perform_short_rest()
     
     def _perform_short_rest(self):
@@ -4163,10 +4562,10 @@ Character Level: {character_level}"""
         roll_details = " + ".join(rolls)
         if actual_healing < total_healing:
             self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
+            self._log_monster_action(f"[HEAL] HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing}, max HP reached)")
         else:
             self._log_monster_action(f"[DICE] Hit Dice: {roll_details} = {total_healing} healing")
-            self._log_monster_action(f"💚 HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing})")
+            self._log_monster_action(f"[HEAL] HP: {old_hp}/{max_hp} -> {new_hp}/{max_hp} (healed {actual_healing})")
         
         # Update status label
         status_label.setText(f"Current HP: {new_hp}/{max_hp}")
@@ -4179,7 +4578,7 @@ Character Level: {character_level}"""
         
         # Close dialog if at full health
         if new_hp >= max_hp:
-            self._log_monster_action("💚 Fully healed!")
+            self._log_monster_action("[HEAL] Fully healed!")
             dialog.accept()
     
     def _update_character_sheet_hp(self, current_hp: int, max_hp: int):
@@ -4234,7 +4633,7 @@ Character Level: {character_level}"""
             max_hp = character['hit_points_max']
             character['hit_points_current'] = max_hp
             character['current_hit_points'] = max_hp  # Alternative field
-            self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
+            self._log_monster_action(f"[HEAL] HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
             
             # 2. Restore all spent hit dice (up to half maximum, minimum 1)
             character_level = character['level']
