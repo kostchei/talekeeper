@@ -35,6 +35,31 @@ from typing import Any, Optional, Dict
 from datetime import datetime
 
 
+def sync_hit_dice_with_level(character):
+    """Ensure hit dice maximum matches level and add only new dice."""
+    level = character.get('level', 1)
+    prev_max = character.get('hit_dice_max', 0)
+    hit_dice_max = max(prev_max, level)
+    if hit_dice_max != prev_max:
+        diff = hit_dice_max - prev_max
+        character['hit_dice_max'] = hit_dice_max
+        character['hit_dice_current'] = min(
+            hit_dice_max,
+            character.get('hit_dice_current', 0) + diff
+        )
+    return character.get('hit_dice_current', 0), hit_dice_max
+
+
+def restore_hit_dice_on_long_rest(character):
+    """Restore hit dice per long rest rules and sync with level."""
+    current_before, hit_dice_max = sync_hit_dice_with_level(character)
+    hit_dice_to_restore = max(1, hit_dice_max // 2)
+    new_hit_dice = min(hit_dice_max, current_before + hit_dice_to_restore)
+    restored = new_hit_dice - current_before
+    character['hit_dice_current'] = new_hit_dice
+    return new_hit_dice, restored
+
+
 @dataclass
 class CombatSession:
     """Simple combat session for action economy tracking."""
@@ -4017,18 +4042,24 @@ Character Level: {character_level}"""
                     # Get fresh character data from database
                     fresh_character = parent.game_engine.get_character_by_id_sync(character['id'])
                     if fresh_character:
-                        current_hp = fresh_character['hit_points_current']
-                        max_hp = fresh_character['hit_points_max']
+                        current_hp = fresh_character.get('current_hit_points',
+                                                        fresh_character['hit_points_current'])
+                        max_hp = fresh_character.get('max_hit_points',
+                                                     fresh_character['hit_points_max'])
                         break
                 parent = parent.parent()
             else:
                 # Fallback to character object values
-                current_hp = character['hit_points_current']
-                max_hp = character['hit_points_max']
+                current_hp = character.get('current_hit_points',
+                                           character['hit_points_current'])
+                max_hp = character.get('max_hit_points',
+                                       character['hit_points_max'])
         except Exception as e:
             print(f"ERROR: Could not get HP: {e}")
-            current_hp = character['hit_points_current']
-            max_hp = character['hit_points_max']
+            current_hp = character.get('current_hit_points',
+                                       character['hit_points_current'])
+            max_hp = character.get('max_hit_points',
+                                   character['hit_points_max'])
         
         dialog = QDialog(self)
         dialog.setWindowTitle("Hit Dice Recovery")
@@ -4047,6 +4078,8 @@ Character Level: {character_level}"""
             layout.addWidget(info_label)
         
         # Hit dice info
+        # Ensure hit dice track character level without auto-refilling
+        sync_hit_dice_with_level(character)
         hit_dice_available = character['hit_dice_current']
         if hit_dice_available <= 0:
             no_dice_label = QLabel("[FAIL] No hit dice available!")
@@ -4236,16 +4269,13 @@ Character Level: {character_level}"""
             character['current_hit_points'] = max_hp  # Alternative field
             self._log_monster_action(f"💚 HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
             
-            # 2. Restore all spent hit dice (up to half maximum, minimum 1)
-            character_level = character['level']
-            max_hit_dice = character_level
-            current_hit_dice = character['hit_dice_current']
-            hit_dice_to_restore = max(1, max_hit_dice // 2)
-            new_hit_dice = min(max_hit_dice, current_hit_dice + hit_dice_to_restore)
-            
-            if new_hit_dice > current_hit_dice:
-                character['hit_dice_current'] = new_hit_dice
-                self._log_monster_action(f"[DICE] Hit Dice restored: {current_hit_dice} -> {new_hit_dice} (gained {new_hit_dice - current_hit_dice})")
+            # 2. Restore spent hit dice (up to half maximum, minimum 1)
+            old_hit_dice = character.get('hit_dice_current', 0)
+            new_hit_dice, restored = restore_hit_dice_on_long_rest(character)
+            if restored > 0:
+                self._log_monster_action(
+                    f"[DICE] Hit Dice restored: {old_hit_dice} -> {new_hit_dice} (gained {restored})"
+                )
             
             # 3. Restore all spell slots
             if 'spell_slots_current' in character and character['spell_slots_current']:
