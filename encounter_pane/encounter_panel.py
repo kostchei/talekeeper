@@ -453,10 +453,11 @@ class EncounterPanel(QWidget):
         
         # --- MAIN CONTENT TAB ---
         self.main_content_tab = QWidget()
-        self.content_tabs.addTab(self.main_content_tab, "Scene")
-        
+        self.content_tabs.addTab(self.main_content_tab, "Description")
+
         main_content_layout = QVBoxLayout(self.main_content_tab)
         main_content_layout.setContentsMargins(1, 1, 1, 1)
+        main_content_layout.setSpacing(1)
         
         # Scene description area
         self.scene_text = QTextEdit()
@@ -469,18 +470,20 @@ class EncounterPanel(QWidget):
         self.action_buttons_frame = QFrame()
         self.action_buttons_frame.setObjectName("actionButtonsFrame")
         action_buttons_layout = QHBoxLayout(self.action_buttons_frame)
-        
-        self.investigate_btn = QPushButton("Investigate")
-        self.investigate_btn.clicked.connect(lambda: self.exploration_action.emit("investigate"))
-        action_buttons_layout.addWidget(self.investigate_btn)
-        
-        self.rest_btn = QPushButton("Rest")
-        self.rest_btn.clicked.connect(lambda: self.exploration_action.emit("rest"))
-        action_buttons_layout.addWidget(self.rest_btn)
-        
-        self.search_btn = QPushButton("Search")
-        self.search_btn.clicked.connect(lambda: self.exploration_action.emit("search"))
-        action_buttons_layout.addWidget(self.search_btn)
+        action_buttons_layout.setContentsMargins(1, 1, 1, 1)
+        action_buttons_layout.setSpacing(1)
+
+        self.travel_btn = QPushButton("Travel")
+        self.travel_btn.clicked.connect(lambda: self.exploration_action.emit("travel"))
+        action_buttons_layout.addWidget(self.travel_btn)
+
+        self.downtime_btn = QPushButton("Downtime")
+        self.downtime_btn.clicked.connect(lambda: self.exploration_action.emit("downtime"))
+        action_buttons_layout.addWidget(self.downtime_btn)
+
+        self.long_rest_btn = QPushButton("Long Rest")
+        self.long_rest_btn.clicked.connect(self._perform_long_rest)
+        action_buttons_layout.addWidget(self.long_rest_btn)
         
         main_content_layout.addWidget(self.action_buttons_frame)
         
@@ -490,6 +493,7 @@ class EncounterPanel(QWidget):
         
         encounters_layout = QVBoxLayout(self.encounters_tab)
         encounters_layout.setContentsMargins(1, 1, 1, 1)
+        encounters_layout.setSpacing(1)
         
         # Encounters list widget (was missing)
         # Encounter details area (for XP budget info) - AT THE TOP
@@ -502,9 +506,9 @@ class EncounterPanel(QWidget):
             QTextEdit {
                 background-color: #1a1a1a;
                 color: #ffffff;
-                border: 2px solid #4CAF50;
+                border: 1px solid #4CAF50;
                 border-radius: 6px;
-                padding: 8px;
+                padding: 2px;
                 font-size: 12px;
                 font-family: 'Consolas', 'Courier New', monospace;
             }
@@ -514,83 +518,54 @@ class EncounterPanel(QWidget):
         # Encounters list widget  
         self.encounters_list = QListWidget()
         self.encounters_list.setObjectName("encountersList")
-        self.encounters_list.setMaximumHeight(150)  # Keep it compact
+        self.encounters_list.setMaximumHeight(150)
+        self.encounters_list.setVisible(False)
         encounters_layout.addWidget(self.encounters_list)
         
         # Generate encounter button
         self.generate_encounter_btn = QPushButton("Generate Random Encounter")
         self.generate_encounter_btn.clicked.connect(self._generate_encounter)
         encounters_layout.addWidget(self.generate_encounter_btn)
-        
+
+        self.encounter_actions_frame = QFrame()
+        self.encounter_actions_frame.setObjectName("actionButtonsFrame")
+        encounter_actions_layout = QHBoxLayout(self.encounter_actions_frame)
+        encounter_actions_layout.setContentsMargins(1, 1, 1, 1)
+        encounter_actions_layout.setSpacing(1)
+
+        self.influence_btn = QPushButton("Influence")
+        self.influence_btn.clicked.connect(lambda: self.exploration_action.emit("influence"))
+        encounter_actions_layout.addWidget(self.influence_btn)
+
+        self.search_btn = QPushButton("Search")
+        self.search_btn.clicked.connect(lambda: self.exploration_action.emit("search"))
+        encounter_actions_layout.addWidget(self.search_btn)
+
+        self.study_btn = QPushButton("Study")
+        self.study_btn.clicked.connect(lambda: self.exploration_action.emit("study"))
+        encounter_actions_layout.addWidget(self.study_btn)
+
+        self.hide_btn = QPushButton("Hide")
+        self.hide_btn.clicked.connect(lambda: self.exploration_action.emit("hide"))
+        encounter_actions_layout.addWidget(self.hide_btn)
+
+        encounters_layout.addWidget(self.encounter_actions_frame)
+
         # Monster cards container (grid layout for multiple rows)
         self.monsters_frame = QFrame()
         self.monsters_frame.setObjectName("monstersFrame")
         from PyQt6.QtWidgets import QGridLayout
         self.monsters_layout = QGridLayout(self.monsters_frame)
         self.monsters_layout.setContentsMargins(1, 1, 1, 1)
-        self.monsters_layout.setSpacing(5)
+        self.monsters_layout.setSpacing(1)
         self.monsters_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.monsters_frame.setVisible(False)
         encounters_layout.addWidget(self.monsters_frame)
-        
-        
-        # --- ENVIRONMENT TAB ---
-        self.environment_tab = QWidget()
-        self.content_tabs.addTab(self.environment_tab, "Environment")
-        
-        env_layout = QVBoxLayout(self.environment_tab)
-        env_layout.setContentsMargins(1, 1, 1, 1)
-        
-        # Environment details
-        self.environment_text = QTextEdit()
-        self.environment_text.setObjectName("environmentText")
-        self.environment_text.setReadOnly(True)
-        self.environment_text.setPlainText("Environment details and hazards will be displayed here...")
-        env_layout.addWidget(self.environment_text)
-        
-        # Environmental action buttons
-        self.env_actions_frame = QFrame()
-        env_actions_layout = QHBoxLayout(self.env_actions_frame)
-        
-        self.climb_btn = QPushButton("Climb")
-        self.climb_btn.clicked.connect(lambda: self.exploration_action.emit("climb"))
-        env_actions_layout.addWidget(self.climb_btn)
-        
-        self.swim_btn = QPushButton("Swim") 
-        self.swim_btn.clicked.connect(lambda: self.exploration_action.emit("swim"))
-        env_actions_layout.addWidget(self.swim_btn)
-        
-        self.hide_btn = QPushButton("Hide")
-        self.hide_btn.clicked.connect(lambda: self.exploration_action.emit("hide"))
-        env_actions_layout.addWidget(self.hide_btn)
-        
-        # Long Rest button - NEW
-        self.long_rest_btn = QPushButton("Long Rest")
-        self.long_rest_btn.clicked.connect(self._perform_long_rest)
-        self.long_rest_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2a4a2a;
-                border: 2px solid #4a6a4a;
-                border-radius: 4px;
-                color: #88ff88;
-                font-weight: bold;
-                padding: 4px 8px;
-            }
-            QPushButton:hover {
-                background-color: #3a5a3a;
-                border-color: #5a7a5a;
-            }
-            QPushButton:pressed {
-                background-color: #1a3a1a;
-            }
-        """)
-        env_actions_layout.addWidget(self.long_rest_btn)
-        
-        env_layout.addWidget(self.env_actions_frame)
         
         # --- CHARACTER CREATION TAB ---
         self.character_creation_tab = QWidget()
         self.content_tabs.addTab(self.character_creation_tab, "Create Character")
-        self.content_tabs.setTabVisible(3, False)  # Hidden initially
+        self.content_tabs.setTabVisible(2, False)  # Hidden initially
         
         creation_layout = QVBoxLayout(self.character_creation_tab)
         creation_layout.setContentsMargins(1, 1, 1, 1)
@@ -640,14 +615,14 @@ class EncounterPanel(QWidget):
             background-color: #1e1e1e;
             border: 1px solid #444444;
             border-radius: 4px;
-            padding: 5px;
+            padding: 1px;
         }
-        
+
         QLabel#sectionLabel {
             color: #ffffff;
             font-size: 14px;
             font-weight: bold;
-            padding: 5px;
+            padding: 1px;
         }
         
         QTabWidget#contentTabs {
@@ -670,8 +645,8 @@ class EncounterPanel(QWidget):
             border: 1px solid #444444;
             border-bottom: none;
             border-radius: 4px 4px 0px 0px;
-            padding: 6px 12px;
-            margin: 2px;
+            padding: 2px;
+            margin: 1px;
         }
         
         QTabBar::tab:selected {
@@ -684,12 +659,12 @@ class EncounterPanel(QWidget):
             background-color: #3a3a3a;
         }
         
-        QTextEdit#sceneText, QTextEdit#environmentText {
+        QTextEdit#sceneText {
             background-color: #151515;
             color: #ffffff;
             border: 1px solid #555555;
             border-radius: 4px;
-            padding: 8px;
+            padding: 2px;
             font-size: 13px;
             line-height: 1.4;
         }
@@ -701,9 +676,9 @@ class EncounterPanel(QWidget):
             border-radius: 4px;
             alternate-background-color: #1a1a1a;
         }
-        
+
         QListWidget#encountersList::item {
-            padding: 8px;
+            padding: 2px;
             border-bottom: 1px solid #333333;
         }
         
@@ -721,7 +696,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #666666;
             border-radius: 4px;
-            padding: 8px 12px;
+            padding: 2px;
             font-weight: bold;
         }
         
@@ -743,7 +718,7 @@ class EncounterPanel(QWidget):
             color: #50c878;
             font-size: 18px;
             font-weight: bold;
-            padding: 10px 0px;
+            padding: 2px;
         }
         
         QListWidget#classSelectionList, QListWidget#backgroundList, QListWidget#speciesList, QListWidget#equipmentList {
@@ -753,9 +728,9 @@ class EncounterPanel(QWidget):
             border-radius: 4px;
             alternate-background-color: #1a1a1a;
         }
-        
+
         QListWidget#classSelectionList::item, QListWidget#backgroundList::item, QListWidget#speciesList::item {
-            padding: 8px;
+            padding: 2px;
             border-bottom: 1px solid #333333;
         }
         
@@ -769,7 +744,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #555555;
             border-radius: 4px;
-            padding: 8px;
+            padding: 2px;
             font-size: 12px;
         }
         
@@ -787,17 +762,16 @@ class EncounterPanel(QWidget):
         QLabel#pointsRemaining {
             color: #ff9500;
             font-weight: bold;
-            padding: 10px 0px;
+            padding: 2px;
         }
         
         QLabel#classStatsInfo {
             color: #4a90e2;
             font-weight: bold;
-            padding: 5px 0px;
+            padding: 2px;
             background-color: #1e1e1e;
             border: 1px solid #4a90e2;
             border-radius: 4px;
-            padding: 8px;
         }
         
         QLabel#rolledScore {
@@ -810,7 +784,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             font-weight: bold;
             font-size: 14px;
-            padding: 4px;
+            padding: 2px;
         }
         
         QPushButton#createCharacterBtn {
@@ -818,7 +792,7 @@ class EncounterPanel(QWidget):
             color: #ffffff;
             border: 1px solid #50c878;
             border-radius: 6px;
-            padding: 12px 20px;
+            padding: 2px;
             font-size: 14px;
             font-weight: bold;
         }
@@ -844,7 +818,7 @@ class EncounterPanel(QWidget):
         
         QFrame#monsterCard[selected="true"] {
             border-color: #4a90e2;
-            border-width: 3px;
+            border-width: 2px;
             background-color: #3d3d4d;
         }
         
@@ -906,8 +880,8 @@ class EncounterPanel(QWidget):
         QTabBar::tab {{
             background-color: {palette['surface']};
             color: {palette['text']};
-            padding: 6px 12px;
-            margin-right: 2px;
+            padding: 2px;
+            margin-right: 1px;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
             border: 1px solid {palette['border']};
@@ -939,7 +913,7 @@ class EncounterPanel(QWidget):
         }}
         
         QListWidget::item {{
-            padding: 4px;
+            padding: 2px;
             border-bottom: 1px solid {palette['border']};
         }}
         
@@ -948,7 +922,7 @@ class EncounterPanel(QWidget):
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 6px 12px;
+            padding: 2px;
             font-size: 11px;
             font-weight: bold;
         }}
@@ -966,7 +940,7 @@ class EncounterPanel(QWidget):
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 2px;
             font-size: 12px;
             font-weight: bold;
         }}
@@ -979,12 +953,12 @@ class EncounterPanel(QWidget):
             background-color: {palette['accent_primary']};
         }}
         
-        QTextEdit#sceneText, QTextEdit#environmentText {{
+        QTextEdit#sceneText {{
             background-color: {palette['surface']};
             color: {palette['text']};
             border: 1px solid {palette['border']};
             border-radius: 4px;
-            padding: 8px;
+            padding: 2px;
             font-size: 13px;
             line-height: 1.4;
         }}
@@ -1071,17 +1045,16 @@ class EncounterPanel(QWidget):
         exploration_mode = self.encounter_mode == "exploration"
         encounter_mode = self.encounter_mode == "encounter"
         combat_mode = self.encounter_mode == "combat"
-        
-        # Main content buttons
-        self.investigate_btn.setEnabled(exploration_mode)
-        self.rest_btn.setEnabled(not combat_mode)
-        self.search_btn.setEnabled(exploration_mode)
-        
-        # Combat buttons (removed - combat now starts automatically)
-        
-        # Environment buttons
-        self.climb_btn.setEnabled(not combat_mode)
-        self.swim_btn.setEnabled(not combat_mode)
+
+        # Description buttons
+        self.travel_btn.setEnabled(exploration_mode)
+        self.downtime_btn.setEnabled(not combat_mode)
+        self.long_rest_btn.setEnabled(not combat_mode)
+
+        # Encounter buttons
+        self.influence_btn.setEnabled(not combat_mode)
+        self.search_btn.setEnabled(not combat_mode)
+        self.study_btn.setEnabled(not combat_mode)
         self.hide_btn.setEnabled(not combat_mode)
     
     def update_scene_description(self, description: str):
@@ -1094,9 +1067,9 @@ class EncounterPanel(QWidget):
             QTextEdit {
                 background-color: #1a1a1a;
                 color: #ffffff;
-                border: 2px solid #4CAF50;
+                border: 1px solid #4CAF50;
                 border-radius: 6px;
-                padding: 10px;
+                padding: 2px;
                 font-size: 14px;
                 font-family: 'Consolas', 'Courier New', monospace;
                 line-height: 1.5;
@@ -1108,8 +1081,8 @@ class EncounterPanel(QWidget):
         self.scene_text.show()
     
     def update_environment_details(self, details: str):
-        """Update environmental information."""
-        self.environment_text.setPlainText(details)
+        """Update environmental information (environment tab removed)."""
+        pass
     
     def add_encounter(self, encounter_data: Dict[str, Any]):
         """Add an encounter to the list."""
@@ -1119,6 +1092,7 @@ class EncounterPanel(QWidget):
         item = QListWidgetItem(f"{encounter_name} ({difficulty})")
         item.setData(Qt.ItemDataRole.UserRole, encounter_data)
         self.encounters_list.addItem(item)
+        self.encounters_list.setVisible(True)
         
         # Switch to encounter mode if not in combat
         if self.encounter_mode != "combat":
@@ -1135,6 +1109,10 @@ class EncounterPanel(QWidget):
         # Clear encounters list
         if hasattr(self, 'encounters_list'):
             self.encounters_list.clear()
+            self.encounters_list.setVisible(False)
+
+        if hasattr(self, 'monsters_frame'):
+            self.monsters_frame.setVisible(False)
         
         if self.encounter_mode in ["encounter", "combat"]:
             self.set_exploration_mode()
@@ -2924,8 +2902,9 @@ class EncounterPanel(QWidget):
             
             # Save encounter to database
             self._save_encounter_to_db()
-            
+
             # Create encounter instances with rolled HP and add monster cards
+            self.monsters_frame.setVisible(True)
             for i, monster in enumerate(encounter_data['monsters']):
                 try:
                     # Roll HP for this instance
@@ -3248,6 +3227,8 @@ Character Level: {character_level}"""
             # Delete widgets after removing from layout
             for widget in widgets_to_delete:
                 widget.deleteLater()
+
+            self.monsters_frame.setVisible(False)
                 
         except Exception as e:
             print(f"Error clearing monster cards: {e}")
