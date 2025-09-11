@@ -1,1 +1,0 @@
-# Services package for TaleKeeper Desktop

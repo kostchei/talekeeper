@@ -1,1 +1,0 @@
-# Character sheet widget package
