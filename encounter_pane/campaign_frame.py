@@ -1,9 +1,9 @@
 # === File: campaign_frame.py ===
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 class CampaignFrame:
-    def __init__(self, name: str, monster_type_weights: Dict[str, float], difficulty_distribution: Dict[str, float], rest_rules: Dict[str, float], style: str, available_classes: List[str] | None = None):
+    def __init__(self, name: str, monster_type_weights: Dict[str, float], difficulty_distribution: Dict[str, float], rest_rules: Dict[str, float], style: str, available_classes: Optional[List[str]] = None):
         self.name = name
         self.monster_type_weights = monster_type_weights
         self.difficulty_distribution = difficulty_distribution

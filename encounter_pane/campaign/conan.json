@@ -1,4 +1,5 @@
 {
+  "name": "Conan",
   "monster_type_weights": {
     "humanoid": 0.4,
     "beast": 0.3,

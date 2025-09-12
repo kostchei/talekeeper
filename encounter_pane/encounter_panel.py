@@ -590,8 +590,16 @@ class EncounterPanel(QWidget):
         
         # --- CHARACTER CREATION TAB ---
         self.character_creation_tab = QWidget()
-        self.content_tabs.addTab(self.character_creation_tab, "Create Character")
-        self.content_tabs.setTabVisible(2, False)  # Hidden initially
+        # Store the index so we can reliably show/hide this tab later even if
+        # additional tabs are added or removed. Previously the code assumed the
+        # character creation tab would always be at index 3, but the encounter
+        # panel update reduced the number of tabs which broke the 'Create
+        # Character' button. By capturing the index returned from addTab we
+        # can reference it dynamically.
+        self.character_creation_tab_index = self.content_tabs.addTab(
+            self.character_creation_tab, "Create Character"
+        )
+        self.content_tabs.setTabVisible(self.character_creation_tab_index, False)
         
         creation_layout = QVBoxLayout(self.character_creation_tab)
         creation_layout.setContentsMargins(1, 1, 1, 1)
@@ -1198,8 +1206,10 @@ class EncounterPanel(QWidget):
         # self.title_label.setText("Create Character")
         # self.mode_label.setText("Character Creation")
         # self.mode_label.setStyleSheet("color: #50c878; border-color: #50c878;")
-        self.content_tabs.setTabVisible(3, True)  # Show character creation tab
-        self.content_tabs.setCurrentIndex(3)  # Switch to character creation tab
+        # Use the stored tab index instead of a hardcoded value. This prevents
+        # index errors when the number of tabs changes.
+        self.content_tabs.setTabVisible(self.character_creation_tab_index, True)
+        self.content_tabs.setCurrentIndex(self.character_creation_tab_index)
         self.creation_step = 0
         self.character_creation_data = {}
         # Reset 4d6 rolling for new character
@@ -1212,7 +1222,8 @@ class EncounterPanel(QWidget):
     
     def exit_character_creation(self):
         """Exit character creation and return to exploration."""
-        self.content_tabs.setTabVisible(3, False)  # Hide character creation tab
+        # Hide the character creation tab using the stored index
+        self.content_tabs.setTabVisible(self.character_creation_tab_index, False)
         self.set_exploration_mode()
         self.creation_step = 0
         self.character_creation_data = {}
@@ -2893,7 +2904,8 @@ class EncounterPanel(QWidget):
                 'monster_type_weights': {'humanoid': 0.7, 'fiend': 0.2, 'aberration': 0.1},
                 'difficulty_distribution': {'low': 0.5, 'moderate': 0.4, 'high': 0.1},
                 'rest_rules': {'short_rest_duration': 1, 'long_rest_duration': 8},
-                'style': 'standard'
+                'style': 'standard',
+                'available_classes': ["barbarian", "fighter", "rogue", "paladin", "cleric", "warlock", "wizard"]
             }
             campaign_frame = CampaignFrame(default_frame_data)
             self.campaign_frame = campaign_frame
