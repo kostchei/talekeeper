@@ -3,7 +3,7 @@ Equipment Service - Database-backed equipment data and properties.
 Queries the equipment table for all item data and AC calculations.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import sqlite3
 import json
 
@@ -130,6 +130,33 @@ class EquipmentService:
             
         except Exception as e:
             print(f"Error getting items of type '{item_type}': {e}")
+            return []
+
+    def get_equipped_weapons(self, character_id: str) -> List[Dict[str, Any]]:
+        """Get equipped weapons for a character."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT item_name, slot FROM character_inventory
+                WHERE character_id = ? AND slot IN ('main_hand', 'off_hand')
+            """, (character_id,))
+            rows = cursor.fetchall()
+            conn.close()
+
+            weapons = []
+            for row in rows:
+                weapon_data = self.get_item(row['item_name'])
+                if weapon_data and weapon_data['item_type'] == 'weapon':
+                    weapon_data['slot'] = row['slot']
+                    weapons.append(weapon_data)
+
+            return weapons
+
+        except Exception as e:
+            print(f"Error getting equipped weapons for character '{character_id}': {e}")
             return []
 
 # Global equipment service instance

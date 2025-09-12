@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         self.equipment_panel.show()
         
         # Action cards (bottom left)
-        self.action_panel = ActionPanel(self)
+        self.action_panel = ActionPanel(self.game_engine, self)
         self.action_panel.move(96, 1080 - 54 - 300)  # Bottom left
         self.action_panel.show()
         self.action_panel.raise_()
