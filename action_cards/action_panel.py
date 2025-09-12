@@ -59,6 +59,10 @@ class ActionType(Enum):
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
     
+    # Subclass Features
+    SIGNATURE_MOVE = "signature_move"  # Gladiator level 10
+    FAST_HANDS = "fast_hands"  # Thief level 3 (modifies bonus actions)
+    
     # Feat Actions
     BATTLE_MEDIC = "battle_medic"  # Healer feat - Utilize action
     LUCK_POINT_ADVANTAGE = "luck_point_advantage"  # Lucky feat - Free action for advantage
@@ -275,7 +279,8 @@ class ActionPanel(QWidget):
             return
         
         # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, ActionType.RECKLESS_ATTACK, ActionType.LAY_ON_HANDS]
+        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, 
+                               ActionType.RECKLESS_ATTACK, ActionType.LAY_ON_HANDS, ActionType.SIGNATURE_MOVE]
         for action_id in feature_action_types:
             if action_id in self.action_cards:
                 self.action_cards[action_id].deleteLater()
@@ -334,6 +339,20 @@ class ActionPanel(QWidget):
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
         
+        # Create subclass feature cards
+        if self.character_context:
+            character_id = self.character_context.get('character_id')
+            if character_id:
+                from services.subclass_manager import SubclassManager
+                subclass_manager = SubclassManager()
+                
+                # Gladiator Signature Move (level 10)
+                if subclass_manager.has_feature(character_id, 'Signature Move'):
+                    description = "Special attack: +2d6 damage, can frighten (DC 8+prof+STR)"
+                    card = ActionCard(ActionType.SIGNATURE_MOVE, "⚔️", "Signature Move", description)
+                    card.action_triggered.connect(self._trigger_subclass_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.SIGNATURE_MOVE] = card
         
         # Create Weapon Mastery cards based on character's selected masteries
         selected_masteries = self.character_context.get('weapon_masteries', [])
@@ -387,6 +406,42 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LUCK_POINT_DISADVANTAGE] = card
+    
+    def _trigger_subclass_action(self, action_type):
+        """Handle subclass feature actions."""
+        if action_type == ActionType.SIGNATURE_MOVE:
+            # Get character ID
+            character_id = self.character_context.get('character_id', '')
+            if not character_id:
+                return
+            
+            # Check if can use feature
+            from services.subclass_manager import SubclassManager
+            subclass_manager = SubclassManager()
+            
+            current_uses, max_uses = subclass_manager.get_feature_uses(character_id, 'Signature Move')
+            if current_uses <= 0:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.add_message("No Signature Move uses remaining (short rest to recharge)")
+                        break
+                    parent = parent.parent()
+                return
+            
+            # Use the feature
+            if subclass_manager.use_feature(character_id, 'Signature Move'):
+                # Apply special attack effects in context
+                self.character_context['signature_move_active'] = True
+                
+                # Log usage
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        remaining = current_uses - 1
+                        parent.log_panel.add_message(f"Signature Move activated! (+2d6 damage, frightening attack) [{remaining} uses remaining]")
+                        break
+                    parent = parent.parent()
     
     def _trigger_feature_action(self, action_type):
         """Handle feature-based action triggers."""
@@ -3878,7 +3933,8 @@ class ActionPanel(QWidget):
         main_actions = {
             ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_UNARMED,
             ActionType.CAST_SPELL, ActionType.DASH, ActionType.DISENGAGE, ActionType.DODGE,
-            ActionType.HELP, ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM
+            ActionType.HELP, ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM,
+            ActionType.SIGNATURE_MOVE
         }
         
         # Bonus Actions

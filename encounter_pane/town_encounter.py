@@ -20,6 +20,7 @@ import sqlite3
 import json
 from services.level_up import LevelUpService
 from services.equipment_database import EquipmentDatabase
+from services.subclass_manager import SubclassManager
 
 
 class TownEncounterCard(QFrame):
@@ -129,6 +130,8 @@ class TrainingHallInterface(QWidget):
         self.selected_feat = None
         self.asi_allocation = {'str': 0, 'dex': 0, 'con': 0, 'int': 0, 'wis': 0, 'cha': 0}
         self.available_asi_points = 0
+        self.is_subclass_level = False
+        self.selected_subclass = None
         
         self._setup_ui()
         self._update_training_info()
@@ -216,6 +219,13 @@ class TrainingHallInterface(QWidget):
         self.features_list.setStyleSheet("border: 1px solid #666; padding: 8px; background: #f9f9f9;")
         layout.addWidget(self.features_list)
         
+        # Subclass selection frame (initially hidden)
+        self.subclass_frame = QFrame()
+        self.subclass_frame.setObjectName("subclassFrame")
+        self.subclass_frame.hide()  # Hidden by default
+        self._setup_subclass_selection()
+        layout.addWidget(self.subclass_frame)
+        
         # ASI/Feat selection frame (initially hidden)
         self.asi_feat_frame = QFrame()
         self.asi_feat_frame.setObjectName("asiFeatFrame")
@@ -242,6 +252,7 @@ class TrainingHallInterface(QWidget):
             try:
                 self._update_features_preview()
                 self._check_asi_level()
+                self._check_subclass_level()
             except Exception as e:
                 print(f"Error updating features preview: {e}")
                 # Show fallback message
@@ -265,8 +276,102 @@ class TrainingHallInterface(QWidget):
             print(f"[Training] Showing feat selection UI")
         else:
             self.asi_feat_frame.hide()
-            self.train_button.setEnabled(True)  # Normal training available
+            # Only enable training if no subclass selection is needed
+            if not self.is_subclass_level:
+                self.train_button.setEnabled(True)  # Normal training available
             print(f"[Training] No feat at this level")
+    
+    def _check_subclass_level(self):
+        """Check if this is the level for subclass selection."""
+        if not self.selected_class:
+            return
+        
+        character_id = self.character_data.get('id', '')
+        current_classes = self.level_up_service.get_character_class_levels(character_id)
+        current_class_level = current_classes.get(self.selected_class, 0)
+        next_level = current_class_level + 1
+        
+        # Check if this is level 3 and character doesn't have a subclass
+        if next_level == 3:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (character_id,))
+            row = cursor.fetchone()
+            conn.close()
+            
+            if not row or not row[0]:
+                self.is_subclass_level = True
+                self.subclass_frame.show()
+                self._populate_subclass_options()
+                print(f"[Training] Level 3 - Showing subclass selection")
+                return
+        
+        self.is_subclass_level = False
+        self.subclass_frame.hide()
+    
+    def _setup_subclass_selection(self):
+        """Setup the subclass selection UI."""
+        layout = QVBoxLayout(self.subclass_frame)
+        layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Title
+        title = QLabel("Choose Your Subclass")
+        title.setObjectName("subclassTitle")
+        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #d4af37;")
+        layout.addWidget(title)
+        
+        # Subclass radio buttons container
+        self.subclass_button_group = QButtonGroup()
+        self.subclass_options_widget = QWidget()
+        self.subclass_options_layout = QVBoxLayout(self.subclass_options_widget)
+        layout.addWidget(self.subclass_options_widget)
+        
+        # Description area
+        self.subclass_description = QLabel()
+        self.subclass_description.setWordWrap(True)
+        self.subclass_description.setStyleSheet("border: 1px solid #666; padding: 8px; background: #f0f0f0; min-height: 60px;")
+        layout.addWidget(self.subclass_description)
+    
+    def _populate_subclass_options(self):
+        """Populate subclass options based on selected class."""
+        # Clear existing options
+        for button in self.subclass_button_group.buttons():
+            self.subclass_button_group.removeButton(button)
+            button.deleteLater()
+        
+        # Clear layout
+        while self.subclass_options_layout.count():
+            item = self.subclass_options_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        if not self.selected_class:
+            return
+        
+        # Get available subclasses
+        subclass_manager = SubclassManager()
+        subclasses = subclass_manager.get_available_subclasses(self.selected_class)
+        
+        for i, subclass in enumerate(subclasses):
+            radio = QRadioButton(subclass['name'])
+            radio.toggled.connect(lambda checked, sc=subclass: self._subclass_selected(sc, checked))
+            self.subclass_button_group.addButton(radio, i)
+            self.subclass_options_layout.addWidget(radio)
+        
+        if subclasses:
+            # Select first option by default
+            self.subclass_button_group.buttons()[0].setChecked(True)
+    
+    def _subclass_selected(self, subclass_data: Dict, checked: bool):
+        """Handle subclass selection."""
+        if checked:
+            self.selected_subclass = subclass_data
+            # Show description
+            desc_text = f"{subclass_data['description']}\n\n{subclass_data.get('flavor_text', '')}"
+            self.subclass_description.setText(desc_text)
+            
+            # Enable training button
+            self.train_button.setEnabled(True)
     
     def _update_training_info(self):
         """Update training information display"""
@@ -375,6 +480,11 @@ Training includes food and lodging (counts as a long rest)."""
         advancement_summary += f"Time: {days} days\n"
         advancement_summary += f"You will advance to level {current_level + 1}.\n\n"
         
+        # Add subclass information if applicable
+        if self.is_subclass_level and self.selected_subclass:
+            advancement_summary += f"Subclass: {self.selected_subclass['name']}\n"
+            advancement_summary += f"{self.selected_subclass['description']}\n\n"
+        
         # Add ASI/Feat information if applicable
         if self.is_asi_level:
             feat_data = self.feat_combo.currentData()
@@ -393,6 +503,13 @@ Training includes food and lodging (counts as a long rest)."""
             # Perform the level up
             character_id = self.character_data.get('id', '')
             success = self.level_up_service.level_up_character(character_id, self.selected_class)
+            
+            # Apply subclass choice if this is a subclass level
+            if success and self.is_subclass_level and self.selected_subclass:
+                subclass_manager = SubclassManager()
+                subclass_applied = subclass_manager.select_subclass(character_id, self.selected_subclass['id'])
+                if subclass_applied:
+                    print(f"[Training] Applied subclass: {self.selected_subclass['name']}")
             
             # Apply ASI/Feat choices if this is an ASI level
             if success and self.is_asi_level:

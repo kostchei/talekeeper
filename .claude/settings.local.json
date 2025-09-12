@@ -62,7 +62,9 @@
       "Bash(for:*)",
       "Bash(do cp -r $dir test/)",
       "Bash(done)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }
