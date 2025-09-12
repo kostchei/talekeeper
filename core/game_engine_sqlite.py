@@ -1477,28 +1477,40 @@ class GameEngineSQLite:
                 
                 # Get equipment directly from characters table
                 cursor.execute("""
-                    SELECT equipment_armor, equipment_shield, equipment_off_hand
-                    FROM characters 
+                    SELECT equipment_main_hand, equipment_off_hand, equipment_armor, equipment_shield
+                    FROM characters
                     WHERE id = ?
                 """, (character_id,))
                 
                 equipment_row = cursor.fetchone()
                 
                 # Extract equipped items (using dict-like access since _get_connection sets row_factory)
+                equipped_main = equipment_row['equipment_main_hand'] if equipment_row else None
+                equipped_off = equipment_row['equipment_off_hand'] if equipment_row else None
                 equipped_armor = equipment_row['equipment_armor'] if equipment_row else None
                 equipped_shield = equipment_row['equipment_shield'] if equipment_row else None
-                equipped_off_hand = equipment_row['equipment_off_hand'] if equipment_row else None
                 
                 # Check if off-hand item is a shield
-                if equipped_off_hand and not equipped_shield:
-                    # Check if the off-hand item is a shield by looking it up in equipment table
-                    cursor.execute("""
-                        SELECT item_type FROM equipment WHERE name = ?
-                    """, (equipped_off_hand,))
-                    item_type_row = cursor.fetchone()
-                    if item_type_row and item_type_row['item_type'] == 'shield':
-                        equipped_shield = equipped_off_hand
-                        print(f"[SQLite] Found shield in off-hand slot: {equipped_shield}")
+                main_type = None
+                main_cat = None
+                if equipped_main:
+                    cursor.execute("""SELECT item_type, weapon_category FROM equipment WHERE name = ?""", (equipped_main,))
+                    row = cursor.fetchone()
+                    if row:
+                        main_type = row['item_type']
+                        main_cat = row['weapon_category']
+                        if main_type == 'shield' and not equipped_shield:
+                            equipped_shield = equipped_main
+                off_type = None
+                off_cat = None
+                if equipped_off:
+                    cursor.execute("""SELECT item_type, weapon_category FROM equipment WHERE name = ?""", (equipped_off,))
+                    row = cursor.fetchone()
+                    if row:
+                        off_type = row['item_type']
+                        off_cat = row['weapon_category']
+                        if off_type == 'shield' and not equipped_shield:
+                            equipped_shield = equipped_off
             
             # Calculate modifiers
             dex_mod = (dexterity - 10) // 2
@@ -1530,23 +1542,28 @@ class GameEngineSQLite:
                 ac += shield_bonus
                 print(f"[SQLite] Added shield {equipped_shield}: +{shield_bonus} AC")
             
-            # Apply Defense fighting style bonus (+1 AC when wearing armor)
-            if equipped_armor:  # Only applies when wearing armor
+            if equipped_armor:
                 print(f"[SQLite] Checking for Defense fighting style for character {character_id}")
                 with self._get_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT feat_name FROM character_feats 
-                        WHERE character_id = ? AND feat_name = 'Defense'
-                    """, (character_id,))
+                    cursor.execute("""SELECT feat_name FROM character_feats WHERE character_id = ? AND feat_name = 'Defense'""", (character_id,))
                     has_defense = cursor.fetchone()
-                
                 print(f"[SQLite] Defense check result: {has_defense}")
                 if has_defense:
                     ac += 1
                     print(f"[SQLite] Defense fighting style: +1 AC (total now {ac})")
                 else:
                     print(f"[SQLite] No Defense fighting style found")
+
+            print(f"[SQLite] Checking for Dual Wielder feat for character {character_id}")
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""SELECT feat_name FROM character_feats WHERE character_id = ? AND feat_name = 'dual_wielder'""", (character_id,))
+                has_dual = cursor.fetchone()
+            if has_dual and main_type == 'weapon' and off_type == 'weapon':
+                if (main_cat and main_cat.endswith('_melee')) and (off_cat and off_cat.endswith('_melee')):
+                    ac += 1
+                    print(f"[SQLite] Dual Wielder feat: +1 AC (total now {ac})")
             
             return ac
             

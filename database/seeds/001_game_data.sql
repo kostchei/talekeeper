@@ -95,7 +95,7 @@ INSERT INTO feats VALUES('crusher','Crusher','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('defense','Defense','While you are wearing armor, you gain a +1 bonus to AC.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
 INSERT INTO feats VALUES('defensive_duelist','Defensive Duelist','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('druidic_warrior','Druidic Warrior','','[]','{}','{}','SRD','general');
-INSERT INTO feats VALUES('dual_wielder','Dual Wielder','','[]','{}','{}','SRD','general');
+INSERT INTO feats VALUES('dual_wielder','Dual Wielder','You gain a +1 bonus to AC while wielding a separate melee weapon in each hand. You can use Two-Weapon Fighting with weapons that lack the Light property. You can draw or stow two one-handed weapons when you would normally draw or stow only one.','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('dueling','Dueling','When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
 INSERT INTO feats VALUES('dungeon_delver','Dungeon Delver','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('durable','Durable','','[]','{}','{}','SRD','general');
@@ -136,7 +136,7 @@ INSERT INTO feats VALUES('spell_sniper','Spell Sniper','','[]','{}','{}','SRD','
 INSERT INTO feats VALUES('tavern_brawler','Tavern Brawler','You gain the following benefits: Enhanced Unarmed Strike - When you hit with your Unarmed Strike and deal damage, you can deal Bludgeoning damage equal to 1d4 plus your Strength modifier instead of the normal damage of an Unarmed Strike. Damage Rerolls - Whenever you roll a damage die for your Unarmed Strike, you can reroll the die if it rolls a 1, and you must use the new roll.','[]','{}','{}','SRD','O');
 INSERT INTO feats VALUES('thrown_weapon_fighting','Thrown Weapon Fighting','You can draw a weapon that has the thrown property as part of the attack you make with the weapon. In addition, when you hit with a ranged attack using a thrown weapon, you gain a +2 bonus to the damage roll.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
 INSERT INTO feats VALUES('tough','Tough','Your Hit Point maximum increases by an amount equal to twice your character level when you gain this feat. Whenever you gain a character level thereafter, your Hit Point maximum increases by an additional 2 Hit Points.','[]','{}','{}','SRD','O');
-INSERT INTO feats VALUES('two-weapon_fighting','Two-Weapon Fighting','When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
+INSERT INTO feats VALUES('two-weapon_fighting','Two-Weapon Fighting','You add your ability modifier to the damage of the extra attack you make with Two-Weapon Fighting.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
 INSERT INTO feats VALUES('unarmed_fighting','Unarmed Fighting','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('weapon_master','Weapon Master','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('magic_initiate_cleric','Magic Initiate (Cleric)','You have learned magical theory or been exposed to elemental forces. You learn spells from the Cleric class.','[]','{}','{}','SRD','O');

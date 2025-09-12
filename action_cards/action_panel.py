@@ -238,7 +238,7 @@ class ActionPanel(QWidget):
     def _create_weapon_cards(self):
         """Create weapon attack cards based on equipped weapons."""
         # Remove existing weapon cards
-        for action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+        for action_type in [ActionType.ATTACK_MAIN_HAND]:
             if action_type in self.action_cards:
                 self.action_cards[action_type].deleteLater()
                 del self.action_cards[action_type]
@@ -259,19 +259,6 @@ class ActionPanel(QWidget):
             self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
         
         # Create off-hand weapon card
-        off_hand = self.equipped_weapons.get('off_hand')
-        if off_hand and off_hand.get('item_type') == 'weapon':
-            weapon_name = off_hand.get('name', 'Off-hand')
-            hit_bonus = self._calculate_hit_bonus(off_hand, 'off_hand')
-            damage = self._format_damage(off_hand, is_off_hand=True)
-            description = f"+{hit_bonus} to hit, {damage} damage"
-            
-            card = ActionCard(ActionType.ATTACK_OFF_HAND, weapon_name, f"{weapon_name} (Off)", description)
-            # Store weapon data in the card for damage calculations
-            card.weapon_data = off_hand
-            card.action_triggered.connect(self._trigger_action)
-            card.action_hovered.connect(self._action_hovered)
-            self.action_cards[ActionType.ATTACK_OFF_HAND] = card
     
     def _create_feature_cards(self):
         """Create action cards for character features like Second Wind."""
@@ -848,9 +835,6 @@ class ActionPanel(QWidget):
             if ActionType.SECOND_WIND in self.action_cards:
                 bonus_actions.append(ActionType.SECOND_WIND)
             
-            # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
-            if ActionType.ATTACK_OFF_HAND in self.action_cards:
-                bonus_actions.append(ActionType.ATTACK_OFF_HAND)
             for action_type in bonus_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -914,28 +898,24 @@ class ActionPanel(QWidget):
             full_context = {**context, **self.character_context}
             
             # For attack actions, add target monster and weapon data if available
-            if action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
-                # Add weapon data to context
-                full_context['weapon'] = True  # Mark as weapon attack for Savage Attacker
+            if action_type == ActionType.ATTACK_MAIN_HAND:
+                full_context['weapon'] = True
                 if action_type in self.action_cards:
                     weapon_data = getattr(self.action_cards[action_type], 'weapon_data', None)
                     if weapon_data:
                         full_context.update(weapon_data)
-                
+
                 if self.target_monster_id:
                     full_context['target_monster_id'] = self.target_monster_id
-                    
-                    # D&D 2024 COMPLIANCE: Check if it's the player's turn
+
                     if not self._is_player_turn_d20():
                         self._log_to_combat_panel("⚔ It's not your turn!")
                         return
-                    
+
                     print(f"ROUTING: About to call _new_execute_attack with action_type={action_type}")
-                    # NEW ATTACK SYSTEM - Build from scratch
                     self._new_execute_attack(action_type, full_context)
-                    return  # IMPORTANT: Don't fall through to old system
+                    return
                 else:
-                    # No target selected, just emit the signal as before
                     self.action_triggered.emit(action_type, full_context)
                     return
             else:
@@ -1076,23 +1056,22 @@ class ActionPanel(QWidget):
             # Log weapon mastery effects
             self._log_weapon_mastery_effects(mastery_effects)
         
-        # Use ability if it's a limited-use ability
         if action_type in [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]:
             ability_name = "Second Wind" if action_type == ActionType.SECOND_WIND else "Action Surge"
             self._use_ability(ability_name)
-        
+
+        if skip_economy:
+            return
+
         self._update_action_economy(action_type)
-        
-        # Check if all monsters are defeated after this attack
+
         living_monsters_after_attack = encounter_panel.get_living_monsters()
         print(f"DEBUG: After attack, {len(living_monsters_after_attack)} monsters remaining")
-        
+
         if not living_monsters_after_attack:
-            # All monsters defeated - end combat immediately
             print(f"DEBUG: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            # Monsters still alive, trigger counter-attacks
             print(f"DEBUG: About to trigger counter-attacks after player attack")
             self._trigger_monster_counter_attacks(encounter_panel)
     
@@ -1125,11 +1104,39 @@ class ActionPanel(QWidget):
         num_attacks = self._get_attack_count(context)
         
         if num_attacks == 1:
-            # Single attack - use existing logic
-            self._execute_attack_without_initiative(action_type, context, encounter_panel)
+            self._execute_two_weapon_attack(context, encounter_panel)
         else:
-            # Multiple attacks - new logic with target switching
             self._execute_multiple_attacks(action_type, context, encounter_panel, num_attacks)
+
+    def _execute_two_weapon_attack(self, context: Dict[str, Any], encounter_panel):
+        self._execute_attack_without_initiative(ActionType.ATTACK_MAIN_HAND, context, encounter_panel, True)
+        off_context = self._build_off_hand_context(context)
+        if off_context:
+            self._execute_attack_without_initiative(ActionType.ATTACK_OFF_HAND, off_context, encounter_panel, True)
+        self._update_action_economy(ActionType.ATTACK_MAIN_HAND)
+        living = encounter_panel.get_living_monsters()
+        if not living:
+            self._end_combat(encounter_panel)
+        else:
+            self._trigger_monster_counter_attacks(encounter_panel)
+
+    def _build_off_hand_context(self, base_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        feats = getattr(self, 'character_feats', [])
+        main = self.equipped_weapons.get('main_hand')
+        off = self.equipped_weapons.get('off_hand')
+        if not main or not off:
+            return None
+        if main.get('item_type') != 'weapon' or off.get('item_type') != 'weapon':
+            return None
+        main_props = [p.lower() for p in (main.get('weapon_properties') or [])]
+        off_props = [p.lower() for p in (off.get('weapon_properties') or [])]
+        if "Dual Wielder" not in feats:
+            if 'light' not in main_props or 'light' not in off_props:
+                return None
+        ctx = {**base_context, **off}
+        ctx['action_type'] = ActionType.ATTACK_OFF_HAND
+        ctx['weapon'] = True
+        return ctx
     
     def _get_attack_count(self, context: Dict[str, Any]) -> int:
         """Get number of attacks based on class features and levels."""
@@ -1226,13 +1233,17 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
             
             # Execute this attack
-            self._execute_attack_without_initiative(action_type, attack_context, encounter_panel)
+            self._execute_attack_without_initiative(action_type, attack_context, encounter_panel, True)
             
             # Small delay between attacks for readability
             from PyQt6.QtTest import QTest
             QTest.qWait(500)
-        
-        # After all attacks, check for monster counter-attacks
+
+        context = {**context, 'target_monster_id': current_target_id}
+        off_context = self._build_off_hand_context(context)
+        if off_context:
+            self._execute_attack_without_initiative(ActionType.ATTACK_OFF_HAND, off_context, encounter_panel, True)
+
         self._update_action_economy(action_type)
         living_monsters_after = encounter_panel.get_living_monsters()
         
@@ -1249,7 +1260,7 @@ class ActionPanel(QWidget):
             # Trigger monster counter-attacks after full attack sequence
             self._trigger_monster_counter_attacks(encounter_panel)
     
-    def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
+    def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel, skip_economy: bool = False):
         """Execute the attack without rolling initiative (used for immediate attacks and pending attacks)."""
         import random
         
@@ -1796,9 +1807,7 @@ class ActionPanel(QWidget):
         
         # Execute the attack based on the action type without rolling initiative again
         if action_type == ActionType.ATTACK_MAIN_HAND:
-            self._execute_attack_without_initiative(ActionType.ATTACK_MAIN_HAND, context, encounter_panel)
-        elif action_type == ActionType.ATTACK_OFF_HAND:
-            self._execute_attack_without_initiative(ActionType.ATTACK_OFF_HAND, context, encounter_panel)
+            self._execute_two_weapon_attack(context, encounter_panel)
     
     def _log_player_turn_start(self):
         """Log that it's the player's turn again."""
@@ -2834,7 +2843,6 @@ class ActionPanel(QWidget):
         # Check action economy (simplified)
         action_costs = {
             ActionType.ATTACK_MAIN_HAND: "action",
-            ActionType.ATTACK_OFF_HAND: "bonus_action",
             ActionType.CAST_SPELL: "action", 
             ActionType.USE_ITEM: "action",
             ActionType.MOVE: "movement",
@@ -3078,7 +3086,7 @@ class ActionPanel(QWidget):
         # Update current theme for new cards
         if hasattr(self.parent(), 'current_theme'):
             theme = getattr(self.parent(), 'current_theme', 'dark')
-            for action_type in [ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_OFF_HAND]:
+            for action_type in [ActionType.ATTACK_MAIN_HAND]:
                 if action_type in self.action_cards:
                     self.action_cards[action_type].update_theme_styles(theme)
         
@@ -3495,10 +3503,9 @@ class ActionPanel(QWidget):
                 # Only add if the weapon qualifies for two-weapon fighting (light weapons)
                 weapon_props = context.get('weapon_properties', [])
                 weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-                
-                if 'light' in weapon_props_lower:
+                if 'light' in weapon_props_lower or "Dual Wielder" in character_feats:
                     bonus += str_mod
-                    self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to light off-hand weapon")
+                    self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to off-hand weapon")
         
         return bonus
     
@@ -3941,8 +3948,7 @@ class ActionPanel(QWidget):
         bonus_actions = {
             ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
             ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.USE_POTION,
-            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE,
-            ActionType.ATTACK_OFF_HAND
+            ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE
         }
         
         # Reactions
