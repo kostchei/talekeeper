@@ -501,6 +501,16 @@ CREATE TABLE rogue_features (
     PRIMARY KEY (character_id)
 );
 
+CREATE TABLE campaigns (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    monster_type_weights TEXT,
+    difficulty_distribution TEXT,
+    rest_rules TEXT,
+    style TEXT,
+    available_classes TEXT
+);
+
 -- ================================================
 -- INDEXES FOR CLASS-SPECIFIC TABLES
 -- ================================================

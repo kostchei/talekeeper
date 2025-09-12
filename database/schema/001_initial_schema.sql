@@ -515,7 +515,8 @@ CREATE TABLE campaigns (
                     monster_type_weights TEXT,
                     difficulty_distribution TEXT,
                     rest_rules TEXT,
-                    style TEXT
+                    style TEXT,
+                    available_classes TEXT
                 );
 CREATE TABLE weapon_masteries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

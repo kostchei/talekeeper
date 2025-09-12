@@ -17,5 +17,14 @@
     "short_rest_duration": 1,
     "long_rest_duration": 8
   },
-  "style": "conan"
+  "style": "conan",
+  "available_classes": [
+    "Barbarian",
+    "Fighter",
+    "Rogue",
+    "Paladin",
+    "Cleric",
+    "Warlock",
+    "Wizard"
+  ]
 }

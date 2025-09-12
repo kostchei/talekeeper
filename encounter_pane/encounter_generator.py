@@ -150,6 +150,7 @@ class CampaignFrame:
         self.difficulty_distribution = data.get('difficulty_distribution', {})
         self.rest_rules = data.get('rest_rules', {})
         self.style = data.get('style', '')
+        self.available_classes = data.get('available_classes', [])
 
 
 class RandomBag:

@@ -450,8 +450,9 @@ class EncounterPanel(QWidget):
         self.character_creation_data = {}  # Store character creation progress
         self.creation_step = 0  # Track current creation step
         
-        # Initialize encounter generator
+        # Initialize encounter generator and campaign frame
         self.encounter_generator = None
+        self.campaign_frame = None
         self._load_campaign_frame()
         
         # Track current encounter instances
@@ -2086,8 +2087,15 @@ class EncounterPanel(QWidget):
             # Get classes in display order
             cursor.execute("SELECT * FROM classes ORDER BY display_order, name")
             classes_data = cursor.fetchall()
-            
+
+            allowed = None
+            if getattr(self, 'campaign_frame', None):
+                allowed = {c.lower() for c in self.campaign_frame.available_classes}
+
             for class_row in classes_data:
+                name = class_row['name']
+                if allowed and name.lower() not in allowed:
+                    continue
                 class_id = class_row['id']
                 
                 # Get saving throw proficiencies
@@ -2875,6 +2883,7 @@ class EncounterPanel(QWidget):
                 frame_data = json.load(f)
             
             campaign_frame = CampaignFrame(frame_data)
+            self.campaign_frame = campaign_frame
             self.encounter_generator = EncounterGenerator(campaign_frame)
             
         except Exception as e:
@@ -2887,6 +2896,7 @@ class EncounterPanel(QWidget):
                 'style': 'standard'
             }
             campaign_frame = CampaignFrame(default_frame_data)
+            self.campaign_frame = campaign_frame
             self.encounter_generator = EncounterGenerator(campaign_frame)
     
     def _generate_encounter(self):
