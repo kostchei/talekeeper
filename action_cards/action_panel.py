@@ -1014,9 +1014,22 @@ class ActionPanel(QWidget):
             # Monsters go first, player's attack is held and will execute after
             return
         
+        # Use two-weapon fighting if this is a main-hand attack
+        if action_type == ActionType.ATTACK_MAIN_HAND:
+            self._execute_two_weapon_attack(context, encounter_panel)
+            return
+        
+        # For other attack types, use single attack
+        self._execute_single_attack(action_type, context, encounter_panel)
+    
+    def _execute_single_attack(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
+        """Execute a single attack (used by two-weapon fighting system)."""
         # Make attack roll
         attack_total, attack_breakdown = self._roll_attack(context)
         target_ac = 12  # TODO: Get from monster data, for now assume AC 12
+        target_id = context.get('target_monster_id')
+        weapon_name = context.get('name', 'weapon')
+        target_monster = encounter_panel.get_selected_monster()
         
         # Check for critical hit (natural 20)
         is_critical = attack_breakdown.get('d20_roll', 0) == 20
@@ -3226,6 +3239,11 @@ class ActionPanel(QWidget):
         if rage_bonus > 0:
             bonuses['Rage'] = rage_bonus
         
+        # Two-Weapon Fighting Style (for off-hand attacks)
+        twf_bonus = self._get_two_weapon_fighting_damage_bonus(context)
+        if twf_bonus > 0:
+            bonuses['Two-Weapon Fighting'] = twf_bonus
+        
         # Great Weapon Master (if implemented later)
         # gwm_bonus = self._get_great_weapon_master_bonus(context)
         # if gwm_bonus > 0:
@@ -4624,6 +4642,78 @@ class ActionPanel(QWidget):
                 parent.log_panel.log_combat(message)
                 break
             parent = parent.parent()
+    
+    def _can_dual_wield(self) -> bool:
+        """Check if character can dual wield with current equipment."""
+        main_hand = self.equipped_weapons.get('main_hand')
+        off_hand = self.equipped_weapons.get('off_hand')
+        
+        if not main_hand or not off_hand:
+            return False
+        if main_hand.get('item_type') != 'weapon' or off_hand.get('item_type') != 'weapon':
+            return False
+        
+        feats = getattr(self, 'character_feats', [])
+        main_props = [p.lower() for p in (main_hand.get('weapon_properties') or [])]
+        off_props = [p.lower() for p in (off_hand.get('weapon_properties') or [])]
+        
+        # With Dual Wielder feat, any one-handed melee weapons work
+        if "Dual Wielder" in feats:
+            return True
+        
+        # Without the feat, both weapons must be Light
+        return 'light' in main_props and 'light' in off_props
+    
+    def _execute_two_weapon_attack(self, context: Dict[str, Any], encounter_panel):
+        """Execute both main-hand and off-hand attacks if dual wielding."""
+        # Execute main-hand attack
+        self._execute_single_attack(ActionType.ATTACK_MAIN_HAND, context, encounter_panel)
+        
+        # Check if we can make an off-hand attack
+        if self._can_dual_wield():
+            off_hand_context = self._build_off_hand_context(context)
+            if off_hand_context:
+                # Log off-hand attack
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("[TWF] Making off-hand attack...")
+                        break
+                    parent = parent.parent()
+                
+                self._execute_single_attack(ActionType.ATTACK_OFF_HAND, off_hand_context, encounter_panel)
+    
+    def _build_off_hand_context(self, base_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Build context for off-hand attack."""
+        off_hand = self.equipped_weapons.get('off_hand')
+        if not off_hand:
+            return None
+        
+        # Copy base context and override with off-hand weapon data
+        off_context = {**base_context}
+        off_context.update(off_hand)
+        off_context['action_type'] = ActionType.ATTACK_OFF_HAND
+        off_context['is_off_hand'] = True
+        
+        return off_context
+    
+    def _get_two_weapon_fighting_damage_bonus(self, context: Dict[str, Any]) -> int:
+        """Get damage bonus from Two-Weapon Fighting style for off-hand attacks."""
+        if context.get('action_type') != ActionType.ATTACK_OFF_HAND:
+            return 0
+        
+        feats = getattr(self, 'character_feats', [])
+        if "Two-Weapon Fighting" not in feats:
+            return 0
+        
+        # Add ability modifier to off-hand damage
+        weapon_props = context.get('weapon_properties', [])
+        if 'finesse' in [p.lower() for p in weapon_props]:
+            str_mod = (self.character_context.get('strength', 10) - 10) // 2
+            dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+            return max(str_mod, dex_mod)
+        else:
+            return (self.character_context.get('strength', 10) - 10) // 2
 
 
 class ActionCard(QWidget):
