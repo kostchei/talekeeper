@@ -961,7 +961,9 @@ class MainWindow(QMainWindow):
                     last_played = slot['created_at'].strftime("%Y-%m-%d %H:%M")
                 else:
                     last_played = datetime.now().strftime("%Y-%m-%d %H:%M")
-                item_text = f"Slot {slot['slot_number']}: {slot['character_name']} (Level {slot['character_level']})\n"
+                # Format class name for display
+                class_name = slot.get('character_class', '').title() if slot.get('character_class') else 'Unknown'
+                item_text = f"Slot {slot['slot_number']}: {slot['character_name']} ({class_name} Level {slot['character_level']})\n"
                 item_text += f"Location: {slot['current_location']} | Last Played: {last_played}"
                 
                 item = QListWidgetItem(item_text)

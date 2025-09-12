@@ -362,8 +362,10 @@ class GameEngineSQLite:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT * FROM save_slots
-                    ORDER BY slot_number
+                    SELECT s.*, c.class_id, c.level as actual_level
+                    FROM save_slots s
+                    LEFT JOIN characters c ON s.id = c.save_slot_id
+                    ORDER BY s.slot_number
                 """)
                 
                 slots = []
@@ -391,7 +393,8 @@ class GameEngineSQLite:
                         'last_played': last_played,
                         'play_time_hours': row['play_time_minutes'] // 60,  # Convert minutes to hours
                         'character_name': row['character_name'],
-                        'character_level': row['character_level'],
+                        'character_level': row['actual_level'] if row['actual_level'] is not None else row['character_level'],
+                        'character_class': row['class_id'] if row['class_id'] else '',
                         'current_location': row['current_location'],
                         'created_at': created_at
                     }
