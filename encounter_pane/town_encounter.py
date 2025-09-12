@@ -126,6 +126,7 @@ class TrainingHallInterface(QWidget):
         self.character_data = character_data
         self.level_up_service = LevelUpService()
         self.selected_class = None
+        print(f"[TrainingHall] Initializing for {character_data.get('name')} level {character_data.get('level')}")
         self.is_asi_level = False
         self.selected_feat = None
         self.asi_allocation = {'str': 0, 'dex': 0, 'con': 0, 'int': 0, 'wis': 0, 'cha': 0}
@@ -199,7 +200,9 @@ class TrainingHallInterface(QWidget):
                 radio_btn.setText(f"{class_name} (Level {current_level})")
                 if len(current_classes) == 1:  # Auto-select if only one class
                     radio_btn.setChecked(True)
-                    self.selected_class = class_name
+                    self.selected_class = class_name.lower()
+                    # Store auto-selected class for later processing
+                    self._auto_selected_class = class_name
             else:
                 radio_btn.setText(f"{class_name} (New Class)")
             
@@ -236,27 +239,30 @@ class TrainingHallInterface(QWidget):
         # Training button
         self.train_button = QPushButton("Begin Training")
         self.train_button.setObjectName("trainButton")
+        print(f"[TrainingHall] Creating Begin Training button")
         self.train_button.clicked.connect(self._begin_training)
         layout.addWidget(self.train_button)
+        print(f"[TrainingHall] Begin Training button added to layout")
         
         # Cancel button
         cancel_button = QPushButton("Leave Training Hall")
         cancel_button.setObjectName("cancelButton")
         cancel_button.clicked.connect(self.training_completed.emit)
         layout.addWidget(cancel_button)
+        
+        # Process auto-selected class after all UI elements are created
+        if hasattr(self, '_auto_selected_class'):
+            print(f"[TrainingHall] Processing auto-selected class: {self._auto_selected_class}")
+            self._class_selected(self._auto_selected_class, True)
     
     def _class_selected(self, class_name: str, checked: bool):
         """Handle class selection"""
+        print(f"[Training] NEW VERSION: _class_selected called with {class_name}, {checked}")
         if checked:
-            self.selected_class = class_name
-            try:
-                self._update_features_preview()
-                self._check_asi_level()
-                self._check_subclass_level()
-            except Exception as e:
-                print(f"Error updating features preview: {e}")
-                # Show fallback message
-                self.features_list.setText(f"Features will be available when advancing {class_name}.")
+            self.selected_class = class_name.lower()
+            print(f"[Training] Calling _check_subclass_level for class {class_name}")
+            self._check_subclass_level()
+            print(f"[Training] Completed subclass check, is_subclass_level: {self.is_subclass_level}")
     
     def _check_asi_level(self):
         """Check if this is an ASI level and show/hide ASI selection"""
@@ -284,12 +290,17 @@ class TrainingHallInterface(QWidget):
     def _check_subclass_level(self):
         """Check if this is the level for subclass selection."""
         if not self.selected_class:
+            print(f"[Training] No selected class for subclass check")
             return
         
         character_id = self.character_data.get('id', '')
         current_classes = self.level_up_service.get_character_class_levels(character_id)
         current_class_level = current_classes.get(self.selected_class, 0)
         next_level = current_class_level + 1
+        
+        print(f"[Training] Subclass check: selected_class='{self.selected_class}', current_level={current_class_level}, next_level={next_level}")
+        print(f"[Training] Available classes: {current_classes}")
+        print(f"[Training] Character ID: {character_id}")
         
         # Check if this is level 3 and character doesn't have a subclass
         if next_level == 3:
@@ -301,9 +312,11 @@ class TrainingHallInterface(QWidget):
             
             if not row or not row[0]:
                 self.is_subclass_level = True
+                print(f"[Training] Level 3 - Setting up subclass selection")
                 self.subclass_frame.show()
                 self._populate_subclass_options()
-                print(f"[Training] Level 3 - Showing subclass selection")
+                print(f"[Training] Subclass frame visible: {self.subclass_frame.isVisible()}")
+                print(f"[Training] Subclass button count: {len(self.subclass_button_group.buttons())}")
                 return
         
         self.is_subclass_level = False
@@ -428,35 +441,24 @@ Training includes food and lodging (counts as a long rest)."""
             return None
     
     def _update_features_preview(self):
-        """Update the features preview based on selected class"""
-        try:
-            if not self.selected_class:
-                self.features_list.setText("Select a class to see available features.")
-                return
-            
-            character_id = self.character_data.get('id', '')
-            if not character_id:
-                self.features_list.setText("Character ID not available.")
-                return
-            
-            features = self.level_up_service.get_next_level_features(character_id, self.selected_class)
-            
-            if features:
-                features_text = "\n".join([f"• {feat['name']}: {feat['description']}" for feat in features])
-            else:
-                features_text = "No specific features at this level (general improvements apply)."
-            
-            self.features_list.setText(features_text)
-            
-        except Exception as e:
-            print(f"Error in _update_features_preview: {e}")
-            self.features_list.setText(f"Unable to load features for {self.selected_class}.")
+        """Update the features preview based on selected class (simplified for training hall)"""
+        # Features preview is handled by the static UI elements in training hall
+        pass
     
     def _begin_training(self):
         """Begin the training process"""
+        print(f"[Training] _begin_training called! selected_class={self.selected_class}")
+        print(f"[Training] is_subclass_level={self.is_subclass_level}, selected_subclass={self.selected_subclass}")
+        
         if not self.selected_class:
             QMessageBox.warning(self, "No Class Selected", 
                               "Please select a class to advance before beginning training.")
+            return
+        
+        # Check if subclass selection is required but not selected
+        if self.is_subclass_level and not self.selected_subclass:
+            QMessageBox.warning(self, "No Subclass Selected",
+                              "Please select a subclass before beginning training.")
             return
         
         current_level = self.character_data.get('level', 1)
@@ -1541,8 +1543,10 @@ class TownEncounterPanel(QWidget):
     
     def _show_training_hall(self):
         """Show the training hall interface"""
+        print(f"[Town] Creating training hall interface for {self.character_data.get('name')}")
         training_widget = TrainingHallInterface(self.character_data, self)
         training_widget.training_completed.connect(self._training_completed)
+        print(f"[Town] Training hall widget created, showing interface")
         
         # Replace current widget content with training interface
         # Clear current layout

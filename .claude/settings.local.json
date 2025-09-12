@@ -64,7 +64,9 @@
       "Bash(done)",
       "Bash(del:*)",
       "Bash(git fetch:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(move:*)",
+      "Bash(git log:*)"
     ],
     "deny": []
   }

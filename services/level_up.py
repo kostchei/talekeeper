@@ -93,7 +93,7 @@ class LevelUpService:
                 WHERE character_id = ?
             """, (character_id,))
             
-            result = {class_name: level for class_name, level in cursor.fetchall()}
+            result = {class_name.lower(): level for class_name, level in cursor.fetchall()}
             
             # If no multi-class data exists, get from main character table
             if not result:
@@ -111,6 +111,10 @@ class LevelUpService:
     
     def level_up_character(self, character_id: str, class_choice: str) -> bool:
         """Level up character in chosen class."""
+        print(f"[LevelUp] level_up_character called for {character_id} in {class_choice}")
+        import traceback
+        print("".join(traceback.format_stack()[-6:]))  # Show last 6 stack frames
+        
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
@@ -258,7 +262,7 @@ class LevelUpService:
                     INSERT OR REPLACE INTO character_features 
                     (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, "Martial Archetype", "passive", "permanent", 3, "Choose your Fighter subclass", "subclass_choice"))
+                """, (character_id, "Martial Archetype", "passive", "permanent", 3, "Choose your Fighter subclass", '{"type": "subclass_choice"}'))
                 
             elif level == 5:
                 cursor.execute("""
