@@ -3238,8 +3238,30 @@ class ActionPanel(QWidget):
             return 0
         
         # Check if character has Dueling fighting style
-        character_feats = getattr(self, 'character_feats', [])
-        if "Dueling" not in character_feats:
+        # Look for Fighting Style feature and check actual character data
+        if not self.character_context:
+            return 0
+            
+        character_id = self.character_context.get('id')
+        if not character_id:
+            return 0
+            
+        # Query database directly for fighting styles (can have multiple at higher levels)
+        import sqlite3
+        conn = sqlite3.connect('talekeeper.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT feature_name FROM character_features 
+            WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
+        """, (character_id,))
+        
+        fighting_styles = cursor.fetchall()
+        conn.close()
+        
+        # Check if any fighting style is Dueling
+        has_dueling = any('Dueling' in style[0] for style in fighting_styles)
+        if not has_dueling:
             return 0
         
         # Check weapon requirements: one-handed melee weapon
@@ -3508,12 +3530,24 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return dice_rolls
         
-        # Get character's fighting styles
-        character_feats = getattr(self, 'character_feats', [])
-        
         # Apply Great Weapon Fighting (modifies dice rolls)
-        if "Great Weapon Fighting" in character_feats:
-            dice_rolls = self._apply_great_weapon_fighting(dice_rolls, context)
+        if self.character_context and self.character_context.get('id'):
+            import sqlite3
+            conn = sqlite3.connect('talekeeper.db')
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT feature_name FROM character_features 
+                WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
+            """, (self.character_context['id'],))
+            
+            fighting_styles = cursor.fetchall()
+            conn.close()
+            
+            # Check if any fighting style is Great Weapon Fighting
+            has_gwf = any('Great Weapon Fighting' in style[0] for style in fighting_styles)
+            if has_gwf:
+                dice_rolls = self._apply_great_weapon_fighting(dice_rolls, context)
         
         return dice_rolls
     
@@ -3546,41 +3580,60 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return 0
         
-        character_feats = getattr(self, 'character_feats', [])
         bonus = 0
-        
-        # Dueling: +2 damage when wielding a melee weapon in one hand and no other weapons
-        if "Dueling" in character_feats:
-            bonus += self._apply_dueling_bonus(context)
-        
-        # Thrown Weapon Fighting: +2 damage to thrown weapon attacks when used at range
-        if "Thrown Weapon Fighting" in character_feats:
-            weapon_props = context.get('weapon_properties', [])
-            weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        character_id = self.character_context.get('id')
+        if not character_id:
+            return 0
             
-            # Must be a thrown weapon used as a ranged attack
-            if 'thrown' in weapon_props_lower and context.get('is_ranged_attack', False):
-                bonus += 2
-                self._log_fighting_style("Thrown Weapon Fighting", "Damage", "+2 to thrown weapon damage")
+        # Query database for fighting styles
+        import sqlite3
+        conn = sqlite3.connect('talekeeper.db')
+        cursor = conn.cursor()
         
-        # Two-Weapon Fighting: Add ability modifier to off-hand attack damage
-        if "Two-Weapon Fighting" in character_feats:
-            # Only applies to off-hand attacks where ability modifier would normally be excluded
-            if context.get('action_type') == ActionType.ATTACK_OFF_HAND:
-                # In D&D, off-hand attacks don't normally get ability modifier unless you have this fighting style
-                # So we need to add it back in
-                if context.get('strength'):
-                    str_mod = (context.get('strength', 10) - 10) // 2
-                else:
-                    str_mod = (context.get('dexterity', 10) - 10) // 2
-                
-                # Only add if the weapon qualifies for two-weapon fighting (light weapons)
+        cursor.execute("""
+            SELECT feature_name FROM character_features 
+            WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
+        """, (character_id,))
+        
+        fighting_styles = cursor.fetchall()
+        conn.close()
+        
+        # Check each fighting style
+        for style_row in fighting_styles:
+            style_name = style_row[0]
+            
+            # Dueling: +2 damage when wielding a melee weapon in one hand and no other weapons
+            if "Dueling" in style_name:
+                bonus += self._apply_dueling_bonus(context)
+        
+            # Thrown Weapon Fighting: +2 damage to thrown weapon attacks when used at range
+            if "Thrown Weapon Fighting" in style_name:
                 weapon_props = context.get('weapon_properties', [])
                 weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
                 
-                if 'light' in weapon_props_lower:
-                    bonus += str_mod
-                    self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to light off-hand weapon")
+                # Must be a thrown weapon used as a ranged attack
+                if 'thrown' in weapon_props_lower and context.get('is_ranged_attack', False):
+                    bonus += 2
+                    self._log_fighting_style("Thrown Weapon Fighting", "Damage", "+2 to thrown weapon damage")
+            
+            # Two-Weapon Fighting: Add ability modifier to off-hand attack damage
+            if "Two-Weapon Fighting" in style_name:
+                # Only applies to off-hand attacks where ability modifier would normally be excluded
+                if context.get('action_type') == ActionType.ATTACK_OFF_HAND:
+                    # In D&D, off-hand attacks don't normally get ability modifier unless you have this fighting style
+                    # So we need to add it back in
+                    if context.get('strength'):
+                        str_mod = (context.get('strength', 10) - 10) // 2
+                    else:
+                        str_mod = (context.get('dexterity', 10) - 10) // 2
+                    
+                    # Only add if the weapon qualifies for two-weapon fighting (light weapons)
+                    weapon_props = context.get('weapon_properties', [])
+                    weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+                    
+                    if 'light' in weapon_props_lower:
+                        bonus += str_mod
+                        self._log_fighting_style("Two-Weapon Fighting", "Damage", f"+{str_mod} ability modifier to light off-hand weapon")
         
         return bonus
     
