@@ -4632,20 +4632,35 @@ class ActionPanel(QWidget):
             
             # Restore all short rest resources
             result = resource_service.restore_resources_by_rest_type(character_id, 'short_rest')
+
+            # Also use feature integration system for class features
+            from core.feature_integration import get_feature_integration
+            feature_integration = get_feature_integration()
+            feature_result = feature_integration.process_rest(character_id, 'short')
             
-            if result.get('success'):
-                restored = result.get('restored_resources', [])
-                if restored:
-                    parent = self.parent()
-                    while parent:
-                        if hasattr(parent, 'log_panel'):
-                            for resource in restored:
-                                if resource['gained'] > 0:
-                                    parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
-                            break
-                        parent = parent.parent()
-            else:
-                print(f"DEBUG: Failed to restore short rest resources: {result.get('error')}")
+            # Log short rest resource restoration
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    print(f"[DEBUG] Short rest result: {result}")
+                    print(f"[DEBUG] Feature result: {feature_result}")
+
+                    if result.get('success'):
+                        restored = result.get('restored_resources', [])
+                        restored_count = 0
+                        print(f"[DEBUG] Resources to restore: {restored}")
+
+                        for resource in restored:
+                            if resource['gained'] > 0:
+                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource.get('max_uses', resource['new_uses'])} uses)")
+                                restored_count += 1
+
+                        if restored_count == 0:
+                            parent.log_panel.log_combat("💤 Short rest completed (no resources to restore)")
+                    else:
+                        parent.log_panel.log_combat(f"❌ Failed to restore short rest resources: {result.get('error', 'Unknown error')}")
+                    break
+                parent = parent.parent()
                     
         except Exception as e:
             print(f"Error restoring short rest abilities: {e}")
@@ -4664,25 +4679,41 @@ class ActionPanel(QWidget):
             
             # Restore short rest resources first
             short_result = resource_service.restore_resources_by_rest_type(character_id, 'short_rest')
-            
+
             # Then restore long rest resources
             long_result = resource_service.restore_resources_by_rest_type(character_id, 'long_rest')
+
+            # Also use feature integration system for class features
+            from core.feature_integration import get_feature_integration
+            feature_integration = get_feature_integration()
+            feature_result = feature_integration.process_rest(character_id, 'long')
             
             # Log restored resources
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
+                    print(f"[DEBUG] Long rest short_result: {short_result}")
+                    print(f"[DEBUG] Long rest long_result: {long_result}")
+                    print(f"[DEBUG] Long rest feature_result: {feature_result}")
+
+                    total_restored = 0
+
                     # Log short rest resources
                     if short_result.get('success'):
                         for resource in short_result.get('restored_resources', []):
                             if resource['gained'] > 0:
-                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
-                    
+                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource.get('max_uses', resource['new_uses'])} uses)")
+                                total_restored += 1
+
                     # Log long rest resources
                     if long_result.get('success'):
                         for resource in long_result.get('restored_resources', []):
                             if resource['gained'] > 0:
-                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource['new_uses']} uses)")
+                                parent.log_panel.log_combat(f"✨ {resource['resource_name']} restored ({resource['new_uses']}/{resource.get('max_uses', resource['new_uses'])} uses)")
+                                total_restored += 1
+
+                    if total_restored == 0:
+                        parent.log_panel.log_combat("🌙 Long rest completed (no resources to restore)")
                     break
                 parent = parent.parent()
             
