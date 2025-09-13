@@ -1069,40 +1069,6 @@ class ActionPanel(QWidget):
         }
         return action_type in combat_actions
     
-    def _execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
-        """Execute an attack against the targeted monster."""
-        print(f"DEBUG: _execute_attack called with weapon: {context.get('name', 'weapon')}")
-        target_id = context.get('target_monster_id')
-        weapon_name = context.get('name', 'weapon')
-        
-        # Get encounter panel to access the monster
-        encounter_panel = self._get_encounter_panel()
-        if not encounter_panel:
-            print("Could not find encounter panel for attack execution")
-            return
-        
-        target_monster = encounter_panel.get_selected_monster()
-        if not target_monster:
-            print(f"Target monster {target_id} not found")
-            return
-        
-        # Store action type in context for pending attack system
-        context['action_type'] = action_type
-        
-        # Roll initiative if this is the first attack (start of combat)
-        player_can_act = self._check_and_roll_initiative(encounter_panel, context)
-        if not player_can_act:
-            # Monsters go first, player's attack is held and will execute after
-            return
-        
-        # Use two-weapon fighting if this is a main-hand attack
-        if action_type == ActionType.ATTACK_MAIN_HAND:
-            self._execute_two_weapon_attack(context, encounter_panel)
-            return
-        
-        # For other attack types, use single attack
-        self._execute_single_attack(action_type, context, encounter_panel)
-    
     def _execute_single_attack(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
         """Execute a single attack (used by two-weapon fighting system)."""
         # Make attack roll
@@ -1112,8 +1078,8 @@ class ActionPanel(QWidget):
         weapon_name = context.get('name', 'weapon')
         target_monster = encounter_panel.get_selected_monster()
         
-        # Check for critical hit (natural 20)
-        is_critical = attack_breakdown.get('d20_roll', 0) == 20
+        # Check for critical hit (natural 20, or 19-20/18-20 for Champion Fighter)
+        is_critical = self._is_critical_hit(attack_breakdown, context)
         hit = attack_total >= target_ac or is_critical
         
         if hit:
@@ -1374,8 +1340,10 @@ class ActionPanel(QWidget):
             attack_total += fighting_style_attack_bonus
         target_ac = 12  # TODO: Get from monster data
         
-        hit = attack_total >= target_ac
-        
+        # Check for critical hit (natural 20, or 19-20/18-20 for Champion Fighter)
+        is_critical = self._is_critical_hit(attack_breakdown, context)
+        hit = attack_total >= target_ac or is_critical
+
         # === LOG ATTACK ===
         bonus_parts = [f"+{prof_bonus} prof", f"{ability_mod:+d} {ability_name}"]
         if fighting_style_attack_bonus > 0:
@@ -1403,7 +1371,24 @@ class ActionPanel(QWidget):
             # Apply fighting style effects to dice rolls (e.g., Great Weapon Fighting)
             dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
             dice_total = sum(dice_rolls)
-            
+
+            # === CRITICAL HIT ===
+            # Double damage DICE ONLY on critical hit (not modifiers)
+            crit_dice_rolls = []
+            crit_bonus = 0
+            if is_critical:
+                # Roll the damage dice again (but NOT modifiers) and add to total
+                if 'd' in damage_dice:
+                    dice_part = damage_dice.split('+')[0].split('-')[0].strip()
+                    if 'd' in dice_part:
+                        crit_num_dice, crit_die_size = dice_part.split('d')
+                        crit_num_dice = int(crit_num_dice)
+                        crit_die_size = int(crit_die_size)
+                        # Roll additional dice for critical (same number as base weapon)
+                        crit_dice_rolls = [random.randint(1, crit_die_size) for _ in range(crit_num_dice)]
+                        crit_bonus = sum(crit_dice_rolls)
+                        dice_total += crit_bonus
+
             # === DAMAGE BONUSES ===
             damage_bonuses = {}
             
@@ -1520,11 +1505,19 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
+                    # Attack message with critical hit notation
+                    attack_type = "[CRITICAL HIT!]" if is_critical else "[ATTACK]"
                     parent.log_panel.log_combat(
-                        f"[ATTACK] {weapon_name} hits {target_monster.monster_name}! Attack: {roll_desc} (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"{attack_type} {weapon_name} hits {target_monster.monster_name}! Attack: {roll_desc} (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
                     )
+
+                    # Damage message with critical dice notation
+                    crit_str = ""
+                    if crit_dice_rolls:
+                        crit_str = f" + [{', '.join(map(str, crit_dice_rolls))}] = {crit_bonus} (critical)"
+
                     parent.log_panel.log_combat(
-                        f"💥 NEW Damage: {dice_str} = {dice_total}{bonus_str} = {total_damage} damage"
+                        f"💥 Damage: {dice_str} = {dice_total}{bonus_str}{crit_str} = {total_damage} damage"
                     )
                     break
                 parent = parent.parent()
@@ -1981,6 +1974,32 @@ class ActionPanel(QWidget):
             print(f"Error finding encounter panel: {e}")
             return None
     
+    def _is_critical_hit(self, attack_breakdown: dict, context: Dict[str, Any]) -> bool:
+        """Check if an attack is a critical hit based on character class/subclass."""
+        d20_roll = attack_breakdown.get('d20_result', 0)
+        roll_details = attack_breakdown.get('roll_details', {})
+
+        # Get critical hit range based on class/subclass
+        critical_range = [20]
+        class_id = context.get('class_id', '').lower()
+        subclass = context.get('subclass_id', '').lower()
+        level = context.get('level', 1)
+
+        if class_id == 'fighter' and subclass == 'champion':
+            if level >= 15:
+                critical_range = [18, 19, 20]  # 18-20 at level 15+
+            elif level >= 3:
+                critical_range = [19, 20]      # 19-20 at level 3+
+
+        # For advantage/disadvantage, check if ANY die was in the critical range
+        all_rolls = roll_details.get('rolls', [d20_roll])
+        for roll in all_rolls:
+            if roll in critical_range:
+                return True
+
+        # For normal rolls, just check the single die
+        return d20_roll in critical_range
+
     def _roll_attack(self, context: Dict[str, Any]) -> tuple[int, dict]:
         """Roll an attack roll (d20 + modifiers) with advantage/disadvantage. Returns (total, breakdown)."""
         from services.advantage_system import advantage_system, RollType, AdvantageState

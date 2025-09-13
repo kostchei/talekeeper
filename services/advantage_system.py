@@ -82,7 +82,8 @@ class AdvantageSystem:
                 'd20_result': d20_result,
                 'modifier': modifier,
                 'total': d20_result + modifier,
-                'description': f"d20({roll1}, {roll2}) advantage = {d20_result}"
+                'description': f"d20({roll1}, {roll2}) advantage = {d20_result}",
+                'has_natural_20': 20 in [roll1, roll2]  # Track if either die was 20
             }
         elif advantage_state == AdvantageState.DISADVANTAGE:
             roll1 = random.randint(1, 20)
@@ -94,7 +95,8 @@ class AdvantageSystem:
                 'd20_result': d20_result,
                 'modifier': modifier,
                 'total': d20_result + modifier,
-                'description': f"d20({roll1}, {roll2}) disadvantage = {d20_result}"
+                'description': f"d20({roll1}, {roll2}) disadvantage = {d20_result}",
+                'has_natural_20': 20 in [roll1, roll2]  # Track if either die was 20
             }
         else:  # Normal roll
             d20_result = random.randint(1, 20)
@@ -104,7 +106,8 @@ class AdvantageSystem:
                 'd20_result': d20_result,
                 'modifier': modifier,
                 'total': d20_result + modifier,
-                'description': f"d20({d20_result})"
+                'description': f"d20({d20_result})",
+                'has_natural_20': d20_result == 20
             }
         
         return breakdown['total'], breakdown
