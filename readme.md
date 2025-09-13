@@ -168,20 +168,20 @@ Plan out how to create the barbarian abilities based on the prior knowledge
 Implement that plan.
 Record the issues….
  
-Check 2 weapon fighting,  
-- Check nick,
+    ....Check 2 weapon fighting,  
 - level progression ( fighter, barbarian, rogue to 20 )
--- fighter, check each level..
+- fighter, check each level for champion, make sure it all works..
 - towns for selling stuff
 - items on monsters for use
-- training costs
 - images characters, monsters and items
 - a way of parsing combat to a story
-- ollama connectivity to local storytelling version
 - skills
+- encounters- towns/shops
 - skill encounters
 - traps
 - hazards
+- quest givers
+- ollama connectivity to local storytelling version
 - barbarian (berserker, slayer), rogue ( theif,  trader), fighter (champion, gladiator) and many subclasses but no spell casting
 stealth
 encounter parlay
