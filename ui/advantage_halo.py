@@ -49,7 +49,7 @@ class AdvantageHalo(QWidget):
             self.resource_type = "inspiration"
             self.resource_count = inspiration_current
             self.resource_max = inspiration_max
-            self.triangle_color = "rgba(70, 130, 200, 180)"  # Blue for inspiration
+            self.triangle_color = QColor(50, 150, 255, 220)  # Bright blue for inspiration
             self.setToolTip(f"Click to use Inspiration ({inspiration_current}/{inspiration_max})")
             print(f"[DEBUG] Halo showing for inspiration, visible: {self.isVisible()}")
             self.show()
@@ -58,7 +58,7 @@ class AdvantageHalo(QWidget):
             self.resource_type = "lucky"
             self.resource_count = lucky_current
             self.resource_max = lucky_max
-            self.triangle_color = "rgba(220, 180, 50, 180)"  # Gold for lucky
+            self.triangle_color = QColor(50, 200, 50, 220)  # Bright green for lucky
             self.setToolTip(f"Click to use Lucky ({lucky_current}/{lucky_max})")
             print(f"[DEBUG] Halo showing for lucky, visible: {self.isVisible()}")
             self.show()
@@ -120,15 +120,8 @@ class AdvantageHalo(QWidget):
         
         if hasattr(self, 'triangle_color') and self.triangle_color:
             # Draw filled triangle
-            painter.setBrush(QBrush(QColor(self.triangle_color)))
+            painter.setBrush(QBrush(self.triangle_color))
             painter.setPen(Qt.PenStyle.NoPen)
-            
-            # Triangle points (top-right corner)
-            points = [
-                self.rect().topRight(),  # Top right
-                self.rect().bottomRight(),  # Bottom right  
-                self.rect().topLeft() + self.rect().topRight() - self.rect().topLeft()  # Top left of triangle area
-            ]
             
             path = QPainterPath()
             path.moveTo(0, 0)  # Top left
@@ -136,7 +129,7 @@ class AdvantageHalo(QWidget):
             path.lineTo(30, 30)  # Bottom right
             path.closeSubpath()
             
-            painter.fillPath(path, QBrush(QColor(self.triangle_color)))
+            painter.fillPath(path, QBrush(self.triangle_color))
         
         super().paintEvent(event)
 
