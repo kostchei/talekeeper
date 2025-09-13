@@ -1966,20 +1966,20 @@ class ActionPanel(QWidget):
         # Get advantage/disadvantage sources
         advantage_sources = advantage_system.get_common_advantage_sources(RollType.ATTACK, context)
         disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.ATTACK, context)
-        print(f"[DEBUG] Starting attack roll - advantage_sources: {advantage_sources}, disadvantage_sources: {disadvantage_sources}")
         
         # Check for pending advantage from Lucky/Inspiration triangle clicks
         if hasattr(self, 'resource_manager') and self.resource_manager:
-            print(f"[DEBUG] Checking resource manager for pending advantage...")
             if self.resource_manager.has_pending_advantage():
                 consumed_type = self.resource_manager.consume_pending_advantage()
                 if consumed_type:
                     advantage_sources.append(f"{consumed_type.title()} (triangle click)")
-                    print(f"[DEBUG] Applied {consumed_type} offensive advantage to attack roll from resource manager")
-            else:
-                print(f"[DEBUG] No pending advantage in resource manager")
-        else:
-            print(f"[DEBUG] No resource manager available for advantage check")
+                    # Log to combat panel
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"⚡ Using {consumed_type.title()}! Next attack has advantage")
+                            break
+                        parent = parent.parent()
         
         # Check for Reckless Attack advantage (only on Strength-based attacks)
         if (self.character_context.get('reckless_attack_active', False) and 
@@ -1993,15 +1993,12 @@ class ActionPanel(QWidget):
             self.vex_target_id = None  # Consume the Vex advantage
         
         # Calculate final advantage state
-        print(f"[DEBUG] Final advantage_sources: {advantage_sources}, disadvantage_sources: {disadvantage_sources}")
         advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
-        print(f"[DEBUG] Calculated advantage_state: {advantage_state}")
         
         # Roll with advantage/disadvantage
         total_modifier = prof_bonus + ability_mod
         base_roll_total, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, 0)  # Don't add modifier yet
         base_roll = roll_breakdown['d20_result']
-        print(f"[DEBUG] Advantage roll result: base_roll_total={base_roll_total}, roll_breakdown={roll_breakdown}")
         
         magic_bonus = context.get('attack_bonus', 0)
         total_bonus = prof_bonus + ability_mod + magic_bonus
@@ -3208,9 +3205,7 @@ class ActionPanel(QWidget):
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
         self.target_monster_id = monster_id
-        
-        # Update action cards to show they have a target
-        self._update_card_availability()
+    
     
     
     def _log_weapon_mastery_effects_old(self, mastery_effects: Dict[str, Any]):
