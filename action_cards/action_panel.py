@@ -520,12 +520,38 @@ class ActionPanel(QWidget):
             healing_roll = random.randint(1, 10)
             fighter_level = self.character_context.get('level', 1)
             total_healing = healing_roll + fighter_level
-            
-            # Apply healing to character
-            current_hp = self.character_context.get('hit_points_current', 0)
-            max_hp = self.character_context.get('hit_points_max', 1)
+
+            # HEALING IN COMBAT - CRITICAL PATTERN
+            # When implementing healing abilities that can be used during combat:
+            # 1. Get current HP from parent.character_sheet.character_data (same as damage does)
+            # 2. This is where real-time combat HP is tracked
+            # 3. The database and character_context may be stale during combat
+            # 4. After healing, update character sheet, database, and character_context
+            # This pattern mirrors how damage works, just in reverse
+
+            # Get current HP from character sheet (where combat damage tracking happens)
+            parent = self.parent()
+            current_hp = 0
+            max_hp = 1
+            found_character_sheet = False
+
+            while parent:
+                if hasattr(parent, 'character_sheet') and parent.character_sheet.character_data:
+                    character_data = parent.character_sheet.character_data
+                    current_hp = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+                    max_hp = character_data.get('max_hit_points', character_data.get('hit_points_max', 1))
+                    found_character_sheet = True
+                    break
+                parent = parent.parent()
+
+            # Fallback to character context if no character sheet found
+            if not found_character_sheet:
+                current_hp = self.character_context.get('hit_points_current', 0)
+                max_hp = self.character_context.get('hit_points_max', 1)
+            print(f"[DEBUG] Second Wind: current_hp={current_hp}, max_hp={max_hp}, total_healing={total_healing}")
             new_hp = min(max_hp, current_hp + total_healing)
             actual_healing = new_hp - current_hp
+            print(f"[DEBUG] Second Wind: new_hp={new_hp}, actual_healing={actual_healing}")
             
             # Update character HP
             parent = self.parent()
@@ -548,7 +574,9 @@ class ActionPanel(QWidget):
                 'level_bonus': fighter_level,
                 'total_healing': total_healing,
                 'actual_healing': actual_healing,
+                'old_hp': current_hp,
                 'new_hp': new_hp,
+                'max_hp': max_hp,
                 'uses_remaining': use_result['current_uses']
             }
             
@@ -558,8 +586,8 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     if result['success']:
                         parent.log_panel.log_combat(f"🩹 Second Wind: Rolled {result['healing_roll']} + {result['level_bonus']} = {result['total_healing']} healing")
-                        old_hp = result['new_hp'] - result['actual_healing']
-                        max_hp = result.get('max_hp', result['new_hp'])  # Fallback if max_hp not provided
+                        old_hp = result['old_hp']
+                        max_hp = result['max_hp']
                         if result['actual_healing'] < result['total_healing']:
                             parent.log_panel.log_combat(f"💚 HP: {old_hp}/{max_hp} -> {result['new_hp']}/{max_hp} (healed {result['actual_healing']}, max HP reached)")
                         else:
@@ -573,10 +601,22 @@ class ActionPanel(QWidget):
             
             # Update UI
             if result['success']:
-                # Refresh character sheet to show new HP
+                # Update our character context with new HP
+                self.character_context['hit_points_current'] = new_hp
+                self.character_context['current_hit_points'] = new_hp
+
+                # Update character sheet (same pattern as damage application)
                 parent = self.parent()
                 while parent:
-                    if hasattr(parent, 'character_panel'):
+                    if hasattr(parent, 'character_sheet') and parent.character_sheet.character_data:
+                        # Update the character data
+                        parent.character_sheet.character_data['current_hit_points'] = new_hp
+                        parent.character_sheet.character_data['hit_points_current'] = new_hp
+
+                        # Reload the character sheet display
+                        parent.character_sheet.load_character_data(parent.character_sheet.character_data)
+                        break
+                    elif hasattr(parent, 'character_panel'):
                         parent.character_panel.update_display()
                         break
                     parent = parent.parent()

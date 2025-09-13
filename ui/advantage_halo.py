@@ -43,7 +43,6 @@ class AdvantageHalo(QWidget):
     def update_resources(self, lucky_current, lucky_max, inspiration_current, inspiration_max):
         """Update the triangle based on available resources (Inspiration priority)."""
         self.resource_consumed = False  # Reset consumption flag
-        print(f"[DEBUG] Halo update_resources: inspiration={inspiration_current}/{inspiration_max}, lucky={lucky_current}/{lucky_max}")
         
         if inspiration_current > 0:
             self.resource_type = "inspiration"
@@ -51,20 +50,15 @@ class AdvantageHalo(QWidget):
             self.resource_max = inspiration_max
             self.triangle_color = QColor(50, 150, 255, 220)  # Bright blue for inspiration
             self.setToolTip(f"Click to use Inspiration ({inspiration_current}/{inspiration_max})")
-            print(f"[DEBUG] Halo showing for inspiration, visible: {self.isVisible()}")
             self.show()
-            print(f"[DEBUG] Halo after show(), visible: {self.isVisible()}")
         elif lucky_current > 0:
             self.resource_type = "lucky"
             self.resource_count = lucky_current
             self.resource_max = lucky_max
             self.triangle_color = QColor(50, 200, 50, 220)  # Bright green for lucky
             self.setToolTip(f"Click to use Lucky ({lucky_current}/{lucky_max})")
-            print(f"[DEBUG] Halo showing for lucky, visible: {self.isVisible()}")
             self.show()
-            print(f"[DEBUG] Halo after show(), visible: {self.isVisible()}")
         else:
-            print(f"[DEBUG] Halo hiding - no resources")
             self.hide()
         self.update()  # Trigger repaint
             
