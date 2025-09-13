@@ -263,6 +263,11 @@ class TrainingHallInterface(QWidget):
             print(f"[Training] Calling _check_subclass_level for class {class_name}")
             self._check_subclass_level()
             print(f"[Training] Completed subclass check, is_subclass_level: {self.is_subclass_level}")
+            
+            # Also check for ASI/feat eligibility
+            print(f"[Training] Calling _check_asi_level for class {class_name}")
+            self._check_asi_level()
+            print(f"[Training] Completed ASI check, is_asi_level: {self.is_asi_level}")
     
     def _check_asi_level(self):
         """Check if this is an ASI level and show/hide ASI selection"""
@@ -282,10 +287,51 @@ class TrainingHallInterface(QWidget):
             print(f"[Training] Showing feat selection UI")
         else:
             self.asi_feat_frame.hide()
-            # Only enable training if no subclass selection is needed
-            if not self.is_subclass_level:
-                self.train_button.setEnabled(True)  # Normal training available
             print(f"[Training] No feat at this level")
+        
+        # Update train button state after checking ASI
+        self._update_train_button_state()
+    
+    def _update_train_button_state(self):
+        """Update train button state based on all conditions"""
+        can_train = True
+        reason = ""
+        
+        # Check if we have enough gold
+        current_level = self.character_data.get('level', 1)
+        next_level = current_level + 1
+        current_gold = self._get_character_gold()
+        cost_info = self._get_training_cost(next_level)
+        
+        if cost_info:
+            cost, _ = cost_info
+            if current_gold < cost:
+                can_train = False
+                reason = "Insufficient gold"
+        else:
+            can_train = False
+            reason = "No training cost info"
+        
+        # Check if subclass selection is needed and made
+        if self.is_subclass_level and not self.selected_subclass:
+            can_train = False
+            reason = "Must select subclass"
+        
+        # Check if ASI/feat selection is needed and made
+        if self.is_asi_level:
+            feat_data = self.feat_combo.currentData() if hasattr(self, 'feat_combo') else None
+            if feat_data == "ASI":
+                # Check if ASI points are properly allocated
+                total_allocated = sum(self.asi_allocation.values())
+                if total_allocated != 2:
+                    can_train = False
+                    reason = "Must allocate ASI points"
+            elif not self.selected_feat:
+                can_train = False
+                reason = "Must select feat or ASI"
+        
+        print(f"[Training] Train button state: {can_train} (reason: {reason})")
+        self.train_button.setEnabled(can_train)
     
     def _check_subclass_level(self):
         """Check if this is the level for subclass selection."""
@@ -383,8 +429,8 @@ class TrainingHallInterface(QWidget):
             desc_text = f"{subclass_data['description']}\n\n{subclass_data.get('flavor_text', '')}"
             self.subclass_description.setText(desc_text)
             
-            # Enable training button
-            self.train_button.setEnabled(True)
+            # Update training button state
+            self._update_train_button_state()
     
     def _update_training_info(self):
         """Update training information display"""
@@ -408,12 +454,11 @@ Training includes food and lodging (counts as a long rest)."""
             
             if current_gold < cost:
                 info_text += f"\n\n❌ Insufficient funds! Need {cost - current_gold} more gold."
-                self.train_button.setEnabled(False)
-            else:
-                self.train_button.setEnabled(True)
         else:
             info_text = "❌ Training cost information not available."
-            self.train_button.setEnabled(False)
+        
+        # Update train button state based on all conditions
+        self._update_train_button_state()
         
         self.training_info_label.setText(info_text)
     
@@ -703,7 +748,7 @@ Training includes food and lodging (counts as a long rest)."""
             # Hide ASI info, set selected feat
             self.selected_feat = {"name": data} if data else None
             self.asi_section.hide()
-            self.train_button.setEnabled(data is not None)
+            self._update_train_button_state()
     
     def _update_points_remaining(self):
         """Update the points remaining display and button state"""
@@ -761,8 +806,8 @@ Training includes food and lodging (counts as a long rest)."""
             if spinbox.value() > 0:
                 self.asi_allocation[ability] = spinbox.value()
         
-        # Enable training button only if exactly 2 points are allocated
-        self.train_button.setEnabled(total_allocated == 2)
+        # Update training button state
+        self._update_train_button_state()
     
     
     def _on_feat_selected(self, feat_name):
@@ -772,11 +817,11 @@ Training includes food and lodging (counts as a long rest)."""
             self.selected_feat = feat_data
             self.feat_description.setText(feat_data['description'] or "No description available.")
             self.feat_description.show()
-            self.train_button.setEnabled(True)
         else:
             self.selected_feat = None
             self.feat_description.hide()
-            self.train_button.setEnabled(False)
+        
+        self._update_train_button_state()
     
     def _apply_asi_increases(self, character_id: str):
         """Apply ability score increases to character"""

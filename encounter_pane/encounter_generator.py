@@ -41,7 +41,8 @@ def load_monsters():
             'id': monster_row[0],
             'name': monster_row[1],
             'type': monster_row[2],
-            'cr': monster_row[15]
+            'cr': monster_row[15],
+            'alignment': monster_row[5]  # Add alignment from database
         }
         # Extract type - handle both string and object formats
         monster_type = monster['type']
@@ -95,6 +96,7 @@ def load_monsters():
             "cr_str": cr_str,
             "xp": CR_TO_XP.get(cr_str, 0),
             "type": monster_type,
+            "alignment": monster.get('alignment', 'N'),
             "average_hp": average_hp,
             "hp_formula": hp_formula
         })
@@ -151,6 +153,7 @@ class CampaignFrame:
         self.rest_rules = data.get('rest_rules', {})
         self.style = data.get('style', '')
         self.available_classes = data.get('available_classes', [])
+        self.monster_alignment_rules = data.get('monster_alignment_rules', {})
 
 
 class RandomBag:
@@ -179,11 +182,31 @@ class EncounterGenerator:
 
     def generate_encounter(self, level: int) -> Dict[str, Any]:
         if level not in self.bags:
-            # Filter monsters based on CR limits and frame weights
+            # Filter monsters based on CR limits and alignment rules
             cr_cap = 0.25 * level if level < 5 else 0.5 * level
-            allowed = [m for m in MONSTER_DB if m["cr"] <= cr_cap and m["type"] in self.frame.monster_type_weights]
-            weighted_pool = [m for m in allowed for _ in range(int(self.frame.monster_type_weights[m["type"]] * 100))]
-            self.bags[level] = RandomBag(weighted_pool)
+            allowed = []
+            
+            for m in MONSTER_DB:
+                if m["cr"] > cr_cap:
+                    continue
+                    
+                # Check alignment rules
+                alignment = m.get("alignment", "N").upper()
+                
+                # Allow evil monsters if configured
+                if self.frame.monster_alignment_rules.get("allow_evil", False):
+                    if "E" in alignment:  # Check for evil alignment
+                        allowed.append(m)
+                        continue
+                
+                # Allow humanoid non-good monsters if configured
+                if self.frame.monster_alignment_rules.get("allow_humanoid_not_good", False):
+                    if m["type"] == "humanoid" and "G" not in alignment:
+                        allowed.append(m)
+                        continue
+            
+            # Create equally weighted pool from allowed monsters
+            self.bags[level] = RandomBag(allowed if allowed else [m for m in MONSTER_DB if m["cr"] <= cr_cap])
 
         difficulty = random.choices(
             population=["low", "moderate", "high"],

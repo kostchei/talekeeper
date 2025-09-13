@@ -4316,6 +4316,44 @@ Character Level: {character_level}"""
         # TODO: Implement inventory check
         return False
     
+    def _determine_item_type(self, item_name: str) -> str:
+        """Determine the item type based on the item name."""
+        name_lower = item_name.lower()
+        
+        # Check for specific item patterns
+        if 'ring' in name_lower:
+            return 'ring'
+        elif 'cloak' in name_lower or 'cape' in name_lower or 'mantle' in name_lower:
+            return 'cloak'
+        elif 'shield' in name_lower:
+            return 'shield'
+        elif 'armor' in name_lower or 'mail' in name_lower or 'plate' in name_lower:
+            return 'armor'
+        elif 'sword' in name_lower or 'blade' in name_lower or 'dagger' in name_lower:
+            return 'weapon'
+        elif 'axe' in name_lower or 'hammer' in name_lower or 'mace' in name_lower:
+            return 'weapon'
+        elif 'bow' in name_lower or 'crossbow' in name_lower:
+            return 'weapon'
+        elif 'staff' in name_lower or 'wand' in name_lower or 'rod' in name_lower:
+            return 'tool'
+        elif 'amulet' in name_lower or 'necklace' in name_lower or 'pendant' in name_lower:
+            return 'accessory'
+        elif 'belt' in name_lower or 'girdle' in name_lower:
+            return 'accessory'
+        elif 'boots' in name_lower or 'shoes' in name_lower or 'slippers' in name_lower:
+            return 'footwear'
+        elif 'gloves' in name_lower or 'gauntlets' in name_lower or 'bracers' in name_lower:
+            return 'gloves'
+        elif 'helm' in name_lower or 'helmet' in name_lower or 'hat' in name_lower:
+            return 'helmet'
+        elif 'potion' in name_lower:
+            return 'consumable'
+        elif 'scroll' in name_lower:
+            return 'consumable'
+        else:
+            return 'misc'
+    
     def _add_magic_items_to_character(self, magic_items: list):
         """Add magical items to character inventory."""
         try:
@@ -4327,15 +4365,49 @@ Character Level: {character_level}"""
                     character = game_engine.current_character
                     
                     if character:
+                        character_id = character['id']
+                        
+                        import sqlite3
+                        conn = sqlite3.connect("talekeeper.db")
+                        cursor = conn.cursor()
+                        
                         for item in magic_items:
                             # Log the item acquisition
                             self._log_monster_action(f"[MAGIC] Found {item['name']} ({item['rarity']})")
                             
-                            # For now, just log - TODO: Add actual inventory integration
-                            print(f"[HOARD] Magic item for character {character['id']}: {item['name']} ({item['rarity']})")
+                            # Determine item type from the item name
+                            item_type = self._determine_item_type(item['name'])
+                            
+                            # Check if item already exists in inventory
+                            cursor.execute("""
+                                SELECT quantity FROM character_inventory 
+                                WHERE character_id = ? AND item_name = ? AND item_type = ?
+                            """, (character_id, item['name'], item_type))
+                            
+                            existing = cursor.fetchone()
+                            
+                            if existing:
+                                # Update existing quantity
+                                new_quantity = existing[0] + 1
+                                cursor.execute("""
+                                    UPDATE character_inventory 
+                                    SET quantity = ?
+                                    WHERE character_id = ? AND item_name = ? AND item_type = ?
+                                """, (new_quantity, character_id, item['name'], item_type))
+                            else:
+                                # Add new item
+                                cursor.execute("""
+                                    INSERT INTO character_inventory 
+                                    (character_id, item_name, item_type, quantity, equipped) 
+                                    VALUES (?, ?, ?, 1, 0)
+                                """, (character_id, item['name'], item_type))
                         
-                        # Refresh equipment panel
-                        self._refresh_equipment_panel(game_engine, character['id'])
+                        conn.commit()
+                        conn.close()
+                        
+                        # Force refresh inventory display
+                        if hasattr(parent, '_force_reload_character'):
+                            parent._force_reload_character()
                         break
                         
                 parent = parent.parent()
