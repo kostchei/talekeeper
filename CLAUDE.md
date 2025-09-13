@@ -132,6 +132,14 @@ Test with: `python testing/run_tests.py --mode specific`
 - Defense fighting style adds +1 AC when wearing armor
 - Equipment changes should update action cards
 
+### HP Tracking During Combat (CRITICAL)
+Combat HP is tracked in `parent.character_sheet.character_data`, NOT in the database or character_context during active combat:
+- **Damage Application**: Reads from character_sheet → applies damage → updates character_sheet
+- **Healing MUST**: Read from character_sheet → apply healing → update character_sheet
+- **NEVER**: Read HP from database or character_context for healing during combat (will be stale)
+- **Pattern Location**: See `_apply_damage_to_player()` and Second Wind implementation in `action_cards/action_panel.py`
+- All healing abilities (potions, spells, class features) must follow this pattern
+
 ## Database Schema
 Key tables in `talekeeper.db`:
 - `characters` - Character data and stats

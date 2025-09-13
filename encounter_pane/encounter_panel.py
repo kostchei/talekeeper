@@ -238,25 +238,43 @@ class Encounter:
             monsters_total=monster_count
         )
     
-    def roll_initiative(self, player_dex_mod: int, monster_instances: list, monster_data: dict) -> int:
+    def roll_initiative(self, player_dex_mod: int, monster_instances: list, monster_data: dict, character_context: dict = None, character_features: dict = None) -> int:
         """Roll initiative for player and all monsters with advantage/disadvantage support."""
         import random
         from services.advantage_system import advantage_system, RollType
-        
+
         # Create context for player initiative roll
+        feats = character_context.get('feats', []) if character_context else []
+        prof_bonus = character_context.get('proficiency_bonus', 2) if character_context else 2
+
+        # Calculate proficiency bonus from level if not in character_context
+        if character_context and 'proficiency_bonus' not in character_context:
+            level = character_context.get('level', 1)
+            prof_bonus = 2 + ((level - 1) // 4)  # Standard D&D progression
+
         initiative_context = {
             'dexterity_modifier': player_dex_mod,
-            # TODO: Add character features that affect initiative (e.g., Feral Instinct for Barbarians)
-            # 'feral_instinct': False  # Barbarian level 7 feature gives advantage on initiative
+            'feats': feats,
+            'proficiency_bonus': prof_bonus,
+            'character_features': character_features or {}
         }
         
         # Get advantage/disadvantage sources for initiative
         advantage_sources = advantage_system.get_common_advantage_sources(RollType.INITIATIVE, initiative_context)
         disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.INITIATIVE, initiative_context)
         
+        # Calculate total initiative modifier (DEX + proficiency for Alertness feat)
+        total_initiative_mod = player_dex_mod
+        has_alert = ('Alert' in initiative_context.get('feats', []) or
+                     'Alert' in initiative_context.get('character_features', {}))
+
+        if has_alert:
+            prof_bonus = initiative_context.get('proficiency_bonus', 2)
+            total_initiative_mod += prof_bonus
+
         # Calculate advantage state and roll
         advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
-        self.player_initiative, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, player_dex_mod)
+        self.player_initiative, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, total_initiative_mod)
         
         # Store the roll breakdown for logging
         self._player_initiative_breakdown = roll_breakdown

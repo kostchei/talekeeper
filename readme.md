@@ -132,6 +132,19 @@ The game creates configuration files automatically:
 - `config/settings.json` - Game settings
 - `talekeeper.log` - Application logs
 
+## ⚠️ Important Development Notes
+
+### HP Tracking During Combat
+**CRITICAL**: Combat HP is tracked in the character sheet UI, NOT in the database during active combat.
+
+When implementing any healing ability (Second Wind, potions, spells, etc.):
+1. **Get HP from**: `parent.character_sheet.character_data`
+2. **Apply healing to**: The same character_data object
+3. **Update display**: Call `parent.character_sheet.load_character_data()`
+4. **NEVER**: Read HP from database or character_context during combat (will be stale)
+
+See `action_cards/action_panel.py` methods `_apply_damage_to_player()` and Second Wind implementation for the correct pattern.
+
 ## 📈 Version History
 
 ### v0.01 (Initial Release)

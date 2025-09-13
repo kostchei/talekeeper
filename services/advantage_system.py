@@ -160,10 +160,23 @@ class AdvantageSystem:
         # Class-specific advantages
         if context.get('reckless_attack', False) and roll_type == RollType.ATTACK:
             advantage_sources.append("Reckless Attack")
-        
+
         if context.get('sneak_attack_advantage', False) and roll_type == RollType.ATTACK:
             advantage_sources.append("Sneak attack conditions")
-        
+
+        # Feat-based and feature-based advantages for initiative
+        if roll_type == RollType.INITIATIVE:
+            feats = context.get('feats', [])
+            if 'Alert' in feats:
+                advantage_sources.append("Alert feat")
+
+            # Class features (also check for feats stored in character_features)
+            character_features = context.get('character_features', {})
+            if 'Alert' in character_features:
+                advantage_sources.append("Alert feat")
+            if 'Feral Instinct' in character_features:
+                advantage_sources.append("Feral Instinct")
+
         return advantage_sources
     
     @staticmethod

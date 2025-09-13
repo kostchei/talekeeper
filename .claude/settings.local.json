@@ -67,7 +67,8 @@
       "Bash(git merge:*)",
       "Bash(move:*)",
       "Bash(git log:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(cd:*)"
     ],
     "deny": []
   }

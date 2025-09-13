@@ -419,7 +419,7 @@ class FeatureSystemIntegration:
                 FROM feature_states
                 WHERE character_id = ? AND (uses_current > 0 OR uses_current IS NULL)
             """, (character_id,))
-            
+
             features = []
             for row in cursor.fetchall():
                 config = json.loads(row['configuration']) if row['configuration'] else {}
@@ -431,7 +431,24 @@ class FeatureSystemIntegration:
                     "usage": config.get("usage"),
                     "description": config.get("description")
                 })
-            
+
+            # Also get features from character_features table (includes feats like Alert)
+            cursor.execute("""
+                SELECT feature_name, feature_type, description
+                FROM character_features
+                WHERE character_id = ?
+            """, (character_id,))
+
+            for row in cursor.fetchall():
+                features.append({
+                    "name": row['feature_name'],
+                    "type": row['feature_type'],
+                    "uses_remaining": None,
+                    "uses_max": None,
+                    "usage": "passive",
+                    "description": row['description']
+                })
+
             return features
             
         finally:

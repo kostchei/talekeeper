@@ -2320,7 +2320,7 @@ class ActionPanel(QWidget):
             
             # Roll initiative for everyone
             player_initiative = current_encounter.roll_initiative(
-                player_dex_mod, monster_instances, monster_data
+                player_dex_mod, monster_instances, monster_data, self.character_context, self.character_features
             )
             
             # Get initiative order
@@ -2484,7 +2484,6 @@ class ActionPanel(QWidget):
             print("⚔ [DEBUG] Executing monster turns before player...")
             initiative_summary = [f"{e['name']}({e['type']})" for e in initiative_order]
             print(f"⚔ [DEBUG] Initiative order: {initiative_summary}")
-            print(f"⚔ [DEBUG] Monster data keys: {list(monster_data.keys())}")
             print(f"⚔ [DEBUG] Encounter instances: {list(encounter_panel.encounter_instances.keys())}")
             
             for entry in initiative_order:
