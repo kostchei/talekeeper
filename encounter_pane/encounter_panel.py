@@ -3191,10 +3191,110 @@ Character Level: {character_level}"""
         card.hp_bar = hp_bar
         card.image_label = image_label
         
+        # Enable mouse tracking for hover events
+        card.setMouseTracking(True)
+        
+        # Add defensive halo for Lucky/Inspiration usage
+        from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
+        defensive_halo = AdvantageHalo(card)
+        defensive_halo.hide()
+        defensive_halo.resource_used.connect(
+            lambda resource_type, monster_id=instance.id: self._use_defensive_resource(resource_type, monster_id)
+        )
+        card.defensive_halo = defensive_halo
+        
         # Add click handler for selection (use default argument to capture instance.id)
         card.mousePressEvent = lambda event, iid=instance.id: self._select_monster_card(iid)
         
+        # Add hover handlers for defensive halo
+        original_enter_event = card.enterEvent
+        original_leave_event = card.leaveEvent
+        
+        def monster_enter_event(event):
+            self._show_defensive_halo(card)
+            if original_enter_event:
+                original_enter_event(event)
+        
+        def monster_leave_event(event):
+            if hasattr(card, 'defensive_halo'):
+                card.defensive_halo.hide()
+            if original_leave_event:
+                original_leave_event(event)
+        
+        card.enterEvent = monster_enter_event
+        card.leaveEvent = monster_leave_event
+        
         return card
+    
+    def _show_defensive_halo(self, monster_card):
+        """Show defensive halo when hovering over monster card."""
+        if not hasattr(monster_card, 'defensive_halo'):
+            return
+            
+        # Get character resources from action panel if available
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, 'resource_manager'):
+                    resource_manager = parent.action_panel.resource_manager
+                    if resource_manager and resource_manager.has_resources():
+                        counts = resource_manager.get_resource_counts()
+                        monster_card.defensive_halo.update_resources(
+                            counts['lucky_current'],
+                            counts['lucky_max'],
+                            counts['inspiration_current'], 
+                            counts['inspiration_max']
+                        )
+                        # Position halo in top-right of monster card
+                        halo_x = monster_card.width() - 30
+                        halo_y = -10
+                        monster_card.defensive_halo.move(halo_x, halo_y)
+                        monster_card.defensive_halo.raise_()
+                        monster_card.defensive_halo.show_with_timeout(3000)  # Auto-hide after 3 seconds
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"[DEBUG] Error showing defensive halo: {e}")
+    
+    def _use_defensive_resource(self, resource_type: str, monster_id: str):
+        """Handle defensive resource usage (imposing disadvantage on monster attacks)."""
+        try:
+            # Get resource manager from action panel
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, 'resource_manager'):
+                    resource_manager = parent.action_panel.resource_manager
+                    if resource_manager and resource_manager.consume_resource(resource_type):
+                        # Set defensive flag in action panel
+                        if resource_type == 'inspiration':
+                            parent.action_panel.inspiration_defensive_active = True
+                            resource_name = "Inspiration"
+                        elif resource_type == 'lucky':
+                            parent.action_panel.lucky_defensive_active = True
+                            resource_name = "Lucky"
+                        
+                        # Log the defensive action
+                        if hasattr(parent, 'log_panel'):
+                            monster_name = "Unknown"
+                            if monster_id in self.encounter_instances:
+                                monster_name = self.encounter_instances[monster_id].monster_name
+                            parent.log_panel.log_combat(f"🛡️ Used {resource_name} defensively: Next attack from {monster_name} has disadvantage")
+                        
+                        # Hide all defensive halos after use and update resource display
+                        for card_widget in self.findChildren(QFrame):
+                            if hasattr(card_widget, 'defensive_halo'):
+                                card_widget.defensive_halo.hide()
+                        
+                        # Update all action card halos to reflect resource consumption
+                        if hasattr(parent, 'action_panel'):
+                            for card in parent.action_panel.action_cards.values():
+                                if hasattr(card, '_update_advantage_halo'):
+                                    card._update_advantage_halo()
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"[DEBUG] Error using defensive resource: {e}")
+    
     
     def _get_monster_image_path(self, monster_name: str) -> Optional[str]:
         """Get the path to a monster's image file."""

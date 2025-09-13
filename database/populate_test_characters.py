@@ -258,6 +258,10 @@ class TestCharacterPopulator:
         else:
             hit_dice_type = 'd8'
             
+        # Calculate resource uses
+        lucky_uses = 3 if 'Lucky' in char_data.get('feats', []) else 0
+        inspiration_uses = 1 if char_data['race'] == 'human' else 0
+        
         self.cursor.execute("""
             INSERT OR REPLACE INTO characters (
                 id, save_slot_id, name, race_id, class_id, background_id,
@@ -267,6 +271,7 @@ class TestCharacterPopulator:
                 max_hit_points, current_hit_points,
                 hit_dice_max, hit_dice_current,
                 equipment_main_hand, equipment_off_hand, equipment_armor, equipment_shield,
+                lucky_uses_current, lucky_uses_max, inspiration_uses_current, inspiration_uses_max,
                 created_at, notes
             ) VALUES (
                 ?, ?, ?, ?, ?, ?,
@@ -275,6 +280,7 @@ class TestCharacterPopulator:
                 ?, ?, ?,
                 ?, ?,
                 ?, ?,
+                ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?
             )
@@ -300,6 +306,8 @@ class TestCharacterPopulator:
             char_data['equipment'].get('off_hand', ''),
             char_data['equipment'].get('armor', ''),
             char_data['equipment'].get('shield', ''),
+            lucky_uses, lucky_uses,  # Lucky current/max
+            inspiration_uses, inspiration_uses,  # Inspiration current/max
             datetime.now().isoformat(),
             f"Test character: {', '.join(char_data.get('feats', []))}"
         ))

@@ -660,6 +660,9 @@ class MainWindow(QMainWindow):
             # Load weapon masteries into action panel
             weapon_masteries = getattr(saved_character, 'weapon_masteries', []) or []
             self.action_panel.load_weapon_masteries(weapon_masteries)
+            
+            # Load advantage resources (Lucky, Inspiration) into action panel
+            self.action_panel.load_character_resources(saved_character)
 
             # Update menu
             self.menu.update_game_info(saved_character['name'], saved_character['level'])
@@ -894,6 +897,9 @@ class MainWindow(QMainWindow):
         # Load weapon masteries into action panel  
         weapon_masteries = character.get('weapon_masteries', []) or []
         self.action_panel.load_weapon_masteries(weapon_masteries)
+        
+        # Load advantage resources (Lucky, Inspiration) into action panel
+        self.action_panel.load_character_resources(character)
 
         self.log_panel.log_info(f"Welcome back, {character['name']}!")
     

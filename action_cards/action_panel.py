@@ -23,6 +23,8 @@ from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
+from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
+
 print("DEBUG: action_panel.py module loaded/imported at line 25")
 
 class ActionType(Enum):
@@ -103,8 +105,11 @@ class ActionPanel(QWidget):
         self.equipped_weapons = {}  # Store equipped weapon data
         
         # Lucky feat state tracking
-        self.lucky_advantage_active = False  # True when Lucky advantage is ready for next roll
+        # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
         self.lucky_disadvantage_active = False  # True when Lucky disadvantage is ready for next enemy attack
+        
+        # Advantage resource system
+        self.resource_manager = None  # Will be set when character loads
         
         # Vex weapon mastery tracking
         self.vex_target_id = None  # Monster ID that player has Vex advantage against
@@ -116,17 +121,52 @@ class ActionPanel(QWidget):
         self.character_id = None  # Current character ID for action tracking
         self.action_economy_enabled = True  # Toggle for action economy enforcement
         
+        # Defensive resource flags for imposing disadvantage on monster attacks
+        self.inspiration_defensive_active = False
+        self.lucky_defensive_active = False
+        
+        # Offensive resource flags for gaining advantage on player attacks
+        self._inspiration_offensive_active = False
+        self._lucky_offensive_active = False
+        
         # Set fixed size (center + right columns only)
         self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
         self.setAutoFillBackground(True)  # Ensure background is filled
+        
+        # Initialize UI components
+        self._ui_initialized = False
         self._setup_ui()
         self._apply_styles()
         self._create_action_cards()
+        self._ui_initialized = True
+        
+        # Now update visible cards after initialization
+        self._update_visible_cards()
         
         # Cooldown timer
         self.cooldown_timer = QTimer()
         self.cooldown_timer.timeout.connect(self._update_cooldowns)
         self.cooldown_timer.start(1000)  # Update every second
+        
+    @property
+    def inspiration_offensive_active(self):
+        return self._inspiration_offensive_active
+    
+    @inspiration_offensive_active.setter
+    def inspiration_offensive_active(self, value):
+        print(f"[DEBUG] Setting inspiration_offensive_active from {self._inspiration_offensive_active} to {value}")
+        import traceback
+        traceback.print_stack(limit=3)
+        self._inspiration_offensive_active = value
+        
+    @property
+    def lucky_offensive_active(self):
+        return self._lucky_offensive_active
+    
+    @lucky_offensive_active.setter
+    def lucky_offensive_active(self, value):
+        print(f"[DEBUG] Setting lucky_offensive_active from {self._lucky_offensive_active} to {value}")
+        self._lucky_offensive_active = value
     
     def _setup_ui(self):
         """Initialize the action panel UI components."""
@@ -231,9 +271,6 @@ class ActionPanel(QWidget):
         
         # Create placeholder weapon cards (will be updated when equipment is loaded)
         self._create_weapon_cards()
-        
-        # Show initial category
-        self._update_visible_cards()
     
     def _create_weapon_cards(self):
         """Create weapon attack cards based on equipped weapons."""
@@ -632,7 +669,7 @@ class ActionPanel(QWidget):
             uses_remaining = self._get_feat_resource_remaining("Lucky", "luck_points")
             if uses_remaining > 0:
                 self._use_feat_resource("Lucky", "luck_points")
-                self.lucky_advantage_active = True  # Set flag for next d20 roll
+                self.lucky_offensive_active = True  # Set flag for next d20 roll
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
@@ -806,6 +843,10 @@ class ActionPanel(QWidget):
     
     def _update_visible_cards(self):
         """Update which action cards are visible based on current category."""
+        # Guard: Check if UI is initialized
+        if not hasattr(self, '_ui_initialized') or not self._ui_initialized:
+            return
+            
         # Clear current layout
         for i in reversed(range(self.cards_layout.count())):
             child = self.cards_layout.itemAt(i).widget()
@@ -1925,11 +1966,20 @@ class ActionPanel(QWidget):
         # Get advantage/disadvantage sources
         advantage_sources = advantage_system.get_common_advantage_sources(RollType.ATTACK, context)
         disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.ATTACK, context)
+        print(f"[DEBUG] Starting attack roll - advantage_sources: {advantage_sources}, disadvantage_sources: {disadvantage_sources}")
         
-        # Check for Lucky feat advantage
-        if self.lucky_advantage_active:
-            advantage_sources.append("Lucky feat")
-            self.lucky_advantage_active = False  # Consume the Lucky advantage
+        # Check for pending advantage from Lucky/Inspiration triangle clicks
+        if hasattr(self, 'resource_manager') and self.resource_manager:
+            print(f"[DEBUG] Checking resource manager for pending advantage...")
+            if self.resource_manager.has_pending_advantage():
+                consumed_type = self.resource_manager.consume_pending_advantage()
+                if consumed_type:
+                    advantage_sources.append(f"{consumed_type.title()} (triangle click)")
+                    print(f"[DEBUG] Applied {consumed_type} offensive advantage to attack roll from resource manager")
+            else:
+                print(f"[DEBUG] No pending advantage in resource manager")
+        else:
+            print(f"[DEBUG] No resource manager available for advantage check")
         
         # Check for Reckless Attack advantage (only on Strength-based attacks)
         if (self.character_context.get('reckless_attack_active', False) and 
@@ -1943,12 +1993,15 @@ class ActionPanel(QWidget):
             self.vex_target_id = None  # Consume the Vex advantage
         
         # Calculate final advantage state
+        print(f"[DEBUG] Final advantage_sources: {advantage_sources}, disadvantage_sources: {disadvantage_sources}")
         advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+        print(f"[DEBUG] Calculated advantage_state: {advantage_state}")
         
         # Roll with advantage/disadvantage
         total_modifier = prof_bonus + ability_mod
         base_roll_total, roll_breakdown = advantage_system.roll_d20_with_advantage(advantage_state, 0)  # Don't add modifier yet
         base_roll = roll_breakdown['d20_result']
+        print(f"[DEBUG] Advantage roll result: base_roll_total={base_roll_total}, roll_breakdown={roll_breakdown}")
         
         magic_bonus = context.get('attack_bonus', 0)
         total_bonus = prof_bonus + ability_mod + magic_bonus
@@ -1959,6 +2012,7 @@ class ActionPanel(QWidget):
             'd20_roll': base_roll,
             'proficiency': prof_bonus,
             'ability_mod': ability_mod,
+            'roll_details': roll_breakdown,  # Include full advantage/disadvantage details
             'ability_name': ability_name,
             'magic_bonus': magic_bonus,
             'total_bonus': total_bonus,
@@ -2543,6 +2597,13 @@ class ActionPanel(QWidget):
             if self.lucky_disadvantage_active:
                 disadvantage_sources.append("Lucky feat")
                 self.lucky_disadvantage_active = False  # Consume the Lucky disadvantage
+                print(f"[DEBUG] Applied Lucky defensive disadvantage to {monster_instance.monster_name}")
+            
+            # Check for Inspiration defensive disadvantage
+            if self.inspiration_defensive_active:
+                disadvantage_sources.append("Inspiration (defensive)")
+                self.inspiration_defensive_active = False  # Consume the Inspiration disadvantage
+                print(f"[DEBUG] Applied Inspiration defensive disadvantage to {monster_instance.monster_name}")
             
             # Check for Reckless Attack advantage (enemies get advantage against reckless barbarian)
             if self.character_context.get('reckless_attack_active', False):
@@ -3131,10 +3192,18 @@ class ActionPanel(QWidget):
     def load_weapon_masteries(self, weapon_masteries: List[str]):
         """Load character weapon masteries."""
         self.character_weapon_masteries = weapon_masteries or []
-        # Also store in character context for easy access
-        if not hasattr(self, 'character_context'):
-            self.character_context = {}
-        self.character_context['weapon_masteries'] = weapon_masteries or []
+        
+    def load_character_resources(self, character_data: Dict[str, Any]):
+        """Load character advantage resources (Lucky, Inspiration)."""
+        self.resource_manager = AdvantageResourceManager(character_data)
+        
+        # Update all action cards with the resource manager
+        cards_updated = 0
+        for card in self.action_cards.values():
+            if hasattr(card, 'set_resource_manager'):
+                card.set_resource_manager(self.resource_manager)
+                cards_updated += 1
+                
     
     def set_target_monster(self, monster_id: str):
         """Set the target monster for attacks."""
@@ -4737,6 +4806,15 @@ class ActionCard(QWidget):
         self.available = True
         self.cooldown_remaining = 0
         
+        # Advantage resource system
+        self.advantage_halo = AdvantageHalo(self)
+        self.advantage_halo.hide()
+        self.advantage_halo.resource_used.connect(self._on_advantage_resource_used)
+        self.resource_manager = None  # Set by parent panel
+        
+        # Enable mouse tracking for hover events
+        self.setMouseTracking(True)
+        
         self.setFixedSize(140, 180)
         self._setup_ui()
         self._apply_styles()
@@ -4950,8 +5028,105 @@ class ActionCard(QWidget):
     
     def enterEvent(self, event):
         """Handle mouse enter for hover effect."""
+        
         # Only emit for ActionType enums, skip for legacy integer IDs
         if isinstance(self.action_type, ActionType):
             current_tooltip = self.toolTip() or self.description
             self.action_hovered.emit(self.action_type, current_tooltip)
+        
+        # Show advantage halo if resources available
+        self._update_advantage_halo()
         super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        """Handle mouse leave."""
+        # Hide advantage halo when not hovering
+        if self.advantage_halo:
+            self.advantage_halo.hide()
+        super().leaveEvent(event)
+        
+    def _update_advantage_halo(self):
+        """Update and position the advantage halo."""
+        if not self.resource_manager:
+            return
+        
+        # TODO: Add back action filtering after debugging
+        # Currently showing on all cards to debug the advantage issue
+        # if not self._is_attack_action():
+        #     self.advantage_halo.hide()
+        #     return
+            
+        if self.resource_manager.has_resources():
+            counts = self.resource_manager.get_resource_counts()
+            self.advantage_halo.update_resources(
+                counts['lucky_current'],
+                counts['lucky_max'],
+                counts['inspiration_current'], 
+                counts['inspiration_max']
+            )
+            # Position triangle in top-right corner
+            halo_x = self.width() - 30  # Right edge
+            halo_y = 0  # Top edge  
+            self.advantage_halo.move(halo_x, halo_y)
+            self.advantage_halo.raise_()  # Ensure it's on top
+            self.advantage_halo.show()
+        else:
+            self.advantage_halo.hide()
+    
+    def _is_attack_action(self):
+        """Check if this action card represents an attack that can benefit from advantage."""
+        print(f"[DEBUG] _is_attack_action() for card: {getattr(self, 'name', 'unnamed')}, action_type: {getattr(self, 'action_type', 'none')}")
+        
+        # Check action type for weapon attacks
+        if hasattr(self, 'action_type') and self.action_type in [
+            ActionType.ATTACK_MAIN_HAND,
+            ActionType.ATTACK_OFF_HAND,
+            ActionType.ATTACK_UNARMED
+        ]:
+            print(f"[DEBUG] Card matches attack action type: {self.action_type}")
+            return True
+        
+        # Check card name for weapon cards (legacy system)
+        if hasattr(self, 'name'):
+            weapon_keywords = ['sword', 'rapier', 'dagger', 'bow', 'crossbow', 'axe', 'mace', 'spear', 'club', 'javelin']
+            card_name_lower = self.name.lower()
+            print(f"[DEBUG] Checking weapon keywords in '{card_name_lower}': {weapon_keywords}")
+            if any(weapon in card_name_lower for weapon in weapon_keywords):
+                print(f"[DEBUG] Card matches weapon keyword: {card_name_lower}")
+                return True
+        
+        # Exclude utility actions
+        if hasattr(self, 'action_type') and self.action_type in [
+            ActionType.USE_ITEM,
+            ActionType.DODGE,
+            ActionType.DASH,
+            ActionType.HELP,
+            ActionType.HIDE,
+            ActionType.READY,
+            ActionType.SEARCH,
+            ActionType.MAGIC  # Spells don't benefit from Lucky/Inspiration
+        ]:
+            return False
+        
+        # Check card name for utility actions (legacy system)
+        if hasattr(self, 'name'):
+            utility_keywords = ['use item', 'dodge', 'dash', 'help', 'hide', 'magic', 'spell', 'potion']
+            card_name_lower = self.name.lower()
+            if any(keyword in card_name_lower for keyword in utility_keywords):
+                return False
+        
+        # Default to false for unknown actions
+        print(f"[DEBUG] Card does not match any attack criteria, returning False")
+        return False
+            
+    def _on_advantage_resource_used(self, resource_type):
+        """Handle advantage resource usage."""
+        if self.resource_manager and self.resource_manager.consume_resource(resource_type):
+            print(f"[DEBUG] Applied {resource_type} offensive advantage for next attack (stored in resource manager)")
+            
+            # Hide halo immediately to prevent multiple clicks
+            self.advantage_halo.hide()
+            
+    def set_resource_manager(self, resource_manager):
+        """Set the advantage resource manager."""
+        self.resource_manager = resource_manager

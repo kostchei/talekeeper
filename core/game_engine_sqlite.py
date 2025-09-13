@@ -267,6 +267,12 @@ class GameEngineSQLite:
                     'class_resources': {},
                     'class_resources_max': {},
                     
+                    # Lucky/Inspiration resources (new advantage system)
+                    'lucky_uses_current': self._safe_get_row_value(character_row, 'lucky_uses_current', 0),
+                    'lucky_uses_max': self._safe_get_row_value(character_row, 'lucky_uses_max', 0),
+                    'inspiration_uses_current': self._safe_get_row_value(character_row, 'inspiration_uses_current', 0),
+                    'inspiration_uses_max': self._safe_get_row_value(character_row, 'inspiration_uses_max', 0),
+                    
                     # Rest tracking
                     'last_short_rest': character_row['last_short_rest'],
                     'last_long_rest': character_row['last_long_rest'],
