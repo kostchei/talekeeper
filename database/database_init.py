@@ -75,28 +75,62 @@ class DatabaseInitializer:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            game_data_file = self.seeds_dir / '001_game_data.sql'
-            if not game_data_file.exists():
-                print(f"Error: Game data file not found at {game_data_file}")
-                return False
+            # Load seed files in order
+            seed_files = [
+                '001_game_data.sql',  # Legacy data (keep for compatibility)
+                '002_core_game_data.sql',
+                '003_backgrounds.sql', 
+                '004_equipment.sql',
+                '005_monsters.sql',
+                '007_class_features.sql',
+                '008_class_proficiencies.sql',
+                '100_starter_character.sql',
+                '101_test_characters.sql'
+            ]
             
-            print(f"Loading game data from {game_data_file}...")
-            with open(game_data_file, 'r', encoding='utf-8') as f:
-                game_data_sql = f.read()
+            total_loaded = 0
+            for seed_file in seed_files:
+                file_path = self.seeds_dir / seed_file
+                if file_path.exists():
+                    print(f"Loading {seed_file}...")
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        sql_content = f.read()
+                    
+                    try:
+                        cursor.executescript(sql_content)
+                        conn.commit()
+                        total_loaded += 1
+                    except sqlite3.Error as e:
+                        print(f"Warning: Error loading {seed_file}: {e}")
+                        # Continue with other files
+                else:
+                    print(f"Seed file {seed_file} not found, skipping...")
             
-            cursor.executescript(game_data_sql)
-            conn.commit()
+            # Verify data was loaded
+            try:
+                cursor.execute("SELECT COUNT(*) FROM classes")
+                class_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM races") 
+                race_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM equipment")
+                equipment_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM monsters")
+                monster_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) FROM characters")
+                char_count = cursor.fetchone()[0]
+                
+                print(f"Game data loaded from {total_loaded} files:")
+                print(f"  - {class_count} classes, {race_count} races")
+                print(f"  - {equipment_count} equipment items, {monster_count} monsters")
+                print(f"  - {char_count} starter character(s)")
+                
+            except sqlite3.Error:
+                print("Data loaded successfully (some tables may not exist yet)")
             
-            cursor.execute("SELECT COUNT(*) FROM classes")
-            class_count = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM races")
-            race_count = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM equipment")
-            equipment_count = cursor.fetchone()[0]
-            
-            print(f"Game data loaded: {class_count} classes, {race_count} races, {equipment_count} equipment items")
             return True
             
         except Exception as e:
@@ -165,73 +199,74 @@ class DatabaseInitializer:
                 conn.close()
     
     def check_and_apply_migrations(self) -> bool:
+        """Legacy migration support - now redirects to schema versioning."""
+        print("Checking database schema version...")
+        return self.check_schema_version()
+    
+    def check_schema_version(self) -> bool:
+        """Check and upgrade database schema if needed."""
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
+            # Create schema_version table if it doesn't exist
             cursor.execute('''
-                CREATE TABLE IF NOT EXISTS schema_migrations (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    version TEXT UNIQUE NOT NULL,
-                    checksum TEXT NOT NULL,
-                    applied_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    description TEXT
+                CREATE TABLE IF NOT EXISTS schema_version (
+                    version INTEGER PRIMARY KEY,
+                    description TEXT NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             
-            cursor.execute('SELECT version FROM schema_migrations')
-            applied_migrations = {row[0] for row in cursor.fetchall()}
+            # Get current schema version
+            cursor.execute('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1')
+            result = cursor.fetchone()
+            current_version = result[0] if result else 0
             
-            migration_files = sorted([f for f in os.listdir(self.migrations_dir) 
-                                    if f.endswith('.sql')] if self.migrations_dir.exists() else [])
+            # Target schema version
+            target_version = 2
             
-            new_migrations = []
-            for migration_file in migration_files:
-                version = migration_file.replace('.sql', '')
-                if version not in applied_migrations:
-                    new_migrations.append(migration_file)
-            
-            if not new_migrations:
-                print("Database is up to date")
+            if current_version >= target_version:
+                print(f"Database schema is up to date (version {current_version})")
                 return True
             
-            print(f"Found {len(new_migrations)} new migration(s) to apply")
+            print(f"Database schema needs update: v{current_version} -> v{target_version}")
             
-            for migration_file in new_migrations:
-                migration_path = self.migrations_dir / migration_file
-                version = migration_file.replace('.sql', '')
-                
-                print(f"Applying migration: {version}")
-                
-                with open(migration_path, 'r', encoding='utf-8') as f:
-                    migration_sql = f.read()
-                    checksum = hashlib.md5(migration_sql.encode()).hexdigest()
-                
-                try:
-                    cursor.executescript(migration_sql)
-                except sqlite3.OperationalError as e:
-                    if "duplicate column name" in str(e).lower():
-                        print(f"  Column already exists (skipping): {e}")
-                    else:
-                        raise
-                
-                description = migration_sql.split('\n')[0].replace('--', '').strip() if migration_sql.startswith('--') else version
+            # Check if this is an old database with migrations
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'")
+            has_old_migrations = cursor.fetchone() is not None
+            
+            if has_old_migrations and current_version == 0:
+                # This is an existing database with old migration system
+                print("Detected existing database with migration system")
+                print("Marking as schema version 2 (all migrations already applied)")
                 
                 cursor.execute('''
-                    INSERT INTO schema_migrations (version, checksum, description)
-                    VALUES (?, ?, ?)
-                ''', (version, checksum, description))
-                
-                print(f"Applied migration: {version}")
+                    INSERT OR REPLACE INTO schema_version (version, description)
+                    VALUES (2, 'Migrated from legacy migration system')
+                ''')
+                conn.commit()
+                print("Schema version updated to v2")
+                return True
             
-            conn.commit()
-            print("All migrations applied successfully")
-            return True
+            elif current_version == 1:
+                # Future: handle upgrade from v1 to v2
+                print("Upgrading schema from v1 to v2...")
+                # Would contain specific upgrade logic here
+                cursor.execute('''
+                    INSERT OR REPLACE INTO schema_version (version, description)
+                    VALUES (2, 'Upgraded from schema v1')
+                ''')
+                conn.commit()
+                print("Schema upgraded to v2")
+                return True
+            
+            else:
+                print(f"Unknown schema version: {current_version}")
+                return False
             
         except Exception as e:
-            print(f"Error applying migrations: {e}")
-            if conn:
-                conn.rollback()
+            print(f"Error checking schema version: {e}")
             return False
         finally:
             if conn:

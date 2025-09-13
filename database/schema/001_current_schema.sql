@@ -1,17 +1,3 @@
--- TaleKeeper Database Schema v2.0
--- This schema includes all features from legacy migrations 002-010
-
--- Schema version tracking
-CREATE TABLE schema_version (
-    version INTEGER PRIMARY KEY,
-    description TEXT NOT NULL,
-    applied_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Current schema version
-INSERT INTO schema_version (version, description) 
-VALUES (2, 'Complete schema with all migration features integrated');
-
 CREATE TABLE characters (
     id TEXT PRIMARY KEY,
     save_slot_id TEXT,
@@ -75,6 +61,7 @@ CREATE TABLE character_feats (
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
     UNIQUE(character_id, feat_name)
 );
+CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE character_proficiencies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     character_id TEXT NOT NULL,
