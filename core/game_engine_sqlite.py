@@ -831,15 +831,15 @@ class GameEngineSQLite:
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT name FROM backgrounds ORDER BY name")
+            cursor.execute("SELECT id, name FROM backgrounds ORDER BY name")
             backgrounds = []
             for row in cursor.fetchall():
                 # Create a simple object with name and id attributes
                 class BackgroundInfo:
-                    def __init__(self, name):
+                    def __init__(self, id, name):
                         self.name = name
-                        self.id = name
-                backgrounds.append(BackgroundInfo(row['name']))
+                        self.id = id
+                backgrounds.append(BackgroundInfo(row['id'], row['name']))
             conn.close()
             return backgrounds
         except Exception as e:
