@@ -135,13 +135,7 @@ INSERT INTO class_weapon_proficiencies (class_id, weapon_type) VALUES ('wizard',
 INSERT INTO class_weapon_proficiencies (class_id, weapon_type) VALUES ('wizard', 'quarterstaffs');
 INSERT INTO class_weapon_proficiencies (class_id, weapon_type) VALUES ('wizard', 'light crossbows');
 
--- species_proficiencies (12 rows)
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('human', 'skill', NULL, 1, '["any"]');
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('dwarf', 'tool', 'smith_tools', 0, NULL);
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('elf', 'skill', 'Perception', 0, NULL);
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('elf', 'weapon', 'longsword', 0, NULL);
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('elf', 'weapon', 'shortbow', 0, NULL);
-INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('halfling', 'skill', 'Stealth', 0, NULL);
+-- species_proficiencies (6 rows)
 INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('human', 'skill', NULL, 1, '["any"]');
 INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('dwarf', 'tool', 'smith_tools', 0, NULL);
 INSERT INTO species_proficiencies (species_id, proficiency_type, proficiency_name, choice_count, available_options) VALUES ('elf', 'skill', 'Perception', 0, NULL);
