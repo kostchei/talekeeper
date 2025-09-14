@@ -27,7 +27,8 @@ import json
 import os
 import random
 from uuid import uuid4
-from .encounter_generator import EncounterGenerator, CampaignFrame, roll_monster_hp
+from .encounter_generator import EncounterGenerator, roll_monster_hp
+from .campaign_frame import CampaignFrame
 from services.equipment_database import EquipmentDatabase
 from .town_encounter import TownEncounterPanel
 # Monster models no longer needed - using direct SQL queries and local dataclasses
@@ -2904,26 +2905,59 @@ class EncounterPanel(QWidget):
     
     # === ENCOUNTER GENERATION METHODS ===
     
+    def _set_campaign_file(self, filename: str):
+        """Set the campaign file to load."""
+        self.campaign_file = filename
+
     def _load_campaign_frame(self):
-        """Load campaign frame from conan.json and initialize encounter generator."""
+        """Load campaign frame from specified file and initialize encounter generator."""
         try:
-            campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', 'conan.json')
+            # Use specified campaign file or default to golden
+            campaign_name = getattr(self, 'campaign_file', 'golden.json').replace('.json', '')
+            campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', getattr(self, 'campaign_file', 'golden.json'))
+            print(f"[DEBUG] Looking for campaign at: {campaign_path}")
+            print(f"[DEBUG] __file__ is: {__file__}")
+            print(f"[DEBUG] dirname(__file__) is: {os.path.dirname(__file__)}")
+
+            # Fall back to conan if golden doesn't exist
+            if not os.path.exists(campaign_path):
+                print(f"[DEBUG] Golden campaign not found, falling back to conan")
+                campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', 'conan.json')
+
+            print(f"[DEBUG] Loading campaign from: {campaign_path}")
             with open(campaign_path, 'r', encoding='utf-8') as f:
                 frame_data = json.load(f)
-            
+
+            print(f"[DEBUG] Frame data loaded: {frame_data}")
+            print(f"[DEBUG] Frame data name: {frame_data.get('name')}")
+            print(f"[DEBUG] Frame data guaranteed_hoards: {frame_data.get('guaranteed_hoards')}")
+
             campaign_frame = CampaignFrame(frame_data)
+            print(f"[DEBUG] CampaignFrame created successfully")
             self.campaign_frame = campaign_frame
+
+            print(f"[DEBUG] Creating EncounterGenerator...")
             self.encounter_generator = EncounterGenerator(campaign_frame)
+            print(f"[DEBUG] EncounterGenerator created successfully")
+
+            print(f"[DEBUG] Loaded campaign: {getattr(campaign_frame, 'name', 'Unknown')}")
+            print(f"[DEBUG] Guaranteed hoards: {getattr(campaign_frame, 'guaranteed_hoards', 'Not set')}")
             
         except Exception as e:
             print(f"Error loading campaign frame: {e}")
-            # Fallback to default frame
+            # Fallback to Golden Age settings (since something is preventing golden.json from loading)
             default_frame_data = {
-                'monster_type_weights': {'humanoid': 0.7, 'fiend': 0.2, 'aberration': 0.1},
-                'difficulty_distribution': {'low': 0.5, 'moderate': 0.4, 'high': 0.1},
+                'name': 'Golden Age (Fallback)',
+                'monster_type_weights': {
+                    'humanoid': 0.25, 'beast': 0.20, 'monstrosity': 0.15,
+                    'fiend': 0.15, 'undead': 0.10, 'dragon': 0.08,
+                    'aberration': 0.05, 'celestial': 0.02
+                },
+                'difficulty_distribution': {'low': 0.3, 'moderate': 0.4, 'hard': 0.25, 'high': 0.05},
                 'rest_rules': {'short_rest_duration': 1, 'long_rest_duration': 8},
-                'style': 'standard',
-                'available_classes': ["barbarian", "fighter", "rogue", "paladin", "cleric", "warlock", "wizard"]
+                'style': 'golden',
+                'available_classes': ["Barbarian", "Fighter", "Rogue", "Paladin", "Cleric", "Warlock", "Wizard"],
+                'guaranteed_hoards': True
             }
             campaign_frame = CampaignFrame(default_frame_data)
             self.campaign_frame = campaign_frame
@@ -2954,6 +2988,7 @@ class EncounterPanel(QWidget):
             self.encounter_instances = {}
             self.selected_monster_id = None  # Clear selection
             self.defeated_monsters = []  # Clear defeated monsters list for treasure tracking
+            self._loot_already_collected = False  # Reset loot collection flag
             
             # Create new encounter ID
             self.current_encounter_id = str(uuid4())
@@ -3752,8 +3787,15 @@ Character Level: {character_level}"""
     
     def _handle_loot_action(self):
         """Handle clicking the Loot action card."""
+        print(f"[DEBUG] _handle_loot_action called")
+
+        # Prevent multiple loot calls
+        if hasattr(self, '_loot_already_collected') and self._loot_already_collected:
+            self._log_monster_action("Loot has already been collected for this encounter.")
+            return
+
         self._log_monster_action("[SEARCH] Searching for loot...")
-        
+
         if not hasattr(self, 'defeated_monsters') or not self.defeated_monsters:
             self._log_monster_action("No defeated monsters to loot.")
             return
@@ -3785,9 +3827,13 @@ Character Level: {character_level}"""
         # Check for encounter hoard based on difficulty
         hoard_gp = 0
         if hasattr(self, 'current_encounter') and self.current_encounter:
-            hoard_treasure = self._check_for_hoard(self.current_encounter.difficulty if hasattr(self.current_encounter, 'difficulty') else 'moderate')
+            difficulty = self.current_encounter.difficulty if hasattr(self.current_encounter, 'difficulty') else 'moderate'
+            print(f"[DEBUG] Checking for hoard with difficulty: {difficulty}")
+            print(f"[DEBUG] Campaign guaranteed hoards: {getattr(self.campaign_frame, 'guaranteed_hoards', False) if hasattr(self, 'campaign_frame') else 'No campaign frame'}")
+            hoard_treasure = self._check_for_hoard(difficulty)
+            print(f"[DEBUG] Hoard result: {hoard_treasure}")
             if hoard_treasure:
-                self._log_monster_action(f"🏆 {hoard_treasure}")
+                self._log_monster_action(f"🏆 HOARD FOUND! {hoard_treasure}")
                 # Extract GP amount from hoard string (e.g., "A Hoard with 200 GP and 0 magical items")
                 import re
                 gp_match = re.search(r'(\d+) GP', hoard_treasure)
@@ -3804,6 +3850,9 @@ Character Level: {character_level}"""
             self._add_items_to_character(all_item_drops)
             item_summary = ', '.join([f"{item['name']}" for item in all_item_drops])
             self._log_monster_action(f"🎒 Items Found: {item_summary}")
+
+        # Mark loot as collected
+        self._loot_already_collected = True
     
     def _roll_individual_treasure(self, monster_cr) -> int:
         """Roll individual treasure based on monster CR."""
@@ -3997,16 +4046,29 @@ Character Level: {character_level}"""
     def _check_for_hoard(self, difficulty: str) -> str:
         """Check for hoard treasure based on encounter difficulty."""
         import random
-        
-        # Determine hoard chance based on difficulty
-        hoard_chances = {
-            'low': 0.05,      # 5%
-            'moderate': 0.20, # 20%
-            'hard': 0.95,     # 95%
-            'high': 0.95      # Treat 'high' same as 'hard'
-        }
-        
-        chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
+
+        # Check if campaign guarantees hoards
+        if hasattr(self, 'campaign_frame') and hasattr(self.campaign_frame, 'guaranteed_hoards'):
+            if getattr(self.campaign_frame, 'guaranteed_hoards', False):
+                chance = 1.0  # 100% chance for golden campaign
+            else:
+                # Determine hoard chance based on difficulty
+                hoard_chances = {
+                    'low': 0.05,      # 5%
+                    'moderate': 0.20, # 20%
+                    'hard': 0.95,     # 95%
+                    'high': 0.95      # Treat 'high' same as 'hard'
+                }
+                chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
+        else:
+            # Fallback for campaigns without guaranteed_hoards setting
+            hoard_chances = {
+                'low': 0.05,      # 5%
+                'moderate': 0.20, # 20%
+                'hard': 0.95,     # 95%
+                'high': 0.95      # Treat 'high' same as 'hard'
+            }
+            chance = hoard_chances.get(difficulty.lower(), 0.20)  # Default to moderate
         
         if random.random() <= chance:
             # Get highest monster CR from current encounter to determine hoard table
@@ -4027,11 +4089,17 @@ Character Level: {character_level}"""
                             continue
             
             # Use D&D 2024 hoard table based on CR
+            print(f"[DEBUG] Max CR in encounter: {max_cr}")
             if max_cr <= 4:
                 # CR 0-4: 2d4 × 100 GP and 1d4-1 magical items
                 hoard_gp_dice = sum(random.randint(1, 4) for _ in range(2))
                 hoard_gp = hoard_gp_dice * 100
                 magic_items_roll = random.randint(1, 4) - 1
+
+                # Golden Age campaign: guarantee at least 1 magical item for guaranteed hoards
+                if hasattr(self, 'campaign_frame') and getattr(self.campaign_frame, 'guaranteed_hoards', False):
+                    magic_items_roll = max(1, magic_items_roll)
+                    print(f"[DEBUG] Golden Age: Ensured at least 1 magical item")
             elif max_cr <= 10:
                 # CR 5-10: 8d10 × 100 GP and 1d3 magical items
                 hoard_gp_dice = sum(random.randint(1, 10) for _ in range(8))
@@ -4049,11 +4117,14 @@ Character Level: {character_level}"""
                 magic_items_roll = random.randint(1, 6)
             
             magic_items = max(0, magic_items_roll)  # Minimum 0 items for CR 0-4 only
-            
+            print(f"[DEBUG] Magic items to generate: {magic_items}")
+
             # Generate actual magical items based on rarity
             generated_items = []
             if magic_items > 0:
+                print(f"[DEBUG] Generating {magic_items} magic items for CR {max_cr}")
                 generated_items = self._generate_hoard_magic_items(magic_items, max_cr)
+                print(f"[DEBUG] Generated items: {[item.get('name', 'Unknown') for item in generated_items]}")
             
             if generated_items:
                 item_names = [item['name'] for item in generated_items]
@@ -4491,6 +4562,7 @@ Character Level: {character_level}"""
                         
                         for item in magic_items:
                             # Log the item acquisition
+                            print(f"[DEBUG] Adding magic item to inventory: {item}")
                             self._log_monster_action(f"[MAGIC] Found {item['name']} ({item['rarity']})")
                             
                             # Determine item type from the item name

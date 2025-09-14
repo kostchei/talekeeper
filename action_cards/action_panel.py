@@ -4454,9 +4454,43 @@ class ActionPanel(QWidget):
             except Exception as e:
                 print(f"Error logging lay on hands: {e}")
     
+    def _monsters_present(self) -> bool:
+        """Check if any monsters are currently present/alive."""
+        try:
+            # Find encounter panel to check for active monsters
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'encounter_panel'):
+                    encounter_panel = parent.encounter_panel
+                    # Check if there are alive monsters in the encounter panel
+                    if hasattr(encounter_panel, 'monsters') and encounter_panel.monsters:
+                        # Check if any monster is alive (HP > 0)
+                        for monster in encounter_panel.monsters:
+                            if hasattr(monster, 'current_hit_points') and monster.current_hit_points > 0:
+                                return True
+                        return False
+                    # Check if encounter is active in other ways
+                    if hasattr(encounter_panel, 'current_encounter') and encounter_panel.current_encounter:
+                        return True
+                    return False
+                parent = parent.parent()
+            return False
+        except Exception as e:
+            print(f"Error checking monsters present: {e}")
+            return False  # Default to allowing rest if check fails
+
     def _handle_rest_action(self, context: Dict[str, Any]):
         """Handle rest action - prompt for short or long rest."""
         try:
+            # Check if monsters are present - cannot rest during combat
+            if self._monsters_present():
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("❌ Cannot rest while monsters are present!")
+                        break
+                    parent = parent.parent()
+                return
             # Create a simple dialog to choose rest type
             from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
             
@@ -4554,12 +4588,15 @@ class ActionPanel(QWidget):
             
             # Allow hit die recovery (simplified - just heal some HP)
             self._short_rest_healing()
-            
-            # Log completion
+
+            # Enable attunement after short rest
             parent = self.parent()
             while parent:
+                if hasattr(parent, 'equipment_panel'):
+                    print("[ACTION PANEL] Calling enable_attunement on equipment panel")
+                    parent.equipment_panel.enable_attunement()
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("✨ Short Rest completed! Some abilities and HP restored.")
+                    parent.log_panel.log_combat("✨ Short Rest completed! Some abilities and HP restored. Attunement now available.")
                     break
                 parent = parent.parent()
             
@@ -4587,12 +4624,15 @@ class ActionPanel(QWidget):
             
             # Full healing
             self._long_rest_healing()
-            
-            # Log completion
+
+            # Enable attunement after long rest
             parent = self.parent()
             while parent:
+                if hasattr(parent, 'equipment_panel'):
+                    print("[ACTION PANEL] Calling enable_attunement on equipment panel (long rest)")
+                    parent.equipment_panel.enable_attunement()
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("✨ Long Rest completed! All abilities, spell slots, and HP fully restored.")
+                    parent.log_panel.log_combat("✨ Long Rest completed! All abilities, spell slots, and HP fully restored. Attunement available.")
                     break
                 parent = parent.parent()
             

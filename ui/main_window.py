@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         self.menu.save_and_exit_requested.connect(self._save_and_exit)
         self.menu.force_reload_requested.connect(self._force_reload_character)
         self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
-        self.menu.campaign_frame_requested.connect(lambda: self.log_panel.log_info("Campaign Frame requested"))
+        self.menu.campaign_frame_requested.connect(self._show_campaign_selection)
         
         # Character sheet signals
         self.character_sheet.expansion_changed.connect(
@@ -1059,7 +1059,198 @@ class MainWindow(QMainWindow):
                     self.log_panel.log_error(f"No character found in slot {slot_number}")
             except Exception as e:
                 self.log_panel.log_error(f"Error deleting character from slot {slot_number}: {e}")
-    
+
+    def _show_campaign_selection(self):
+        """Show dialog to select campaign frame."""
+        try:
+            from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
+                                       QLabel, QListWidget, QListWidgetItem, QTextEdit,
+                                       QDialogButtonBox)
+            import os
+            import json
+
+            self.log_panel.log_system("Opening campaign selection dialog...")
+
+            # Create dialog
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Select Campaign Frame")
+            dialog.setFixedSize(600, 500)
+            dialog.setStyleSheet("""
+                QDialog {
+                    background-color: #2d2d2d;
+                    color: #ffffff;
+                }
+                QListWidget {
+                    background-color: #1a1a1a;
+                    color: #ffffff;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                    font-size: 12px;
+                }
+                QListWidget::item {
+                    padding: 8px;
+                    border-bottom: 1px solid #333333;
+                }
+                QListWidget::item:selected {
+                    background-color: #4a90e2;
+                }
+                QTextEdit {
+                    background-color: #1a1a1a;
+                    color: #ffffff;
+                    border: 1px solid #555555;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                QLabel {
+                    color: #ffffff;
+                    font-weight: bold;
+                    font-size: 12px;
+                }
+                QPushButton {
+                    background-color: #4a90e2;
+                    color: white;
+                    border: none;
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #357abd;
+                }
+            """)
+
+            layout = QVBoxLayout(dialog)
+
+            # Title
+            title = QLabel("Select Campaign Frame:")
+            layout.addWidget(title)
+
+            # Horizontal layout for list and description
+            content_layout = QHBoxLayout()
+
+            # Campaign list
+            campaign_list = QListWidget()
+            campaign_list.setFixedWidth(250)
+
+            # Campaign description
+            description_area = QTextEdit()
+            description_area.setReadOnly(True)
+            description_area.setFixedWidth(300)
+
+            content_layout.addWidget(campaign_list)
+            content_layout.addWidget(description_area)
+            layout.addLayout(content_layout)
+
+            # Load available campaigns
+            campaign_dir = os.path.join(os.path.dirname(__file__), '..', 'encounter_pane', 'campaign')
+            campaigns = {}
+
+            # Find all JSON files in campaign directory
+            if os.path.exists(campaign_dir):
+                for filename in os.listdir(campaign_dir):
+                    if filename.endswith('.json'):
+                        try:
+                            filepath = os.path.join(campaign_dir, filename)
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                campaign_data = json.load(f)
+
+                            campaign_name = campaign_data.get('name', filename[:-5])
+                            campaigns[campaign_name] = {
+                                'file': filename,
+                                'data': campaign_data
+                            }
+
+                            # Add to list
+                            item = QListWidgetItem(campaign_name)
+                            item.setData(Qt.ItemDataRole.UserRole, filename)
+                            campaign_list.addItem(item)
+
+                        except Exception as e:
+                            print(f"Error loading campaign {filename}: {e}")
+
+            # Handle campaign selection
+            def on_campaign_selected():
+                current_item = campaign_list.currentItem()
+                if current_item:
+                    campaign_name = current_item.text()
+                    campaign_info = campaigns.get(campaign_name, {})
+                    campaign_data = campaign_info.get('data', {})
+
+                    # Build description
+                    desc_parts = []
+                    desc_parts.append(f"Campaign: {campaign_name}")
+                    desc_parts.append(f"Style: {campaign_data.get('style', 'Unknown')}")
+
+                    if campaign_data.get('guaranteed_hoards'):
+                        desc_parts.append("🏆 Guaranteed treasure hoards!")
+
+                    # Monster distribution
+                    monster_weights = campaign_data.get('monster_type_weights', {})
+                    if monster_weights:
+                        desc_parts.append("\nMonster Distribution:")
+                        for monster_type, weight in sorted(monster_weights.items(), key=lambda x: x[1], reverse=True):
+                            percentage = int(weight * 100)
+                            desc_parts.append(f"  {monster_type.title()}: {percentage}%")
+
+                    # Difficulty distribution
+                    diff_dist = campaign_data.get('difficulty_distribution', {})
+                    if diff_dist:
+                        desc_parts.append("\nDifficulty Distribution:")
+                        for difficulty, weight in sorted(diff_dist.items(), key=lambda x: x[1], reverse=True):
+                            percentage = int(weight * 100)
+                            desc_parts.append(f"  {difficulty.title()}: {percentage}%")
+
+                    # Description
+                    if campaign_data.get('description'):
+                        desc_parts.append(f"\nDescription:\n{campaign_data['description']}")
+
+                    description_area.setPlainText('\n'.join(desc_parts))
+
+            campaign_list.itemSelectionChanged.connect(on_campaign_selected)
+
+            # Select first item by default
+            if campaign_list.count() > 0:
+                campaign_list.setCurrentRow(0)
+                on_campaign_selected()
+
+            # Buttons
+            button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+            layout.addWidget(button_box)
+
+            # Show dialog
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                current_item = campaign_list.currentItem()
+                if current_item:
+                    selected_filename = current_item.data(Qt.ItemDataRole.UserRole)
+                    campaign_name = current_item.text()
+
+                    # Apply the selected campaign
+                    self._apply_campaign_frame(selected_filename, campaign_name)
+                else:
+                    self.log_panel.log_info("No campaign selected")
+
+        except Exception as e:
+            self.log_panel.log_error(f"Error opening campaign selection dialog: {e}")
+
+    def _apply_campaign_frame(self, filename: str, campaign_name: str):
+        """Apply the selected campaign frame to the encounter panel."""
+        try:
+            # Set the campaign file and reload
+            self.encounter_pane._set_campaign_file(filename)
+            self.encounter_pane._load_campaign_frame()
+            self.log_panel.log_info(f"✅ Applied campaign: {campaign_name}")
+
+            # Clear any active encounters since campaign changed
+            if hasattr(self.encounter_pane, 'current_encounter'):
+                self.encounter_pane.current_encounter = None
+
+        except Exception as e:
+            self.log_panel.log_error(f"Error applying campaign frame: {e}")
+            import traceback
+            traceback.print_exc()
+
     def _format_character_for_display(self, character_data):
         """Convert character creation data to display format."""
         ability_scores = character_data.get('ability_scores') or {}

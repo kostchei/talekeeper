@@ -6,7 +6,7 @@
 INSERT INTO save_slots (id, slot_number, character_name, character_level, last_played, is_occupied)
 VALUES 
     ('1', 1, 'Valerius', 1, datetime('now'), 1),
-    ('2', 2, 'Achilles', 1, datetime('now'), 1),
+    ('2', 2, 'Achelos', 1, datetime('now'), 1),
     ('3', 3, 'Roland', 1, datetime('now'), 1),
     ('4', 4, 'Ragnar', 1, datetime('now'), 1),
     ('5', 5, 'Thrud', 1, datetime('now'), 1),
@@ -39,7 +39,7 @@ VALUES (
     'Dex-based duelist with Alert and Lucky feats'
 );
 
--- Achilles: Defensive Fighter with Tough, Defense, and Lucky
+-- Achelos: Defensive Fighter with Defense fighting style
 INSERT INTO characters (
     id, save_slot_id, name, race_id, class_id, background_id, level, experience_points,
     strength, dexterity, constitution, intelligence, wisdom, charisma,
@@ -48,21 +48,21 @@ INSERT INTO characters (
     created_at, notes
 )
 VALUES (
-    'test_achilles',
+    'test_achelos',
     '2',
-    'Achilles',
+    'Achelos',
     'human',
     'fighter',
-    'soldier',
+    'farmer',
     1,
     0,
-    16, 14, 18, 8, 10, 12,  -- Stats
-    17,  -- AC (Scale Mail 14 + 2 Dex + 2 Shield - 1 for exceeding max dex = 17)
-    14, 14, 14, 14,  -- HP (10 + 4 Con)
+    16, 15, 17, 15, 15, 15,  -- Stats
+    19,  -- AC (Scale Mail 14 + 2 Dex + Defense +1 = 17, plus shield would be 19)
+    15, 15, 15, 15,  -- HP (10 + 3 Con)
     1, 1,  -- Hit dice
-    'Spear', 'Scale Mail', 'Shield',
+    'Longsword', 'Scale Mail', '',
     datetime('now'),
-    'Tank build with Defense fighting style and Tough feat'
+    'Well-rounded fighter with Defense fighting style'
 );
 
 -- Roland: Heavy armor tank with Tough, Defense, and Savage Attacker
@@ -205,15 +205,14 @@ VALUES
     ('inv_val_sack', 'test_valerius', 'Sack', 'gear', 1, 0.5, 'Holds 30 pounds', 0.01, 0, datetime('now')),
     ('inv_val_potion', 'test_valerius', 'Potion of Healing', 'consumable', 1, 0.5, 'Heals 2d4+2 HP', 50.0, 0, datetime('now'));
 
--- Achilles inventory
+-- Achelos inventory
 INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped, created_at)
-VALUES 
-    ('inv_ach_spear', 'test_achilles', 'Spear', 'weapon', 1, 3.0, 'Thrown weapon, versatile', 1.0, 1, datetime('now')),
-    ('inv_ach_scale', 'test_achilles', 'Scale Mail', 'armor', 1, 45.0, 'Medium armor, AC 14 + Dex (max 2)', 50.0, 1, datetime('now')),
-    ('inv_ach_shield', 'test_achilles', 'Shield', 'shield', 1, 6.0, '+2 AC bonus', 10.0, 1, datetime('now')),
-    ('inv_ach_rations', 'test_achilles', 'Rations', 'consumable', 5, 2.0, 'One day of food', 0.5, 0, datetime('now')),
-    ('inv_ach_sack', 'test_achilles', 'Sack', 'gear', 1, 0.5, 'Holds 30 pounds', 0.01, 0, datetime('now')),
-    ('inv_ach_potion', 'test_achilles', 'Potion of Healing', 'consumable', 1, 0.5, 'Heals 2d4+2 HP', 50.0, 0, datetime('now'));
+VALUES
+    ('inv_ach_longsword', 'test_achelos', 'Longsword', 'weapon', 1, 3.0, 'Versatile martial weapon', 15.0, 1, datetime('now')),
+    ('inv_ach_scale', 'test_achelos', 'Scale Mail', 'armor', 1, 45.0, 'Medium armor, AC 14 + Dex (max 2)', 50.0, 1, datetime('now')),
+    ('inv_ach_rations', 'test_achelos', 'Rations', 'consumable', 5, 2.0, 'One day of food', 0.5, 0, datetime('now')),
+    ('inv_ach_sack', 'test_achelos', 'Sack', 'gear', 1, 0.5, 'Holds 30 pounds', 0.01, 0, datetime('now')),
+    ('inv_ach_potion', 'test_achelos', 'Potion of Healing', 'consumable', 1, 0.5, 'Heals 2d4+2 HP', 50.0, 0, datetime('now'));
 
 -- Roland inventory
 INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped, created_at)
@@ -271,13 +270,11 @@ VALUES
     ('test_valerius', 'Fighting Style: Dueling', 'passive', 'permanent', 1, '+2 damage with one-handed weapon'),
     ('test_valerius', 'Second Wind', 'bonus_action', 'short_rest', 1, 'Regain 1d10+1 hit points');
 
--- Achilles features
+-- Achelos features
 INSERT INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description)
-VALUES 
-    ('test_achilles', 'Tough', 'feat', 'permanent', 1, '+2 HP per level'),
-    ('test_achilles', 'Fighting Style: Defense', 'passive', 'permanent', 1, '+1 to AC while wearing armor'),
-    ('test_achilles', 'Lucky', 'feat', 'permanent', 1, '3 luck points per long rest'),
-    ('test_achilles', 'Second Wind', 'bonus_action', 'short_rest', 1, 'Regain 1d10+1 hit points');
+VALUES
+    ('test_achelos', 'Fighting Style: Defense', 'passive', 'permanent', 1, '+1 to AC while wearing armor'),
+    ('test_achelos', 'Second Wind', 'bonus_action', 'short_rest', 1, 'Regain 1d10+1 hit points');
 
 -- Roland features
 INSERT INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description)
@@ -312,7 +309,126 @@ VALUES
 
 -- Gurnison features
 INSERT INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description)
-VALUES 
+VALUES
     ('test_gurnison', 'Tough', 'feat', 'permanent', 1, '+2 HP per level'),
     ('test_gurnison', 'Rage', 'bonus_action', 'long_rest', 1, 'Advantage on Strength checks, resistance to physical damage'),
     ('test_gurnison', 'Unarmored Defense', 'passive', 'permanent', 1, 'AC = 10 + Dex + Con when not wearing armor');
+
+-- Add proficiencies for all characters
+-- Valerius proficiencies (Fighter + Soldier background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_valerius', 'weapon', 'simple', 'class'),
+    ('test_valerius', 'weapon', 'martial', 'class'),
+    ('test_valerius', 'armor', 'light', 'class'),
+    ('test_valerius', 'armor', 'medium', 'class'),
+    ('test_valerius', 'armor', 'heavy', 'class'),
+    ('test_valerius', 'armor', 'shields', 'class'),
+    ('test_valerius', 'saving_throw', 'strength', 'class'),
+    ('test_valerius', 'saving_throw', 'constitution', 'class'),
+    ('test_valerius', 'skill', 'Acrobatics', 'class'),
+    ('test_valerius', 'skill', 'Athletics', 'class'),
+    ('test_valerius', 'skill', 'Intimidation', 'background'),
+    ('test_valerius', 'skill', 'Perception', 'background'),
+    ('test_valerius', 'tool', 'Gaming Set', 'background'),
+    ('test_valerius', 'tool', 'Vehicles (Land)', 'background');
+
+-- Achelos proficiencies (Fighter + Farmer background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_achelos', 'weapon', 'simple', 'class'),
+    ('test_achelos', 'weapon', 'martial', 'class'),
+    ('test_achelos', 'armor', 'light', 'class'),
+    ('test_achelos', 'armor', 'medium', 'class'),
+    ('test_achelos', 'armor', 'heavy', 'class'),
+    ('test_achelos', 'armor', 'shields', 'class'),
+    ('test_achelos', 'saving_throw', 'strength', 'class'),
+    ('test_achelos', 'saving_throw', 'constitution', 'class'),
+    ('test_achelos', 'skill', 'Athletics', 'class'),
+    ('test_achelos', 'skill', 'Perception', 'class'),
+    ('test_achelos', 'skill', 'Animal Handling', 'background'),
+    ('test_achelos', 'skill', 'Nature', 'background'),
+    ('test_achelos', 'tool', 'Carpenter\'s Tools', 'background');
+
+-- Roland proficiencies (Fighter + Noble background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_roland', 'weapon', 'simple', 'class'),
+    ('test_roland', 'weapon', 'martial', 'class'),
+    ('test_roland', 'armor', 'light', 'class'),
+    ('test_roland', 'armor', 'medium', 'class'),
+    ('test_roland', 'armor', 'heavy', 'class'),
+    ('test_roland', 'armor', 'shields', 'class'),
+    ('test_roland', 'saving_throw', 'strength', 'class'),
+    ('test_roland', 'saving_throw', 'constitution', 'class'),
+    ('test_roland', 'skill', 'Athletics', 'class'),
+    ('test_roland', 'skill', 'Intimidation', 'class'),
+    ('test_roland', 'skill', 'History', 'background'),
+    ('test_roland', 'skill', 'Persuasion', 'background'),
+    ('test_roland', 'tool', 'Gaming Set', 'background');
+
+-- Ragnar proficiencies (Barbarian + Outlander background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_ragnar', 'weapon', 'simple', 'class'),
+    ('test_ragnar', 'weapon', 'martial', 'class'),
+    ('test_ragnar', 'armor', 'light', 'class'),
+    ('test_ragnar', 'armor', 'medium', 'class'),
+    ('test_ragnar', 'armor', 'shields', 'class'),
+    ('test_ragnar', 'saving_throw', 'strength', 'class'),
+    ('test_ragnar', 'saving_throw', 'constitution', 'class'),
+    ('test_ragnar', 'skill', 'Athletics', 'class'),
+    ('test_ragnar', 'skill', 'Intimidation', 'class'),
+    ('test_ragnar', 'skill', 'Survival', 'background'),
+    ('test_ragnar', 'skill', 'Nature', 'background'),
+    ('test_ragnar', 'tool', 'Herbalism Kit', 'background');
+
+-- Thrud proficiencies (Barbarian + Outlander background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_thrud', 'weapon', 'simple', 'class'),
+    ('test_thrud', 'weapon', 'martial', 'class'),
+    ('test_thrud', 'armor', 'light', 'class'),
+    ('test_thrud', 'armor', 'medium', 'class'),
+    ('test_thrud', 'armor', 'shields', 'class'),
+    ('test_thrud', 'saving_throw', 'strength', 'class'),
+    ('test_thrud', 'saving_throw', 'constitution', 'class'),
+    ('test_thrud', 'skill', 'Athletics', 'class'),
+    ('test_thrud', 'skill', 'Perception', 'class'),
+    ('test_thrud', 'skill', 'Survival', 'background'),
+    ('test_thrud', 'skill', 'Nature', 'background'),
+    ('test_thrud', 'tool', 'Herbalism Kit', 'background');
+
+-- Gath proficiencies (Barbarian + Soldier background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_gath', 'weapon', 'simple', 'class'),
+    ('test_gath', 'weapon', 'martial', 'class'),
+    ('test_gath', 'armor', 'light', 'class'),
+    ('test_gath', 'armor', 'medium', 'class'),
+    ('test_gath', 'armor', 'shields', 'class'),
+    ('test_gath', 'saving_throw', 'strength', 'class'),
+    ('test_gath', 'saving_throw', 'constitution', 'class'),
+    ('test_gath', 'skill', 'Animal Handling', 'class'),
+    ('test_gath', 'skill', 'Survival', 'class'),
+    ('test_gath', 'skill', 'Intimidation', 'background'),
+    ('test_gath', 'skill', 'Perception', 'background'),
+    ('test_gath', 'tool', 'Gaming Set', 'background'),
+    ('test_gath', 'tool', 'Vehicles (Land)', 'background');
+
+-- Gurnison proficiencies (Barbarian + Folk Hero background)
+INSERT INTO character_proficiencies (character_id, proficiency_type, proficiency_name, source)
+VALUES
+    ('test_gurnison', 'weapon', 'simple', 'class'),
+    ('test_gurnison', 'weapon', 'martial', 'class'),
+    ('test_gurnison', 'armor', 'light', 'class'),
+    ('test_gurnison', 'armor', 'medium', 'class'),
+    ('test_gurnison', 'armor', 'shields', 'class'),
+    ('test_gurnison', 'saving_throw', 'strength', 'class'),
+    ('test_gurnison', 'saving_throw', 'constitution', 'class'),
+    ('test_gurnison', 'skill', 'Athletics', 'class'),
+    ('test_gurnison', 'skill', 'Intimidation', 'class'),
+    ('test_gurnison', 'skill', 'Animal Handling', 'background'),
+    ('test_gurnison', 'skill', 'Survival', 'background'),
+    ('test_gurnison', 'tool', 'Smith\'s Tools', 'background'),
+    ('test_gurnison', 'tool', 'Vehicles (Land)', 'background');

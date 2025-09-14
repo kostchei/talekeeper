@@ -68,7 +68,8 @@
       "Bash(move:*)",
       "Bash(git log:*)",
       "Read(//d/**)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git stash:*)"
     ],
     "deny": []
   }

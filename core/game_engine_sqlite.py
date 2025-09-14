@@ -461,23 +461,31 @@ class GameEngineSQLite:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT item_name, item_type, quantity, weight_lb, description, value_gp
+                    SELECT id, item_name, item_type, quantity, weight_lb, description, value_gp, container
                     FROM character_inventory
                     WHERE character_id = ?
                     ORDER BY item_type, item_name
                 """, (character_id,))
-                
+
                 inventory = []
                 for row in cursor.fetchall():
+                    # Handle container column safely - it may not exist on older saves
+                    try:
+                        container = row['container'] if row['container'] else 'backpack'
+                    except (KeyError, IndexError):
+                        container = 'backpack'
+
                     inventory.append({
+                        'id': row['id'],
                         'name': row['item_name'],
                         'type': row['item_type'],
                         'quantity': row['quantity'],
                         'weight_lb': row['weight_lb'],
                         'description': row['description'],
-                        'value_gp': row['value_gp']
+                        'value_gp': row['value_gp'],
+                        'container': container
                     })
-                
+
                 return inventory
                 
         except Exception as e:
@@ -1542,18 +1550,32 @@ class GameEngineSQLite:
                 with self._get_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute("""
-                        SELECT feat_name FROM character_feats 
+                        SELECT feat_name FROM character_feats
                         WHERE character_id = ? AND feat_name = 'Defense'
                     """, (character_id,))
                     has_defense = cursor.fetchone()
-                
+
                 print(f"[SQLite] Defense check result: {has_defense}")
                 if has_defense:
                     ac += 1
                     print(f"[SQLite] Defense fighting style: +1 AC (total now {ac})")
                 else:
                     print(f"[SQLite] No Defense fighting style found")
-            
+
+            # Apply magical AC bonuses from ItemEffectsService
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT ac_bonus FROM character_magical_bonuses
+                    WHERE character_id = ?
+                """, (character_id,))
+                magical_bonus_row = cursor.fetchone()
+
+                if magical_bonus_row and magical_bonus_row['ac_bonus']:
+                    magical_ac_bonus = magical_bonus_row['ac_bonus']
+                    ac += magical_ac_bonus
+                    print(f"[SQLite] Magical AC bonus: +{magical_ac_bonus} (total now {ac})")
+
             return ac
             
         except Exception as e:

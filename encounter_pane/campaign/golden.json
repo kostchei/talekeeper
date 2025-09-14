@@ -1,0 +1,35 @@
+{
+  "name": "Golden Age",
+  "monster_type_weights": {
+    "humanoid": 0.25,
+    "beast": 0.20,
+    "monstrosity": 0.15,
+    "fiend": 0.15,
+    "undead": 0.10,
+    "dragon": 0.08,
+    "aberration": 0.05,
+    "celestial": 0.02
+  },
+  "difficulty_distribution": {
+    "low": 0.3,
+    "moderate": 0.4,
+    "hard": 0.25,
+    "high": 0.05
+  },
+  "rest_rules": {
+    "short_rest_duration": 1,
+    "long_rest_duration": 8
+  },
+  "style": "golden",
+  "available_classes": [
+    "Barbarian",
+    "Fighter",
+    "Rogue",
+    "Paladin",
+    "Cleric",
+    "Warlock",
+    "Wizard"
+  ],
+  "guaranteed_hoards": true,
+  "description": "A campaign where magical items are more common and encounters often yield treasure hoards containing magical equipment."
+}

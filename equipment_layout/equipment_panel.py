@@ -70,7 +70,14 @@ class EquipmentPanel(QWidget):
         self.character_dexterity = 10  # Default dexterity for AC calculation
         self.character_class = ""  # Character class for unarmored defense
         self.character_constitution = 10  # Default constitution for barbarian AC
-        
+
+        # Item state tracking
+        self.attuned_items = set()  # Items currently attuned
+
+        # Item effects service
+        from services.item_effects import ItemEffectsService
+        self.item_effects = ItemEffectsService()
+
         # Set initial size (extends to bottom of window)
         self.setFixedSize(432, 486)
         self._setup_ui()
@@ -1105,6 +1112,92 @@ class EquipmentPanel(QWidget):
     def is_expanded(self) -> bool:
         """Return current expansion state."""
         return self.expanded
+
+    def enable_attunement(self):
+        """Enable attunement after a rest."""
+        print("[EQUIPMENT] Attunement enabled after rest")
+
+    def _update_character_bonuses(self):
+        """Update character bonuses from equipped magical items."""
+        try:
+            # Find parent with game engine
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
+                    character_id = parent.game_engine.current_character['id']
+
+                    # Calculate bonuses from equipped items
+                    bonuses = self.item_effects.calculate_bonuses_for_character(
+                        character_id, self.equipped_items
+                    )
+
+                    print(f"[EQUIPMENT] Updated character bonuses: {bonuses}")
+
+                    # Trigger AC recalculation if there are AC bonuses
+                    if bonuses.get('ac_bonus', 0) > 0:
+                        # Find main window to trigger AC update
+                        main_parent = parent
+                        while main_parent:
+                            if hasattr(main_parent, '_update_character_ac'):
+                                main_parent._update_character_ac()
+                                break
+                            main_parent = main_parent.parent()
+
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error updating character bonuses: {e}")
+
+    def _load_attunement_from_database(self):
+        """Load attunement state from database."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
+                    character_id = parent.game_engine.current_character['id']
+
+                    import sqlite3
+                    with sqlite3.connect('talekeeper.db') as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            SELECT item_key FROM character_attunements
+                            WHERE character_id = ?
+                        """, (character_id,))
+
+                        rows = cursor.fetchall()
+                        self.attuned_items.clear()
+                        for row in rows:
+                            self.attuned_items.add(row[0])
+
+                        print(f"[EQUIPMENT] Loaded {len(self.attuned_items)} attuned items")
+
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error loading attunement state: {e}")
+
+    def _save_attunement_to_database(self, item_key: str, attune: bool):
+        """Save or remove attunement state to/from database."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and parent.game_engine.current_character:
+                    character_id = parent.game_engine.current_character['id']
+
+                    self.item_effects.set_attunement(character_id, item_key, attune)
+
+                    if attune:
+                        self.attuned_items.add(item_key)
+                    else:
+                        self.attuned_items.discard(item_key)
+
+                    # Update character bonuses after attunement change
+                    self._update_character_bonuses()
+
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error saving attunement state: {e}")
 
 
 class EquipmentSlotWidget(QWidget):
