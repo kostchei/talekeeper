@@ -286,6 +286,14 @@ class GameEngineSQLite:
                     'equipment_off_hand': character_row['equipment_off_hand'],
                     'equipment_armor': character_row['equipment_armor'],
                     'equipment_shield': character_row['equipment_shield'],
+                    'equipment_helmet': character_row['equipment_helmet'],
+                    'equipment_gloves': character_row['equipment_gloves'],
+                    'equipment_boots': character_row['equipment_boots'],
+                    'equipment_cloak': character_row['equipment_cloak'],
+                    'equipment_ring_1': character_row['equipment_ring_1'],
+                    'equipment_ring_2': character_row['equipment_ring_2'],
+                    'equipment_amulet': character_row['equipment_amulet'],
+                    'equipment_belt': character_row['equipment_belt'],
                     
                     # Metadata
                     'created_at': created_at,
@@ -1655,7 +1663,31 @@ class GameEngineSQLite:
                     cursor.execute("UPDATE characters SET equipment_armor = ? WHERE id = ?", 
                                  (item_name, character_id))
                 elif equipment_slot == 'shield':
-                    cursor.execute("UPDATE characters SET equipment_shield = ? WHERE id = ?", 
+                    cursor.execute("UPDATE characters SET equipment_shield = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'helmet':
+                    cursor.execute("UPDATE characters SET equipment_helmet = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'gloves':
+                    cursor.execute("UPDATE characters SET equipment_gloves = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'boots':
+                    cursor.execute("UPDATE characters SET equipment_boots = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'cloak':
+                    cursor.execute("UPDATE characters SET equipment_cloak = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'ring_1':
+                    cursor.execute("UPDATE characters SET equipment_ring_1 = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'ring_2':
+                    cursor.execute("UPDATE characters SET equipment_ring_2 = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'amulet':
+                    cursor.execute("UPDATE characters SET equipment_amulet = ? WHERE id = ?",
+                                 (item_name, character_id))
+                elif equipment_slot == 'belt':
+                    cursor.execute("UPDATE characters SET equipment_belt = ? WHERE id = ?",
                                  (item_name, character_id))
                 else:
                     print(f"[SQLite] Unknown equipment slot: {equipment_slot}")

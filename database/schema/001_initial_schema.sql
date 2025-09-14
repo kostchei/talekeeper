@@ -51,6 +51,14 @@ CREATE TABLE characters (
     equipment_off_hand TEXT,
     equipment_armor TEXT,
     equipment_shield TEXT,
+    equipment_helmet TEXT,
+    equipment_gloves TEXT,
+    equipment_boots TEXT,
+    equipment_cloak TEXT,
+    equipment_ring_1 TEXT,
+    equipment_ring_2 TEXT,
+    equipment_amulet TEXT,
+    equipment_belt TEXT,
     
     -- Rest Tracking
     last_short_rest TEXT,  -- ISO timestamp

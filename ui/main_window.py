@@ -395,30 +395,68 @@ class MainWindow(QMainWindow):
         main_hand_item = equipped_items.get('main_hand')
         off_hand_item = equipped_items.get('off_hand')
         armor_item = equipped_items.get('armor')
-        
+        helmet_item = equipped_items.get('helmet')
+        gloves_item = equipped_items.get('gloves')
+        boots_item = equipped_items.get('boots')
+        cloak_item = equipped_items.get('cloak')
+        ring1_item = equipped_items.get('ring_1')
+        ring2_item = equipped_items.get('ring_2')
+        amulet_item = equipped_items.get('amulet')
+        belt_item = equipped_items.get('belt')
+
         main_hand_name = main_hand_item.get('name') if main_hand_item else None
         off_hand_name = off_hand_item.get('name') if off_hand_item else None
         armor_name = armor_item.get('name') if armor_item else None
-        
+        helmet_name = helmet_item.get('name') if helmet_item else None
+        gloves_name = gloves_item.get('name') if gloves_item else None
+        boots_name = boots_item.get('name') if boots_item else None
+        cloak_name = cloak_item.get('name') if cloak_item else None
+        ring1_name = ring1_item.get('name') if ring1_item else None
+        ring2_name = ring2_item.get('name') if ring2_item else None
+        amulet_name = amulet_item.get('name') if amulet_item else None
+        belt_name = belt_item.get('name') if belt_item else None
+
+        shield_name = None
+        if off_hand_item and off_hand_item.get('item_type') == 'shield':
+            shield_name = off_hand_name
+
         # Update database
         import sqlite3
         try:
             conn = sqlite3.connect(self.game_engine.db_path)
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                UPDATE characters 
-                SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?
+                UPDATE characters
+                SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?,
+                    equipment_helmet = ?, equipment_gloves = ?, equipment_boots = ?,
+                    equipment_cloak = ?, equipment_ring_1 = ?, equipment_ring_2 = ?,
+                    equipment_amulet = ?, equipment_belt = ?, equipment_shield = ?
                 WHERE id = ?
-            """, (main_hand_name, off_hand_name, armor_name, current_character['id']))
+            """, (
+                main_hand_name, off_hand_name, armor_name,
+                helmet_name, gloves_name, boots_name,
+                cloak_name, ring1_name, ring2_name,
+                amulet_name, belt_name, shield_name,
+                current_character['id']
+            ))
             
             conn.commit()
             conn.close()
             
             # Update the current character DTO as well
             current_character['equipment_main_hand'] = main_hand_name
-            current_character['equipment_off_hand'] = off_hand_name  
+            current_character['equipment_off_hand'] = off_hand_name
             current_character['equipment_armor'] = armor_name
+            current_character['equipment_helmet'] = helmet_name
+            current_character['equipment_gloves'] = gloves_name
+            current_character['equipment_boots'] = boots_name
+            current_character['equipment_cloak'] = cloak_name
+            current_character['equipment_ring_1'] = ring1_name
+            current_character['equipment_ring_2'] = ring2_name
+            current_character['equipment_amulet'] = amulet_name
+            current_character['equipment_belt'] = belt_name
+            current_character['equipment_shield'] = shield_name
             
         except Exception as e:
             print(f"Error updating character equipment slots: {e}")
@@ -584,6 +622,27 @@ class MainWindow(QMainWindow):
             if saved_character.get('equipment_shield') and 'off_hand' not in equipped_items:
                 item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_shield'])
                 equipped_items['off_hand'] = item_data if item_data else {'name': saved_character['equipment_shield'], 'weight_lb': 0}
+            if saved_character.get('equipment_helmet'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_helmet'])
+                equipped_items['helmet'] = item_data if item_data else {'name': saved_character['equipment_helmet'], 'weight_lb': 0}
+            if saved_character.get('equipment_gloves'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_gloves'])
+                equipped_items['gloves'] = item_data if item_data else {'name': saved_character['equipment_gloves'], 'weight_lb': 0}
+            if saved_character.get('equipment_boots'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_boots'])
+                equipped_items['boots'] = item_data if item_data else {'name': saved_character['equipment_boots'], 'weight_lb': 0}
+            if saved_character.get('equipment_cloak'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_cloak'])
+                equipped_items['cloak'] = item_data if item_data else {'name': saved_character['equipment_cloak'], 'weight_lb': 0}
+            if saved_character.get('equipment_ring_1'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_ring_1'])
+                equipped_items['ring_1'] = item_data if item_data else {'name': saved_character['equipment_ring_1'], 'weight_lb': 0}
+            if saved_character.get('equipment_ring_2'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_ring_2'])
+                equipped_items['ring_2'] = item_data if item_data else {'name': saved_character['equipment_ring_2'], 'weight_lb': 0}
+            if saved_character.get('equipment_amulet'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_amulet'])
+                equipped_items['amulet'] = item_data if item_data else {'name': saved_character['equipment_amulet'], 'weight_lb': 0}
             if saved_character.get('equipment_belt'):
                 item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_belt'])
                 equipped_items['belt'] = item_data if item_data else {'name': saved_character['equipment_belt'], 'weight_lb': 0}
@@ -731,6 +790,30 @@ class MainWindow(QMainWindow):
                 elif character.get('equipment_off_hand'):
                     item_data = self.game_engine.get_equipment_item_sync(character['equipment_off_hand'])
                     equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_off_hand'], 'weight_lb': 0}
+                if character.get('equipment_helmet'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_helmet'])
+                    equipped_items['helmet'] = item_data if item_data else {'name': character['equipment_helmet'], 'weight_lb': 0}
+                if character.get('equipment_gloves'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_gloves'])
+                    equipped_items['gloves'] = item_data if item_data else {'name': character['equipment_gloves'], 'weight_lb': 0}
+                if character.get('equipment_boots'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_boots'])
+                    equipped_items['boots'] = item_data if item_data else {'name': character['equipment_boots'], 'weight_lb': 0}
+                if character.get('equipment_cloak'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_cloak'])
+                    equipped_items['cloak'] = item_data if item_data else {'name': character['equipment_cloak'], 'weight_lb': 0}
+                if character.get('equipment_ring_1'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_ring_1'])
+                    equipped_items['ring_1'] = item_data if item_data else {'name': character['equipment_ring_1'], 'weight_lb': 0}
+                if character.get('equipment_ring_2'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_ring_2'])
+                    equipped_items['ring_2'] = item_data if item_data else {'name': character['equipment_ring_2'], 'weight_lb': 0}
+                if character.get('equipment_amulet'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_amulet'])
+                    equipped_items['amulet'] = item_data if item_data else {'name': character['equipment_amulet'], 'weight_lb': 0}
+                if character.get('equipment_belt'):
+                    item_data = self.game_engine.get_equipment_item_sync(character['equipment_belt'])
+                    equipped_items['belt'] = item_data if item_data else {'name': character['equipment_belt'], 'weight_lb': 0}
                 
                 # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
@@ -829,6 +912,27 @@ class MainWindow(QMainWindow):
         if character.get('equipment_shield') and 'off_hand' not in equipped_items:
             item_data = self.game_engine.get_equipment_item_sync(character['equipment_shield'])
             equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_shield'], 'weight_lb': 0}
+        if character.get('equipment_helmet'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_helmet'])
+            equipped_items['helmet'] = item_data if item_data else {'name': character['equipment_helmet'], 'weight_lb': 0}
+        if character.get('equipment_gloves'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_gloves'])
+            equipped_items['gloves'] = item_data if item_data else {'name': character['equipment_gloves'], 'weight_lb': 0}
+        if character.get('equipment_boots'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_boots'])
+            equipped_items['boots'] = item_data if item_data else {'name': character['equipment_boots'], 'weight_lb': 0}
+        if character.get('equipment_cloak'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_cloak'])
+            equipped_items['cloak'] = item_data if item_data else {'name': character['equipment_cloak'], 'weight_lb': 0}
+        if character.get('equipment_ring_1'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_ring_1'])
+            equipped_items['ring_1'] = item_data if item_data else {'name': character['equipment_ring_1'], 'weight_lb': 0}
+        if character.get('equipment_ring_2'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_ring_2'])
+            equipped_items['ring_2'] = item_data if item_data else {'name': character['equipment_ring_2'], 'weight_lb': 0}
+        if character.get('equipment_amulet'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_amulet'])
+            equipped_items['amulet'] = item_data if item_data else {'name': character['equipment_amulet'], 'weight_lb': 0}
         if character.get('equipment_belt'):
             item_data = self.game_engine.get_equipment_item_sync(character['equipment_belt'])
             equipped_items['belt'] = item_data if item_data else {'name': character['equipment_belt'], 'weight_lb': 0}
