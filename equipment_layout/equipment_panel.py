@@ -38,6 +38,7 @@ class EquipmentSlot(Enum):
     RING_1 = "ring_1"
     RING_2 = "ring_2"
     AMULET = "amulet"
+    BELT = "belt"
 
 
 class EquipmentPanel(QWidget):
@@ -243,9 +244,10 @@ class EquipmentPanel(QWidget):
         """Create the equipment slot widgets."""
         # Define slot positions for compact layout
         slot_positions = {
+            EquipmentSlot.CLOAK: (0, 0),
             EquipmentSlot.HELMET: (0, 1),
             EquipmentSlot.AMULET: (0, 2),
-            EquipmentSlot.CLOAK: (1, 0),
+            EquipmentSlot.BELT: (1, 0),
             EquipmentSlot.ARMOR: (1, 1),
             EquipmentSlot.MAIN_HAND: (1, 2),
             EquipmentSlot.GLOVES: (2, 0),

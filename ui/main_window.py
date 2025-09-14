@@ -584,6 +584,9 @@ class MainWindow(QMainWindow):
             if saved_character.get('equipment_shield') and 'off_hand' not in equipped_items:
                 item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_shield'])
                 equipped_items['off_hand'] = item_data if item_data else {'name': saved_character['equipment_shield'], 'weight_lb': 0}
+            if saved_character.get('equipment_belt'):
+                item_data = self.game_engine.get_equipment_item_sync(saved_character['equipment_belt'])
+                equipped_items['belt'] = item_data if item_data else {'name': saved_character['equipment_belt'], 'weight_lb': 0}
             
             # Load character inventory
             inventory_items = self.game_engine.get_character_inventory_sync(saved_character['id'])
@@ -826,6 +829,9 @@ class MainWindow(QMainWindow):
         if character.get('equipment_shield') and 'off_hand' not in equipped_items:
             item_data = self.game_engine.get_equipment_item_sync(character['equipment_shield'])
             equipped_items['off_hand'] = item_data if item_data else {'name': character['equipment_shield'], 'weight_lb': 0}
+        if character.get('equipment_belt'):
+            item_data = self.game_engine.get_equipment_item_sync(character['equipment_belt'])
+            equipped_items['belt'] = item_data if item_data else {'name': character['equipment_belt'], 'weight_lb': 0}
         inventory_items = self.game_engine.get_character_inventory_sync(character['id'])
         self.equipment_panel.load_equipment_data(equipped_items, inventory_items, character['strength'], character['dexterity'], character.get('class_id', ''), character['constitution'])
         
