@@ -615,6 +615,13 @@ class EquipmentPanel(QWidget):
     
     def _equip_item(self, item: Dict[str, Any], slot: EquipmentSlot):
         """Equip an item to a slot."""
+        # Check attunement limit
+        needs_attunement = bool(item.get('attunement_requirement'))
+        item_key = self.item_effects._get_item_key(item) if needs_attunement else None
+        if needs_attunement and len(self.attuned_items) >= 3 and item_key not in self.attuned_items:
+            print("[EQUIPMENT] Cannot equip more than three attunable items")
+            return
+
         # Remove from inventory if present
         if item in self.inventory_items:
             self.inventory_items.remove(item)
@@ -674,10 +681,17 @@ class EquipmentPanel(QWidget):
         # Update displays
         self._update_inventory_display()
         self._update_stats_display()
-        
+
+        # Auto-attunement tracking
+        if needs_attunement and item_key not in self.attuned_items:
+            self._save_attunement_to_database(item_key, True)
+
         # Emit signal
         self.item_equipped.emit(item, slot)
         self.inventory_changed.emit()
+
+        # Recalculate character bonuses
+        self._update_character_bonuses()
     
     def _is_two_handed_weapon(self, item: Dict[str, Any]) -> bool:
         """Check if an item is a two-handed weapon."""
@@ -698,7 +712,9 @@ class EquipmentPanel(QWidget):
         """Unequip an item from a slot."""
         if slot in self.equipped_items:
             item = self.equipped_items[slot]
-            
+            needs_attunement = bool(item.get('attunement_requirement'))
+            item_key = self.item_effects._get_item_key(item) if needs_attunement else None
+
             # Check if it's a two-handed weapon - if so, unequip from both slots
             if self._is_two_handed_weapon(item):
                 # Remove from both main hand and off-hand
@@ -713,14 +729,21 @@ class EquipmentPanel(QWidget):
                 self.equipped_items.pop(slot)
                 self.inventory_items.append(item)
                 self.slot_widgets[slot].clear_item()
-            
+
             # Update displays
             self._update_inventory_display()
             self._update_stats_display()
-            
+
+            # Remove attunement tracking
+            if needs_attunement and item_key in self.attuned_items:
+                self._save_attunement_to_database(item_key, False)
+
             # Emit signals
             self.item_unequipped.emit(slot)
             self.inventory_changed.emit()
+
+            # Recalculate character bonuses
+            self._update_character_bonuses()
     
     def _use_item(self, item_widget: QListWidgetItem):
         """Use an item from inventory."""
@@ -1190,9 +1213,6 @@ class EquipmentPanel(QWidget):
                         self.attuned_items.add(item_key)
                     else:
                         self.attuned_items.discard(item_key)
-
-                    # Update character bonuses after attunement change
-                    self._update_character_bonuses()
 
                     break
                 parent = parent.parent()
