@@ -361,11 +361,20 @@ class ProficiencySystem:
                 """, (character_id, ability))
                 
                 is_proficient = cursor.fetchone()[0] > 0
-                
-                if is_proficient:
-                    return ability_mod + prof_bonus
-                else:
-                    return ability_mod
+
+                # Get magical saving throw bonuses
+                cursor.execute("""
+                    SELECT save_bonus FROM character_magical_bonuses
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                magical_bonus_row = cursor.fetchone()
+                magical_save_bonus = magical_bonus_row[0] if magical_bonus_row and magical_bonus_row[0] else 0
+
+                base_bonus = ability_mod + (prof_bonus if is_proficient else 0)
+                total_bonus = base_bonus + magical_save_bonus
+
+                return total_bonus
                     
         except Exception as e:
             print(f"[Proficiency] Error calculating saving throw bonus: {e}")

@@ -486,7 +486,7 @@ class GameEngineSQLite:
                     inventory.append({
                         'id': row['id'],
                         'name': row['item_name'],
-                        'type': row['item_type'],
+                        'item_type': row['item_type'],
                         'quantity': row['quantity'],
                         'weight_lb': row['weight_lb'],
                         'description': row['description'],

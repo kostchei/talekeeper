@@ -65,19 +65,29 @@ class ItemEffectsService:
         }
 
         try:
-            # Get attunement status
-            attuned_items = self._get_attuned_items(character_id)
+            # Count equipped items requiring attunement (3 max)
+            attunement_count = 0
 
             # Process each equipped item
             for slot, item in equipped_items.items():
                 if not item:
                     continue
 
-                item_key = self._get_item_key(item)
-                is_attuned = item_key in attuned_items
+                # Check if item requires attunement
+                item_name = item.get('name', item.get('item_name', ''))
+                requires_attunement = self._requires_attunement(item_name)
 
-                # Apply item effects based on item properties
-                item_bonuses = self._get_item_bonuses(item, is_attuned)
+                # If item requires attunement, check 3-item limit
+                can_attune = True
+                if requires_attunement:
+                    if attunement_count >= 3:
+                        can_attune = False
+                        print(f"[ITEM_EFFECTS] Cannot attune to {item_name} - 3 item limit reached")
+                    else:
+                        attunement_count += 1
+
+                # Apply item effects
+                item_bonuses = self._get_item_bonuses(item, can_attune and requires_attunement)
 
                 for bonus_type, bonus_value in item_bonuses.items():
                     if bonus_type in bonuses:
@@ -114,6 +124,21 @@ class ItemEffectsService:
         item_name = item.get('name', item.get('item_name', ''))
         return f"{item_id}:{item_name}" if item_id else item_name
 
+    def _requires_attunement(self, item_name: str) -> bool:
+        """Check if item requires attunement by querying database."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT attunement_requirement FROM equipment
+                    WHERE name = ? AND attunement_requirement IS NOT NULL AND attunement_requirement != ''
+                """, (item_name,))
+                result = cursor.fetchone()
+                return result is not None
+        except Exception as e:
+            print(f"Error checking attunement requirement for {item_name}: {e}")
+            return False
+
     def _get_item_bonuses(self, item: Dict, is_attuned: bool = False) -> Dict[str, int]:
         """Extract magical bonuses from an item."""
         bonuses = {
@@ -133,6 +158,23 @@ class ItemEffectsService:
             item_name = item.get('name', item.get('item_name', ''))
             description = item.get('description', '')
             item_type = item.get('item_type', item.get('type', ''))
+
+            # Specific magical items (require attunement in 2024 SRD)
+            if is_attuned:
+                if 'ring of protection' in item_name.lower():
+                    bonuses['ac_bonus'] += 1
+                    bonuses['save_bonus'] += 1
+                elif 'cloak of protection' in item_name.lower():
+                    bonuses['ac_bonus'] += 1
+                    bonuses['save_bonus'] += 1
+                elif 'luckstone' in item_name.lower() or 'stone of good luck' in item_name.lower():
+                    # Luckstone: +1 to ability checks and saves (no AC)
+                    bonuses['save_bonus'] += 1
+                    # Note: Ability check bonuses handled separately
+                elif 'bracers of defense' in item_name.lower():
+                    # +2 AC only if no armor and no shield equipped
+                    # TODO: Check for no armor/shield condition
+                    bonuses['ac_bonus'] += 2
 
             # Basic magical item patterns
             magical_keywords = ['+1', '+2', '+3', 'magical', 'enchanted', 'blessed', 'cursed']
@@ -171,16 +213,9 @@ class ItemEffectsService:
                         elif 'charisma' in item_name.lower():
                             bonuses['cha_bonus'] = bonus_value
 
-                # Special item effects (requires attunement)
+                # Additional attuned items not covered in main block
                 if is_attuned:
-                    # Enhanced bonuses for attuned items
-                    if 'ring of protection' in item_name.lower():
-                        bonuses['ac_bonus'] += 1
-                        bonuses['save_bonus'] += 1
-                    elif 'cloak of protection' in item_name.lower():
-                        bonuses['ac_bonus'] += 1
-                        bonuses['save_bonus'] += 1
-                    elif 'amulet of health' in item_name.lower():
+                    if 'amulet of health' in item_name.lower():
                         bonuses['con_bonus'] += 2
                     elif 'gauntlets of ogre power' in item_name.lower():
                         bonuses['str_bonus'] += 2

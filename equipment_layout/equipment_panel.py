@@ -674,7 +674,10 @@ class EquipmentPanel(QWidget):
         # Update displays
         self._update_inventory_display()
         self._update_stats_display()
-        
+
+        # Update magical item bonuses
+        self._update_character_bonuses()
+
         # Emit signal
         self.item_equipped.emit(item, slot)
         self.inventory_changed.emit()
@@ -717,7 +720,10 @@ class EquipmentPanel(QWidget):
             # Update displays
             self._update_inventory_display()
             self._update_stats_display()
-            
+
+            # Update magical item bonuses
+            self._update_character_bonuses()
+
             # Emit signals
             self.item_unequipped.emit(slot)
             self.inventory_changed.emit()
@@ -769,16 +775,16 @@ class EquipmentPanel(QWidget):
                     target_slot = EquipmentSlot.BOOTS
                     self._equip_item(item, target_slot)
                     
-                elif item_type in ['cloak', 'cape']:
+                elif item_type in ['cloak', 'cape'] or 'cloak of protection' in item.get('name', '').lower():
                     target_slot = EquipmentSlot.CLOAK
                     self._equip_item(item, target_slot)
                     
-                elif item_type == 'ring':
+                elif item_type == 'ring' or 'ring of protection' in item.get('name', '').lower():
                     # Try ring slot 1 first, then ring slot 2
                     target_slot = EquipmentSlot.RING_1
                     if self.equipped_items.get(target_slot):
                         target_slot = EquipmentSlot.RING_2
-                    
+
                     if not self.equipped_items.get(target_slot):
                         self._equip_item(item, target_slot)
                     else:
@@ -788,7 +794,11 @@ class EquipmentPanel(QWidget):
                 elif item_type in ['amulet', 'necklace']:
                     target_slot = EquipmentSlot.AMULET
                     self._equip_item(item, target_slot)
-                    
+
+                elif item_type == 'belt':
+                    target_slot = EquipmentSlot.BELT
+                    self._equip_item(item, target_slot)
+
                 else:
                     # Not equipment, treat as consumable
                     self.item_used.emit(item)
@@ -813,6 +823,10 @@ class EquipmentPanel(QWidget):
                         self.slot_widgets[slot].clear_item()
                         self._update_inventory_display()
                         self._update_stats_display()
+
+                        # Update magical item bonuses
+                        self._update_character_bonuses()
+
                         self.item_unequipped.emit(slot)
                         self.inventory_changed.emit()
                 else:
@@ -830,7 +844,7 @@ class EquipmentPanel(QWidget):
         # Add equipped items first (marked as equipped)
         for slot, item in self.equipped_items.items():
             item_name = item.get('name', 'Unknown Item')
-            item_type = item.get('type', '')
+            item_type = item.get('item_type', '')
             slot_name = slot.value.replace('_', ' ').title()
             
             display_text = f"[ATTACK] {item_name} [Equipped - {slot_name}]"
@@ -844,7 +858,7 @@ class EquipmentPanel(QWidget):
         # Add unequipped inventory items
         for item in self.inventory_items:
             item_name = item.get('name', 'Unknown Item')
-            item_type = item.get('type', '')
+            item_type = item.get('item_type', '')
             quantity = item.get('quantity', 1)
             
             display_text = f"{item_name}"

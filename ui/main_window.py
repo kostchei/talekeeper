@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
                     item_id,
                     character_id,
                     item.get('name', 'Unknown Item'),
-                    item.get('type', 'miscellaneous'),
+                    item['item_type'],
                     item.get('quantity', 1),
                     item.get('weight_lb', 0.0),
                     item.get('description', ''),
