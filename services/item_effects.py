@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import re
 from typing import Dict, Any, List, Optional
 
 class ItemEffectsService:
@@ -27,6 +28,8 @@ class ItemEffectsService:
                         int_bonus INTEGER DEFAULT 0,
                         wis_bonus INTEGER DEFAULT 0,
                         cha_bonus INTEGER DEFAULT 0,
+                        skill_advantages TEXT DEFAULT '[]',
+                        save_advantages TEXT DEFAULT '[]',
                         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
                     )
@@ -49,9 +52,9 @@ class ItemEffectsService:
         except Exception as e:
             print(f"Error ensuring item effects tables: {e}")
 
-    def calculate_bonuses_for_character(self, character_id: str, equipped_items: Dict) -> Dict[str, int]:
+    def calculate_bonuses_for_character(self, character_id: str, equipped_items: Dict) -> Dict[str, Any]:
         """Calculate magical bonuses from all equipped items for a character."""
-        bonuses = {
+        bonuses: Dict[str, Any] = {
             'ac_bonus': 0,
             'save_bonus': 0,
             'attack_bonus': 0,
@@ -61,7 +64,9 @@ class ItemEffectsService:
             'con_bonus': 0,
             'int_bonus': 0,
             'wis_bonus': 0,
-            'cha_bonus': 0
+            'cha_bonus': 0,
+            'skill_advantages': [],
+            'save_advantages': []
         }
 
         try:
@@ -80,7 +85,9 @@ class ItemEffectsService:
                 item_bonuses = self._get_item_bonuses(item, is_attuned)
 
                 for bonus_type, bonus_value in item_bonuses.items():
-                    if bonus_type in bonuses:
+                    if bonus_type in ['skill_advantages', 'save_advantages']:
+                        bonuses[bonus_type].extend(bonus_value)
+                    elif bonus_type in bonuses:
                         bonuses[bonus_type] += bonus_value
 
             # Save calculated bonuses to database
@@ -113,10 +120,10 @@ class ItemEffectsService:
         item_id = item.get('id', '')
         item_name = item.get('name', item.get('item_name', ''))
         return f"{item_id}:{item_name}" if item_id else item_name
-
-    def _get_item_bonuses(self, item: Dict, is_attuned: bool = False) -> Dict[str, int]:
-        """Extract magical bonuses from an item."""
-        bonuses = {
+ 
+    def _get_item_bonuses(self, item: Dict, is_attuned: bool = False) -> Dict[str, Any]:
+        """Extract magical bonuses and advantages from an item."""
+        bonuses: Dict[str, Any] = {
             'ac_bonus': 0,
             'save_bonus': 0,
             'attack_bonus': 0,
@@ -126,7 +133,9 @@ class ItemEffectsService:
             'con_bonus': 0,
             'int_bonus': 0,
             'wis_bonus': 0,
-            'cha_bonus': 0
+            'cha_bonus': 0,
+            'skill_advantages': [],
+            'save_advantages': []
         }
 
         try:
@@ -140,22 +149,16 @@ class ItemEffectsService:
                            for keyword in magical_keywords)
 
             if is_magical:
-                # Extract numerical bonuses from name/description
-                import re
-
-                # Look for +X patterns
                 plus_match = re.search(r'\+(\d+)', item_name)
                 if plus_match:
                     bonus_value = int(plus_match.group(1))
 
-                    # Apply bonus based on item type
                     if item_type in ['weapon', 'sword', 'axe', 'bow', 'crossbow', 'dagger']:
                         bonuses['attack_bonus'] = bonus_value
                         bonuses['damage_bonus'] = bonus_value
                     elif item_type in ['armor', 'shield']:
                         bonuses['ac_bonus'] = bonus_value
                     elif item_type in ['amulet', 'ring', 'cloak']:
-                        # Magical accessories typically provide various bonuses
                         if 'protection' in item_name.lower() or 'defense' in item_name.lower():
                             bonuses['ac_bonus'] = bonus_value
                         elif 'strength' in item_name.lower():
@@ -171,9 +174,7 @@ class ItemEffectsService:
                         elif 'charisma' in item_name.lower():
                             bonuses['cha_bonus'] = bonus_value
 
-                # Special item effects (requires attunement)
                 if is_attuned:
-                    # Enhanced bonuses for attuned items
                     if 'ring of protection' in item_name.lower():
                         bonuses['ac_bonus'] += 1
                         bonuses['save_bonus'] += 1
@@ -186,6 +187,15 @@ class ItemEffectsService:
                         bonuses['str_bonus'] += 2
                     elif 'boots of elvenkind' in item_name.lower():
                         bonuses['dex_bonus'] += 1
+                        bonuses['skill_advantages'].append('stealth')
+
+            advantage_skills = re.findall(r'advantage on ([a-zA-Z ]+) checks', description.lower())
+            for skill in advantage_skills:
+                bonuses['skill_advantages'].append(skill.strip())
+
+            advantage_saves = re.findall(r'advantage on ([a-zA-Z ]+) saving throws', description.lower())
+            for save in advantage_saves:
+                bonuses['save_advantages'].append(save.strip())
 
             return bonuses
 
@@ -193,7 +203,8 @@ class ItemEffectsService:
             print(f"Error extracting bonuses from item {item}: {e}")
             return bonuses
 
-    def _save_bonuses_to_database(self, character_id: str, bonuses: Dict[str, int]):
+
+    def _save_bonuses_to_database(self, character_id: str, bonuses: Dict[str, Any]):
         """Save calculated bonuses to database."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -202,8 +213,9 @@ class ItemEffectsService:
                 cursor.execute("""
                     INSERT OR REPLACE INTO character_magical_bonuses (
                         character_id, ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus,
+                        skill_advantages, save_advantages
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id,
                     bonuses['ac_bonus'],
@@ -215,7 +227,9 @@ class ItemEffectsService:
                     bonuses['con_bonus'],
                     bonuses['int_bonus'],
                     bonuses['wis_bonus'],
-                    bonuses['cha_bonus']
+                    bonuses['cha_bonus'],
+                    json.dumps(bonuses['skill_advantages']),
+                    json.dumps(bonuses['save_advantages'])
                 ))
 
                 print(f"[ITEM_EFFECTS] Saved bonuses for {character_id}: {bonuses}")
@@ -245,14 +259,16 @@ class ItemEffectsService:
         except Exception as e:
             print(f"Error setting attunement: {e}")
 
-    def get_character_bonuses(self, character_id: str) -> Dict[str, int]:
+
+    def get_character_bonuses(self, character_id: str) -> Dict[str, Any]:
         """Get saved bonuses for a character from database."""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
+                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus,
+                           skill_advantages, save_advantages
                     FROM character_magical_bonuses
                     WHERE character_id = ?
                 """, (character_id,))
@@ -269,15 +285,34 @@ class ItemEffectsService:
                         'con_bonus': row[6] or 0,
                         'int_bonus': row[7] or 0,
                         'wis_bonus': row[8] or 0,
-                        'cha_bonus': row[9] or 0
+                        'cha_bonus': row[9] or 0,
+                        'skill_advantages': json.loads(row[10]) if row[10] else [],
+                        'save_advantages': json.loads(row[11]) if row[11] else []
                     }
                 else:
                     return {
                         'ac_bonus': 0, 'save_bonus': 0, 'attack_bonus': 0, 'damage_bonus': 0,
                         'str_bonus': 0, 'dex_bonus': 0, 'con_bonus': 0, 'int_bonus': 0,
-                        'wis_bonus': 0, 'cha_bonus': 0
+                        'wis_bonus': 0, 'cha_bonus': 0,
+                        'skill_advantages': [], 'save_advantages': []
                     }
 
         except Exception as e:
             print(f"Error getting character bonuses: {e}")
             return {}
+
+    def apply_consumable_effect(self, character_id: str, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply a consumable item's effect and update bonuses."""
+        try:
+            current = self.get_character_bonuses(character_id)
+            item_bonuses = self._get_item_bonuses(item)
+            for key, value in item_bonuses.items():
+                if key in ['skill_advantages', 'save_advantages']:
+                    current[key].extend(value)
+                else:
+                    current[key] = current.get(key, 0) + value
+            self._save_bonuses_to_database(character_id, current)
+            return current
+        except Exception as e:
+            print(f"Error applying consumable effect: {e}")
+            return current

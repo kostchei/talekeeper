@@ -213,9 +213,7 @@ class MainWindow(QMainWindow):
         self.equipment_panel.expansion_changed.connect(
             lambda expanded: self.log_panel.log_system(f"Equipment panel {'expanded' if expanded else 'collapsed'}")
         )
-        self.equipment_panel.item_used.connect(
-            lambda item: self.log_panel.log_info(f"Used item: {item.get('name', 'Unknown')}")
-        )
+        self.equipment_panel.item_used.connect(self._on_item_used)
         # Equipment change signals - update action panel when weapons/items are equipped/unequipped
         # NOTE: When spell system is added, spell changes will need similar handling for magic actions
         self.equipment_panel.item_equipped.connect(self._on_item_equipped)
@@ -241,7 +239,14 @@ class MainWindow(QMainWindow):
         selected_monster = self.encounter_pane.get_selected_monster()
         if selected_monster:
             self.log_panel.log_combat(f"Selected target: {selected_monster.monster_name}")
-    
+
+    def _on_item_used(self, item):
+        """Handle consumable item usage."""
+        self.log_panel.log_info(f"Used item: {item.get('name', 'Unknown')}")
+        if hasattr(self, 'game_engine') and self.game_engine.current_character:
+            cid = self.game_engine.current_character['id']
+            self.equipment_panel.item_effects.apply_consumable_effect(cid, item)
+
     def _on_item_equipped(self, item, slot):
         """Handle item equipped - update database and recalculate AC."""
         if not hasattr(self, 'game_engine') or not self.game_engine.current_character:

@@ -337,7 +337,7 @@ class ProficiencySystem:
                 row = cursor.fetchone()
                 if not row:
                     return 0
-                
+
                 ability_map = {
                     'strength': row[0],
                     'dexterity': row[1],
@@ -346,9 +346,26 @@ class ProficiencySystem:
                     'wisdom': row[4],
                     'charisma': row[5]
                 }
-                
+
                 level = row[6]
-                ability_score = ability_map.get(ability.lower(), 10)
+
+                # Pull magical bonuses
+                cursor.execute(
+                    "SELECT save_bonus, str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus FROM character_magical_bonuses WHERE character_id = ?",
+                    (character_id,)
+                )
+                bonus_row = cursor.fetchone() or (0, 0, 0, 0, 0, 0, 0)
+                save_bonus = bonus_row[0] or 0
+                ability_bonus_map = {
+                    'strength': bonus_row[1] or 0,
+                    'dexterity': bonus_row[2] or 0,
+                    'constitution': bonus_row[3] or 0,
+                    'intelligence': bonus_row[4] or 0,
+                    'wisdom': bonus_row[5] or 0,
+                    'charisma': bonus_row[6] or 0
+                }
+
+                ability_score = ability_map.get(ability.lower(), 10) + ability_bonus_map.get(ability.lower(), 0)
                 ability_mod = (ability_score - 10) // 2
                 prof_bonus = get_proficiency_bonus(level)
                 
@@ -362,10 +379,10 @@ class ProficiencySystem:
                 
                 is_proficient = cursor.fetchone()[0] > 0
                 
+                total = ability_mod + save_bonus
                 if is_proficient:
-                    return ability_mod + prof_bonus
-                else:
-                    return ability_mod
+                    total += prof_bonus
+                return total
                     
         except Exception as e:
             print(f"[Proficiency] Error calculating saving throw bonus: {e}")
@@ -373,24 +390,32 @@ class ProficiencySystem:
     
     def get_attack_bonus(self, character_id: str, weapon_name: str, ability_mod: int) -> int:
         try:
-            is_proficient, _ = self.is_proficient_with_weapon(character_id, weapon_name)
-            
-            if not is_proficient:
-                return ability_mod
-            
             with self._get_connection() as conn:
                 cursor = conn.cursor()
+                # Magical attack bonus
+                cursor.execute(
+                    "SELECT attack_bonus FROM character_magical_bonuses WHERE character_id = ?",
+                    (character_id,)
+                )
+                attack_row = cursor.fetchone()
+                magical_bonus = attack_row[0] or 0 if attack_row else 0
+
+                is_proficient, _ = self.is_proficient_with_weapon(character_id, weapon_name)
+
+                if not is_proficient:
+                    return ability_mod + magical_bonus
+
                 cursor.execute("""
                     SELECT level FROM characters WHERE id = ?
                 """, (character_id,))
-                
+
                 level_row = cursor.fetchone()
                 if level_row:
                     prof_bonus = get_proficiency_bonus(level_row[0])
-                    return ability_mod + prof_bonus
-                
-                return ability_mod
-                
+                    return ability_mod + prof_bonus + magical_bonus
+
+                return ability_mod + magical_bonus
+
         except Exception as e:
             print(f"[Proficiency] Error calculating attack bonus: {e}")
             return ability_mod
