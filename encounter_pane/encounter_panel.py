@@ -486,6 +486,7 @@ class EncounterPanel(QWidget):
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
         self._setup_ui()
         self._apply_styles()
+        self._show_initial_random_encounter()
     
     def _setup_ui(self):
         """Initialize the encounter panel UI components."""
@@ -572,13 +573,15 @@ class EncounterPanel(QWidget):
 
         # Encounter type selector
         self.encounter_type_combo = QComboBox()
-        self.encounter_type_combo.addItems([
+        self._random_encounter_topics = [
             "Monsters",
             "Traps",
             "Hazards",
             "Skill Challenge",
             "Vendors",
-        ])
+        ]
+        self.encounter_type_combo.addItems(["Random"] + self._random_encounter_topics)
+        self.encounter_type_combo.setCurrentText("Random")
         encounters_layout.addWidget(self.encounter_type_combo)
 
         # Generate encounter button
@@ -671,6 +674,11 @@ class EncounterPanel(QWidget):
         # Add components to main layout
         self.main_layout.addWidget(self.content_tabs, 1)
     
+    def _show_initial_random_encounter(self):
+        """Display a randomly selected encounter on startup."""
+        self.encounter_type_combo.setCurrentText("Random")
+        self._generate_selected_encounter()
+
     def _apply_styles(self):
         """Apply dark theme styling to encounter panel components."""
         style_sheet = """
@@ -2986,6 +2994,11 @@ class EncounterPanel(QWidget):
             self.vendor_widget = None
 
         encounter_type = self.encounter_type_combo.currentText()
+        random_selection = None
+        if encounter_type == "Random":
+            random_selection = random.choice(self._random_encounter_topics)
+            encounter_type = random_selection
+
         if encounter_type == "Monsters":
             self._generate_monster_encounter()
         elif encounter_type == "Traps":
@@ -2996,6 +3009,14 @@ class EncounterPanel(QWidget):
             self._generate_skill_challenge()
         elif encounter_type == "Vendors":
             self._generate_vendor_encounter()
+
+        if random_selection:
+            current_text = self.encounter_details_text.toPlainText().strip()
+            prefix = f"Random selection: {random_selection}"
+            if current_text:
+                self.encounter_details_text.setPlainText(f"{prefix}\n\n{current_text}")
+            else:
+                self.encounter_details_text.setPlainText(prefix)
 
     def _generate_trap_encounter(self):
         level = self._get_character_level() or 1
