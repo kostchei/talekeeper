@@ -984,8 +984,8 @@ class ShopInterface(QWidget):
     def _setup_ui(self):
         """Setup shop interface"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
         
         # Title
         title_label = QLabel("🏪 GENERAL STORE")
@@ -1005,7 +1005,9 @@ class ShopInterface(QWidget):
         # Left side - Item categories and list
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
-        
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(4)
+
         # Category filter
         category_label = QLabel("Category:")
         left_layout.addWidget(category_label)
@@ -1020,18 +1022,21 @@ class ShopInterface(QWidget):
         
         # Items list
         items_label = QLabel("Available Items:")
+        items_label.setObjectName("itemsLabel")
         left_layout.addWidget(items_label)
         
         self.items_list = QListWidget()
         self.items_list.currentRowChanged.connect(self._item_selected)
-        left_layout.addWidget(self.items_list)
+        left_layout.addWidget(self.items_list, stretch=1)
         
         splitter.addWidget(left_widget)
         
         # Right side - Item details and purchase
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
-        
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(4)
+
         details_label = QLabel("Item Details:")
         right_layout.addWidget(details_label)
         
@@ -1039,12 +1044,13 @@ class ShopInterface(QWidget):
         self.item_details.setObjectName("itemDetails")
         self.item_details.setWordWrap(True)
         self.item_details.setAlignment(Qt.AlignmentFlag.AlignTop)
-        right_layout.addWidget(self.item_details)
+        right_layout.addWidget(self.item_details, stretch=1)
         
         # Purchase controls
-        purchase_frame = QFrame()
-        purchase_layout = QVBoxLayout(purchase_frame)
-        
+        purchase_layout = QVBoxLayout()
+        purchase_layout.setContentsMargins(0, 0, 0, 0)
+        purchase_layout.setSpacing(4)
+
         # Quantity selector
         qty_layout = QHBoxLayout()
         qty_layout.addWidget(QLabel("Quantity:"))
@@ -1068,9 +1074,8 @@ class ShopInterface(QWidget):
         self.purchase_button.clicked.connect(self._handle_transaction)
         self.purchase_button.setEnabled(False)
         purchase_layout.addWidget(self.purchase_button)
-        
-        right_layout.addWidget(purchase_frame)
-        right_layout.addStretch()
+
+        right_layout.addLayout(purchase_layout)
         
         splitter.addWidget(right_widget)
         splitter.setSizes([400, 300])
@@ -1078,9 +1083,10 @@ class ShopInterface(QWidget):
         layout.addWidget(splitter)
         
         # Shop mode buttons
-        mode_frame = QFrame()
-        mode_layout = QHBoxLayout(mode_frame)
-        
+        mode_layout = QHBoxLayout()
+        mode_layout.setContentsMargins(0, 0, 0, 0)
+        mode_layout.setSpacing(6)
+
         self.buy_button = QPushButton("Buy Items")
         self.buy_button.setObjectName("buyModeButton")
         self.buy_button.setChecked(True)
@@ -1091,9 +1097,9 @@ class ShopInterface(QWidget):
         self.sell_button.setObjectName("sellModeButton") 
         self.sell_button.clicked.connect(lambda: self._set_shop_mode("sell"))
         mode_layout.addWidget(self.sell_button)
-        
-        layout.addWidget(mode_frame)
-        
+
+        layout.addLayout(mode_layout)
+
         # Exit shop button
         exit_button = QPushButton("Leave Shop")
         exit_button.setObjectName("exitShopButton")

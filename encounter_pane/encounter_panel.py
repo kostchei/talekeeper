@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QTabWidget, QListWidget, QListWidgetItem,
                             QSplitter, QGroupBox, QGridLayout, QComboBox,
                             QSpinBox, QCheckBox, QStackedWidget, QRadioButton,
-                            QButtonGroup, QProgressBar)
+                            QButtonGroup, QProgressBar, QSizePolicy)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import json
@@ -30,6 +30,7 @@ from uuid import uuid4
 from .encounter_generator import EncounterGenerator, roll_monster_hp
 from .campaign_frame import CampaignFrame
 from services.equipment_database import EquipmentDatabase
+from services.proficiency_bonus import get_proficiency_bonus
 from .town_encounter import TownEncounterPanel, ShopInterface
 from .alt_encounters import generate_trap, generate_hazard, generate_skill_challenge
 # Monster models no longer needed - using direct SQL queries and local dataclasses
@@ -549,7 +550,8 @@ class EncounterPanel(QWidget):
         self.encounter_details_text = QTextEdit()
         self.encounter_details_text.setObjectName("encounterDetailsText")
         self.encounter_details_text.setReadOnly(True)
-        self.encounter_details_text.setMaximumHeight(80)
+        self.encounter_details_text.setMinimumHeight(220)
+        self.encounter_details_text.setMaximumHeight(240)
         self.encounter_details_text.setPlainText("Click 'Generate Random Encounter' to see encounter details...")
         self.encounter_details_text.setStyleSheet("""
             QTextEdit {
@@ -624,6 +626,18 @@ class EncounterPanel(QWidget):
         self.monsters_frame.setVisible(False)
         encounters_layout.addWidget(self.monsters_frame)
         
+        
+        # Trap card container
+        self.trap_card_frame = QFrame()
+        self.trap_card_frame.setObjectName("trapCardFrame")
+        self.trap_card_layout = QVBoxLayout(self.trap_card_frame)
+        self.trap_card_layout.setContentsMargins(1, 1, 1, 1)
+        self.trap_card_layout.setSpacing(4)
+        self.trap_card_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.trap_card_frame.setMaximumWidth(160)
+        self.trap_card_frame.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.trap_card_frame.setVisible(False)
+        encounters_layout.addWidget(self.trap_card_frame, alignment=Qt.AlignmentFlag.AlignLeft)
         # --- CHARACTER CREATION TAB ---
         self.character_creation_tab = QWidget()
         # Store the index so we can reliably show/hide this tab later even if
@@ -1340,6 +1354,16 @@ class EncounterPanel(QWidget):
             print(f"Error getting current character data: {e}")
             return None
     
+
+    def _get_game_engine(self):
+        """Fetch the active game engine reference from the widget hierarchy."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, "game_engine"):
+                return parent.game_engine
+            parent = parent.parent()
+        return None
+
     def refresh_character_data(self):
         """Refresh character data and check if town tab should be shown/hidden"""
         can_level = self._can_character_level_up()
@@ -2993,6 +3017,10 @@ class EncounterPanel(QWidget):
             self.vendor_widget.deleteLater()
             self.vendor_widget = None
 
+        if hasattr(self, 'trap_card_frame'):
+            self._clear_trap_cards()
+            self.trap_card_frame.setVisible(False)
+
         encounter_type = self.encounter_type_combo.currentText()
         random_selection = None
         if encounter_type == "Random":
@@ -3019,20 +3047,513 @@ class EncounterPanel(QWidget):
                 self.encounter_details_text.setPlainText(prefix)
 
     def _generate_trap_encounter(self):
+        """Generate a trap encounter with automated resolution."""
         level = self._get_character_level() or 1
         trap = generate_trap(level)
-        text = (
-            f"Trap Type: {trap['type']}\n"
-            f"Description: {trap['description']}\n"
-            f"DC {trap['dc']} To Hit {trap['toHit']}\n"
-            f"Damage: {trap['damage']}\n"
-            f"Effects: {trap['effects']}\n"
-            f"XP: {trap['xp']}"
-        )
-        self.encounter_details_text.setPlainText(text)
+
+        self._active_trap_state = {
+            'type': trap['type'],
+            'xp_awarded': False,
+            'resolved': False,
+            'level': level,
+            'trap': trap,
+        }
+        self._trap_context = self._build_trap_context()
+
+        self.encounter_details_text.clear()
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
+        self._clear_trap_cards()
+        self.trap_card_frame.setVisible(True)
 
+        if trap['type'] == 'Setback':
+            card, summary = self._create_setback_trap_card(trap, level)
+        else:
+            card, summary = self._create_dangerous_trap_card(trap, level)
+        self.trap_card_layout.addWidget(card)
+        self.encounter_details_text.setPlainText(summary)
+
+
+    def _clear_trap_cards(self):
+        """Clear any trap cards from the layout."""
+        if not hasattr(self, 'trap_card_layout'):
+            return
+        while self.trap_card_layout.count():
+            item = self.trap_card_layout.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+        if hasattr(self, 'trap_card_frame'):
+            self.trap_card_frame.setVisible(False)
+        self._trap_context = {}
+        self._active_trap_state = {}
+
+    def _build_trap_context(self) -> Dict[str, Any]:
+        """Build context data used when resolving traps."""
+        context = {
+            'character': None,
+            'game_engine': None,
+            'proficiency_system': None,
+            'proficiencies': {},
+            'inventory': [],
+            'proficiency_bonus': 2,
+        }
+
+        character = self._get_current_character_data()
+        game_engine = self._get_game_engine()
+
+        if character:
+            context['character'] = character
+            try:
+                context['proficiency_bonus'] = get_proficiency_bonus(character.get('level', 1))
+            except Exception:
+                context['proficiency_bonus'] = 2
+        if game_engine:
+            context['game_engine'] = game_engine
+            proficiency_system = getattr(game_engine, 'proficiency_system', None)
+            if proficiency_system and character:
+                try:
+                    context['proficiency_system'] = proficiency_system
+                    context['proficiencies'] = proficiency_system.get_character_proficiencies(character['id'])
+                except Exception:
+                    context['proficiencies'] = {}
+            if character:
+                try:
+                    context['inventory'] = game_engine.get_character_inventory_sync(character['id'])
+                except Exception:
+                    context['inventory'] = []
+        return context
+
+    def _ensure_trap_context(self) -> Dict[str, Any]:
+        """Ensure trap context includes current game engine and character data."""
+        ctx = getattr(self, '_trap_context', {})
+        if not ctx or not ctx.get('character') or not ctx.get('game_engine'):
+            ctx = self._build_trap_context()
+            self._trap_context = ctx
+        return ctx
+
+
+    def _format_trap_summary(self, trap: dict, extra: Optional[str] = None) -> str:
+        lines = [
+            f"Trap Type: {trap['type']}",
+            f"Description: {trap['description']}",
+            f"DC {trap['dc']} / Attack Bonus +{trap['toHit']}",
+            f"Damage: {trap['damage']}",
+            f"Effects: {trap['effects']}",
+            f"XP: {trap['xp']}",
+        ]
+        if extra:
+            lines.append('')
+            lines.append(extra)
+        return '\n'.join(lines)
+
+    def _create_setback_trap_card(self, trap: dict, level: int):
+        from PyQt6.QtWidgets import QVBoxLayout
+
+        card = QFrame()
+        card.setObjectName("trapCard")
+        card.setFixedSize(120, 140)
+        card.setStyleSheet("""
+            QFrame#trapCard {
+                background-color: #2a2a2a;
+                border: 2px solid #555555;
+                border-radius: 8px;
+                padding: 4px;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(4)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        title = QLabel(f"{trap['type']} Trap")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-weight: bold; color: #ffcc66;")
+        layout.addWidget(title)
+
+        description = QLabel("This setback springs without warning if unnoticed.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        outcome_label = QLabel()
+        outcome_label.setWordWrap(True)
+        layout.addWidget(outcome_label)
+
+        result = self._resolve_setback_trap(trap, level)
+        outcome_label.setText(result['result'])
+
+        summary = self._format_trap_summary(trap, result['summary_append'])
+        return card, summary
+
+    def _resolve_setback_trap(self, trap: dict, level: int) -> Dict[str, str]:
+        ctx = self._ensure_trap_context()
+        skill_name, skill_bonus = self._determine_detection_check(ctx)
+
+        if not skill_name:
+            message = "No active character found to resolve the setback automatically."
+            self._log_monster_action("[TRAP] Setback encountered but no active character loaded.")
+            self._award_trap_xp(trap['xp'], trap['type'])
+            treasure_note = self._maybe_award_trap_treasure('Setback', level)
+            self._active_trap_state['resolved'] = True
+            combined = self._combine_trap_text(message, treasure_note)
+            self._log_monster_action(combined)
+            return {'result': combined, 'summary_append': combined}
+
+        roll_total, detail = self._roll_d20(skill_bonus)
+        self._log_monster_action(
+            f"[TRAP] Setback detection check ({skill_name}) vs DC {trap['dc']}: {detail}"
+        )
+
+        if roll_total >= trap['dc']:
+            self._log_monster_action("[TRAP] You see the setback in time and avoid it.")
+            treasure_note = self._maybe_award_trap_treasure('Setback', level)
+            self._award_trap_xp(trap['xp'], trap['type'])
+            self._active_trap_state['resolved'] = True
+            outcome = "You see the setback and avoid it."
+            combined = self._combine_trap_text(outcome, treasure_note)
+            self._log_monster_action(combined)
+            return {'result': combined, 'summary_append': combined}
+
+        self._log_monster_action("[TRAP] The setback is triggered!")
+        outcome = self._trigger_trap_effect(trap, ctx)
+        treasure_note = self._maybe_award_trap_treasure('Setback', level)
+        self._award_trap_xp(trap['xp'], trap['type'])
+        self._active_trap_state['resolved'] = True
+        combined = self._combine_trap_text(outcome, treasure_note)
+        self._log_monster_action(combined)
+        return {'result': combined, 'summary_append': combined}
+
+    def _create_dangerous_trap_card(self, trap: dict, level: int):
+        from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout
+
+        card = QFrame()
+        card.setObjectName("trapCard")
+        card.setFixedSize(120, 140)
+        card.setStyleSheet("""
+            QFrame#trapCard {
+                background-color: #352a1e;
+                border: 2px solid #8a5a1f;
+                border-radius: 8px;
+                padding: 6px;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(6)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        title = QLabel("Dangerous Trap")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("font-weight: bold; color: #ff9955;")
+        layout.addWidget(title)
+
+        warning = QLabel("You see a dangerous area - surely treasure is nearby.")
+        warning.setWordWrap(True)
+        layout.addWidget(warning)
+
+        outcome_label = QLabel("Choose whether to avoid it or take the risk.")
+        outcome_label.setWordWrap(True)
+        layout.addWidget(outcome_label)
+
+        button_row = QHBoxLayout()
+        avoid_btn = QPushButton("Avoid")
+        risk_btn = QPushButton("Take Risk")
+        button_row.addWidget(avoid_btn)
+        button_row.addWidget(risk_btn)
+        layout.addLayout(button_row)
+
+        avoid_btn.clicked.connect(
+            lambda: self._resolve_dangerous_trap_avoid(trap, outcome_label, (avoid_btn, risk_btn))
+        )
+        risk_btn.clicked.connect(
+            lambda: self._resolve_dangerous_trap_take_risk(trap, level, outcome_label, (avoid_btn, risk_btn))
+        )
+
+        summary = self._format_trap_summary(trap, "Choose to avoid the trap or take the risk for rewards.")
+        return card, summary
+
+    def _resolve_dangerous_trap_avoid(self, trap: dict, output_label: QLabel, buttons: tuple):
+        if getattr(self, '_active_trap_state', {}).get('resolved'):
+            return
+        for btn in buttons:
+            btn.setEnabled(False)
+        self._active_trap_state['resolved'] = True
+        message = "You decide it's too risky and walk away with no reward."
+        output_label.setText(message)
+        self._log_monster_action("[TRAP] Dangerous trap avoided - no XP or treasure gained.")
+        self.encounter_details_text.setPlainText(self._format_trap_summary(trap, message))
+
+    def _resolve_dangerous_trap_take_risk(self, trap: dict, level: int, output_label: QLabel, buttons: tuple):
+        if getattr(self, '_active_trap_state', {}).get('resolved'):
+            return
+        for btn in buttons:
+            btn.setEnabled(False)
+
+        ctx = self._ensure_trap_context()
+        skill_name, skill_bonus = self._determine_detection_check(ctx)
+        if not skill_name:
+            message = "No active character found to resolve the trap."
+            output_label.setText(message)
+            self._log_monster_action("[TRAP] Dangerous trap encountered but no character loaded.")
+            treasure_note = self._maybe_award_trap_treasure('Dangerous', level)
+            self._award_trap_xp(trap['xp'], trap['type'])
+            self._active_trap_state['resolved'] = True
+            combined = self._combine_trap_text(message, treasure_note)
+            self.encounter_details_text.setPlainText(self._format_trap_summary(trap, combined))
+            self._log_monster_action(combined)
+            return
+
+        roll_total, detail = self._roll_d20(skill_bonus)
+        self._log_monster_action(
+            f"[TRAP] Dangerous trap survey ({skill_name}) vs DC {trap['dc']}: {detail}"
+        )
+
+        outcome_parts = []
+        if roll_total >= trap['dc']:
+            self._log_monster_action("[TRAP] You identify the trap's mechanism and attempt to disarm it.")
+            disarm_result = self._attempt_dangerous_trap_disarm(trap, ctx)
+            outcome_parts.append(disarm_result['result'])
+            if disarm_result['triggered']:
+                outcome_parts.append(self._trigger_trap_effect(trap, ctx))
+        else:
+            self._log_monster_action("[TRAP] You blunder into the mechanism while studying it!")
+            outcome_parts.append(self._trigger_trap_effect(trap, ctx))
+
+        treasure_note = self._maybe_award_trap_treasure('Dangerous', level)
+        outcome_parts.append(treasure_note)
+        self._award_trap_xp(trap['xp'], trap['type'])
+        self._active_trap_state['resolved'] = True
+
+        combined = self._combine_trap_text(*outcome_parts)
+        output_label.setText(combined)
+        self.encounter_details_text.setPlainText(self._format_trap_summary(trap, combined))
+        self._log_monster_action(combined)
+
+    def _attempt_dangerous_trap_disarm(self, trap: dict, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        character = ctx.get('character')
+        if not character:
+            return {
+                'result': 'No character available to disarm the trap.',
+                'triggered': True,
+            }
+
+        profs = ctx.get('proficiencies', {})
+        skill_profs = [p.lower() for p in profs.get('skill', [])]
+        tool_profs = [p.lower().replace("'", "").replace(' ', '_') for p in profs.get('tool', [])]
+        tool_bonus = character.get('dexterity_modifier', 0)
+        if 'thieves_tools' in tool_profs:
+            tool_bonus += ctx.get('proficiency_bonus', 2)
+        investigation_bonus = self._get_skill_bonus(ctx, 'Investigation')
+        perception_bonus = self._get_skill_bonus(ctx, 'Perception')
+
+        has_tools_equipped = self._has_thieves_tools_equipped(ctx)
+        has_investigation_prof = 'investigation' in skill_profs
+        tool_proficient = 'thieves_tools' in tool_profs
+        advantage = has_tools_equipped and tool_proficient and has_investigation_prof
+
+        options = [
+            ("Thieves' Tools", tool_bonus, advantage),
+            ('Investigation', investigation_bonus, False),
+            ('Perception', perception_bonus, False),
+        ]
+
+        best_option = options[0]
+        for option in options[1:]:
+            if option[1] > best_option[1]:
+                best_option = option
+
+        roll_total, detail = self._roll_d20(best_option[1], advantage=best_option[2])
+        self._log_monster_action(
+            f"[TRAP] Disarm attempt with {best_option[0]} vs DC {trap['dc']}: {detail}"
+        )
+
+        if roll_total >= trap['dc']:
+            self._log_monster_action("[TRAP] You disable the trap and expose its cache.")
+            return {
+                'result': 'You carefully disarm the trap and keep the treasure safe.',
+                'triggered': False,
+            }
+
+        self._log_monster_action("[TRAP] The disarm attempt fails!")
+        return {
+            'result': 'The mechanism slips while you work!',
+            'triggered': True,
+        }
+
+    def _determine_detection_check(self, ctx: Dict[str, Any]) -> tuple:
+        options = []
+        for skill in ('Investigation', 'Perception'):
+            bonus = self._get_skill_bonus(ctx, skill)
+            options.append((skill, bonus))
+        if not options:
+            return None, 0
+        best = options[0]
+        for option in options[1:]:
+            if option[1] > best[1]:
+                best = option
+        return best
+
+    def _trigger_trap_effect(self, trap: dict, ctx: Dict[str, Any]) -> str:
+        character = ctx.get('character')
+        mode = random.choice(['attack', 'save'])
+        if not character:
+            self._log_monster_action('[TRAP] Trap triggered but no active character data available.')
+            return 'The trap triggers, but character data is unavailable.'
+
+        if mode == 'attack':
+            roll_total, detail = self._roll_d20(trap['toHit'])
+            armor_class = character.get('armor_class', 10)
+            self._log_monster_action(
+                f"[TRAP] Attack roll {detail} against AC {armor_class}"
+            )
+            if roll_total >= armor_class:
+                damage, damage_detail = self._roll_damage_formula(trap['damage'])
+                self._log_monster_action(
+                    f"[TRAP] Damage {trap['damage']} -> {damage_detail} = {damage}"
+                )
+                self._deal_trap_damage(damage, trap['description'])
+                return f'The trap strikes for {damage} damage.'
+            self._log_monster_action("[TRAP] The trap misses its target.")
+            return 'The trap lashes out but misses.'
+
+        save_bonus = self._get_saving_throw_bonus_for_trap(ctx, 'dexterity')
+        roll_total, detail = self._roll_d20(save_bonus)
+        self._log_monster_action(
+            f"[TRAP] Dexterity save {detail} vs DC {trap['dc']}"
+        )
+        if roll_total < trap['dc']:
+            damage, damage_detail = self._roll_damage_formula(trap['damage'])
+            self._log_monster_action(
+                f"[TRAP] Damage {trap['damage']} -> {damage_detail} = {damage}"
+            )
+            self._deal_trap_damage(damage, trap['description'])
+            return f'You fail the save and take {damage} damage.'
+        self._log_monster_action("[TRAP] You succeed on the save and dodge the worst of it.")
+        return 'You twist away from the trap at the last moment.'
+
+    def _maybe_award_trap_treasure(self, trap_type: str, level: int) -> str:
+        loot_notes = []
+        if trap_type == 'Setback':
+            if random.random() < 0.5:
+                gp_amount = self._roll_individual_treasure(level)
+                if gp_amount > 0:
+                    loot_notes.append(f'Individual treasure worth {gp_amount} GP.')
+                    self._add_gold_to_character(gp_amount)
+                    self._log_monster_action(f"[LOOT] Individual treasure worth {gp_amount} GP found at the trap.")
+        elif trap_type == 'Dangerous':
+            gp_amount = self._roll_individual_treasure(level)
+            if gp_amount > 0:
+                loot_notes.append(f'Individual treasure worth {gp_amount} GP.')
+                self._add_gold_to_character(gp_amount)
+                self._log_monster_action(f"[LOOT] Individual treasure worth {gp_amount} GP recovered from the trap.")
+            if random.random() < 0.5:
+                hoard_gp = self._roll_individual_treasure(max(1, level)) * 5
+                if hoard_gp > 0:
+                    loot_notes.append(f'Hoard cache worth {hoard_gp} GP.')
+                    self._add_gold_to_character(hoard_gp)
+                    self._log_monster_action(f"[LOOT] Hoard cache worth {hoard_gp} GP stashed in the trap's recesses.")
+        return '\n'.join(loot_notes)
+
+    def _get_skill_bonus(self, ctx: Dict[str, Any], skill_name: str) -> int:
+        character = ctx.get('character')
+        if not character:
+            return 0
+        ability_map = {
+            'investigation': 'intelligence_modifier',
+            'perception': 'wisdom_modifier',
+        }
+        ability_key = ability_map.get(skill_name.lower())
+        ability_mod = character.get(ability_key, 0) if ability_key else 0
+        proficiency_system = ctx.get('proficiency_system')
+        if proficiency_system:
+            try:
+                return proficiency_system.calculate_skill_bonus(character['id'], skill_name, ability_mod)
+            except Exception:
+                return ability_mod
+        return ability_mod
+
+    def _get_saving_throw_bonus_for_trap(self, ctx: Dict[str, Any], ability: str) -> int:
+        character = ctx.get('character')
+        proficiency_system = ctx.get('proficiency_system')
+        if character and proficiency_system:
+            try:
+                return proficiency_system.get_saving_throw_bonus(character['id'], ability)
+            except Exception:
+                pass
+        if character:
+            ability_key = f"{ability.lower()}_modifier"
+            return character.get(ability_key, 0)
+        return 0
+
+    def _has_thieves_tools_equipped(self, ctx: Dict[str, Any]) -> bool:
+        for item in ctx.get('inventory', []):
+            name = item.get('name', '').lower()
+            if 'thieves' in name and 'tool' in name:
+                return True
+        return False
+
+    def _roll_d20(self, bonus: int, advantage: bool = False) -> tuple:
+        rolls = [random.randint(1, 20)]
+        if advantage:
+            rolls.append(random.randint(1, 20))
+            chosen = max(rolls)
+        else:
+            chosen = rolls[0]
+        total = chosen + bonus
+        detail = f"{' / '.join(str(r) for r in rolls)} + {bonus} = {total}"
+        return total, detail
+
+    def _roll_damage_formula(self, formula: str) -> tuple:
+        import re
+        match = re.match(r"(\d+)d(\d+)([+-]\d+)?", formula.strip())
+        if not match:
+            return 0, formula
+        count = int(match.group(1))
+        die = int(match.group(2))
+        modifier = int(match.group(3) or 0)
+        rolls = [random.randint(1, die) for _ in range(count)]
+        total = sum(rolls) + modifier
+        detail = "+".join(str(r) for r in rolls)
+        if modifier:
+            detail = f"{detail}{modifier:+d}"
+        return max(total, 0), detail
+
+    def _deal_trap_damage(self, amount: int, source: str):
+        ctx = getattr(self, '_trap_context', {})
+        character = ctx.get('character')
+        game_engine = ctx.get('game_engine')
+        if not character or not game_engine:
+            self._log_monster_action(f"[TRAP] {source} deals {amount} damage (adjust manually).")
+            return
+        current_hp = character.get('hit_points_current', character.get('current_hit_points', 0))
+        max_hp = character.get('hit_points_max', max(current_hp, character.get('hit_points_max', 0)))
+        new_hp = max(0, current_hp - amount)
+        try:
+            game_engine.update_character_hp_sync(new_hp)
+        except Exception as exc:
+            print(f"Error updating character HP after trap damage: {exc}")
+        character['hit_points_current'] = new_hp
+        if 'current_hit_points' in character:
+            character['current_hit_points'] = new_hp
+        self._update_character_sheet_hp(new_hp, max_hp)
+        self._log_monster_action(
+            f"[TRAP] {character.get('name', 'Adventurer')} now has {new_hp}/{max_hp} HP."
+        )
+
+    def _award_trap_xp(self, xp_amount: int, trap_label: str):
+        state = getattr(self, '_active_trap_state', {})
+        if not xp_amount or state.get('xp_awarded'):
+            return
+        self._add_xp_to_character(xp_amount)
+        self._log_monster_action(
+            f"[XP] Gained {xp_amount} XP for overcoming the {trap_label.lower()} trap."
+        )
+        state['xp_awarded'] = True
+        self._active_trap_state = state
+
+    def _combine_trap_text(self, *parts: str) -> str:
+        return '\n'.join([part for part in parts if part])
     def _generate_hazard_encounter(self):
         hazard = generate_hazard()
         text = (

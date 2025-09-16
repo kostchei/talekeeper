@@ -1,6 +1,7 @@
 import random
 
-TRAP_TYPES = ['Setback', 'Dangerous', 'Deadly']
+TRAP_TYPES = ['Setback', 'Dangerous']
+# Deadly traps are reserved for trap dungeon scenarios only.
 TRAP_DETAILS = {
     '1-4': {
         'Setback': {'dc': 10, 'toHit': 3, 'damage': '1d10', 'xp': 25,
@@ -9,6 +10,7 @@ TRAP_DETAILS = {
         'Dangerous': {'dc': 12, 'toHit': 6, 'damage': '2d10', 'xp': 450,
                       'description': 'rolling ball, falling block, slashing scythe blade, spiked pit',
                       'effects': 'chance of injury - crush, slash, pierce'},
+        # Deadly traps to be used in trap dungeons only
         'Deadly': {'dc': 16, 'toHit': 9, 'damage': '4d10', 'xp': 1800,
                    'description': 'poisoned spikes, diseased surface, gas',
                    'effects': 'chance of poison, disease'},
@@ -20,6 +22,7 @@ TRAP_DETAILS = {
         'Dangerous': {'dc': 12, 'toHit': 7, 'damage': '4d10', 'xp': 1100,
                       'description': 'poisoned spikes, diseased surface, gas',
                       'effects': 'chance of poison, disease'},
+        # Deadly traps to be used in trap dungeons only
         'Deadly': {'dc': 17, 'toHit': 10, 'damage': '10d10', 'xp': 10000,
                    'description': 'filling pit, filling room with water or sand, crushing, gas',
                    'effects': 'chance of drowning/suffocation'},
@@ -31,6 +34,7 @@ TRAP_DETAILS = {
         'Dangerous': {'dc': 12, 'toHit': 7, 'damage': '10d10', 'xp': 2300,
                       'description': 'filling pit, filling room with water or sand, crushing, gas',
                       'effects': 'chance of drowning/suffocation'},
+        # Deadly traps to be used in trap dungeons only
         'Deadly': {'dc': 19, 'toHit': 11, 'damage': '18d10', 'xp': 25000,
                    'description': 'magic, fire, acid',
                    'effects': 'chance of soul destruction, petrification or complete disintegration'},
@@ -42,6 +46,7 @@ TRAP_DETAILS = {
         'Dangerous': {'dc': 12, 'toHit': 8, 'damage': '18d10', 'xp': 8400,
                       'description': 'magic, fire, acid',
                       'effects': 'chance of soul destruction, petrification or complete disintegration'},
+        # Deadly traps to be used in trap dungeons only
         'Deadly': {'dc': 20, 'toHit': 12, 'damage': '24d10', 'xp': 33000,
                    'description': 'magic, fire, acid',
                    'effects': 'chance of soul destruction, petrification or complete disintegration'},
