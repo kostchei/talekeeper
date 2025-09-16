@@ -30,7 +30,8 @@ from uuid import uuid4
 from .encounter_generator import EncounterGenerator, roll_monster_hp
 from .campaign_frame import CampaignFrame
 from services.equipment_database import EquipmentDatabase
-from .town_encounter import TownEncounterPanel
+from .town_encounter import TownEncounterPanel, ShopInterface
+from .alt_encounters import generate_trap, generate_hazard, generate_skill_challenge
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Optional, Dict
@@ -479,6 +480,7 @@ class EncounterPanel(QWidget):
         self.encounter_instances = {}  # instance_id -> EncounterInstance
         self.selected_monster_id = None  # Currently selected monster for targeting
         self.current_encounter = None  # Current Encounter object for database tracking
+        self.vendor_widget = None  # Active vendor/shop interface
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -536,7 +538,8 @@ class EncounterPanel(QWidget):
         self.encounters_tab = QWidget()
         self.content_tabs.addTab(self.encounters_tab, "Encounters")
         
-        encounters_layout = QVBoxLayout(self.encounters_tab)
+        self.encounters_layout = QVBoxLayout(self.encounters_tab)
+        encounters_layout = self.encounters_layout
         encounters_layout.setContentsMargins(1, 1, 1, 1)
         encounters_layout.setSpacing(1)
         
@@ -560,16 +563,27 @@ class EncounterPanel(QWidget):
         """)
         encounters_layout.addWidget(self.encounter_details_text)
         
-        # Encounters list widget  
+        # Encounters list widget
         self.encounters_list = QListWidget()
         self.encounters_list.setObjectName("encountersList")
         self.encounters_list.setMaximumHeight(150)
         self.encounters_list.setVisible(False)
         encounters_layout.addWidget(self.encounters_list)
-        
+
+        # Encounter type selector
+        self.encounter_type_combo = QComboBox()
+        self.encounter_type_combo.addItems([
+            "Monsters",
+            "Traps",
+            "Hazards",
+            "Skill Challenge",
+            "Vendors",
+        ])
+        encounters_layout.addWidget(self.encounter_type_combo)
+
         # Generate encounter button
-        self.generate_encounter_btn = QPushButton("Generate Random Encounter")
-        self.generate_encounter_btn.clicked.connect(self._generate_encounter)
+        self.generate_encounter_btn = QPushButton("Generate Encounter")
+        self.generate_encounter_btn.clicked.connect(self._generate_selected_encounter)
         encounters_layout.addWidget(self.generate_encounter_btn)
 
         self.encounter_actions_frame = QFrame()
@@ -2963,8 +2977,71 @@ class EncounterPanel(QWidget):
             self.campaign_frame = campaign_frame
             self.encounter_generator = EncounterGenerator(campaign_frame)
     
-    def _generate_encounter(self):
-        """Generate a random encounter based on active character level."""
+    def _generate_selected_encounter(self):
+        """Generate encounter based on selected type."""
+        # Remove any existing vendor widget
+        if self.vendor_widget:
+            self.vendor_widget.setParent(None)
+            self.vendor_widget.deleteLater()
+            self.vendor_widget = None
+
+        encounter_type = self.encounter_type_combo.currentText()
+        if encounter_type == "Monsters":
+            self._generate_monster_encounter()
+        elif encounter_type == "Traps":
+            self._generate_trap_encounter()
+        elif encounter_type == "Hazards":
+            self._generate_hazard_encounter()
+        elif encounter_type == "Skill Challenge":
+            self._generate_skill_challenge()
+        elif encounter_type == "Vendors":
+            self._generate_vendor_encounter()
+
+    def _generate_trap_encounter(self):
+        level = self._get_character_level() or 1
+        trap = generate_trap(level)
+        text = (
+            f"Trap Type: {trap['type']}\n"
+            f"Description: {trap['description']}\n"
+            f"DC {trap['dc']} To Hit {trap['toHit']}\n"
+            f"Damage: {trap['damage']}\n"
+            f"Effects: {trap['effects']}\n"
+            f"XP: {trap['xp']}"
+        )
+        self.encounter_details_text.setPlainText(text)
+        self.encounters_list.setVisible(False)
+        self.monsters_frame.setVisible(False)
+
+    def _generate_hazard_encounter(self):
+        hazard = generate_hazard()
+        text = (
+            f"Hazard: {hazard['name']}\n"
+            f"DC {hazard['dc']} - {hazard['effect']}"
+        )
+        self.encounter_details_text.setPlainText(text)
+        self.encounters_list.setVisible(False)
+        self.monsters_frame.setVisible(False)
+
+    def _generate_skill_challenge(self):
+        level = self._get_character_level() or 1
+        challenge = generate_skill_challenge(level)
+        self.encounter_details_text.setPlainText(challenge['text'])
+        self.encounters_list.setVisible(False)
+        self.monsters_frame.setVisible(False)
+
+    def _generate_vendor_encounter(self):
+        character_data = self._get_current_character_data()
+        if not character_data:
+            self.encounter_details_text.setPlainText("No active character found.")
+            return
+        self.encounter_details_text.setPlainText("A travelling vendor offers goods.")
+        self.encounters_list.setVisible(False)
+        self.monsters_frame.setVisible(False)
+        self.vendor_widget = ShopInterface(character_data, self)
+        self.encounters_layout.addWidget(self.vendor_widget)
+
+    def _generate_monster_encounter(self):
+        """Generate a random monster encounter based on active character level."""
         if not self.encounter_generator:
             self._load_campaign_frame()
         

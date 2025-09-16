@@ -486,10 +486,11 @@ class EncounterPanel(QWidget):
         # --- ENCOUNTERS TAB ---
         self.encounters_tab = QWidget()
         self.content_tabs.addTab(self.encounters_tab, "Encounters")
-        
-        encounters_layout = QVBoxLayout(self.encounters_tab)
+
+        self.encounters_layout = QVBoxLayout(self.encounters_tab)
+        encounters_layout = self.encounters_layout
         encounters_layout.setContentsMargins(1, 1, 1, 1)
-        
+
         # Encounters list widget (was missing)
         # Encounter details area (for XP budget info) - AT THE TOP
         self.encounter_details_text = QTextEdit()
@@ -509,18 +510,29 @@ class EncounterPanel(QWidget):
             }
         """)
         encounters_layout.addWidget(self.encounter_details_text)
-        
-        # Encounters list widget  
+
+        # Encounters list widget
         self.encounters_list = QListWidget()
         self.encounters_list.setObjectName("encountersList")
         self.encounters_list.setMaximumHeight(150)  # Keep it compact
         encounters_layout.addWidget(self.encounters_list)
-        
+
+        # Encounter type selector
+        self.encounter_type_combo = QComboBox()
+        self.encounter_type_combo.addItems([
+            "Monsters",
+            "Traps",
+            "Hazards",
+            "Skill Challenge",
+            "Vendors",
+        ])
+        encounters_layout.addWidget(self.encounter_type_combo)
+
         # Generate encounter button
-        self.generate_encounter_btn = QPushButton("Generate Random Encounter")
-        self.generate_encounter_btn.clicked.connect(self._generate_encounter)
+        self.generate_encounter_btn = QPushButton("Generate Encounter")
+        self.generate_encounter_btn.clicked.connect(self._generate_selected_encounter)
         encounters_layout.addWidget(self.generate_encounter_btn)
-        
+
         # Monster cards container (grid layout for multiple rows)
         self.monsters_frame = QFrame()
         self.monsters_frame.setObjectName("monstersFrame")
@@ -2884,6 +2896,9 @@ class EncounterPanel(QWidget):
             }
             campaign_frame = CampaignFrame(default_frame_data)
             self.encounter_generator = EncounterGenerator(campaign_frame)
+
+    def _generate_selected_encounter(self):
+        self._generate_encounter()
     
     def _generate_encounter(self):
         """Generate a random encounter based on active character level."""
