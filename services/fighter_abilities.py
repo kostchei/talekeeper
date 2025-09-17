@@ -127,13 +127,38 @@ class FighterAbilitiesService:
             conn.commit()
     
     def get_character_subclass(self, character_id: str) -> Optional[str]:
-        """Get the subclass for a character."""
+        """Get the fighter subclass for a character."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (character_id,))
+
+            cursor.execute(
+                """
+                SELECT subclass_id
+                FROM character_subclasses
+                WHERE character_id = ? AND LOWER(class_id) = 'fighter'
+                """,
+                (character_id,)
+            )
             row = cursor.fetchone()
-            return row['subclass_id'] if row else None
-    
+            if row and row['subclass_id']:
+                return row['subclass_id']
+
+            cursor.execute(
+                """
+                SELECT class_id, subclass_id
+                FROM characters
+                WHERE id = ?
+                """,
+                (character_id,)
+            )
+            legacy = cursor.fetchone()
+            if not legacy or not legacy['subclass_id']:
+                return None
+
+            if not legacy['class_id'] or legacy['class_id'].lower() == 'fighter':
+                return legacy['subclass_id']
+
+            return None
     def use_second_wind(self, character_id: str) -> Dict[str, Any]:
         """Use Second Wind ability."""
         with self._get_connection() as conn:

@@ -260,15 +260,15 @@ class TrainingHallInterface(QWidget):
         print(f"[Training] NEW VERSION: _class_selected called with {class_name}, {checked}")
         if checked:
             self.selected_class = class_name.lower()
+            self.selected_subclass = None
+            self.is_subclass_level = False
             print(f"[Training] Calling _check_subclass_level for class {class_name}")
             self._check_subclass_level()
             print(f"[Training] Completed subclass check, is_subclass_level: {self.is_subclass_level}")
-            
             # Also check for ASI/feat eligibility
             print(f"[Training] Calling _check_asi_level for class {class_name}")
             self._check_asi_level()
             print(f"[Training] Completed ASI check, is_asi_level: {self.is_asi_level}")
-    
     def _check_asi_level(self):
         """Check if this is an ASI level and show/hide ASI selection"""
         if not self.selected_class:
@@ -338,36 +338,38 @@ class TrainingHallInterface(QWidget):
         if not self.selected_class:
             print(f"[Training] No selected class for subclass check")
             return
-        
         character_id = self.character_data.get('id', '')
         current_classes = self.level_up_service.get_character_class_levels(character_id)
         current_class_level = current_classes.get(self.selected_class, 0)
         next_level = current_class_level + 1
-        
+        subclass_manager = SubclassManager()
+        available_subclasses = subclass_manager.get_available_subclasses(self.selected_class)
+        selection_level = 3
+        if available_subclasses:
+            selection_level = min((subclass.get('selection_level') or 3) for subclass in available_subclasses)
+        existing_subclass = subclass_manager.get_character_subclass(character_id, self.selected_class)
         print(f"[Training] Subclass check: selected_class='{self.selected_class}', current_level={current_class_level}, next_level={next_level}")
         print(f"[Training] Available classes: {current_classes}")
         print(f"[Training] Character ID: {character_id}")
-        
-        # Check if this is level 3 and character doesn't have a subclass
-        if next_level == 3:
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (character_id,))
-            row = cursor.fetchone()
-            conn.close()
-            
-            if not row or not row[0]:
-                self.is_subclass_level = True
-                print(f"[Training] Level 3 - Setting up subclass selection")
-                self.subclass_frame.show()
-                self._populate_subclass_options()
-                print(f"[Training] Subclass frame visible: {self.subclass_frame.isVisible()}")
-                print(f"[Training] Subclass button count: {len(self.subclass_button_group.buttons())}")
-                return
-        
+        print(f"[Training] Existing subclass: {existing_subclass}")
+        print(f"[Training] Selection level requirement: {selection_level}")
+        if not available_subclasses:
+            print(f"[Training] No subclasses defined for {self.selected_class}")
+            self.is_subclass_level = False
+            self.selected_subclass = None
+            self.subclass_frame.hide()
+            return
+        if not existing_subclass and next_level >= selection_level:
+            self.is_subclass_level = True
+            print(f"[Training] Subclass selection required for {self.selected_class} level {next_level}")
+            self.subclass_frame.show()
+            self._populate_subclass_options()
+            print(f"[Training] Subclass frame visible: {self.subclass_frame.isVisible()}")
+            print(f"[Training] Subclass button count: {len(self.subclass_button_group.buttons())}")
+            return
         self.is_subclass_level = False
+        self.selected_subclass = None
         self.subclass_frame.hide()
-    
     def _setup_subclass_selection(self):
         """Setup the subclass selection UI."""
         layout = QVBoxLayout(self.subclass_frame)
@@ -403,6 +405,9 @@ class TrainingHallInterface(QWidget):
             item = self.subclass_options_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+        
+        self.selected_subclass = None
+        self.subclass_description.clear()
         
         if not self.selected_class:
             return
@@ -549,15 +554,11 @@ Training includes food and lodging (counts as a long rest)."""
         if reply == QMessageBox.StandardButton.Yes:
             # Perform the level up
             character_id = self.character_data.get('id', '')
-            success = self.level_up_service.level_up_character(character_id, self.selected_class)
-            
-            # Apply subclass choice if this is a subclass level
-            if success and self.is_subclass_level and self.selected_subclass:
-                subclass_manager = SubclassManager()
-                subclass_applied = subclass_manager.select_subclass(character_id, self.selected_subclass['id'])
-                if subclass_applied:
-                    print(f"[Training] Applied subclass: {self.selected_subclass['name']}")
-            
+            selected_subclass_id = None
+            if self.is_subclass_level and self.selected_subclass:
+                selected_subclass_id = self.selected_subclass['id']
+            success = self.level_up_service.level_up_character(character_id, self.selected_class, selected_subclass_id)
+
             # Apply ASI/Feat choices if this is an ASI level
             if success and self.is_asi_level:
                 feat_data = self.feat_combo.currentData()
@@ -1688,3 +1689,8 @@ class TownEncounterPanel(QWidget):
                 parent.set_exploration_mode()
                 break
             parent = parent.parent()
+
+
+
+
+

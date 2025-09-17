@@ -47,12 +47,87 @@ class SubclassManager:
         """Ensure subclass tables exist."""
         try:
             with sqlite3.connect(self.db_path) as conn:
-                with open('database/migrations/004_add_subclass_system.sql', 'r') as f:
-                    conn.executescript(f.read())
+                try:
+                    with open('database/migrations/004_add_subclass_system.sql', 'r') as f:
+                        conn.executescript(f.read())
+                except FileNotFoundError:
+                    print("[SubclassManager] Migration note: missing 004_add_subclass_system.sql")
+                except Exception as migration_error:
+                    print(f"[SubclassManager] Migration note: {migration_error}")
+                self._ensure_class_subclass_support(conn)
                 conn.commit()
         except Exception as e:
             print(f"[SubclassManager] Migration note: {e}")
     
+    def _ensure_class_subclass_support(self, conn):
+        """Create tables and backfill data for per-class subclass tracking."""
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS character_subclasses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_id TEXT NOT NULL,
+                class_id TEXT NOT NULL,
+                subclass_id TEXT NOT NULL,
+                class_level INTEGER NOT NULL DEFAULT 3,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(character_id, class_id),
+                FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+                FOREIGN KEY (subclass_id) REFERENCES subclasses(id)
+            )
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_character_subclasses_character
+            ON character_subclasses(character_id)
+            """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_character_subclasses_class
+            ON character_subclasses(class_id)
+            """
+        )
+
+        cursor.execute(
+            """
+            SELECT id, class_id, subclass_id, level
+            FROM characters
+            WHERE COALESCE(subclass_id, '') <> ''
+            """
+        )
+
+        for char_id, primary_class, legacy_subclass, total_level in cursor.fetchall():
+            if not legacy_subclass:
+                continue
+
+            class_id = (primary_class or '').strip().lower()
+            if not class_id:
+                cursor.execute(
+                    "SELECT class_id FROM subclasses WHERE id = ?",
+                    (legacy_subclass,)
+                )
+                row = cursor.fetchone()
+                class_id = (row[0].strip().lower() if row and row[0] else '')
+
+            if not class_id:
+                continue
+
+            class_level = total_level or 3
+            if class_level < 3:
+                class_level = 3
+
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO character_subclasses (character_id, class_id, subclass_id, class_level)
+                VALUES (?, ?, ?, ?)
+                """,
+                (char_id, class_id, legacy_subclass, class_level)
+            )
     def get_available_subclasses(self, class_id: str) -> List[Dict[str, Any]]:
         """Get all available subclasses for a class."""
         with sqlite3.connect(self.db_path) as conn:
@@ -77,41 +152,157 @@ class SubclassManager:
                 })
             
             return subclasses
-    
-    def select_subclass(self, character_id: str, subclass_id: str) -> bool:
-        """Assign a subclass to a character."""
+
+
+    def get_character_subclass(self, character_id: str, class_id: str) -> Optional[str]:
+        """Return the subclass id for a given character/class pairing."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT subclass_id
+                FROM character_subclasses
+                WHERE character_id = ? AND LOWER(class_id) = LOWER(?)
+                """,
+                (character_id, class_id)
+            )
+            row = cursor.fetchone()
+            if row and row[0]:
+                return row[0]
+
+            cursor.execute(
+                """
+                SELECT class_id, subclass_id
+                FROM characters
+                WHERE id = ?
+                """,
+                (character_id,)
+            )
+            legacy = cursor.fetchone()
+            if not legacy or not legacy[1]:
+                return None
+
+            legacy_class = (legacy[0] or '').strip().lower()
+            if not class_id:
+                return legacy[1]
+
+            if legacy_class and legacy_class == class_id.strip().lower():
+                return legacy[1]
+
+            return None
+    def select_subclass(self, character_id: str, subclass_id: str, class_level: Optional[int] = None) -> bool:
+        """Assign a subclass to a character for its associated class."""
         try:
             with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                
-                # Verify character doesn't already have a subclass
-                cursor.execute("""
-                    SELECT subclass_id FROM characters WHERE id = ?
-                """, (character_id,))
-                
-                current = cursor.fetchone()
-                if current and current[0]:
-                    print(f"[SubclassManager] Character already has subclass: {current[0]}")
-                    return False
-                
-                # Update character with subclass
-                cursor.execute("""
-                    UPDATE characters
-                    SET subclass_id = ?, updated_at = datetime('now')
+
+                cursor.execute(
+                    """
+                    SELECT id, class_id, selection_level
+                    FROM subclasses
                     WHERE id = ?
-                """, (subclass_id, character_id))
-                
-                # Grant initial subclass features
-                self._grant_subclass_features(cursor, character_id, subclass_id, 3)
-                
+                    """,
+                    (subclass_id,)
+                )
+                subclass_row = cursor.fetchone()
+                if not subclass_row:
+                    print(f"[SubclassManager] Unknown subclass: {subclass_id}")
+                    return False
+
+                class_id = (subclass_row["class_id"] or '').strip().lower()
+                if not class_id:
+                    print(f"[SubclassManager] Subclass {subclass_id} missing class association")
+                    return False
+
+                cursor.execute(
+                    """
+                    SELECT subclass_id
+                    FROM character_subclasses
+                    WHERE character_id = ? AND LOWER(class_id) = ?
+                    """,
+                    (character_id, class_id)
+                )
+                existing = cursor.fetchone()
+                if existing and existing[0]:
+                    if existing[0] == subclass_id:
+                        target_level = class_level or subclass_row["selection_level"] or 3
+                        if target_level < subclass_row["selection_level"]:
+                            target_level = subclass_row["selection_level"]
+                        self._grant_subclass_features(cursor, character_id, subclass_id, target_level)
+                        conn.commit()
+                        return True
+
+                    print(f"[SubclassManager] Character already has subclass {existing[0]} for class {class_id}")
+                    return False
+
+                if class_level is None:
+                    cursor.execute(
+                        """
+                        SELECT level FROM character_class_levels
+                        WHERE character_id = ? AND LOWER(class_name) = ?
+                        """,
+                        (character_id, class_id)
+                    )
+                    level_row = cursor.fetchone()
+                    if level_row and level_row[0]:
+                        class_level = level_row[0]
+                    else:
+                        cursor.execute(
+                            """
+                            SELECT level, class_id
+                            FROM characters
+                            WHERE id = ?
+                            """,
+                            (character_id,)
+                        )
+                        primary_row = cursor.fetchone()
+                        if primary_row and primary_row[0] and (primary_row[1] or '').strip().lower() == class_id:
+                            class_level = primary_row[0]
+
+                if class_level is None:
+                    class_level = max(subclass_row["selection_level"], 3)
+
+                cursor.execute(
+                    """
+                    INSERT OR IGNORE INTO character_subclasses (character_id, class_id, subclass_id, class_level)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (character_id, class_id, subclass_id, class_level)
+                )
+
+                cursor.execute(
+                    """
+                    SELECT class_id, subclass_id
+                    FROM characters
+                    WHERE id = ?
+                    """,
+                    (character_id,)
+                )
+                primary_row = cursor.fetchone()
+                primary_class = (primary_row["class_id"] or '').strip().lower() if primary_row and primary_row["class_id"] else ''
+                current_primary_subclass = primary_row["subclass_id"] if primary_row else None
+
+                if not current_primary_subclass or primary_class == class_id:
+                    cursor.execute(
+                        """
+                        UPDATE characters
+                        SET subclass_id = ?, updated_at = datetime('now')
+                        WHERE id = ?
+                        """,
+                        (subclass_id, character_id)
+                    )
+
+                self._grant_subclass_features(cursor, character_id, subclass_id, class_level)
+
                 conn.commit()
-                print(f"[SubclassManager] Assigned subclass {subclass_id} to character {character_id}")
+                print(f"[SubclassManager] Assigned subclass {subclass_id} to character {character_id} for class {class_id}")
                 return True
-                
+
         except Exception as e:
             print(f"[SubclassManager] Error selecting subclass: {e}")
             return False
-    
     def _grant_subclass_features(self, cursor, character_id: str, subclass_id: str, up_to_level: int):
         """Grant subclass features up to specified level."""
         cursor.execute("""
@@ -228,42 +419,57 @@ class SubclassManager:
             
             return False, ""
     
-    def update_features_for_level(self, character_id: str, new_level: int):
-        """Update subclass features when character levels up."""
+    def update_features_for_level(self, character_id: str, new_level: int, class_id: Optional[str] = None):
+        """Update subclass features when a character gains a level."""
+        if new_level < 1:
+            return
+
+        target_class = (class_id or '').strip().lower()
+
+        if not target_class:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    """
+                    SELECT class_id
+                    FROM character_subclasses
+                    WHERE character_id = ?
+                    ORDER BY class_level DESC
+                    LIMIT 1
+                    """,
+                    (character_id,)
+                )
+                row = cursor.fetchone()
+                if row and row[0]:
+                    target_class = (row[0] or '').strip().lower()
+                else:
+                    cursor.execute(
+                        """
+                        SELECT class_id
+                        FROM characters
+                        WHERE id = ?
+                        """,
+                        (character_id,)
+                    )
+                    fallback = cursor.fetchone()
+                    target_class = (fallback[0] or '').strip().lower() if fallback and fallback[0] else ''
+
+        if not target_class:
+            return
+
+        self.update_features_for_class(character_id, target_class, new_level)
+
+    def update_features_for_class(self, character_id: str, class_id: str, class_level: int):
+        """Ensure subclass features are granted up to the specified class level."""
+        subclass_id = self.get_character_subclass(character_id, class_id)
+        if not subclass_id:
+            return
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
-            # Get character's subclass
-            cursor.execute("""
-                SELECT subclass_id FROM characters WHERE id = ?
-            """, (character_id,))
-            
-            row = cursor.fetchone()
-            if not row or not row[0]:
-                return
-            
-            subclass_id = row[0]
-            
-            # Get new features at this level
-            cursor.execute("""
-                SELECT feature_name, description, mechanics, action_type
-                FROM subclass_features
-                WHERE subclass_id = ? AND level = ?
-            """, (subclass_id, new_level))
-            
-            for feature in cursor:
-                # Add feature to character
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features 
-                    (character_id, feature_name, feature_type, description, level_gained)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (character_id, feature[0], feature[3] or 'passive', feature[1], new_level))
-                
-                # Apply mechanics
-                self._apply_feature_mechanics(cursor, character_id, feature[0], feature[2])
-            
+            self._grant_subclass_features(cursor, character_id, subclass_id, class_level)
             conn.commit()
-    
     def has_feature(self, character_id: str, feature_name: str) -> bool:
         """Check if character has a specific subclass feature."""
         with sqlite3.connect(self.db_path) as conn:
@@ -316,48 +522,80 @@ class SubclassManager:
     def apply_combat_modifiers(self, character_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Apply subclass-specific combat modifiers."""
         modifiers = {}
-        
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
-            # Get character's subclass
-            cursor.execute("""
-                SELECT c.subclass_id, c.level, c.hit_points_current, c.hit_points_max
-                FROM characters c
-                WHERE c.id = ?
-            """, (character_id,))
-            
-            row = cursor.fetchone()
-            if not row or not row[0]:
+
+            class_hint = (context.get('class_id') or context.get('class') or '').strip().lower()
+            subclass_id = self.get_character_subclass(character_id, class_hint) if class_hint else None
+
+            cursor.execute(
+                """
+                SELECT level, class_id, subclass_id, hit_points_current, hit_points_max
+                FROM characters
+                WHERE id = ?
+                """,
+                (character_id,)
+            )
+            char_row = cursor.fetchone()
+            if not char_row:
                 return modifiers
-            
-            subclass_id, level, current_hp, max_hp = row
-            
-            # Champion critical range
-            if subclass_id == 'champion':
-                if level >= 15:
+
+            total_level, primary_class, primary_subclass, current_hp, max_hp = char_row
+
+            if not subclass_id:
+                if primary_subclass:
+                    subclass_id = primary_subclass
+                    class_hint = (primary_class or '').strip().lower()
+                else:
+                    return modifiers
+
+            class_level = None
+            if class_hint:
+                cursor.execute(
+                    """
+                    SELECT level
+                    FROM character_class_levels
+                    WHERE character_id = ? AND LOWER(class_name) = ?
+                    """,
+                    (character_id, class_hint)
+                )
+                class_level_row = cursor.fetchone()
+                if class_level_row and class_level_row[0]:
+                    class_level = class_level_row[0]
+
+            if class_level is None:
+                class_level = total_level
+
+            subclass_key = subclass_id.strip().lower()
+
+            if subclass_key == 'champion':
+                if class_level >= 15:
                     modifiers['critical_range_min'] = 18
-                elif level >= 3:
+                elif class_level >= 3:
                     modifiers['critical_range_min'] = 19
-            
-            # Gladiator crowd favorite resistance
-            elif subclass_id == 'gladiator' and level >= 15:
+            elif subclass_key == 'gladiator' and class_level >= 15:
                 if current_hp <= max_hp // 2:
                     modifiers['damage_resistance'] = ['all_except_psychic']
-            
-            # Assassin assassinate
-            elif subclass_id == 'assassin' and level >= 3:
+            elif subclass_key == 'assassin' and class_level >= 3:
                 if context.get('target_has_not_acted'):
                     modifiers['advantage'] = True
                 if context.get('target_surprised'):
                     modifiers['auto_crit'] = True
-            
-            # Thief fast hands
-            elif subclass_id == 'thief' and level >= 3:
+            elif subclass_key == 'thief' and class_level >= 3:
                 modifiers['bonus_action_use_object'] = True
-        
+
         return modifiers
-
-
 # Singleton instance
 subclass_manager = SubclassManager()
+
+
+
+
+
+
+
+
+
+
+

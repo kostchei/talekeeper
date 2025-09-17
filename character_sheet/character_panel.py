@@ -1288,19 +1288,29 @@ class CharacterPanel(QWidget):
         
         # Check for subclass
         subclass_display = char_class
-        if character_data.get('subclass_id'):
+        subclass_id = None
+
+        try:
+            manager = SubclassManager()
+            subclass_id = manager.get_character_subclass(character_data.get('id'), char_class.lower())
+        except Exception as subclass_error:
+            print(f"[CharacterPanel] Subclass lookup error: {subclass_error}")
+
+        if not subclass_id:
+            subclass_id = character_data.get('subclass_id')
+
+        if subclass_id:
             try:
-                import sqlite3
                 conn = sqlite3.connect("talekeeper.db")
                 cursor = conn.cursor()
-                cursor.execute("SELECT name FROM subclasses WHERE id = ?", (character_data['subclass_id'],))
+                cursor.execute("SELECT name FROM subclasses WHERE id = ?", (subclass_id,))
                 row = cursor.fetchone()
-                if row:
+                if row and row[0]:
                     subclass_display = f"{char_class} ({row[0]})"
                 conn.close()
-            except:
-                pass
-        
+            except Exception as subclass_error:
+                print(f"[CharacterPanel] Could not load subclass name: {subclass_error}")
+
         self.char_name_title.setText(f"{name} - Level {level} {race} {subclass_display}")
         self.detail_title.setText(f"Character Details - {name}")
         

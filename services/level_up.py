@@ -5,6 +5,7 @@ Level Up Service - Handle character leveling and multi-classing
 import sqlite3
 from typing import Dict, List, Optional, Tuple
 import json
+from services.subclass_manager import SubclassManager
 
 
 class LevelUpService:
@@ -109,100 +110,156 @@ class LevelUpService:
         
         return result
     
-    def level_up_character(self, character_id: str, class_choice: str) -> bool:
+    def level_up_character(self, character_id: str, class_choice: str, subclass_choice: Optional[str] = None) -> bool:
         """Level up character in chosen class."""
         print(f"[LevelUp] level_up_character called for {character_id} in {class_choice}")
         import traceback
         print("".join(traceback.format_stack()[-6:]))  # Show last 6 stack frames
-        
+
+        subclass_manager = SubclassManager(self.db_path)
+        class_normalized = (class_choice or '').strip().lower()
+        if not class_normalized:
+            print("[LevelUp] Error: class choice is required")
+            return False
+
+        existing_subclass = subclass_manager.get_character_subclass(character_id, class_normalized)
+        pending_subclass = None
+        subclass_selection_level = 3
+        new_class_level = None
+        new_total_level = None
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
-            # Get current total level
             cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
-            current_total_level = cursor.fetchone()[0]
+            level_row = cursor.fetchone()
+            if not level_row:
+                raise ValueError("Character not found")
+
+            current_total_level = level_row[0]
             new_total_level = current_total_level + 1
-            
-            # Check if character already has levels in this class (case-insensitive)
-            cursor.execute("""
+
+            cursor.execute(
+                """
+                SELECT MIN(selection_level)
+                FROM subclasses
+                WHERE LOWER(class_id) = ?
+                """,
+                (class_normalized,)
+            )
+            selection_row = cursor.fetchone()
+            if selection_row and selection_row[0]:
+                subclass_selection_level = selection_row[0]
+
+            cursor.execute(
+                """
                 SELECT level FROM character_class_levels 
                 WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
-            """, (character_id, class_choice))
-            
+                """,
+                (character_id, class_choice),
+            )
             existing_class_level = cursor.fetchone()
-            
+
             if existing_class_level:
-                # Level up existing class
                 new_class_level = existing_class_level[0] + 1
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE character_class_levels 
                     SET level = ? 
                     WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
-                """, (new_class_level, character_id, class_choice))
+                    """,
+                    (new_class_level, character_id, class_choice),
+                )
             else:
-                # Add new class at level 1
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO character_class_levels (character_id, class_name, level, hit_die_type)
                     VALUES (?, ?, 1, ?)
-                """, (character_id, class_choice, self._get_hit_die_for_class(class_choice)))
+                    """,
+                    (character_id, class_choice, self._get_hit_die_for_class(class_choice)),
+                )
                 new_class_level = 1
-            
-            # Update main character table with level (HP will be recalculated properly below)
-            cursor.execute("""
+
+            if new_class_level >= subclass_selection_level and not existing_subclass:
+                if not subclass_choice:
+                    raise ValueError(f"Subclass selection required for {class_choice} level {new_class_level}")
+
+                cursor.execute(
+                    """
+                    SELECT class_id FROM subclasses WHERE id = ?
+                    """,
+                    (subclass_choice,),
+                )
+                subclass_row = cursor.fetchone()
+                if not subclass_row or (subclass_row[0] or '').strip().lower() != class_normalized:
+                    raise ValueError(f"Subclass {subclass_choice} does not belong to class {class_choice}")
+
+                pending_subclass = subclass_choice
+
+            cursor.execute(
+                """
                 UPDATE characters 
                 SET level = ?, 
                     updated_at = datetime('now')
                 WHERE id = ?
-            """, (new_total_level, character_id))
-            
-            # Grant new class features (old system)
+                """,
+                (new_total_level, character_id),
+            )
+
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
-            
+
             conn.commit()
-            conn.close()
-            
-            # Recalculate HP properly with all bonuses (species, feats, etc.)
-            hp_recalculated = self.recalculate_character_hp(character_id)
-            if hp_recalculated:
-                print(f"[LevelUp] HP recalculated for level {new_total_level}")
-            
-            # Update features using new feature system (after closing main connection)
-            try:
-                from core.feature_integration import FeatureSystemIntegration
-                feature_system = FeatureSystemIntegration(self.db_path)
-                
-                # Refresh character features for new level
-                feature_system.initialize_character_features(character_id)
-                print(f"[LevelUp] Updated feature system for {class_choice} level {new_class_level} (total level {new_total_level})")
-            except Exception as e:
-                print(f"[LevelUp] Warning: Failed to update new feature system: {e}")
-            
-            # Initialize/update resources for the new level
-            try:
-                from services.character_resources import CharacterResourceService
-                resource_service = CharacterResourceService(self.db_path)
-                
-                # Re-initialize resources based on new total level
-                if class_choice.lower() == 'fighter':
-                    result = resource_service.initialize_fighter_resources(character_id, new_total_level)
-                    print(f"[LevelUp] Updated Fighter resources: {result.get('resources_added', [])}")
-                elif class_choice.lower() == 'barbarian':
-                    result = resource_service.initialize_barbarian_resources(character_id, new_total_level)
-                    print(f"[LevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
-                # Add other classes as needed
-                
-            except Exception as e:
-                print(f"[LevelUp] Warning: Failed to update resources: {e}")
-            
-            return True
-            
         except Exception as e:
             conn.rollback()
             conn.close()
             print(f"Error leveling up character: {e}")
             return False
-    
+
+        conn.close()
+
+        assigned_subclass_id = existing_subclass
+        if pending_subclass:
+            if subclass_manager.select_subclass(character_id, pending_subclass, new_class_level):
+                assigned_subclass_id = pending_subclass
+            else:
+                print(f"[LevelUp] Failed to assign subclass {pending_subclass}")
+                return False
+        elif existing_subclass:
+            assigned_subclass_id = existing_subclass
+
+        if assigned_subclass_id:
+            try:
+                subclass_manager.update_features_for_class(character_id, class_normalized, new_class_level)
+            except Exception as subclass_error:
+                print(f"[LevelUp] Warning: Failed to update subclass features: {subclass_error}")
+
+        hp_recalculated = self.recalculate_character_hp(character_id)
+        if hp_recalculated:
+            print(f"[LevelUp] HP recalculated for level {new_total_level}")
+
+        try:
+            from core.feature_integration import FeatureSystemIntegration
+            feature_system = FeatureSystemIntegration(self.db_path)
+            feature_system.initialize_character_features(character_id)
+            print(f"[LevelUp] Updated feature system for {class_choice} level {new_class_level} (total level {new_total_level})")
+        except Exception as e:
+            print(f"[LevelUp] Warning: Failed to update new feature system: {e}")
+
+        try:
+            from services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService(self.db_path)
+
+            if class_normalized == 'fighter':
+                result = resource_service.initialize_fighter_resources(character_id, new_total_level)
+                print(f"[LevelUp] Updated Fighter resources: {result.get('resources_added', [])}")
+            elif class_normalized == 'barbarian':
+                result = resource_service.initialize_barbarian_resources(character_id, new_total_level)
+                print(f"[LevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
+        except Exception as e:
+            print(f"[LevelUp] Warning: Failed to update resources: {e}")
+
+        return True
     def _get_hit_die_for_class(self, class_name: str) -> int:
         """Get hit die size for class."""
         hit_dice = {
@@ -443,3 +500,4 @@ class LevelUpService:
 
 
 level_up_service = LevelUpService()
+
