@@ -141,4 +141,19 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 
 ---
 
-*System Reference Document 5.2.1*
+## Implementation Status
+
+**Current State**
+- `Second Wind` and `Action Surge` already connect to the shared `character_resources` table and expose action cards that spend uses and apply effects in combat (`action_cards/action_panel.py:483`, `action_cards/action_panel.py:507`, `action_cards/action_panel.py:646`). Future work should reuse this pathway and retire the dormant wrappers in `services/fighter_abilities.py:162` and `services/fighter_abilities.py:212` to avoid duplicate logic.
+- The feature loader only registers Fighter abilities through level 2 (`core/class_features.py:558`), leaving Tactical Mind, Tactical Shift, Indomitable, extra-attack scaling, Tactical Master, and Studied Attacks (`docs/Fighter_Class.md:30`, `docs/Fighter_Class.md:33`, `docs/Fighter_Class.md:37`, `docs/Fighter_Class.md:41`, `docs/Fighter_Class.md:102`) without backend state, resource records, or UI triggers.
+- Weapon Mastery support currently checks the weapon's mastery tag and class id (`action_cards/action_panel.py:3851`) but never stores a character's selected masteries or enforces the level-based slots from the class table (`docs/Fighter_Class.md:27`), which prevents Tactical Master (level 9) from functioning.
+- Champion subclass perks are only partially reflected (critical range is hard-coded from subclass context at `action_cards/action_panel.py:1968`). Remarkable Athlete, Heroic Warrior's Inspiration flow, Superior Critical scaling, and Survivor's Defy Death/Heroic Rally are absent or differ from the SRD wording (`docs/Fighter_Class.md:121`, `docs/Fighter_Class.md:129`, `docs/Fighter_Class.md:135`).
+- Support tables already contain the necessary columns (`character_resources`, `character_combat_state`, `fighter_features` in `database/schema/001_current_schema.sql:595`), so the main gaps involve populating and consuming this data rather than expanding the schema.
+
+**Planned Work**
+- Expand the fighter feature registry to cover levels 1–20, seed `feature_states`/`character_resources` through `FeatureSystemIntegration`, and decommission redundant UI shortcuts once the service path governs consumable uses (`core/class_features.py:558`, `services/fighter_abilities.py:62`, `services/character_resources.py:219`).
+- Implement Tactical Mind, Tactical Shift, Indomitable, Tactical Master, and Studied Attacks using the shared resource manager and `character_combat_state` so reactions and movement triggers apply automatically, with UI prompts only when player input is required (`docs/Fighter_Class.md:76`, `docs/Fighter_Class.md:88`, `docs/Fighter_Class.md:91`, `docs/Fighter_Class.md:96`, `docs/Fighter_Class.md:102`).
+- Create true Weapon Mastery selection and storage per character, enforce level-based slot counts, surface swap UI, and let Tactical Master temporarily override mastery choices; reuse this data in `_apply_weapon_mastery_effects` (`action_cards/action_panel.py:3851`).
+- Complete Champion subclass behaviours: initiative/skill advantage, post-critical repositioning, the additional fighting style at level 7, Inspiration gain at level 10, critical range scaling at 15, and Survivor's Defy Death/Heroic Rally at 18 using `character_combat_state` for per-turn tracking (`docs/Fighter_Class.md:118`, `docs/Fighter_Class.md:121`, `docs/Fighter_Class.md:126`, `docs/Fighter_Class.md:129`, `docs/Fighter_Class.md:132`, `docs/Fighter_Class.md:135`).
+- Update action cards and tooltips to read unified feature/resource state, add lightweight prompts (e.g., Tactical Mind reaction, Indomitable reroll), and ensure the single-player combat loop consumes new flags without redundant UI layers (`action_cards/action_panel.py:1025`, `action_cards/action_panel.py:2994`).
+- Add automated coverage: unit tests for resource consumption and combat state transitions plus integration tests that exercise the expanded action cards while keeping existing Second Wind/Action Surge flows intact.
