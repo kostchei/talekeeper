@@ -12,6 +12,9 @@ from enum import Enum
 from abc import ABC, abstractmethod
 import json
 import sqlite3
+import re
+
+from core.feature_definitions import ClassFeatures
 
 
 class FeatureType(Enum):
@@ -284,6 +287,166 @@ class FightingStyle(PassiveFeature):
         self.style = style
 
 
+
+class WeaponMasteryFeature(PassiveFeature):
+    """Fighter's Weapon Mastery feature."""
+
+    SLOTS_BY_LEVEL = {1: 3, 4: 4, 10: 5, 16: 6}
+
+    def __init__(self):
+        super().__init__(
+            name="Weapon Mastery",
+            description="Use mastery properties of weapons.",
+            modifiers={"weapon_mastery_slots": self._get_slots},
+            requirements=FeatureRequirement(level=1)
+        )
+
+    def _get_slots(self, character: Dict[str, Any]) -> int:
+        level = character.get('level', 1)
+        slots = self.SLOTS_BY_LEVEL[1]
+        for lvl, value in sorted(self.SLOTS_BY_LEVEL.items()):
+            if level >= lvl:
+                slots = value
+        return slots
+
+
+class ExtraAttack(PassiveFeature):
+    """Fighter's Extra Attack progression."""
+
+    ATTACKS_BY_LEVEL = {5: 2, 11: 3, 20: 4}
+
+    def __init__(self, feature_name: str = "Extra Attack", min_level: int = 5):
+        super().__init__(
+            name=feature_name,
+            description="Attack multiple times when you take the Attack action.",
+            modifiers={"extra_attacks": self._get_attacks},
+            requirements=FeatureRequirement(level=min_level)
+        )
+        self._min_level = min_level
+
+    def _get_attacks(self, character: Dict[str, Any]) -> int:
+        level = character.get('level', 1)
+        attacks = 1
+        for lvl, value in sorted(self.ATTACKS_BY_LEVEL.items()):
+            if level >= lvl:
+                attacks = value
+        return attacks
+
+
+class TacticalMind(TriggeredFeature):
+    """Fighter's Tactical Mind feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Tactical Mind",
+            description="When you fail an ability check, expend Second Wind to add 1d10.",
+            trigger_condition=self._can_trigger,
+            effect=self._apply_effect,
+            requirements=FeatureRequirement(level=2, class_name="Fighter")
+        )
+
+    def _can_trigger(self, character: Dict[str, Any], context: Dict[str, Any]) -> bool:
+        return context.get('failed_ability_check', False)
+
+    def _apply_effect(self, character: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "success": True,
+            "bonus_die": "1d10",
+            "consumes_second_wind": True
+        }
+
+
+class TacticalShift(TriggeredFeature):
+    """Fighter's Tactical Shift feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Tactical Shift",
+            description="After using Second Wind, move up to half your speed without provoking Opportunity Attacks.",
+            trigger_condition=self._can_trigger,
+            effect=self._apply_effect,
+            requirements=FeatureRequirement(level=5, class_name="Fighter")
+        )
+
+    def _can_trigger(self, character: Dict[str, Any], context: Dict[str, Any]) -> bool:
+        return context.get('second_wind_used', False)
+
+    def _apply_effect(self, character: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "success": True,
+            "movement": "half_speed_no_aoo"
+        }
+
+
+class Indomitable(ResourceFeature):
+    """Fighter's Indomitable feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Indomitable",
+            description="Reroll a failed saving throw with a bonus equal to your Fighter level.",
+            uses_by_level={9: 1, 13: 2, 17: 3},
+            recharge=ResourceRecharge.LONG_REST,
+            requirements=FeatureRequirement(level=9, class_name="Fighter")
+        )
+
+
+class TacticalMaster(TriggeredFeature):
+    """Fighter's Tactical Master feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Tactical Master",
+            description="Replace a weapon's mastery property with Push, Sap, or Slow for that attack.",
+            trigger_condition=self._can_trigger,
+            effect=self._apply_effect,
+            requirements=FeatureRequirement(level=9, class_name="Fighter")
+        )
+
+    def _can_trigger(self, character: Dict[str, Any], context: Dict[str, Any]) -> bool:
+        return context.get('weapon_mastery_available', False)
+
+    def _apply_effect(self, character: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "success": True,
+            "replacement_options": ["push", "sap", "slow"]
+        }
+
+
+class StudiedAttacks(TriggeredFeature):
+    """Fighter's Studied Attacks feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Studied Attacks",
+            description="After you miss an attack, gain advantage on your next attack against that creature before the end of your next turn.",
+            trigger_condition=self._can_trigger,
+            effect=self._apply_effect,
+            requirements=FeatureRequirement(level=13, class_name="Fighter")
+        )
+
+    def _can_trigger(self, character: Dict[str, Any], context: Dict[str, Any]) -> bool:
+        return context.get('missed_attack', False)
+
+    def _apply_effect(self, character: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "success": True,
+            "grants_advantage": True,
+            "target": context.get('target_id')
+        }
+
+
+class EpicBoon(PassiveFeature):
+    """Fighter's Epic Boon feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Epic Boon",
+            description="Gain an Epic Boon feat or another feat of your choice.",
+            modifiers={},
+            requirements=FeatureRequirement(level=19, class_name="Fighter")
+        )
+
 # Barbarian Features  
 class Rage(ResourceFeature):
     """Barbarian's Rage feature."""
@@ -496,115 +659,121 @@ class FeatureManager:
         self.features: Dict[str, Feature] = {}
         self.feature_registry = self._build_feature_registry()
     
-    def _build_feature_registry(self) -> Dict[str, Callable]:
-        """Build registry of all available features."""
+
+    def _build_feature_registry(self) -> Dict[str, Callable[[Any, str, int], Feature]]:
+        """Build registry of all available features keyed by normalized names."""
         return {
             # Fighter
-            "second_wind": SecondWind,
-            "action_surge": ActionSurge,
-            "fighting_style": FightingStyle,
-            
+            "second_wind": lambda fd, cid, lvl: SecondWind(),
+            "action_surge": lambda fd, cid, lvl: ActionSurge(),
+            "fighting_style": self._build_fighting_style_feature,
+            "weapon_mastery": lambda fd, cid, lvl: WeaponMasteryFeature(),
+            "extra_attack": lambda fd, cid, lvl: ExtraAttack(feature_name=fd.name, min_level=fd.level_acquired),
+            "two_extra_attacks": lambda fd, cid, lvl: ExtraAttack(feature_name=fd.name, min_level=fd.level_acquired),
+            "three_extra_attacks": lambda fd, cid, lvl: ExtraAttack(feature_name=fd.name, min_level=fd.level_acquired),
+            "tactical_mind": lambda fd, cid, lvl: TacticalMind(),
+            "tactical_shift": lambda fd, cid, lvl: TacticalShift(),
+            "indomitable": lambda fd, cid, lvl: Indomitable(),
+            "tactical_master": lambda fd, cid, lvl: TacticalMaster(),
+            "studied_attacks": lambda fd, cid, lvl: StudiedAttacks(),
+            "epic_boon": lambda fd, cid, lvl: EpicBoon(),
+
             # Barbarian
-            "rage": Rage,
-            "unarmored_defense": UnarmoredDefense,
-            "reckless_attack": RecklessAttack,
-            
+            "rage": lambda fd, cid, lvl: Rage(),
+            "unarmored_defense": lambda fd, cid, lvl: UnarmoredDefense(),
+            "reckless_attack": lambda fd, cid, lvl: RecklessAttack(),
+
             # Rogue
-            "sneak_attack": SneakAttack,
-            "cunning_action": CunningAction,
-            "uncanny_dodge": UncannyDodge,
+            "sneak_attack": lambda fd, cid, lvl: SneakAttack(),
+            "cunning_action": lambda fd, cid, lvl: CunningAction(),
+            "uncanny_dodge": lambda fd, cid, lvl: UncannyDodge(),
         }
-    
+
     def load_character_features(self, character_id: str) -> None:
         """Load all features for a character from the database."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
-        # Get character class and level
+
         cursor.execute("""
             SELECT class_id, level, subclass_id
             FROM characters
             WHERE id = ?
         """, (character_id,))
-        
+
         char_row = cursor.fetchone()
         if not char_row:
             conn.close()
             return
-        
+
         class_name = char_row['class_id']
         level = char_row['level']
-        
+        subclass = char_row['subclass_id']
+
         # Load class-specific features based on level
-        self._load_class_features(class_name, level)
-        
-        # Load any custom features from character_features table
+        self._load_class_features(character_id, class_name, level, subclass)
+
+        # Load any custom features from character_features table (reserved for future use)
         cursor.execute("""
             SELECT feature_name, feature_type, description
             FROM character_features
             WHERE character_id = ?
         """, (character_id,))
-        
+
         for row in cursor:
-            # Add custom features if needed
+            # Placeholder for integrating bespoke features defined per character
             pass
-        
+
         conn.close()
-    
-    def _load_class_features(self, class_name: str, level: int) -> None:
+
+
+    def _load_class_features(self, character_id: str, class_name: str, level: int, subclass: Optional[str]) -> None:
         """Load features for a specific class up to a given level."""
-        class_features = {
-            "Fighter": [
-                (1, ["second_wind", "fighting_style"]),
-                (2, ["action_surge"]),
-            ],
-            "Barbarian": [
-                (1, ["rage", "unarmored_defense"]),
-                (2, ["reckless_attack"]),
-            ],
-            "Rogue": [
-                (1, ["sneak_attack"]),
-                (2, ["cunning_action"]),
-                (5, ["uncanny_dodge"]),
-            ]
-        }
-        
-        if class_name not in class_features:
-            return
-        
-        for req_level, feature_names in class_features[class_name]:
-            if level >= req_level:
-                for feature_name in feature_names:
-                    if feature_name in self.feature_registry:
-                        if feature_name == "fighting_style":
-                            # Special handling for fighting style
-                            # Get the actual style from database or default
-                            style = self._get_fighting_style(class_name)
-                            feature = FightingStyle(style)
-                        else:
-                            feature = self.feature_registry[feature_name]()
-                        
-                        # Update resource-based features with level-appropriate uses
-                        if isinstance(feature, ResourceFeature):
-                            feature.update_uses(level)
-                        
-                        self.features[feature_name] = feature
-    
+        self.features.clear()
+
+        feature_definitions = ClassFeatures.get_features_by_level(class_name, level, subclass)
+
+        for feature_def in feature_definitions:
+            key = self._normalize_feature_name(feature_def.name)
+            builder = self.feature_registry.get(key)
+            if not builder:
+                continue
+
+            feature = builder(feature_def, character_id, level)
+            setattr(feature, "display_name", feature_def.name)
+
+            if isinstance(feature, ResourceFeature):
+                feature.update_uses(level)
+                feature.resource.current = feature.resource.maximum
+
+            self.features[key] = feature
+
+
+    def _build_fighting_style_feature(self, feature_def: Any, character_id: str, level: int) -> Feature:
+        style = self._get_fighting_style(character_id)
+        return FightingStyle(style)
+
+
+    @staticmethod
+    def _normalize_feature_name(name: str) -> str:
+        """Normalize feature names to registry keys."""
+        return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
     def _get_fighting_style(self, character_id: str) -> str:
         """Get fighting style from database."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
             SELECT fighting_style
             FROM fighter_features
             WHERE character_id = ?
         """, (character_id,))
-        
+
         row = cursor.fetchone()
         conn.close()
-        
+
         return row[0] if row and row[0] else "defense"
     
     def get_available_features(self, character: Dict[str, Any], context: Optional[Dict] = None) -> List[str]:

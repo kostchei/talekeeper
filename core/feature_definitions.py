@@ -108,6 +108,15 @@ class ClassFeatures:
                 mechanics={"replace_mastery": ["push", "sap", "slow"]}
             )
         ],
+        11: [
+            FeatureDefinition(
+                name="Two Extra Attacks",
+                description="Attack three times when taking the Attack action",
+                level_acquired=11,
+                feature_type="progression",
+                mechanics={"attacks": 3}
+            )
+        ],
         13: [
             FeatureDefinition(
                 name="Studied Attacks",
@@ -115,6 +124,24 @@ class ClassFeatures:
                 level_acquired=13,
                 feature_type="triggered",
                 mechanics={"trigger": "study_target", "effect": "advantage_on_attacks"}
+            )
+        ],
+        19: [
+            FeatureDefinition(
+                name="Epic Boon",
+                description="Gain an Epic Boon feat or another feat of your choice",
+                level_acquired=19,
+                feature_type="passive",
+                mechanics={}
+            )
+        ],
+        20: [
+            FeatureDefinition(
+                name="Three Extra Attacks",
+                description="Attack four times when taking the Attack action",
+                level_acquired=20,
+                feature_type="progression",
+                mechanics={"attacks": 4}
             )
         ]
     }

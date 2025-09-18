@@ -1,4 +1,4 @@
-"""
+﻿"""
 Action Cards Widget - Bottom panel for character actions
 
 PyQt6 widget that provides quick access to character actions:
@@ -22,6 +22,9 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict, Any, List
 from enum import Enum
+import re
+
+from services.character_resources import CharacterResourceService
 
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 
@@ -312,86 +315,78 @@ class ActionPanel(QWidget):
     
     def _create_feature_cards(self):
         """Create action cards for character features like Second Wind."""
-        if not hasattr(self, 'character_features') or not self.character_features:
+        if not getattr(self, 'character_features', None):
             return
-        
-        # Remove existing feature cards
-        feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE, ActionType.RAGE, 
-                               ActionType.RECKLESS_ATTACK, ActionType.LAY_ON_HANDS, ActionType.SIGNATURE_MOVE]
-        for action_id in feature_action_types:
-            if action_id in self.action_cards:
-                self.action_cards[action_id].deleteLater()
-                del self.action_cards[action_id]
-        
-        # Create Second Wind card if character has it
-        print(f"DEBUG: Character features for feature checks: {list(self.character_features.keys())}")
-        if 'Second Wind' in self.character_features:
-            feature = self.character_features['Second Wind']
+
+        # Clear any existing feature cards
+        self._clear_feature_cards()
+
+        display_names = list(self.character_features.keys()) if isinstance(self.character_features, dict) else []
+        print(f"DEBUG: Character features for feature checks: {display_names}")
+
+        second_wind_feature = self._get_feature_data('Second Wind')
+        if second_wind_feature:
             level = self.character_context.get('level', 1)
             healing = f"1d10+{level}"
             description = f"Regain {healing} hit points (Short Rest recharge)"
-            
-            card = ActionCard(ActionType.SECOND_WIND, "❤️", "Second Wind", description)
-            card.feature_data = feature
+            card = ActionCard(ActionType.SECOND_WIND, "💨", second_wind_feature.get('name', 'Second Wind'), description)
+            card.feature_data = second_wind_feature
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.SECOND_WIND] = card
-        
-        # Create Action Surge card if character has it (Fighter level 2+)
-        if 'Action Surge' in self.character_features:
+
+        action_surge_feature = self._get_feature_data('Action Surge')
+        if action_surge_feature:
             description = "Gain one additional action this turn (not Magic action)"
-            card = ActionCard(ActionType.ACTION_SURGE, "⚡", "Action Surge", description)
-            card.feature_data = self.character_features['Action Surge']
+            card = ActionCard(ActionType.ACTION_SURGE, "⚡", action_surge_feature.get('name', 'Action Surge'), description)
+            card.feature_data = action_surge_feature
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ACTION_SURGE] = card
-        
-        # Create Rage card if character has it AND is a Barbarian
-        if ('Rage' in self.character_features and 
-            self.character_context and 
-            self.character_context.get('class_id', '').lower() in ['barbarian']):
-            card = ActionCard(ActionType.RAGE, "[RAGE]", "Rage", "Enter barbarian rage (+2 damage, resistance to physical)")
+
+        rage_feature = self._get_feature_data('Rage')
+        if rage_feature and self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
+            card = ActionCard(ActionType.RAGE, "[RAGE]", rage_feature.get('name', 'Rage'), "Enter barbarian rage (+2 damage, resistance to physical)")
+            card.feature_data = rage_feature
             card.action_triggered.connect(self._trigger_action)
-            card.action_hovered.connect(self._action_hovered) 
+            card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.RAGE] = card
-        
-        # Create Reckless Attack card if character has it AND is a Barbarian level 2+
-        if ('Reckless Attack' in self.character_features and 
-            self.character_context and 
-            self.character_context.get('class_id', '').lower() in ['barbarian']):
+
+        reckless_feature = self._get_feature_data('Reckless Attack')
+        if reckless_feature and self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
             is_active = self.character_context.get('reckless_attack_active', False)
-            display_text = "RECKLESS ACTIVE" if is_active else "Reckless Attack"
-            card = ActionCard(ActionType.RECKLESS_ATTACK, "[RECKLESS]", display_text, "Toggle advantage on STR attacks (enemies get advantage too)")
+            display_text = "RECKLESS ACTIVE" if is_active else reckless_feature.get('name', 'Reckless Attack')
+            card = ActionCard(ActionType.RECKLESS_ATTACK, "[RECKLESS]", display_text, "Toggle advantage on STR attacks (enemies gain advantage)")
+            card.feature_data = reckless_feature
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             if is_active:
                 card.setProperty("reckless_active", True)
                 card.setStyleSheet("QPushButton[reckless_active=\"true\"] { background-color: #8B0000; border: 2px solid #FF4444; }")
             self.action_cards[ActionType.RECKLESS_ATTACK] = card
-        
-        # Create Lay on Hands card if character has it
-        if 'Lay on Hands' in self.character_features:
-            card = ActionCard(ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch")
+
+        lay_on_hands_feature = self._get_feature_data('Lay on Hands')
+        if lay_on_hands_feature:
+            card = ActionCard(ActionType.LAY_ON_HANDS, "✋", lay_on_hands_feature.get('name', 'Lay on Hands'), "Heal 5 HP with divine touch")
+            card.feature_data = lay_on_hands_feature
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
-        
+
         # Create subclass feature cards
         if self.character_context:
             character_id = self.character_context.get('character_id')
             if character_id:
                 from services.subclass_manager import SubclassManager
                 subclass_manager = SubclassManager()
-                
-                # Gladiator Signature Move (level 10)
+
                 if subclass_manager.has_feature(character_id, 'Signature Move'):
                     description = "Special attack: +2d6 damage, can frighten (DC 8+prof+STR)"
-                    card = ActionCard(ActionType.SIGNATURE_MOVE, "⚔️", "Signature Move", description)
+                    card = ActionCard(ActionType.SIGNATURE_MOVE, "✨", "Signature Move", description)
                     card.action_triggered.connect(self._trigger_subclass_action)
                     card.action_hovered.connect(self._action_hovered)
                     self.action_cards[ActionType.SIGNATURE_MOVE] = card
-        
-        # Create Weapon Mastery cards based on character's selected masteries
+
         selected_masteries = self.character_context.get('weapon_masteries', [])
         if selected_masteries:
             weapon_mastery_details = {
@@ -484,11 +479,10 @@ class ActionPanel(QWidget):
         """Handle feature-based action triggers."""
         if action_type == ActionType.SECOND_WIND or action_type == 1000:  # Handle both enum and legacy ID
             # Use the unified resource system
-            from services.character_resources import CharacterResourceService
-            resource_service = CharacterResourceService('talekeeper.db')
+            resource_service = self._get_resource_service()
             
             # Get character ID
-            character_id = self.character_context.get('id')
+            character_id = self._resolve_character_id()
             if not character_id:
                 print("DEBUG: No character ID for Second Wind")
                 return
@@ -599,6 +593,8 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
             
+            self._refresh_action_availability()
+
             # Update UI
             if result['success']:
                 # Update our character context with new HP
@@ -623,11 +619,10 @@ class ActionPanel(QWidget):
         
         elif action_type == ActionType.ACTION_SURGE:
             # Use the unified resource system
-            from services.character_resources import CharacterResourceService
-            resource_service = CharacterResourceService('talekeeper.db')
+            resource_service = self._get_resource_service()
             
             # Get character ID
-            character_id = self.character_context.get('id')
+            character_id = self._resolve_character_id()
             if not character_id:
                 print("DEBUG: No character ID for Action Surge")
                 return
@@ -654,6 +649,8 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
                 return
             
+            self._refresh_action_availability()
+
             # Set Action Surge state in character context
             if 'action_surge_extra_action_available' not in self.character_context:
                 self.character_context['action_surge_extra_action_available'] = True
@@ -749,7 +746,7 @@ class ActionPanel(QWidget):
         prof_bonus = get_proficiency_bonus_from_context(self.character_context)
         
         # Get relevant ability modifier (Str for most weapons, Dex for finesse)
-        weapon_props = weapon.get('weapon_properties', [])
+        weapon_props = self._extract_weapon_properties(weapon)
         if 'finesse' in weapon_props:
             # Use higher of Str or Dex for finesse weapons
             str_mod = (self.character_context.get('strength', 10) - 10) // 2
@@ -763,7 +760,7 @@ class ActionPanel(QWidget):
             ability_mod = (self.character_context.get('strength', 10) - 10) // 2
         
         # Magic weapon bonus
-        magic_bonus = weapon.get('attack_bonus', 0)
+        magic_bonus = weapon.get('attack_bonus') or 0
         
         return prof_bonus + ability_mod + magic_bonus
     
@@ -773,7 +770,7 @@ class ActionPanel(QWidget):
         damage_type = weapon.get('damage_type', 'slashing')
         
         # Get ability modifier for damage
-        weapon_props = weapon.get('weapon_properties', [])
+        weapon_props = self._extract_weapon_properties(weapon)
         if 'finesse' in weapon_props:
             str_mod = (self.character_context.get('strength', 10) - 10) // 2
             dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
@@ -788,7 +785,7 @@ class ActionPanel(QWidget):
             ability_mod = 0  # Simplified - would check for Two Weapon Fighting feat
         
         # Magic weapon damage bonus
-        magic_bonus = weapon.get('damage_bonus', 0)
+        magic_bonus = weapon.get('damage_bonus') or 0
         
         # Get feature-based damage bonuses (rage, dueling, etc.)
         weapon_context = {
@@ -1624,7 +1621,7 @@ class ActionPanel(QWidget):
                 print(f"DATABASE ERROR: _get_barbarian_level_from_database - No character ID in context")
                 return 0
             
-            character_id = self.character_context.get('id')
+            character_id = self._resolve_character_id()
             print(f"DATABASE: Querying barbarian level for character {character_id}")
             
             # Query character_class_levels table for barbarian levels
@@ -3014,65 +3011,122 @@ class ActionPanel(QWidget):
         return reasons
     
     def _get_ability_uses_remaining(self, ability_name: str) -> int:
-        """Get remaining uses for an ability."""
-        # Get current character from parent
-        parent = self.parent()
-        while parent:
-            if hasattr(parent, 'game_engine'):
-                game_engine = parent.game_engine
-                character = game_engine.current_character
-                if character:
-                    uses = character.get('ability_uses', {}).get(ability_name, 0)
-                    return uses
-                break
-            parent = parent.parent()
-        return 0
+        """Get remaining uses for an ability from character resources."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return 0
+        resource = self._get_resource_service().get_resource(character_id, ability_name)
+        return resource.current_uses if resource else 0
     
     def _use_ability(self, ability_name: str):
-        """Use an ability - decrement uses remaining."""
-        print(f"DEBUG: _use_ability called for {ability_name}")
-        # Get current character from parent
+        """Use an ability - decrement uses remaining via resource service."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            print(f"DEBUG: Unable to resolve character id for {ability_name}")
+            return
+
+        result = self._get_resource_service().use_resource(character_id, ability_name)
+        parent = self.parent()
+
+        if result.get('success'):
+            self._refresh_action_availability()
+            uses_remaining = result.get('current_uses')
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"{ability_name} uses remaining: {uses_remaining}")
+                    break
+                parent = parent.parent()
+        else:
+            error_message = result.get('error', f'{ability_name} failed')
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[FAIL] {error_message}")
+                    break
+                parent = parent.parent()
+    
+
+
+
+
+    def _resolve_character_id(self) -> Optional[str]:
+        """Resolve the active character ID from context or parent widgets."""
+        character_id = None
+        if getattr(self, 'character_context', None):
+            character_id = self.character_context.get('id')
+        if character_id:
+            return character_id
         parent = self.parent()
         while parent:
-            if hasattr(parent, 'game_engine'):
-                game_engine = parent.game_engine
-                character = game_engine.current_character
-                if character:
-                    print(f"DEBUG: Found character, checking {ability_name}")
-                    if 'ability_uses' not in character:
-                        print(f"DEBUG: Character missing ability_uses field, initializing...")
-                        character['ability_uses'] = {}
-                        character['ability_uses_max'] = {}
-                    
-                    # Initialize Fighter abilities for existing characters that don't have them
-                    if ability_name == "Second Wind" and ability_name not in character.get('ability_uses', {}):
-                        print(f"DEBUG: Initializing Second Wind for existing character")
-                        character['ability_uses']["Second Wind"] = 1
-                        character['ability_uses_max']["Second Wind"] = 1
-                    elif ability_name == "Action Surge" and ability_name not in character.get('ability_uses', {}):
-                        print(f"DEBUG: Initializing Action Surge for existing character")
-                        character['ability_uses']["Action Surge"] = 1  
-                        character['ability_uses_max']["Action Surge"] = 1
-                    
-                    current_uses = character.get('ability_uses', {}).get(ability_name, 0)
-                    print(f"DEBUG: Current uses of {ability_name}: {current_uses}")
-                    
-                    if current_uses > 0:
-                        character['ability_uses'][ability_name] = current_uses - 1
-                        print(f"DEBUG: Decremented {ability_name} to {character['ability_uses'][ability_name]}")
-                        # Save character (save the whole game state)
-                        try:
-                            game_engine.save_game_sync()
-                            print(f"DEBUG: Game saved successfully")
-                        except Exception as e:
-                            print(f"DEBUG: Save failed: {e}")
-                        # Update action card display
-                        self._refresh_action_availability()
-                    else:
-                        print(f"DEBUG: {ability_name} has no uses remaining ({current_uses})")
-                break
+            game_engine = getattr(parent, 'game_engine', None)
+            if game_engine:
+                current_character = getattr(game_engine, 'current_character', None)
+                if isinstance(current_character, dict):
+                    character_id = current_character.get('id')
+                    if character_id:
+                        return character_id
             parent = parent.parent()
-    
+        return None
+
+    def _resolve_db_path(self) -> str:
+        """Resolve the database path for resource operations."""
+        if getattr(self, 'character_context', None):
+            db_path = self.character_context.get('db_path')
+            if db_path:
+                return db_path
+        parent = self.parent()
+        while parent:
+            game_engine = getattr(parent, 'game_engine', None)
+            if game_engine:
+                for attr in ('db_path', 'db_file', 'db_name'):
+                    value = getattr(game_engine, attr, None)
+                    if value:
+                        return value
+            parent = parent.parent()
+        return 'talekeeper.db'
+
+    def _get_resource_service(self) -> CharacterResourceService:
+        """Lazily construct the character resource service."""
+        service = getattr(self, '_resource_service', None)
+        if service is None:
+            service = CharacterResourceService(self._resolve_db_path())
+            self._resource_service = service
+        return service
+
+    @staticmethod
+    def _normalize_feature_name(name: str) -> str:
+        """Normalize feature names for internal lookups."""
+        return re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
+
+    def _get_feature_data(self, feature_name: str) -> Optional[Dict[str, Any]]:
+        """Retrieve feature metadata by display name."""
+        features = getattr(self, 'character_features', None)
+        if not isinstance(features, dict):
+            return None
+        cache = getattr(self, '_normalized_feature_cache', None)
+        if cache is None:
+            cache = {}
+            self._normalized_feature_cache = cache
+        normalized = self._normalize_feature_name(feature_name)
+        if normalized in cache:
+            return cache[normalized]
+        for display_name, data in features.items():
+            cache[self._normalize_feature_name(display_name)] = data
+        return cache.get(normalized)
+
+    @staticmethod
+    def _extract_weapon_properties(weapon: Dict[str, Any]) -> List[str]:
+        """Safely extract weapon property tags as a list."""
+        if not isinstance(weapon, dict):
+            return []
+        props = weapon.get('weapon_properties') or weapon.get('properties') or []
+        if isinstance(props, str):
+            props = [p.strip() for p in props.split(',') if p.strip()]
+        elif isinstance(props, (tuple, set)):
+            props = list(props)
+        elif not isinstance(props, list):
+            props = []
+        return props
+
     def _get_feat_resource_remaining(self, feat_name: str, resource_type: str) -> int:
         """Get remaining uses for a feat resource."""
         try:
@@ -3198,8 +3252,12 @@ class ActionPanel(QWidget):
     
     def load_character_equipment(self, equipped_items: Dict[str, Any], character_stats: Dict[str, Any]):
         """Load character equipment and stats to create weapon cards."""
+        equipped_items = equipped_items or {}
+        if not isinstance(equipped_items, dict):
+            equipped_items = {}
         self.equipped_weapons = equipped_items.copy()
-        self.character_context.update(character_stats)
+        if isinstance(character_stats, dict):
+            self.character_context.update(character_stats)
         
         # Recreate weapon cards with new equipment
         self._create_weapon_cards()
@@ -3228,7 +3286,12 @@ class ActionPanel(QWidget):
         # Clear existing feature cards first
         self._clear_feature_cards()
         
-        self.character_features = character_features or {}
+        if isinstance(character_features, list):
+            mapped = {feature.get('name'): feature for feature in character_features if isinstance(feature, dict) and feature.get('name')}
+        else:
+            mapped = character_features or {}
+        self.character_features = mapped
+        self._normalized_feature_cache = {}
         
         # Create feature-based action cards
         self._create_feature_cards()
@@ -3300,7 +3363,7 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return 0
             
-        character_id = self.character_context.get('id')
+        character_id = self._resolve_character_id()
         if not character_id:
             return 0
             
@@ -3538,7 +3601,7 @@ class ActionPanel(QWidget):
         if not self.character_context:
             return
             
-        character_id = self.character_context.get('id')
+        character_id = self._resolve_character_id()
         if not character_id:
             return
             
@@ -3575,7 +3638,7 @@ class ActionPanel(QWidget):
         if not self.character_context:
             print("[DEBUG] No character context for potion check")
             return False
-        character_id = self.character_context.get('id')
+        character_id = self._resolve_character_id()
         if not character_id:
             print("[DEBUG] No character ID for potion check")
             return False
@@ -3639,7 +3702,7 @@ class ActionPanel(QWidget):
             return 0
         
         bonus = 0
-        character_id = self.character_context.get('id')
+        character_id = self._resolve_character_id()
         if not character_id:
             return 0
             
@@ -4329,11 +4392,10 @@ class ActionPanel(QWidget):
     def _use_rage(self):
         """Activate barbarian rage."""
         # Use the unified resource system
-        from services.character_resources import CharacterResourceService
-        resource_service = CharacterResourceService('talekeeper.db')
+        resource_service = self._get_resource_service()
         
         # Get character ID
-        character_id = self.character_context.get('id')
+        character_id = self._resolve_character_id()
         if not character_id:
             print("DEBUG: No character ID for Rage")
             return
@@ -4662,10 +4724,9 @@ class ActionPanel(QWidget):
         """Restore abilities that recharge on short rest."""
         try:
             # Use the character resource service to restore short rest resources
-            from services.character_resources import CharacterResourceService
-            resource_service = CharacterResourceService('talekeeper.db')
+            resource_service = self._get_resource_service()
             
-            character_id = self.character_context.get('id')
+            character_id = self._resolve_character_id()
             if not character_id:
                 print("DEBUG: No character ID for short rest restoration")
                 return
@@ -4709,10 +4770,9 @@ class ActionPanel(QWidget):
         """Restore all abilities (long rest)."""
         try:
             # Use the character resource service to restore all resources
-            from services.character_resources import CharacterResourceService
-            resource_service = CharacterResourceService('talekeeper.db')
+            resource_service = self._get_resource_service()
             
-            character_id = self.character_context.get('id')
+            character_id = self._resolve_character_id()
             if not character_id:
                 print("DEBUG: No character ID for long rest restoration")
                 return
@@ -5307,3 +5367,7 @@ class ActionCard(QWidget):
     def set_resource_manager(self, resource_manager):
         """Set the advantage resource manager."""
         self.resource_manager = resource_manager
+
+
+
+

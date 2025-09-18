@@ -93,7 +93,7 @@ class FeatureSystemIntegration:
             
             # Initialize each feature in the database
             for feature_def in features:
-                self._initialize_feature(cursor, character_id, feature_def, level)
+                self._initialize_feature(cursor, character_id, class_name, feature_def, level)
             
             # Initialize class-specific feature tables (create fresh)
             self._initialize_class_features(cursor, character_id, class_name, level)
@@ -108,7 +108,7 @@ class FeatureSystemIntegration:
         finally:
             conn.close()
     
-    def _initialize_feature(self, cursor: sqlite3.Cursor, character_id: str, 
+    def _initialize_feature(self, cursor: sqlite3.Cursor, character_id: str, class_name: str,
                           feature: FeatureDefinition, character_level: int):
         """Initialize a single feature in the database."""
         # Calculate uses if it's a resource feature
@@ -137,6 +137,26 @@ class FeatureSystemIntegration:
             VALUES (?, ?, ?, ?, ?, ?)
         """, (character_id, feature.name, feature.feature_type, 
               uses_max, uses_max, json.dumps(config)))
+
+        if feature.feature_type == "resource":
+            max_uses = uses_max if uses_max is not None else feature.mechanics.get("uses")
+            if max_uses is None:
+                max_uses = feature.mechanics.get("extra_actions")
+            if max_uses is not None:
+                recharge = feature.recharge or "long_rest"
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_resources
+                    (character_id, resource_name, current_uses, max_uses, rest_type, source_class, source_level)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    character_id,
+                    feature.name,
+                    max_uses,
+                    max_uses,
+                    recharge,
+                    class_name.lower() if class_name else None,
+                    feature.level_acquired
+                ))
     
     def _initialize_class_features(self, cursor: sqlite3.Cursor, character_id: str, 
                                    class_name: str, level: int):
