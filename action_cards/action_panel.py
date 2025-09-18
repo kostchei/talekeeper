@@ -20,12 +20,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QToolTip, QProgressBar)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
 import re
 
 from services.character_resources import CharacterResourceService
-
+from services.weapon_mastery_service import WeaponMasteryService
+from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 
 print("DEBUG: action_panel.py module loaded/imported at line 25")
@@ -106,6 +107,9 @@ class ActionPanel(QWidget):
         self.first_attack_this_round = True  # Track first attack per round for Savage Attacker
         self.character_features = {}  # Character class features (Fighting Style, etc.)
         self.equipped_weapons = {}  # Store equipped weapon data
+        self.character_weapon_masteries = []
+        self.character_weapon_mastery_map: Dict[str, Optional[str]] = {}
+        self._weapon_mastery_service: Optional[WeaponMasteryService] = None
         
         # Lucky feat state tracking
         # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
@@ -1087,7 +1091,7 @@ class ActionPanel(QWidget):
             if is_critical:
                 # Roll the damage dice again (but NOT modifiers) and add to total
                 import random
-                damage_dice = context.get('damage_dice', '1d6')
+                damage_dice, damage_type = self._get_context_damage_profile(context)
                 if 'd' in damage_dice:
                     dice_part = damage_dice.split('+')[0].split('-')[0].strip()
                     try:
@@ -1349,7 +1353,7 @@ class ActionPanel(QWidget):
         
         if hit:
             # === DAMAGE ROLL ===
-            damage_dice = context.get('damage_dice', '1d6')
+            damage_dice, damage_type = self._get_context_damage_profile(context)
             
             # Roll damage dice
             if 'd' in damage_dice:
@@ -1420,7 +1424,7 @@ class ActionPanel(QWidget):
                 is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
                 
                 if (class_id and class_id.lower() == 'barbarian' and is_raging):
-                    weapon_props = context.get('weapon_properties', [])
+                    weapon_props = self._get_context_weapon_properties(context)
                     is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
                     if not is_ranged:
                         # Get actual barbarian level from character context (single-class barbarian)
@@ -1999,6 +2003,7 @@ class ActionPanel(QWidget):
 
     def _roll_attack(self, context: Dict[str, Any]) -> tuple[int, dict]:
         """Roll an attack roll (d20 + modifiers) with advantage/disadvantage. Returns (total, breakdown)."""
+        _, damage_type = self._get_context_damage_profile(context)
         from services.advantage_system import advantage_system, RollType, AdvantageState
         
         # Calculate attack bonus components
@@ -2006,13 +2011,13 @@ class ActionPanel(QWidget):
         prof_bonus = get_proficiency_bonus_from_context(context)
         
         # Get ability modifier
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         if 'finesse' in weapon_props:
             str_mod = (context.get('strength', 10) - 10) // 2
             dex_mod = (context.get('dexterity', 10) - 10) // 2
             ability_mod = max(str_mod, dex_mod)
             ability_name = "STR" if str_mod >= dex_mod else "DEX"
-        elif 'ranged' in weapon_props or context.get('damage_type') == 'ranged':
+        elif 'ranged' in weapon_props or damage_type == 'ranged':
             ability_mod = (context.get('dexterity', 10) - 10) // 2
             ability_name = "DEX"
         else:
@@ -2083,16 +2088,16 @@ class ActionPanel(QWidget):
         import random
         
         # Get damage dice from context or use default
-        damage_dice = context.get('damage_dice', '1d6')  # Default 1d6
+        damage_dice, damage_type = self._get_context_damage_profile(context)  # Default 1d6
         
         # Calculate ability modifier for damage
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         if 'finesse' in weapon_props:
             str_mod = (context.get('strength', 10) - 10) // 2
             dex_mod = (context.get('dexterity', 10) - 10) // 2
             ability_mod = max(str_mod, dex_mod)
             ability_name = "STR" if str_mod >= dex_mod else "DEX"
-        elif 'ranged' in weapon_props or context.get('damage_type') == 'ranged':
+        elif 'ranged' in weapon_props or damage_type == 'ranged':
             ability_mod = (context.get('dexterity', 10) - 10) // 2
             ability_name = "DEX"
         else:
@@ -2113,7 +2118,7 @@ class ActionPanel(QWidget):
         print(f"RAGE CHECK: raging={raging}, class_id='{class_id}', context_keys={list(self.character_context.keys()) if self.character_context else 'None'}")
         
         if (raging and class_id == 'barbarian'):
-            weapon_props = context.get('weapon_properties', [])
+            weapon_props = self._get_context_weapon_properties(context)
             is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
             if not is_ranged:
                 rage_bonus = 2
@@ -3093,6 +3098,43 @@ class ActionPanel(QWidget):
         return service
 
     @staticmethod
+    def _normalize_weapon_properties(properties: Any) -> List[str]:
+        """Normalize weapon property payloads into a lowercase list."""
+        props = properties or []
+        if isinstance(props, str):
+            if ',' in props:
+                props = [p.strip() for p in props.split(',') if p.strip()]
+            else:
+                props = [props.strip()] if props.strip() else []
+        return [str(p).lower() for p in props if isinstance(p, str)]
+
+    def _get_context_weapon_properties(self, context: Dict[str, Any]) -> List[str]:
+        """Extract weapon properties from attack context dictionaries."""
+        props = context.get('weapon_properties')
+        if props:
+            return self._normalize_weapon_properties(props)
+        weapon_data = context.get('weapon')
+        if isinstance(weapon_data, dict):
+            props = weapon_data.get('weapon_properties') or weapon_data.get('properties')
+            if props:
+                return self._normalize_weapon_properties(props)
+        return []
+
+    def _get_context_damage_profile(self, context: Dict[str, Any]) -> Tuple[str, str]:
+        """Return damage dice/type, falling back to weapon metadata when absent."""
+        weapon_data = context.get('weapon') if isinstance(context.get('weapon'), dict) else {}
+        damage_dice = context.get('damage_dice') or weapon_data.get('damage_dice') or '1d6'
+        damage_type = context.get('damage_type') or weapon_data.get('damage_type') or 'slashing'
+        return str(damage_dice), str(damage_type).lower()
+    def _get_weapon_mastery_service(self) -> WeaponMasteryService:
+        """Lazily construct the weapon mastery service."""
+        service = getattr(self, '_weapon_mastery_service', None)
+        if service is None:
+            service = WeaponMasteryService(self._resolve_db_path())
+            self._weapon_mastery_service = service
+        return service
+
+    @staticmethod
     def _normalize_feature_name(name: str) -> str:
         """Normalize feature names for internal lookups."""
         return re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
@@ -3307,10 +3349,42 @@ class ActionPanel(QWidget):
         self.character_context['feats'] = character_feats or []
         self.character_feats = character_feats or []  # Also store directly for easy access
     
-    def load_weapon_masteries(self, weapon_masteries: List[str]):
-        """Load character weapon masteries."""
-        self.character_weapon_masteries = weapon_masteries or []
-        
+    def load_weapon_masteries(self, weapon_masteries: List[str], assignments: Optional[List[Dict[str, Any]]] = None):
+        """Load character weapon masteries and assignment map."""
+        normalized = [m.title() for m in (weapon_masteries or [])]
+        self.character_weapon_masteries = normalized
+        self.character_weapon_mastery_map = {}
+        for entry in assignments or []:
+            weapon_name = (entry.get("weapon_name") or "").strip()
+            mastery_type = (entry.get("mastery_type") or "").strip()
+            if weapon_name and mastery_type:
+                self.character_weapon_mastery_map[weapon_name] = mastery_type.title()
+
+        if isinstance(self.character_context, dict):
+            self.character_context['weapon_masteries'] = normalized
+            self.character_context['weapon_mastery_assignments'] = assignments or []
+
+        if not normalized and not (assignments or []) and self._character_has_weapon_mastery_feature():
+            character_id = self._resolve_character_id()
+            if character_id:
+                try:
+                    service = self._get_weapon_mastery_service()
+                    options = service.get_character_weapon_options(character_id)
+                    if options:
+                        normalized_assignments = service.set_character_masteries(character_id, options)
+                        normalized = [entry.get('mastery_type', '').title() for entry in normalized_assignments]
+                        self.character_weapon_masteries = normalized
+                        self.character_weapon_mastery_map = {
+                            entry.get('weapon_name'): entry.get('mastery_type', '').title()
+                            for entry in normalized_assignments
+                            if entry.get('weapon_name') and entry.get('mastery_type')
+                        }
+                        if isinstance(self.character_context, dict):
+                            self.character_context['weapon_masteries'] = normalized
+                            self.character_context['weapon_mastery_assignments'] = normalized_assignments
+                except Exception as exc:
+                    print(f"[WeaponMastery] Failed to bootstrap masteries for {character_id}: {exc}")
+
     def load_character_resources(self, character_data: Dict[str, Any]):
         """Load character advantage resources (Lucky, Inspiration)."""
         self.resource_manager = AdvantageResourceManager(character_data)
@@ -3386,12 +3460,12 @@ class ActionPanel(QWidget):
             return 0
         
         # Check weapon requirements: one-handed melee weapon
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         
         # Must not be two-handed or ranged
         is_two_handed = 'two-handed' in weapon_props_lower
-        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
+        is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
         
         if is_two_handed or is_ranged:
             return 0
@@ -3418,9 +3492,9 @@ class ActionPanel(QWidget):
             return 0
         
         # Only applies to melee weapon attacks (not ranged or spells)
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
+        is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
         
         if is_ranged:
             return 0
@@ -3682,7 +3756,7 @@ class ActionPanel(QWidget):
         
         # Archery: +2 to ranged weapon attacks
         if "Archery" in character_feats:
-            weapon_props = context.get('weapon_properties', [])
+            weapon_props = self._get_context_weapon_properties(context)
             weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
             
             # Check if this is a ranged weapon attack (not thrown melee weapons)
@@ -3729,7 +3803,7 @@ class ActionPanel(QWidget):
         
             # Thrown Weapon Fighting: +2 damage to thrown weapon attacks when used at range
             if "Thrown Weapon Fighting" in style_name:
-                weapon_props = context.get('weapon_properties', [])
+                weapon_props = self._get_context_weapon_properties(context)
                 weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
                 
                 # Must be a thrown weapon used as a ranged attack
@@ -3749,7 +3823,7 @@ class ActionPanel(QWidget):
                         str_mod = (context.get('dexterity', 10) - 10) // 2
                     
                     # Only add if the weapon qualifies for two-weapon fighting (light weapons)
-                    weapon_props = context.get('weapon_properties', [])
+                    weapon_props = self._get_context_weapon_properties(context)
                     weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
                     
                     if 'light' in weapon_props_lower:
@@ -3833,7 +3907,7 @@ class ActionPanel(QWidget):
     
     def _apply_dueling_bonus(self, context: Dict[str, Any]) -> int:
         """Apply Dueling fighting style bonus (+2 damage when wielding one melee weapon in one hand and no other weapons)."""
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         
         # Must be a melee weapon (not ranged)
@@ -3860,7 +3934,7 @@ class ActionPanel(QWidget):
     
     def _apply_great_weapon_fighting(self, dice_rolls: list, context: Dict[str, Any]) -> list:
         """Apply Great Weapon Fighting: reroll 1s and 2s on melee weapons with two-handed or heavy property."""
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         
         # Great Weapon Fighting requires a melee weapon with two-handed OR heavy property
@@ -3874,7 +3948,7 @@ class ActionPanel(QWidget):
             return dice_rolls
         
         # Get the damage die size from context to reroll correctly
-        damage_dice = context.get('damage_dice', '1d6')
+        damage_dice, damage_type = self._get_context_damage_profile(context)
         die_size = 6  # Default
         if 'd' in damage_dice:
             try:
@@ -3928,27 +4002,30 @@ class ActionPanel(QWidget):
         # Step 3: Apply the mastery effect
         return self._apply_mastery_effect(mastery_name, hit, context)
     
-    def _get_weapon_mastery(self, weapon_name: str) -> str:
-        """Get weapon's mastery property from database."""
-        try:
-            import sqlite3
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT weapon_mastery FROM equipment 
-                WHERE name = ?
-            """, (weapon_name,))
-            
-            result = cursor.fetchone()
-            conn.close()
-            
-            return result[0] if result else None
-            
-        except Exception as e:
-            print(f"Error getting weapon mastery for {weapon_name}: {e}")
+    def _get_weapon_mastery(self, weapon_name: str) -> Optional[str]:
+        """Get mastery for a weapon from cached assignments or equipment data."""
+        if not weapon_name:
             return None
-    
+
+        assignments = getattr(self, 'character_weapon_mastery_map', {}) or {}
+        mastery = assignments.get(weapon_name)
+        if not mastery:
+            lower_name = weapon_name.lower()
+            for key, value in assignments.items():
+                if key.lower() == lower_name:
+                    mastery = value
+                    break
+
+        if mastery:
+            return mastery
+
+        try:
+            service = self._get_weapon_mastery_service()
+            return service.get_weapon_mastery_for_weapon(weapon_name)
+        except Exception as exc:
+            print(f"Error getting weapon mastery for {weapon_name}: {exc}")
+            return None
+
     def _character_has_weapon_mastery_feature(self) -> bool:
         """Check if character class gets weapon masteries (Fighter, Rogue, Barbarian, Paladin)."""
         if not self.character_context:
@@ -4345,12 +4422,12 @@ class ActionPanel(QWidget):
         if not self._has_class_feature('Sneak Attack'):
             return False
         
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         
         # Must use finesse or ranged weapon
         is_finesse = 'finesse' in weapon_props_lower
-        is_ranged = 'ranged' in weapon_props_lower or context.get('damage_type') == 'ranged'
+        is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
         
         return is_finesse or is_ranged
     
@@ -4661,7 +4738,9 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat("✨ Short Rest completed! Some abilities and HP restored. Attunement now available.")
                     break
                 parent = parent.parent()
-            
+
+            self._maybe_prompt_weapon_mastery_swap('short')
+
         except Exception as e:
             print(f"Error during short rest: {e}")
     
@@ -4697,10 +4776,68 @@ class ActionPanel(QWidget):
                     parent.log_panel.log_combat("✨ Long Rest completed! All abilities, spell slots, and HP fully restored. Attunement available.")
                     break
                 parent = parent.parent()
-            
+
+            self._maybe_prompt_weapon_mastery_swap('long')
+
         except Exception as e:
             print(f"Error during long rest: {e}")
     
+    def _maybe_prompt_weapon_mastery_swap(self, rest_type: str) -> None:
+        """Offer the player a chance to adjust weapon masteries after a rest."""
+        try:
+            if not self._character_has_weapon_mastery_feature():
+                return
+
+            character_id = self._resolve_character_id()
+            if not character_id:
+                return
+
+            service = self._get_weapon_mastery_service()
+            options = service.get_character_weapon_options(character_id)
+            if not options:
+                return
+
+            current_assignments = service.get_character_masteries(character_id)
+            if current_assignments:
+                selected_names = [entry.get('weapon_name', '') for entry in current_assignments]
+            else:
+                selected_names = [option.get('weapon_name', '') for option in options]
+
+            dialog = WeaponMasteryDialog(options, selected_names, parent=self)
+            if dialog.exec() != int(dialog.DialogCode.Accepted):
+                return
+
+            selections = dialog.selected_options()
+            if not selections:
+                # Fighters treat all masteries as known, so default to activating everything the character carries.
+                selections = options
+
+            normalized = service.set_character_masteries(character_id, selections)
+            mastery_names = [entry.get('mastery_type', '') for entry in normalized]
+            self.load_weapon_masteries(mastery_names, normalized)
+            self._log_weapon_mastery_refresh(rest_type, normalized)
+        except Exception as exc:
+            print(f"Error updating weapon masteries during {rest_type} rest: {exc}")
+
+    def _log_weapon_mastery_refresh(self, rest_type: str, assignments: List[Dict[str, str]]) -> None:
+        """Log the updated mastery selections to the combat log."""
+        parent = self.parent()
+        while parent:
+            log_panel = getattr(parent, 'log_panel', None)
+            if log_panel:
+                summary = ', '.join(
+                    f"{entry.get('weapon_name', 'Unknown')} ({entry.get('mastery_type', '?')})"
+                    for entry in assignments
+                    if entry.get('weapon_name') and entry.get('mastery_type')
+                )
+                rest_label = 'Long Rest' if rest_type == 'long' else 'Short Rest'
+                if summary:
+                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery ready for {summary}")
+                else:
+                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery refreshed with no specific weapons selected")
+                break
+            parent = parent.parent()
+
     def _save_character_xp(self):
         """Save character XP to database."""
         try:
@@ -5013,7 +5150,7 @@ class ActionPanel(QWidget):
             return 0
         
         # Add ability modifier to off-hand damage
-        weapon_props = context.get('weapon_properties', [])
+        weapon_props = self._get_context_weapon_properties(context)
         if 'finesse' in [p.lower() for p in weapon_props]:
             str_mod = (self.character_context.get('strength', 10) - 10) // 2
             dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
@@ -5367,6 +5504,11 @@ class ActionCard(QWidget):
     def set_resource_manager(self, resource_manager):
         """Set the advantage resource manager."""
         self.resource_manager = resource_manager
+
+
+
+
+
 
 
 

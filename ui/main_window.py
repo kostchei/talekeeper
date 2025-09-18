@@ -668,7 +668,8 @@ class MainWindow(QMainWindow):
                 'hit_points_current': saved_character['hit_points_current'],
                 'hit_points_max': saved_character['hit_points_max'],
                 'feats': saved_character.get('feats', []),
-                'weapon_masteries': saved_character.get('weapon_masteries', [])
+                'weapon_masteries': saved_character.get('weapon_masteries', []),
+                'weapon_mastery_assignments': saved_character.get('weapon_mastery_assignments', []),
             }
             print(f"[DEBUG] CHARACTER_STATS DEBUG: {character_stats}")
             self.action_panel.load_character_equipment(equipped_items, character_stats)
@@ -721,7 +722,8 @@ class MainWindow(QMainWindow):
             
             # Load weapon masteries into action panel
             weapon_masteries = getattr(saved_character, 'weapon_masteries', []) or []
-            self.action_panel.load_weapon_masteries(weapon_masteries)
+            weapon_mastery_assignments = getattr(saved_character, 'weapon_mastery_assignments', []) or []
+            self.action_panel.load_weapon_masteries(weapon_masteries, weapon_mastery_assignments)
             
             # Load advantage resources (Lucky, Inspiration) into action panel
             self.action_panel.load_character_resources(saved_character)
@@ -954,7 +956,8 @@ class MainWindow(QMainWindow):
             'hit_points_current': character['hit_points_current'],
             'hit_points_max': character['hit_points_max'],
             'feats': character.get('feats', []),
-            'weapon_masteries': character.get('weapon_masteries', [])
+            'weapon_masteries': character.get('weapon_masteries', []),
+            'weapon_mastery_assignments': character.get('weapon_mastery_assignments', []),
         }
         self.action_panel.load_character_equipment(equipped_items, character_stats)
         
@@ -1000,7 +1003,8 @@ class MainWindow(QMainWindow):
         
         # Load weapon masteries into action panel  
         weapon_masteries = character.get('weapon_masteries', []) or []
-        self.action_panel.load_weapon_masteries(weapon_masteries)
+        weapon_mastery_assignments = character.get('weapon_mastery_assignments', []) or []
+        self.action_panel.load_weapon_masteries(weapon_masteries, weapon_mastery_assignments)
         
         # Load advantage resources (Lucky, Inspiration) into action panel
         self.action_panel.load_character_resources(character)

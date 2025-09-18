@@ -1,4 +1,4 @@
-"""
+﻿"""
 Encounter Pane Widget - Central content area for encounters and exploration
 
 PyQt6 widget that serves as the main content display area:
@@ -4328,6 +4328,20 @@ Character Level: {character_level}"""
         except Exception as e:
             print(f"Error showing post-combat actions: {e}")
     
+    def _set_action_card_click_handler(self, card: QWidget, handler) -> None:
+        """Make the entire action card clickable by wiring a mouse release handler."""
+        from PyQt6.QtCore import Qt
+
+        card.setCursor(Qt.CursorShape.PointingHandCursor)
+        card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+        def _on_mouse_release(event):
+            if event.button() == Qt.MouseButton.LeftButton:
+                handler()
+            event.accept()
+
+        card.mouseReleaseEvent = _on_mouse_release  # type: ignore[attr-defined]
+
     def _create_loot_action_card(self) -> QWidget:
         """Create the Loot action card for post-combat."""
         from PyQt6.QtWidgets import QLabel, QVBoxLayout, QPushButton
@@ -5712,3 +5726,5 @@ Character Level: {character_level}"""
         except Exception as e:
             print(f"[UI] Error refreshing equipment panel: {e}")
             self._log_monster_action(f"[FAIL] Long rest failed: {e}")
+
+

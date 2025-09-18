@@ -69,16 +69,8 @@ class FighterAbilitiesService:
             indomitable_max = 3
             
         # Weapon Mastery count
-        weapon_mastery_count = 0
-        if level >= 1:
-            weapon_mastery_count = 3
-        if level >= 4:
-            weapon_mastery_count = 4
-        if level >= 10:
-            weapon_mastery_count = 5
-        if level >= 16:
-            weapon_mastery_count = 6
-            
+        weapon_mastery_count = -1
+        
         # Update critical range based on Champion features
         critical_range_min = 20  # Default
         subclass = self.get_character_subclass(character_id)

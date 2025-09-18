@@ -151,8 +151,9 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - Regression coverage includes backend feature loading and a Qt-driven smoke test that exercises the ActionPanel against the new resource flow (`test/core/test_features.py:37`, `test/core/test_features.py:214`).
 
 **Planned Work**
-- Persist per-character Weapon Mastery selections in the database, surface swap UI, and wire `_apply_weapon_mastery_effects` to the stored choices so Tactical Master can override masteries on demand.
+- Treat Weapon Mastery as universally trained for qualified Fighters: persist the currently slotted weapon choices for rest-based swaps, surface the swap UI, and wire `_apply_weapon_mastery_effects` to the full mastery list so Tactical Master can override on demand.
 - Implement the remaining Champion subclass hooks (Remarkable Athlete initiative/skill advantages, Heroic Warrior inspiration loop, Survivor healing/Defy Death) via `character_combat_state` updates and automated triggers.
 - Fold the remaining ActionPanel feature logic (weapon card generation, Tactical Mind/Indomitable prompts) into the service-first model and address the weapon equip crash caused by missing mastery metadata.
 - Extend pytest-qt coverage to exercise ActionPanel interactions end-to-end once the UI refactor lands, ensuring resource usage and refreshes stay in sync.
+- Note: Fighters with Weapon Mastery are treated as knowing every mastery property; swapping choices happens on a rest, and no per-character mastery count is tracked.
 \n\n-> Weapon Mastery persistence and Tactical Master overrides

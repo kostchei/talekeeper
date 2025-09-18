@@ -939,37 +939,23 @@ class EquipmentPanel(QWidget):
         spell_attack_bonus = self._calculate_spell_attack_bonus()
         self.magic_label.setText(f"Hit {spell_attack_bonus:+d} spell attack")
     
+    def _extract_weapon_properties(self, weapon: Dict[str, Any]) -> List[str]:
+        """Return normalized weapon property tags for the provided weapon."""
+        props = weapon.get('weapon_properties') or weapon.get('properties') or []
+        if isinstance(props, str):
+            if ',' in props:
+                props = [p.strip() for p in props.split(',') if p.strip()]
+            else:
+                props = [props.strip()] if props.strip() else []
+        return [str(p).lower() for p in props if isinstance(p, str)]
+
     def _calculate_weapon_attack_bonus(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> int:
         """Calculate attack bonus for a specific weapon."""
-        # Base proficiency bonus (assume level 1 = +2 for now)
-        prof_bonus = 2
-        
-        # Get relevant ability modifier (Str for most weapons, Dex for finesse)
-        weapon_props = weapon.get('weapon_properties', [])
-        if 'finesse' in weapon_props:
-            # Use higher of Str or Dex for finesse weapons
-            str_mod = (self.character_strength - 10) // 2
-            dex_mod = (self.character_dexterity - 10) // 2
-            ability_mod = max(str_mod, dex_mod)
-        elif 'ranged' in weapon_props or weapon.get('damage_type') == 'ranged':
-            # Ranged weapons use Dex
-            ability_mod = (self.character_dexterity - 10) // 2
-        else:
-            # Melee weapons use Str
-            ability_mod = (self.character_strength - 10) // 2
-        
-        # Magic weapon bonus
-        magic_bonus = weapon.get('attack_bonus', 0)
-        
-        return prof_bonus + ability_mod + magic_bonus
-    
-    def _calculate_weapon_damage(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> str:
-        """Format weapon damage string."""
-        damage_dice = weapon.get('damage_dice', '1d4')
-        damage_type = weapon.get('damage_type', 'slashing')
-        
-        # Get ability modifier for damage
-        weapon_props = weapon.get('weapon_properties', [])
+        prof_bonus = 2  # Assume +2 proficiency until level scaling hooks land
+
+        weapon_props = self._extract_weapon_properties(weapon)
+        damage_type = (weapon.get('damage_type') or '').lower()
+
         if 'finesse' in weapon_props:
             str_mod = (self.character_strength - 10) // 2
             dex_mod = (self.character_dexterity - 10) // 2
@@ -978,21 +964,36 @@ class EquipmentPanel(QWidget):
             ability_mod = (self.character_dexterity - 10) // 2
         else:
             ability_mod = (self.character_strength - 10) // 2
-        
-        # Off-hand attacks don't add ability modifier to damage (unless Two Weapon Fighting)
+
+        magic_bonus = weapon.get('attack_bonus', 0) or 0
+        return prof_bonus + ability_mod + magic_bonus
+    
+    def _calculate_weapon_damage(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> str:
+        """Format weapon damage string."""
+        damage_dice = weapon.get('damage_dice', '1d4')
+        damage_type = (weapon.get('damage_type') or 'slashing').lower()
+
+        weapon_props = self._extract_weapon_properties(weapon)
+        if 'finesse' in weapon_props:
+            str_mod = (self.character_strength - 10) // 2
+            dex_mod = (self.character_dexterity - 10) // 2
+            ability_mod = max(str_mod, dex_mod)
+        elif 'ranged' in weapon_props or damage_type == 'ranged':
+            ability_mod = (self.character_dexterity - 10) // 2
+        else:
+            ability_mod = (self.character_strength - 10) // 2
+
         if is_off_hand:
-            ability_mod = 0  # Simplified - would check for Two Weapon Fighting feat
-        
-        # Magic weapon damage bonus
-        magic_bonus = weapon.get('damage_bonus', 0)
+            ability_mod = 0
+
+        magic_bonus = weapon.get('damage_bonus', 0) or 0
         total_bonus = ability_mod + magic_bonus
-        
+
         if total_bonus > 0:
             return f"{damage_dice}+{total_bonus}"
-        elif total_bonus < 0:
+        if total_bonus < 0:
             return f"{damage_dice}{total_bonus}"
-        else:
-            return damage_dice
+        return damage_dice
     
     def _calculate_unarmed_attack_bonus(self) -> int:
         """Calculate unarmed attack bonus."""
