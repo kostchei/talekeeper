@@ -1489,71 +1489,44 @@ class ActionPanel(QWidget):
             # RAGE DAMAGE BONUS - BARBARIAN ONLY (SCALES WITH LEVEL)
             # Check if character is a barbarian and raging
             try:
-                # Get class_id from context first, then from character_context, then from database
-                class_id = context.get('class_id') or (self.character_context.get('class_id') if hasattr(self, 'character_context') else None)
-
-                if not class_id:
-                    # Last resort: get from current character in main window
-                    main_window = self.parent()
-                    while main_window and not hasattr(main_window, 'current_character'):
-                        main_window = main_window.parent()
-                    if main_window and hasattr(main_window, 'current_character') and main_window.current_character:
-                        class_id = main_window.current_character['class_id']
-                        parent = self.parent()
-                        while parent:
-                            if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
-                                break
-                            parent = parent.parent()
-
-                is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
-
-                if (class_id and class_id.lower() == 'barbarian' and is_raging):
-                    weapon_props = self._get_context_weapon_properties(context)
-                    is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
-                    if not is_ranged:
-                        # Get actual barbarian level from character context (single-class barbarian)
-                        barbarian_level = self.character_context.get('level', 1)
-                        parent = self.parent()
-                        while parent:
-                            if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
-                                break
-                            parent = parent.parent()
-
-                        # Get rage damage bonus from database by looking up barbarian abilities
-                        rage_bonus = self._get_rage_damage_from_database(barbarian_level)
-
+                class_id = (context.get('class_id') or
+                            (self.character_context.get('class_id') if isinstance(self.character_context, dict) else None))
+                is_raging = context.get('raging', False)
+                if isinstance(self.character_context, dict):
+                    is_raging = is_raging or self.character_context.get('raging', False)
+                if class_id and class_id.lower() == 'barbarian':
+                    if is_raging:
+                        rage_bonus = self._get_rage_damage_bonus(context)
                         if rage_bonus > 0:
-                            damage_components.append(("Rage", rage_bonus))
+                            damage_components.append(('Rage', rage_bonus))
                             parent = self.parent()
                             while parent:
                                 if hasattr(parent, 'log_panel'):
-                                    parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {barbarian_level})")
+                                    level = self.character_context.get('level', 1) if isinstance(self.character_context, dict) else 1
+                                    parent.log_panel.log_combat(f"[DEBUG] Applied +{rage_bonus} rage damage (barbarian level {level})")
                                     break
                                 parent = parent.parent()
                         else:
                             parent = self.parent()
                             while parent:
                                 if hasattr(parent, 'log_panel'):
-                                    parent.log_panel.log_combat(f"[DEBUG] No rage damage in database for level {barbarian_level}")
+                                    parent.log_panel.log_combat('[DEBUG] Rage active but attack not eligible for bonus (likely ranged/thrown)')
                                     break
                                 parent = parent.parent()
-                else:
-                    parent = self.parent()
-                    while parent:
-                        if hasattr(parent, 'log_panel'):
-                            parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging={is_raging}")
-                            break
-                        parent = parent.parent()
+                    else:
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'log_panel'):
+                                parent.log_panel.log_combat(f"[DEBUG] No rage: class={class_id}, raging=False")
+                                break
+                            parent = parent.parent()
             except Exception as e:
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
+                        parent.log_panel.log_combat(f'[DEBUG] Rage check error: {e}')
                         break
                     parent = parent.parent()
-
             # Calculate total damage
             total_damage = dice_total + sum(value for _, value in damage_components)
 
