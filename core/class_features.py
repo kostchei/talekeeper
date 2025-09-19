@@ -103,10 +103,10 @@ class Feature(ABC):
         if self.requirements.level > character.get('level', 1):
             return False
             
-        if self.requirements.class_name and character.get('class_name') != self.requirements.class_name:
+        if self.requirements.class_name and (character.get('class_name') or '').lower() != self.requirements.class_name.lower():
             return False
             
-        if self.requirements.subclass and character.get('subclass') != self.requirements.subclass:
+        if self.requirements.subclass and (character.get('subclass') or '').lower() != self.requirements.subclass.lower():
             return False
             
         if self.requirements.ability_score:
@@ -651,6 +651,54 @@ class UncannyDodge(Feature):
         }
 
 
+
+class RemarkableAthleteFeature(PassiveFeature):
+    """Champion's Remarkable Athlete subclass feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Remarkable Athlete",
+            description="Gain advantage on initiative and Strength (Athletics) checks; move without provoking after a critical hit.",
+            modifiers={
+                "initiative_advantage": True,
+                "athletics_advantage": True,
+                "critical_hit_dash": "half_speed_no_aoo"
+            },
+            requirements=FeatureRequirement(level=3, class_name="Fighter", subclass="champion")
+        )
+
+
+class HeroicWarriorFeature(PassiveFeature):
+    """Champion's Heroic Warrior subclass feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Heroic Warrior",
+            description="Automatically gain Heroic Inspiration at the start of your turn when you lack it.",
+            modifiers={
+                "start_of_turn_inspiration": True
+            },
+            requirements=FeatureRequirement(level=10, class_name="Fighter", subclass="champion")
+        )
+
+
+class SurvivorFeature(PassiveFeature):
+    """Champion's Survivor subclass feature."""
+
+    def __init__(self):
+        super().__init__(
+            name="Survivor",
+            description="Gain Defy Death and Heroic Rally benefits.",
+            modifiers={
+                "defy_death_advantage": True,
+                "defy_death_counts_as_20": True,
+                "heroic_rally_heal": "5+con_modifier"
+            },
+            requirements=FeatureRequirement(level=18, class_name="Fighter", subclass="champion")
+        )
+
+
+
 class FeatureManager:
     """Manages all features for a character."""
     
@@ -677,6 +725,9 @@ class FeatureManager:
             "tactical_master": lambda fd, cid, lvl: TacticalMaster(),
             "studied_attacks": lambda fd, cid, lvl: StudiedAttacks(),
             "epic_boon": lambda fd, cid, lvl: EpicBoon(),
+            "remarkable_athlete": lambda fd, cid, lvl: RemarkableAthleteFeature(),
+            "heroic_warrior": lambda fd, cid, lvl: HeroicWarriorFeature(),
+            "survivor": lambda fd, cid, lvl: SurvivorFeature(),
 
             # Barbarian
             "rage": lambda fd, cid, lvl: Rage(),
@@ -795,7 +846,18 @@ class FeatureManager:
     def apply_passive_features(self, character: Dict[str, Any]) -> Dict[str, Any]:
         """Apply all passive features to character stats."""
         modifications = {}
-        
+
+        if 'class_name' not in character and character.get('class_id'):
+            character['class_name'] = character.get('class_id')
+
+        if not character.get('subclass'):
+            subclass_value = character.get('subclass_id')
+            if subclass_value:
+                character['subclass'] = subclass_value
+
+        if character.get('subclass'):
+            character['subclass'] = str(character['subclass']).lower()
+
         for name, feature in self.features.items():
             if isinstance(feature, PassiveFeature) and feature.can_use(character):
                 result = feature.apply(character)

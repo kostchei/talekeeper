@@ -151,6 +151,18 @@ class FighterAbilitiesService:
                 return legacy['subclass_id']
 
             return None
+
+    def _ensure_combat_state(self, cursor: sqlite3.Cursor, character_id: str) -> None:
+        """Ensure a combat state row exists for the character."""
+        cursor.execute(
+            """
+            INSERT INTO character_combat_state (character_id, studied_target_id, last_miss_turn, heroic_warrior_active, survivor_active, last_attack_missed, critical_range_min)
+            VALUES (?, NULL, 0, 0, 0, 0, 20)
+            ON CONFLICT(character_id) DO NOTHING
+            """,
+            (character_id,)
+        )
+
     def use_second_wind(self, character_id: str) -> Dict[str, Any]:
         """Use Second Wind ability."""
         with self._get_connection() as conn:
@@ -363,107 +375,192 @@ class FighterAbilitiesService:
             
             conn.commit()
     
+    def _apply_heroic_warrior(self, cursor: sqlite3.Cursor, character_id: str, character: Dict[str, Any], level: int) -> Dict[str, Any]:
+        """Internal helper to handle Heroic Warrior start-of-turn logic."""
+        info = {
+            "available": level >= 10,
+            "triggered": False,
+            "current": (character.get("inspiration_uses_current") or 0),
+            "max": (character.get("inspiration_uses_max") or 0)
+        }
+
+        self._ensure_combat_state(cursor, character_id)
+
+        if level < 10:
+            cursor.execute(
+                "UPDATE character_combat_state SET heroic_warrior_active = 0 WHERE character_id = ?",
+                (character_id,)
+            )
+            return info
+
+        current = info["current"]
+        max_uses = info["max"]
+
+        new_max = max(max_uses, 1)
+        new_current = min(current, new_max)
+
+        if new_current < 1:
+            new_current = 1
+            info["triggered"] = True
+
+        if new_current != current or new_max != max_uses:
+            cursor.execute(
+                """
+                UPDATE characters
+                SET inspiration_uses_current = ?, inspiration_uses_max = ?
+                WHERE id = ?
+                """,
+                (new_current, new_max, character_id)
+            )
+            character["inspiration_uses_current"] = new_current
+            character["inspiration_uses_max"] = new_max
+
+        cursor.execute(
+            """
+            UPDATE character_combat_state
+            SET heroic_warrior_active = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE character_id = ?
+            """,
+            (1 if info["triggered"] else 0, character_id)
+        )
+
+        info["current"] = new_current
+        info["max"] = new_max
+        return info
+
+    def _apply_survivor(self, cursor: sqlite3.Cursor, character_id: str, character: Dict[str, Any], level: int) -> Dict[str, Any]:
+        """Internal helper to handle Survivor start-of-turn logic."""
+        info = {
+            "available": level >= 18,
+            "healing": 0,
+            "healing_triggered": False,
+            "defy_death_active": False,
+            "new_hp": character.get("hit_points_current"),
+            "max_hp": character.get("hit_points_max")
+        }
+
+        self._ensure_combat_state(cursor, character_id)
+
+        if level < 18:
+            cursor.execute(
+                "UPDATE character_combat_state SET survivor_active = 0 WHERE character_id = ?",
+                (character_id,)
+            )
+            return info
+
+        info["defy_death_active"] = True
+
+        current_hp = character.get("hit_points_current") or 0
+        max_hp = character.get("hit_points_max") or 0
+        con_score = character.get("constitution") or 10
+        con_mod = (con_score - 10) // 2
+        heal_amount = max(0, 5 + con_mod)
+
+        if max_hp > 0 and current_hp > 0 and current_hp <= max_hp // 2 and heal_amount > 0:
+            new_hp = min(current_hp + heal_amount, max_hp)
+            actual_healing = new_hp - current_hp
+            if actual_healing > 0:
+                cursor.execute(
+                    """
+                    UPDATE characters
+                    SET hit_points_current = ?, current_hit_points = ?
+                    WHERE id = ?
+                    """,
+                    (new_hp, new_hp, character_id)
+                )
+                character["hit_points_current"] = new_hp
+                info["healing"] = actual_healing
+                info["healing_triggered"] = True
+                info["new_hp"] = new_hp
+
+        cursor.execute(
+            """
+            UPDATE character_combat_state
+            SET survivor_active = 1, updated_at = CURRENT_TIMESTAMP
+            WHERE character_id = ?
+            """,
+            (character_id,)
+        )
+
+        info["max_hp"] = character.get("hit_points_max")
+        if info["new_hp"] is None:
+            info["new_hp"] = character.get("hit_points_current")
+        return info
+
+    def process_champion_turn_start(self, character_id: str) -> Dict[str, Any]:
+        """Apply Champion subclass start-of-turn effects and return outcome details."""
+        result = {"success": True, "heroic_warrior": None, "survivor": None}
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                """
+                SELECT level, hit_points_current, hit_points_max, constitution,
+                       inspiration_uses_current, inspiration_uses_max,
+                       class_id, subclass_id
+                FROM characters
+                WHERE id = ?
+                """,
+                (character_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                return {"success": False, "error": "Character not found"}
+
+            character = dict(row)
+            level = character.get("level", 0) or 0
+
+            subclass = (character.get("subclass_id") or "").lower()
+            if not subclass and (character.get("class_id") or "").lower() == "fighter":
+                cursor.execute(
+                    """
+                    SELECT subclass_id
+                    FROM character_subclasses
+                    WHERE character_id = ? AND LOWER(class_id) = 'fighter'
+                    """,
+                    (character_id,)
+                )
+                subclass_row = cursor.fetchone()
+                if subclass_row and subclass_row["subclass_id"]:
+                    subclass = (subclass_row["subclass_id"] or "").lower()
+
+            if subclass != "champion":
+                self._ensure_combat_state(cursor, character_id)
+                cursor.execute(
+                    """
+                    UPDATE character_combat_state
+                    SET heroic_warrior_active = 0,
+                        survivor_active = CASE WHEN survivor_active IS NULL THEN 0 ELSE survivor_active END
+                    WHERE character_id = ?
+                    """,
+                    (character_id,)
+                )
+                conn.commit()
+                return result
+
+            hero_info = self._apply_heroic_warrior(cursor, character_id, character, level)
+            survivor_info = self._apply_survivor(cursor, character_id, character, level)
+
+            conn.commit()
+
+        result["heroic_warrior"] = hero_info
+        result["survivor"] = survivor_info
+        return result
+
     def check_heroic_warrior(self, character_id: str) -> Dict[str, Any]:
-        """Check and apply Heroic Warrior healing (Champion level 10)."""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Get character info
-            cursor.execute("""
-                SELECT c.level, c.subclass_id, c.hit_points_current, c.hit_points_max, c.constitution
-                FROM characters c
-                WHERE c.id = ?
-            """, (character_id,))
-            row = cursor.fetchone()
-            
-            if not row:
-                return {'success': False, 'error': 'Character not found'}
-            
-            # Check if Champion level 10+
-            if row['subclass_id'] != 'champion' or row['level'] < 10:
-                return {'success': False, 'error': 'Not a Champion of sufficient level'}
-            
-            # Check if at or below half HP
-            if row['hit_points_current'] > row['hit_points_max'] // 2:
-                return {'success': False, 'error': 'Above half hit points'}
-            
-            if row['hit_points_current'] <= 0:
-                return {'success': False, 'error': 'Cannot heal at 0 HP'}
-            
-            # Calculate healing
-            con_mod = (row['constitution'] - 10) // 2
-            healing = 5 + con_mod
-            
-            # Apply healing
-            new_hp = min(row['hit_points_current'] + healing, row['hit_points_max'])
-            actual_healing = new_hp - row['hit_points_current']
-            
-            cursor.execute("""
-                UPDATE characters SET
-                    hit_points_current = ?,
-                    current_hit_points = ?
-                WHERE id = ?
-            """, (new_hp, new_hp, character_id))
-            
-            conn.commit()
-            
-            return {
-                'success': True,
-                'healing': healing,
-                'actual_healing': actual_healing,
-                'new_hp': new_hp
-            }
-    
+        """Public wrapper to process Heroic Warrior start-of-turn effect."""
+        result = self.process_champion_turn_start(character_id)
+        hero_info = result.get("heroic_warrior") or {}
+        hero_info["success"] = result.get("success", True)
+        return hero_info
+
     def check_survivor(self, character_id: str) -> Dict[str, Any]:
-        """Check and apply Survivor healing (Champion level 18)."""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Get character info
-            cursor.execute("""
-                SELECT c.level, c.subclass_id, c.hit_points_current, c.hit_points_max, c.constitution
-                FROM characters c
-                WHERE c.id = ?
-            """, (character_id,))
-            row = cursor.fetchone()
-            
-            if not row:
-                return {'success': False, 'error': 'Character not found'}
-            
-            # Check if Champion level 18+
-            if row['subclass_id'] != 'champion' or row['level'] < 18:
-                return {'success': False, 'error': 'Not a Champion of sufficient level'}
-            
-            # Check if at or below half HP
-            if row['hit_points_current'] > row['hit_points_max'] // 2:
-                return {'success': False, 'error': 'Above half hit points'}
-            
-            if row['hit_points_current'] <= 0:
-                return {'success': False, 'error': 'Cannot heal at 0 HP'}
-            
-            # Calculate healing
-            con_mod = (row['constitution'] - 10) // 2
-            healing = 10 + con_mod
-            
-            # Apply healing
-            new_hp = min(row['hit_points_current'] + healing, row['hit_points_max'])
-            actual_healing = new_hp - row['hit_points_current']
-            
-            cursor.execute("""
-                UPDATE characters SET
-                    hit_points_current = ?,
-                    current_hit_points = ?
-                WHERE id = ?
-            """, (new_hp, new_hp, character_id))
-            
-            conn.commit()
-            
-            return {
-                'success': True,
-                'healing': healing,
-                'actual_healing': actual_healing,
-                'new_hp': new_hp
-            }
+        """Public wrapper to process Survivor start-of-turn effect."""
+        result = self.process_champion_turn_start(character_id)
+        survivor_info = result.get("survivor") or {}
+        survivor_info["success"] = result.get("success", True)
+        return survivor_info
     
     def update_studied_attacks(self, character_id: str, target_id: str, hit: bool) -> None:
         """Update Studied Attacks state after an attack."""

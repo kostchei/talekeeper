@@ -151,6 +151,7 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - Regression coverage includes backend feature loading and a Qt-driven smoke test that exercises the ActionPanel against the new resource flow (`test/core/test_features.py:37`, `test/core/test_features.py:214`).
 - EquipmentDatabase now hydrates magical and variant weapons from their base entries so shop purchases and attacks always have damage dice, properties, and mastery metadata (fixing the null weapon property crash for greatsword variants).
 - Rest dialog prompts, tooltips, and combat logs now reinforce that Fighter mastery access persists after swaps (`action_cards/action_panel.py:4656`, `action_cards/action_panel.py:4666`, `action_cards/action_panel.py:4850`, `action_cards/weapon_mastery_dialog.py:38`).
+- Champion automation now grants Remarkable Athlete initiative advantage, awards Heroic Inspiration at turn start, and applies Survivor's Heroic Rally/Defy Death while updating combat state for downstream UI (`encounter_pane/encounter_panel.py:277`, `services/fighter_abilities.py:378`, `services/fighter_abilities.py:431`, `core/combat_manager.py:363`).
 
 **Planned Work**
 - Automate Champion subclass hooks: wire Remarkable Athlete into initiative/skill rolls, have Heroic Warrior monitor turn transitions for inspiration/healing, and push Survivor's regeneration/Defy Death into `character_combat_state`.
@@ -160,12 +161,13 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 \n\n-> Weapon Mastery persistence and Tactical Master overrides
 
 **Docs & QA Updates (2025-09-19)**
+- Added automated coverage for Champion automation (`test/services/test_fighter_champion.py`, `test/core/test_features.py::test_feature_manager_loads_champion_features`).
 - Rest dialog copy and tooltips now highlight that Fighters retain access to every mastery while reordering favorites (`action_cards/action_panel.py:4656`, `action_cards/action_panel.py:4666`).
 - Weapon Mastery selection prompts reiterate the persistent access rule during rests (`action_cards/weapon_mastery_dialog.py:38`).
 - Ran `pytest test/core/test_features.py::test_action_panel_uses_resource_service` to exercise the rest workflow and confirm the updated messaging stays wired into the ActionPanel.
 - Fighter onboarding tips now frame rests as organizational moments instead of slot management, so no TaleKeeper docs ask players to track mastery counts.
 
 **TODO**
-- [ ] Automate Champion subclass hooks so Remarkable Athlete wires into rolls, Heroic Warrior tracks turn transitions, and Survivor effects live in `character_combat_state`.
+- [x] Automate Champion subclass hooks so Remarkable Athlete wires into initiative, Heroic Warrior auto-awards inspiration each turn, and Survivor healing/Defy Death state lives in `character_combat_state`.
 - [ ] Fold remaining ActionPanel weapon feature logic into the service-first model and shake out mastery/equip edge cases.
 - [ ] Extend pytest-qt smoke coverage for ActionPanel interactions once the UI refactor lands to keep resource sync verified.

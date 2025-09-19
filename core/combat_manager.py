@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from services.proficiency_system import ProficiencySystem
 from services.proficiency_bonus import get_proficiency_bonus
+from services.fighter_abilities import FighterAbilitiesService
 
 class ActionType(Enum):
     ACTION = "action"
@@ -98,6 +99,7 @@ class CombatManager:
         self.combat_active: bool = False
         self.combat_log: List[str] = []
         self.proficiency_system = ProficiencySystem(db_path)
+        self.fighter_service = FighterAbilitiesService(db_path)
         
     def add_player_combatant(self, character_data: Dict[str, Any]) -> Combatant:
         """Add player character to combat"""
@@ -358,9 +360,34 @@ class CombatManager:
         
         if next_combatant:
             self.log(f"[COMBAT] [LIGHTNING] {next_combatant.name}'s turn!")
-        
+            self._handle_champion_turn_start(next_combatant)
+
         return next_combatant
-    
+
+    def _handle_champion_turn_start(self, combatant: Optional[Combatant]) -> None:
+        """Trigger Champion subclass automation at the start of a player turn."""
+        if not combatant or combatant.type != CombatantType.PLAYER:
+            return
+        if not getattr(self, "fighter_service", None):
+            return
+
+        result = self.fighter_service.process_champion_turn_start(combatant.id)
+        if not result.get("success"):
+            return
+
+        hero_info = result.get("heroic_warrior") or {}
+        if hero_info.get("triggered"):
+            self.log(f"[COMBAT] [HEROIC WARRIOR] {combatant.name} steels themselves and gains Heroic Inspiration.")
+
+        survivor_info = result.get("survivor") or {}
+        if survivor_info.get("healing_triggered") and survivor_info.get("healing"):
+            new_hp = survivor_info.get("new_hp", "?")
+            max_hp = survivor_info.get("max_hp", "?")
+            self.log(
+                f"[COMBAT] [SURVIVOR] {combatant.name} recovers {survivor_info[\"healing\"]} HP ({new_hp}/{max_hp} HP)."
+            )
+
+
     def is_combat_ended(self) -> bool:
         """Check if combat should end (one side defeated)"""
         living_players = sum(1 for c in self.combatants.values() 

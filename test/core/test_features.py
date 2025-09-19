@@ -254,3 +254,25 @@ def test_action_panel_uses_resource_service(qt_app, integration_db):
     qt_app.processEvents()
 
 
+
+def test_feature_manager_loads_champion_features(fighter_feature_db):
+    character_id = "champion-10"
+    conn = sqlite3.connect(fighter_feature_db)
+    conn.execute(
+        "INSERT INTO characters (id, class_id, level, subclass_id) VALUES (?, ?, ?, ?)",
+        (character_id, "Fighter", 10, "champion")
+    )
+    conn.execute(
+        "INSERT INTO fighter_features VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (character_id, 10, "defense", 1, 1, 0, 0, 0, 2, 4)
+    )
+    conn.commit()
+    conn.close()
+
+    manager = FeatureManager(fighter_feature_db)
+    manager.load_character_features(character_id)
+
+    feature_keys = set(manager.features.keys())
+    assert "remarkable_athlete" in feature_keys
+    assert "heroic_warrior" in feature_keys
+    assert "survivor" not in feature_keys  # Level 10 champion shouldn't have Survivor yet

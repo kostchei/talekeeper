@@ -464,12 +464,13 @@ class ClassFeatures:
             ),
             FeatureDefinition(
                 name="Remarkable Athlete",
-                description="Add half proficiency to physical checks and increase jump distance",
+                description="You gain advantage on Initiative and Strength (Athletics) checks; after scoring a critical hit you can move up to half your Speed without provoking Opportunity Attacks.",
                 level_acquired=3,
                 feature_type="passive",
                 mechanics={
-                    "half_prof_to": ["str_checks", "dex_checks", "con_checks"],
-                    "jump_bonus": "str_modifier_feet"
+                    "initiative_advantage": True,
+                    "athletics_advantage": True,
+                    "critical_hit_dash": "half_speed_no_aoo"
                 }
             )
         ],
@@ -485,12 +486,11 @@ class ClassFeatures:
         10: [
             FeatureDefinition(
                 name="Heroic Warrior",
-                description="Choose Defensive or Offensive focus",
+                description="At the start of each of your turns in combat, you can give yourself Heroic Inspiration if you don't already have it.",
                 level_acquired=10,
-                feature_type="modal",
+                feature_type="passive",
                 mechanics={
-                    "defensive": {"ac_bonus": 1, "save_bonus": 1},
-                    "offensive": {"attack_bonus": 1, "damage_bonus": 1}
+                    "start_of_turn_inspiration": True
                 }
             )
         ],
@@ -506,13 +506,13 @@ class ClassFeatures:
         18: [
             FeatureDefinition(
                 name="Survivor",
-                description="Regain hit points at start of turn if below half",
+                description="You gain Defy Death (advantage on Death Saving Throws and 18-20 counts as 20) and Heroic Rally (heal 5 + Constitution modifier at the start of your turn when Bloodied).",
                 level_acquired=18,
-                feature_type="triggered",
+                feature_type="passive",
                 mechanics={
-                    "trigger": "start_of_turn",
-                    "condition": "hp_below_half",
-                    "healing": "5+con_modifier"
+                    "death_save_advantage": True,
+                    "death_save_18_counts": True,
+                    "heroic_rally_heal": "5+con_modifier"
                 }
             )
         ]

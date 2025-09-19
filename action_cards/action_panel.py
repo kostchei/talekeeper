@@ -3335,6 +3335,12 @@ class ActionPanel(QWidget):
         self.character_features = mapped
         self._normalized_feature_cache = {}
         
+        if isinstance(getattr(self, 'character_context', None), dict):
+            feature_flags = self.character_context.setdefault('feature_flags', {})
+            feature_flags['remarkable_athlete'] = 'Remarkable Athlete' in mapped
+            feature_flags['heroic_warrior'] = 'Heroic Warrior' in mapped
+            feature_flags['survivor'] = 'Survivor' in mapped
+
         # Create feature-based action cards
         self._create_feature_cards()
         
