@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 
 class WeaponMasteryService:
@@ -215,6 +215,74 @@ class WeaponMasteryService:
             )
             row = cursor.fetchone()
         return (row["weapon_mastery"] or "").title() if row and row["weapon_mastery"] else None
+
+    # ------------------------------------------------------------------
+    # Mastery definitions
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _normalize_mastery_key(mastery_name: str) -> str:
+        """Return a lowercase cache key for mastery lookups."""
+        return (mastery_name or "").strip().lower()
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool:
+        """Coerce SQLite truthy values into a bool."""
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "t", "yes", "y"}
+        return bool(value)
+
+    def get_mastery_definition(self, mastery_name: str) -> Optional[Dict[str, Any]]:
+        """Return the database-backed definition for a weapon mastery."""
+        cache = getattr(self, "_mastery_definition_cache", None)
+        if cache is None:
+            cache = {}
+            self._mastery_definition_cache = cache
+
+        cache_key = self._normalize_mastery_key(mastery_name)
+        if not cache_key:
+            return None
+
+        if cache_key in cache:
+            return cache[cache_key]
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT name,
+                       trigger_condition,
+                       description,
+                       requires_save,
+                       save_ability,
+                       save_dc_formula,
+                       damage_formula,
+                       special_effects
+                FROM weapon_masteries
+                WHERE LOWER(name) = ?
+                """,
+                (cache_key,),
+            )
+            row = cursor.fetchone()
+
+        if not row:
+            cache[cache_key] = None
+            return None
+
+        definition = {
+            "name": (row["name"] or "").strip() or mastery_name.title(),
+            "trigger_condition": (row["trigger_condition"] or "").strip() or "on_hit",
+            "description": (row["description"] or "").strip(),
+            "requires_save": self._coerce_bool(row["requires_save"]),
+            "save_ability": (row["save_ability"] or "").strip() or None,
+            "save_dc_formula": (row["save_dc_formula"] or "").strip() or None,
+            "damage_formula": (row["damage_formula"] or "").strip() or None,
+            "special_effects": (row["special_effects"] or "").strip(),
+        }
+
+        cache[cache_key] = definition
+        return definition
 
 
 __all__ = ["WeaponMasteryService"]

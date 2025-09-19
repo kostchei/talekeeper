@@ -169,5 +169,5 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 
 **TODO**
 - [x] Automate Champion subclass hooks so Remarkable Athlete wires into initiative, Heroic Warrior auto-awards inspiration each turn, and Survivor healing/Defy Death state lives in `character_combat_state`.
-- [ ] Fold remaining ActionPanel weapon feature logic into the service-first model and shake out mastery/equip edge cases.
-- [ ] Extend pytest-qt smoke coverage for ActionPanel interactions once the UI refactor lands to keep resource sync verified.
+- [x] Fold remaining ActionPanel weapon feature logic into the service-first model and shake out mastery/equip edge cases.
+- [x] Extend pytest-qt smoke coverage for ActionPanel interactions once the UI refactor lands to keep resource sync verified.

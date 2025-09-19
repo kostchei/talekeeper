@@ -26,6 +26,7 @@ import re
 
 from services.character_resources import CharacterResourceService
 from services.weapon_mastery_service import WeaponMasteryService
+from services.equipment_database import EquipmentDatabase
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 
@@ -110,6 +111,8 @@ class ActionPanel(QWidget):
         self.character_weapon_masteries = []
         self.character_weapon_mastery_map: Dict[str, Optional[str]] = {}
         self._weapon_mastery_service: Optional[WeaponMasteryService] = None
+        self._equipment_database: Optional[EquipmentDatabase] = None
+        self._weapon_mastery_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         
         # Lucky feat state tracking
         # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
@@ -122,6 +125,8 @@ class ActionPanel(QWidget):
         self.vex_target_id = None  # Monster ID that player has Vex advantage against
         self.target_monster_id = None  # Currently targeted monster for attacks
         self.pending_attack = None  # Store attack to execute after monsters' turns
+        self.cleave_used_this_turn = False  # Track Cleave mastery usage per turn
+        self._cleave_followup_in_progress = False  # Prevent recursive Cleave triggers
         
         # Action Economy Integration - NEW
         self.current_combat_session = None  # Current combat session for action economy
@@ -286,7 +291,7 @@ class ActionPanel(QWidget):
             if action_type in self.action_cards:
                 self.action_cards[action_type].deleteLater()
                 del self.action_cards[action_type]
-        
+
         # Create main hand weapon card
         main_hand = self.equipped_weapons.get('main_hand')
         if main_hand and main_hand.get('item_type') == 'weapon':
@@ -294,14 +299,14 @@ class ActionPanel(QWidget):
             hit_bonus = self._calculate_hit_bonus(main_hand, 'main_hand')
             damage = self._format_damage(main_hand)
             description = f"+{hit_bonus} to hit, {damage} damage"
-            
+
             card = ActionCard(ActionType.ATTACK_MAIN_HAND, weapon_name, weapon_name, description)
             # Store weapon data in the card for damage calculations
             card.weapon_data = main_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
-        
+
         # Create off-hand weapon card
         off_hand = self.equipped_weapons.get('off_hand')
         if off_hand and off_hand.get('item_type') == 'weapon':
@@ -309,13 +314,82 @@ class ActionPanel(QWidget):
             hit_bonus = self._calculate_hit_bonus(off_hand, 'off_hand')
             damage = self._format_damage(off_hand, is_off_hand=True)
             description = f"+{hit_bonus} to hit, {damage} damage"
-            
+
             card = ActionCard(ActionType.ATTACK_OFF_HAND, weapon_name, f"{weapon_name} (Off)", description)
             # Store weapon data in the card for damage calculations
             card.weapon_data = off_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.ATTACK_OFF_HAND] = card
+
+    def _prepare_equipped_item(self, item: Any) -> Any:
+        """Deep-copy equipped items and hydrate weapons with database metadata."""
+        if not isinstance(item, dict):
+            return item
+
+        prepared = dict(item)
+        item_type = str(prepared.get('item_type', '')).lower()
+        if item_type != 'weapon':
+            return prepared
+
+        return self._hydrate_equipped_weapon(prepared)
+
+    @staticmethod
+    def _infer_base_weapon_name(weapon_name: str) -> Optional[str]:
+        """Best-effort extraction of the non-magical base weapon name."""
+        if not weapon_name:
+            return None
+
+        base = weapon_name.strip()
+        if ' +' in base:
+            return base.split(' +', 1)[0].strip()
+        if '(' in base and base.endswith(')'):
+            inner = base[base.rfind('(') + 1:-1].strip()
+            return inner or None
+        return None
+
+    def _hydrate_equipped_weapon(self, weapon: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure equipped weapon entries include mastery-critical metadata."""
+        hydrated = dict(weapon)
+        needs_lookup = not hydrated.get('damage_dice') or not hydrated.get('damage_type')
+        needs_lookup = needs_lookup or hydrated.get('weapon_properties') in (None, '', [])
+        needs_lookup = needs_lookup or not hydrated.get('weapon_mastery')
+
+        if needs_lookup:
+            weapon_name = hydrated.get('name', '')
+            try:
+                db = self._get_equipment_database()
+                record = db.get_equipment_by_name(weapon_name) if weapon_name else None
+                if not record:
+                    base_name = self._infer_base_weapon_name(weapon_name)
+                    if base_name and base_name.lower() != weapon_name.lower():
+                        record = db.get_equipment_by_name(base_name)
+                if record:
+                    for key in (
+                        'item_type',
+                        'weapon_category',
+                        'damage_dice',
+                        'damage_type',
+                        'weapon_mastery',
+                        'range_normal',
+                        'range_long',
+                        'versatile_damage',
+                        'weapon_properties',
+                    ):
+                        value = record.get(key)
+                        if key == 'weapon_properties':
+                            if hydrated.get('weapon_properties') in (None, '', []) and value is not None:
+                                hydrated['weapon_properties'] = list(value) if isinstance(value, list) else value
+                            continue
+                        if not hydrated.get(key) and value not in (None, ''):
+                            hydrated[key] = value
+                    hydrated.setdefault('item_type', record.get('item_type', 'weapon'))
+            except Exception as exc:
+                print(f"[Equipment] Failed to hydrate weapon '{weapon_name or 'Unknown'}': {exc}")
+
+        hydrated['weapon_properties'] = self._extract_weapon_properties(hydrated)
+        hydrated.setdefault('item_type', 'weapon')
+        return hydrated
     
     def _create_feature_cards(self):
         """Create action cards for character features like Second Wind."""
@@ -1391,22 +1465,31 @@ class ActionPanel(QWidget):
                         dice_total += crit_bonus
 
             # === DAMAGE BONUSES ===
-            damage_bonuses = {}
-            
-            # Ability modifier
-            damage_bonuses[ability_name] = ability_mod
-            
+            damage_components: List[Tuple[str, int]] = []
+            suppress_ability_damage = context.get('suppress_ability_damage_bonus', False)
+            ability_damage_mod = ability_mod
+            ability_suppressed_note = None
+            if suppress_ability_damage and ability_damage_mod > 0:
+                ability_suppressed_note = f"+0 {ability_name} (Cleave)"
+                ability_damage_mod = 0
+            if ability_damage_mod != 0:
+                damage_components.append((ability_name, ability_damage_mod))
+
+            magic_bonus = context.get('damage_bonus', 0)
+            if magic_bonus:
+                damage_components.append(("Magic", magic_bonus))
+
             # Fighting style damage bonuses
             fighting_style_bonus = self._get_fighting_style_damage_bonus(context)
             if fighting_style_bonus > 0:
-                damage_bonuses['fighting_style'] = fighting_style_bonus
-            
+                damage_components.append(("Fighting Style", fighting_style_bonus))
+
             # RAGE DAMAGE BONUS - BARBARIAN ONLY (SCALES WITH LEVEL)
             # Check if character is a barbarian and raging
             try:
                 # Get class_id from context first, then from character_context, then from database
                 class_id = context.get('class_id') or (self.character_context.get('class_id') if hasattr(self, 'character_context') else None)
-                
+
                 if not class_id:
                     # Last resort: get from current character in main window
                     main_window = self.parent()
@@ -1420,9 +1503,9 @@ class ActionPanel(QWidget):
                                 parent.log_panel.log_combat(f"[DEBUG] Got class_id from main window: {class_id}")
                                 break
                             parent = parent.parent()
-                
+
                 is_raging = context.get('raging', False) or (self.character_context.get('raging', False) if hasattr(self, 'character_context') else False)
-                
+
                 if (class_id and class_id.lower() == 'barbarian' and is_raging):
                     weapon_props = self._get_context_weapon_properties(context)
                     is_ranged = 'ranged' in [p.lower() for p in weapon_props] if weapon_props else False
@@ -1435,12 +1518,12 @@ class ActionPanel(QWidget):
                                 parent.log_panel.log_combat(f"[DEBUG] Using character level {barbarian_level} for rage damage")
                                 break
                             parent = parent.parent()
-                        
+
                         # Get rage damage bonus from database by looking up barbarian abilities
                         rage_bonus = self._get_rage_damage_from_database(barbarian_level)
-                        
+
                         if rage_bonus > 0:
-                            damage_bonuses['rage'] = rage_bonus
+                            damage_components.append(("Rage", rage_bonus))
                             parent = self.parent()
                             while parent:
                                 if hasattr(parent, 'log_panel'):
@@ -1468,19 +1551,24 @@ class ActionPanel(QWidget):
                         parent.log_panel.log_combat(f"[DEBUG] Rage check error: {e}")
                         break
                     parent = parent.parent()
-            
+
             # Calculate total damage
-            total_damage = dice_total + sum(damage_bonuses.values())
-            
+            total_damage = dice_total + sum(value for _, value in damage_components)
+
             # === LOG DAMAGE ===
             dice_str = f"[{', '.join(map(str, dice_rolls))}]"
-            bonus_parts = []
-            for bonus_name, bonus_value in damage_bonuses.items():
+            base_dice_total = dice_total - crit_bonus
+            damage_formula_parts = [f"{damage_dice} -> {dice_str} = {base_dice_total}"]
+            if ability_suppressed_note:
+                damage_formula_parts.append(ability_suppressed_note)
+            for label, bonus_value in damage_components:
                 if bonus_value != 0:
-                    bonus_parts.append(f"{bonus_value:+d} {bonus_name}")
-            
-            bonus_str = f" ({' '.join(bonus_parts)})" if bonus_parts else ""
-            
+                    damage_formula_parts.append(f"{bonus_value:+d} {label}")
+            if crit_bonus:
+                crit_rolls_str = f"[{', '.join(map(str, crit_dice_rolls))}]"
+                damage_formula_parts.append(f"+crit {crit_rolls_str} = {crit_bonus}")
+            damage_formula_text = ' '.join(damage_formula_parts)
+
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, total_damage)
             
@@ -1501,6 +1589,8 @@ class ActionPanel(QWidget):
                 
                 # Log any mastery effects
                 self._log_weapon_mastery_effects(mastery_effects)
+                if mastery_effects.get('cleave'):
+                    self._handle_cleave_followup(action_type, context, encounter_panel, target_id, weapon_name)
             
             # Log to combat panel
             parent = self.parent()
@@ -1513,12 +1603,8 @@ class ActionPanel(QWidget):
                     )
 
                     # Damage message with critical dice notation
-                    crit_str = ""
-                    if crit_dice_rolls:
-                        crit_str = f" + [{', '.join(map(str, crit_dice_rolls))}] = {crit_bonus} (critical)"
-
                     parent.log_panel.log_combat(
-                        f"💥 Damage: {dice_str} = {dice_total}{bonus_str}{crit_str} = {total_damage} damage"
+                        f"💥 Damage: {damage_formula_text} -> {total_damage} damage"
                     )
                     break
                 parent = parent.parent()
@@ -1564,6 +1650,55 @@ class ActionPanel(QWidget):
                 print(f"NEW ATTACK: Using working monster counter-attack system")
                 self._trigger_monster_counter_attacks(encounter_panel)
     
+    def _handle_cleave_followup(self, action_type: ActionType, context: Dict[str, Any], encounter_panel, original_target_id: str, weapon_name: str):
+        """Resolve Cleave mastery follow-up attack against a random nearby foe."""
+        if getattr(self, '_cleave_followup_in_progress', False):
+            return
+        if getattr(self, 'cleave_used_this_turn', False):
+            return
+
+        living_monsters = []
+        if hasattr(encounter_panel, 'get_living_monsters'):
+            living_monsters = encounter_panel.get_living_monsters() or []
+
+        candidates = [m for m in living_monsters if getattr(m, 'id', None) not in (None, original_target_id) and getattr(m, 'current_hit_points', 0) > 0]
+        if not candidates:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("[MASTERY] CLEAVE: No second target within reach")
+                    break
+                parent = parent.parent()
+            return
+
+        import random
+        secondary_target = random.choice(candidates)
+
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[MASTERY] CLEAVE: Following through onto {secondary_target.monster_name}")
+                break
+            parent = parent.parent()
+
+        followup_context = dict(context)
+        followup_context['target_monster_id'] = secondary_target.id
+        followup_context['is_cleave_followup'] = True
+        followup_context['suppress_ability_damage_bonus'] = True
+
+        if hasattr(encounter_panel, '_select_monster_card'):
+            encounter_panel._select_monster_card(secondary_target.id)
+        elif hasattr(encounter_panel, 'selected_monster_id'):
+            encounter_panel.selected_monster_id = secondary_target.id
+
+        self._cleave_followup_in_progress = True
+        try:
+            self._execute_attack_without_initiative(action_type, followup_context, encounter_panel)
+        finally:
+            self._cleave_followup_in_progress = False
+            self.cleave_used_this_turn = True
+
+
     def _execute_remaining_initiative_turns(self, encounter_panel, current_encounter):
         """Execute remaining monster turns in initiative order after player's turn."""
         try:
@@ -1899,6 +2034,7 @@ class ActionPanel(QWidget):
             
             # Reset Savage Attacker for new turn
             self.first_attack_this_round = True
+            self.cleave_used_this_turn = False
             
             parent = self.parent()
             while parent:
@@ -3127,12 +3263,22 @@ class ActionPanel(QWidget):
         damage_type = context.get('damage_type') or weapon_data.get('damage_type') or 'slashing'
         return str(damage_dice), str(damage_type).lower()
     def _get_weapon_mastery_service(self) -> WeaponMasteryService:
-        """Lazily construct the weapon mastery service."""
+        """Lazily construct the weapon mastery service with the active DB path."""
+        db_path = self._resolve_db_path()
         service = getattr(self, '_weapon_mastery_service', None)
-        if service is None:
-            service = WeaponMasteryService(self._resolve_db_path())
+        if service is None or getattr(service, 'db_path', None) != db_path:
+            service = WeaponMasteryService(db_path)
             self._weapon_mastery_service = service
         return service
+
+    def _get_equipment_database(self) -> EquipmentDatabase:
+        """Lazily construct the equipment database helper with the active DB path."""
+        db_path = self._resolve_db_path()
+        database = getattr(self, '_equipment_database', None)
+        if database is None or getattr(database, 'db_path', None) != db_path:
+            database = EquipmentDatabase(db_path)
+            self._equipment_database = database
+        return database
 
     @staticmethod
     def _normalize_feature_name(name: str) -> str:
@@ -3297,7 +3443,12 @@ class ActionPanel(QWidget):
         equipped_items = equipped_items or {}
         if not isinstance(equipped_items, dict):
             equipped_items = {}
-        self.equipped_weapons = equipped_items.copy()
+
+        hydrated_items: Dict[str, Any] = {}
+        for slot, item in equipped_items.items():
+            hydrated_items[slot] = self._prepare_equipped_item(item)
+
+        self.equipped_weapons = hydrated_items
         if isinstance(character_stats, dict):
             self.character_context.update(character_stats)
         
@@ -3360,6 +3511,7 @@ class ActionPanel(QWidget):
         normalized = [m.title() for m in (weapon_masteries or [])]
         self.character_weapon_masteries = normalized
         self.character_weapon_mastery_map = {}
+        self._weapon_mastery_cache = {}
         for entry in assignments or []:
             weapon_name = (entry.get("weapon_name") or "").strip()
             mastery_type = (entry.get("mastery_type") or "").strip()
@@ -3449,16 +3601,26 @@ class ActionPanel(QWidget):
             
         # Query database directly for fighting styles (can have multiple at higher levels)
         import sqlite3
-        conn = sqlite3.connect('talekeeper.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT feature_name FROM character_features 
-            WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
-        """, (character_id,))
-        
-        fighting_styles = cursor.fetchall()
-        conn.close()
+        db_path = self._resolve_db_path()
+        fighting_styles = []
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT feature_name FROM character_features 
+                WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
+                """,
+                (character_id,),
+            )
+            fighting_styles = cursor.fetchall()
+        except sqlite3.OperationalError as exc:
+            print(f"[FightingStyle] Unable to query fighting styles ({exc})")
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
         
         # Check if any fighting style is Dueling
         has_dueling = any('Dueling' in style[0] for style in fighting_styles)
@@ -3983,9 +4145,9 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     original_str = ', '.join(map(str, dice_rolls))
                     modified_str = ', '.join(map(str, modified_rolls))
-                    change_details = ', '.join([f"{old}→{new}" for old, new in changes_made])
+                    change_details = ', '.join([f"{old}->{new}" for old, new in changes_made])
                     weapon_type = "two-handed" if is_two_handed else "heavy" if is_heavy else "versatile"
-                    parent.log_panel.log_combat(f"[FIGHTING STYLE] Great Weapon Fighting: [{original_str}] → [{modified_str}] ({weapon_type} weapon: {change_details})")
+                    parent.log_panel.log_combat(f"[FIGHTING STYLE] Great Weapon Fighting: [{original_str}] -> [{modified_str}] ({weapon_type} weapon: {change_details})")
                     break
                 parent = parent.parent()
         
@@ -4032,6 +4194,29 @@ class ActionPanel(QWidget):
             print(f"Error getting weapon mastery for {weapon_name}: {exc}")
             return None
 
+    def _get_mastery_definition(self, mastery_name: str) -> Optional[Dict[str, Any]]:
+        """Retrieve and cache mastery metadata from the service."""
+        cache_key = (mastery_name or '').strip().title()
+        if not cache_key:
+            return None
+
+        cache = getattr(self, '_weapon_mastery_cache', None)
+        if cache is None:
+            cache = {}
+            self._weapon_mastery_cache = cache
+
+        if cache_key in cache:
+            return cache[cache_key]
+
+        try:
+            definition = self._get_weapon_mastery_service().get_mastery_definition(cache_key)
+        except Exception as exc:
+            print(f"[WeaponMastery] Failed to load definition for '{mastery_name}': {exc}")
+            definition = None
+
+        cache[cache_key] = definition
+        return definition
+
     def _character_has_weapon_mastery_feature(self) -> bool:
         """Check if character class gets weapon masteries (Fighter, Rogue, Barbarian, Paladin)."""
         if not self.character_context:
@@ -4044,46 +4229,47 @@ class ActionPanel(QWidget):
         return class_id in mastery_classes
     
     def _apply_mastery_effect(self, mastery_name: str, hit: bool, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply the specific mastery effect."""
+        """Apply the specific mastery effect using the service definitions."""
         try:
-            import sqlite3
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT trigger_condition, description, requires_save, save_ability, 
-                       save_dc_formula, damage_formula, special_effects
-                FROM weapon_masteries WHERE name = ?
-            """, (mastery_name,))
-            
-            mastery_data = cursor.fetchone()
-            conn.close()
-            
-            if not mastery_data:
+            mastery_key = (mastery_name or '').strip().lower()
+            if mastery_key == 'cleave':
+                if context.get('is_cleave_followup') or getattr(self, '_cleave_followup_in_progress', False):
+                    return {}
+                if getattr(self, 'cleave_used_this_turn', False):
+                    return {}
+
+            definition = self._get_mastery_definition(mastery_name)
+            if not definition:
                 return {}
-            
-            trigger_condition, description, requires_save, save_ability, save_dc_formula, damage_formula, special_effects = mastery_data
-            
-            # Check if mastery should trigger
-            should_trigger = (
-                (trigger_condition == 'on_hit' and hit) or
-                (trigger_condition == 'on_miss' and not hit) or
-                (trigger_condition == 'on_attack')  # Always triggers
-            )
-            
+
+            trigger_condition = (definition.get('trigger_condition') or 'on_hit').lower()
+            if trigger_condition == 'on_miss':
+                should_trigger = not hit
+            elif trigger_condition == 'on_attack':
+                should_trigger = True
+            else:
+                should_trigger = hit
+
             if not should_trigger:
                 return {}
-            
-            # Apply the mastery effect based on its special_effects
-            return self._execute_mastery_effect(mastery_name, special_effects, context, requires_save, save_ability, save_dc_formula, damage_formula)
-            
-        except Exception as e:
-            print(f"Error applying mastery effect for {mastery_name}: {e}")
+
+            special_effects = definition.get('special_effects') or ''
+            return self._execute_mastery_effect(
+                mastery_name,
+                special_effects,
+                context,
+                bool(definition.get('requires_save')),
+                definition.get('save_ability'),
+                definition.get('save_dc_formula'),
+                definition.get('damage_formula'),
+            )
+        except Exception as exc:
+            print(f"[WeaponMastery] Failed to apply mastery '{mastery_name}': {exc}")
             return {}
     
     def _execute_mastery_effect(self, mastery_name: str, special_effects: str, context: Dict[str, Any], 
-                               requires_save: bool, save_ability: str, save_dc_formula: str, 
-                               damage_formula: str) -> Dict[str, Any]:
+                               requires_save: bool, save_ability: Optional[str], save_dc_formula: Optional[str], 
+                               damage_formula: Optional[str]) -> Dict[str, Any]:
         """Execute the specific mastery effect."""
         effects = {}
         
