@@ -423,7 +423,9 @@ class ActionPanel(QWidget):
             self.action_cards[ActionType.ACTION_SURGE] = card
 
         rage_feature = self._get_feature_data('Rage')
-        if rage_feature and self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
+        if (rage_feature and self.character_context
+                and self.character_context.get('class_id', '').lower() == 'barbarian'
+                and self._has_rage_uses()):
             card = ActionCard(ActionType.RAGE, "[RAGE]", rage_feature.get('name', 'Rage'), "Enter barbarian rage (+2 damage, resistance to physical)")
             card.feature_data = rage_feature
             card.action_triggered.connect(self._trigger_action)
@@ -3651,29 +3653,35 @@ class ActionPanel(QWidget):
         return 2
     
     def _get_rage_damage_bonus(self, context: Dict[str, Any]) -> int:
-        """Check if Barbarian gets rage damage bonus (+2 to melee weapon attacks)."""
-        if not self.character_context:
+        """Check if Barbarian gets rage damage bonus for melee weapon attacks."""
+        if not isinstance(self.character_context, dict):
             return 0
-        
+
         # Only applies if raging
         if not self.character_context.get('raging', False):
             return 0
-        
-        # Only applies to melee weapon attacks (not ranged or spells)
+
+        # Determine if attack qualifies for rage bonus (melee only)
+        _, damage_type = self._get_context_damage_profile(context)
         weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
-        
+
         if is_ranged:
             return 0
-        
-        # Check if character is a Barbarian
+
+        # Rage bonus only applies to barbarians
         class_id = self.character_context.get('class_id', '').lower()
         if class_id != 'barbarian':
             return 0
-        
-        return 2  # +2 damage from rage
-    
+
+        level = self.character_context.get('level', 1)
+        if level >= 16:
+            return 4
+        if level >= 9:
+            return 3
+        return 2
+
     def _get_all_damage_bonuses(self, context: Dict[str, Any]) -> dict:
         """Get all feature-based damage bonuses and their values."""
         bonuses = {}
@@ -4654,10 +4662,25 @@ class ActionPanel(QWidget):
         """Check if character has rage uses remaining."""
         if not self.character_context:
             return False
-        
-        # Simple check - assume barbarian has rages available
-        return self._has_class_feature('Rage')
-    
+
+        if self.character_context.get('class_id', '').lower() != 'barbarian':
+            return False
+
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return self._has_class_feature('Rage')
+
+        try:
+            resource = self._get_resource_service().get_resource(character_id, 'Rage')
+        except Exception as exc:
+            print(f"[RAGE] Unable to check rage uses: {exc}")
+            return self._has_class_feature('Rage')
+
+        if resource is None:
+            return self._has_class_feature('Rage')
+
+        return resource.current_uses > 0
+
     def _use_rage(self):
         """Activate barbarian rage."""
         # Use the unified resource system
@@ -4691,10 +4714,25 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
             return
         
+        remaining_uses = use_result.get('current_uses', 0)
+        if remaining_uses <= 0 and ActionType.RAGE in self.action_cards:
+            card = self.action_cards.pop(ActionType.RAGE)
+            try:
+                card.setParent(None)
+                card.deleteLater()
+            except Exception:
+                pass
+            self._update_visible_cards()
+
+        level = self.character_context.get('level', 1) if isinstance(self.character_context, dict) else 1
+        rage_damage = 4 if level >= 16 else (3 if level >= 9 else 2)
+
         # Track rage state
-        self.character_context['raging'] = True
-        self.character_context['rage_turns_remaining'] = 10  # Rage lasts 10 rounds
-        
+        if isinstance(self.character_context, dict):
+            self.character_context['raging'] = True
+            self.character_context['rage_damage_bonus'] = rage_damage
+            self.character_context['rage_turns_remaining'] = 10  # Rage lasts 10 rounds
+
         # Refresh weapon cards to show rage damage bonus
         self._create_weapon_cards()
         self._update_visible_cards()
