@@ -4634,6 +4634,7 @@ class ActionPanel(QWidget):
             from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
             
             dialog = QDialog(self)
+            has_weapon_mastery = self._character_has_weapon_mastery_feature()
             dialog.setWindowTitle("Take a Rest")
             dialog.setModal(True)
             dialog.resize(400, 200)
@@ -4648,13 +4649,28 @@ class ActionPanel(QWidget):
             # Description
             desc = QLabel("Short Rest: Recover some abilities and HP\nLong Rest: Recover all abilities, spell slots, and HP")
             desc.setStyleSheet("color: #cccccc; margin-bottom: 15px;")
+            desc.setWordWrap(True)
             layout.addWidget(desc)
+
+            if has_weapon_mastery:
+                mastery_note = QLabel("Fighters keep every weapon mastery they have learned. Resting only lets you reorder favorites; no mastery access is lost.")
+                mastery_note.setWordWrap(True)
+                mastery_note.setStyleSheet("color: #9bd5ff; margin-bottom: 12px;")
+                layout.addWidget(mastery_note)
             
             # Buttons
             button_layout = QHBoxLayout()
+
+            short_tooltip = "Recover short-rest abilities and healing."
+            long_tooltip = "Recover all abilities, spell slots, and HP."
+            if has_weapon_mastery:
+                mastery_tooltip_note = " Fighters retain access to every weapon mastery after swapping; use this rest to reorganize favorites."
+                short_tooltip += mastery_tooltip_note
+                long_tooltip += mastery_tooltip_note
             
             short_rest_btn = QPushButton("Short Rest (1 hour)")
             short_rest_btn.clicked.connect(lambda: self._take_short_rest(dialog))
+            short_rest_btn.setToolTip(short_tooltip)
             short_rest_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #4a7c59;
@@ -4671,6 +4687,7 @@ class ActionPanel(QWidget):
             
             long_rest_btn = QPushButton("Long Rest (8 hours)")
             long_rest_btn.clicked.connect(lambda: self._take_long_rest(dialog))
+            long_rest_btn.setToolTip(long_tooltip)
             long_rest_btn.setStyleSheet("""
                 QPushButton {
                     background-color: #5c4a7c;
@@ -4832,9 +4849,9 @@ class ActionPanel(QWidget):
                 )
                 rest_label = 'Long Rest' if rest_type == 'long' else 'Short Rest'
                 if summary:
-                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery ready for {summary}")
+                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery ready for {summary} (all mastery options remain prepared)")
                 else:
-                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery refreshed with no specific weapons selected")
+                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery refreshed. Fighters retain access to every mastery property even without spotlighted weapons.")
                 break
             parent = parent.parent()
 

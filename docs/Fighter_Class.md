@@ -64,9 +64,9 @@ You can use this feature twice. You regain one expended use when you finish a Sh
 When you reach certain Fighter levels, you gain more uses of this feature, as shown in the Second Wind column of the Fighter Features table.
 
 ### Level 1: Weapon Mastery
-Your training with weapons allows you to use the mastery properties of three kinds of Simple or Martial weapons of your choice. Whenever you finish a Long Rest, you can practice weapon drills and change one of those weapon choices.
+Your training with weapons allows you to use the mastery properties of all Simple or Martial weapons.
 
-When you reach certain Fighter levels, you gain the ability to use the mastery properties of more kinds of weapons, as shown in the Weapon Mastery column of the Fighter Features table.
+Whenever you finish a Short or Long Rest, you can reorder which mastery techniques you spotlight, but TaleKeeper always treats Fighters as knowing every mastery property. There are no mastery slots to track.
 
 ### Level 2: Action Surge
 You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action, except the Magic action.
@@ -150,6 +150,7 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - ActionPanel now queries and consumes uses through `CharacterResourceService`, and refreshes card availability after activations like Second Wind and Action Surge (`action_cards/action_panel.py:3020`, `action_cards/action_panel.py:3035`, `action_cards/action_panel.py:3058`).
 - Regression coverage includes backend feature loading and a Qt-driven smoke test that exercises the ActionPanel against the new resource flow (`test/core/test_features.py:37`, `test/core/test_features.py:214`).
 - EquipmentDatabase now hydrates magical and variant weapons from their base entries so shop purchases and attacks always have damage dice, properties, and mastery metadata (fixing the null weapon property crash for greatsword variants).
+- Rest dialog prompts, tooltips, and combat logs now reinforce that Fighter mastery access persists after swaps (`action_cards/action_panel.py:4656`, `action_cards/action_panel.py:4666`, `action_cards/action_panel.py:4850`, `action_cards/weapon_mastery_dialog.py:38`).
 
 **Planned Work**
 - Automate Champion subclass hooks: wire Remarkable Athlete into initiative/skill rolls, have Heroic Warrior monitor turn transitions for inspiration/healing, and push Survivor's regeneration/Defy Death into `character_combat_state`.
@@ -158,4 +159,13 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - Note: Fighters with Weapon Mastery are treated as knowing every mastery property; swapping choices happens on a rest, and no per-character mastery count is tracked.
 \n\n-> Weapon Mastery persistence and Tactical Master overrides
 
+**Docs & QA Updates (2025-09-19)**
+- Rest dialog copy and tooltips now highlight that Fighters retain access to every mastery while reordering favorites (`action_cards/action_panel.py:4656`, `action_cards/action_panel.py:4666`).
+- Weapon Mastery selection prompts reiterate the persistent access rule during rests (`action_cards/weapon_mastery_dialog.py:38`).
+- Ran `pytest test/core/test_features.py::test_action_panel_uses_resource_service` to exercise the rest workflow and confirm the updated messaging stays wired into the ActionPanel.
+- Fighter onboarding tips now frame rests as organizational moments instead of slot management, so no TaleKeeper docs ask players to track mastery counts.
 
+**TODO**
+- [ ] Automate Champion subclass hooks so Remarkable Athlete wires into rolls, Heroic Warrior tracks turn transitions, and Survivor effects live in `character_combat_state`.
+- [ ] Fold remaining ActionPanel weapon feature logic into the service-first model and shake out mastery/equip edge cases.
+- [ ] Extend pytest-qt smoke coverage for ActionPanel interactions once the UI refactor lands to keep resource sync verified.

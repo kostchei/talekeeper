@@ -35,7 +35,7 @@ class WeaponMasteryDialog(QDialog):
 
         intro = QLabel(
             "Prepare the weapons whose mastery properties you want at your fingertips.\n"
-            "Fighters treat mastery techniques as universally known, so feel free to keep every mastered weapon active after a rest."
+            "Fighters never lose access to mastery techniques--swapping favorites after a rest just changes which ones are spotlighted."
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
