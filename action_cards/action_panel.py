@@ -27,6 +27,7 @@ import re
 from services.character_resources import CharacterResourceService
 from services.weapon_mastery_service import WeaponMasteryService
 from services.equipment_database import EquipmentDatabase
+from services.weapon_attack_service import WeaponAttackService
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 
@@ -113,6 +114,7 @@ class ActionPanel(QWidget):
         self._weapon_mastery_service: Optional[WeaponMasteryService] = None
         self._equipment_database: Optional[EquipmentDatabase] = None
         self._weapon_mastery_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        self._weapon_attack_service: Optional[WeaponAttackService] = None
         
         # Lucky feat state tracking
         # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
@@ -1185,7 +1187,12 @@ class ActionPanel(QWidget):
                         pass
             
             # Apply weapon mastery effects on hit
-            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=damage_total, context=context)
+            service = self._get_weapon_attack_service()
+            weapon_data = self._build_weapon_dict_from_context(context)
+            mastery_effects = service.apply_weapon_mastery_effects(
+                weapon_data, self.character_context, target=None,
+                hit=True, damage_total=damage_total, attack_total=attack_total
+            )
             
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, damage_total)
@@ -1199,13 +1206,20 @@ class ActionPanel(QWidget):
             
         else:
             # Attack missed - check for Graze mastery
-            mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=False, damage_total=0, context=context)
-            
+            service = self._get_weapon_attack_service()
+            weapon_data = self._build_weapon_dict_from_context(context)
+            mastery_effects = service.apply_weapon_mastery_effects(
+                weapon_data, self.character_context, target=None,
+                hit=False, damage_total=0, attack_total=attack_total
+            )
+
             # Apply any miss-based damage (like Graze)
-            graze_damage = mastery_effects.get('graze_damage', 0)
+            graze_data = mastery_effects.get('graze', {})
+            graze_damage = graze_data.get('damage', 0)
             if graze_damage > 0:
                 encounter_panel._apply_damage_to_monster(target_id, graze_damage)
-            
+                self._log_to_parent(f"[GRAZE] {graze_data.get('description', 'Graze damage')}")
+
             # Attack missed - still show attack roll breakdown
             self._log_attack_result(False, weapon_name, target_monster.monster_name, 
                                   attack_breakdown, target_ac, None)
@@ -1442,11 +1456,24 @@ class ActionPanel(QWidget):
             
             # Apply Savage Attacker feat if applicable (first attack per round only)
             if 'd' in damage_dice:
-                dice_rolls = self._apply_savage_attacker(dice_rolls, int(num_dice), int(die_size), context)
+                service = self._get_weapon_attack_service()
+                dice_rolls, savage_desc = service.apply_savage_attacker(
+                    dice_rolls, int(num_dice), int(die_size),
+                    self.character_context, self.first_attack_this_round
+                )
+                if savage_desc:
+                    self._log_to_parent(f"[SAVAGE ATTACKER] {savage_desc}")
                 dice_total = sum(dice_rolls)
-            
+
             # Apply fighting style effects to dice rolls (e.g., Great Weapon Fighting)
-            dice_rolls = self._apply_fighting_style_effects(dice_rolls, context)
+            service = self._get_weapon_attack_service()
+            fighting_styles = service.get_character_fighting_styles(self.character_context.get('id'))
+            weapon_data = self._build_weapon_dict_from_context(context)
+            dice_rolls, style_desc = service.apply_fighting_style_effects(
+                dice_rolls, fighting_styles, weapon_data, self.character_context
+            )
+            if style_desc:
+                self._log_to_parent(f"[FIGHTING STYLE] {style_desc}")
             dice_total = sum(dice_rolls)
 
             # === CRITICAL HIT ===
@@ -1482,7 +1509,13 @@ class ActionPanel(QWidget):
                 damage_components.append(("Magic", magic_bonus))
 
             # Fighting style damage bonuses
-            fighting_style_bonus = self._get_fighting_style_damage_bonus(context)
+            service = self._get_weapon_attack_service()
+            fighting_styles = service.get_character_fighting_styles(self.character_context.get('id'))
+            weapon_data = self._build_weapon_dict_from_context(context)
+            action_type = context.get('action_type', 'main_hand')
+            fighting_style_bonus = service.get_fighting_style_damage_bonus(
+                weapon_data, self.character_context, action_type, fighting_styles
+            )
             if fighting_style_bonus > 0:
                 damage_components.append(("Fighting Style", fighting_style_bonus))
 
@@ -3254,6 +3287,60 @@ class ActionPanel(QWidget):
             database = EquipmentDatabase(db_path)
             self._equipment_database = database
         return database
+
+    def _get_weapon_attack_service(self) -> WeaponAttackService:
+        """Lazily construct the weapon attack service with the active DB path."""
+        db_path = self._resolve_db_path()
+        service = getattr(self, '_weapon_attack_service', None)
+        if service is None or getattr(service, 'db_path', None) != db_path:
+            service = WeaponAttackService(db_path)
+            self._weapon_attack_service = service
+        return service
+
+    def _build_weapon_dict_from_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Build weapon dictionary from action context for service calls.
+
+        Raises:
+            ValueError: If required weapon data is missing from context
+        """
+        # Validate required weapon data
+        weapon_name = context.get('name')
+        if not weapon_name:
+            raise ValueError("Weapon name is required but missing from context")
+
+        damage_dice = context.get('damage_dice')
+        if not damage_dice:
+            raise ValueError(f"Damage dice is required but missing for weapon '{weapon_name}'")
+
+        damage_type = context.get('damage_type')
+        if not damage_type:
+            raise ValueError(f"Damage type is required but missing for weapon '{weapon_name}'")
+
+        # Handle weapon_properties that might be a list - convert to string
+        weapon_props = context.get('weapon_properties', '')
+        if isinstance(weapon_props, list):
+            weapon_props = ', '.join(str(prop) for prop in weapon_props)
+        elif weapon_props is None:
+            weapon_props = ''
+        else:
+            weapon_props = str(weapon_props)
+
+        return {
+            'name': str(weapon_name),
+            'weapon_properties': weapon_props,
+            'damage_dice': str(damage_dice),
+            'damage_type': str(damage_type),
+            'mastery_property': str(context.get('mastery_property', context.get('weapon_mastery', '')))
+        }
+
+    def _log_to_parent(self, message: str):
+        """Log message to parent's log panel."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(message)
+                break
+            parent = parent.parent()
 
     @staticmethod
     def _normalize_feature_name(name: str) -> str:

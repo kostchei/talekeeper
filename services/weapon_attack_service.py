@@ -12,8 +12,8 @@ import json
 class WeaponAttackService:
     """Service for calculating weapon attacks, damage, and applying combat effects."""
 
-    # Classes that get unlimited weapon mastery access
-    UNLIMITED_MASTERY_CLASSES = ['fighter', 'barbarian', 'rogue', 'paladin']
+    # Classes that get unlimited weapon mastery access in D&D 2024
+    UNLIMITED_MASTERY_CLASSES = ['fighter', 'barbarian', 'rogue', 'paladin', 'ranger']
 
     def __init__(self, db_path: str):
         """Initialize the weapon attack service."""
@@ -69,9 +69,19 @@ class WeaponAttackService:
                                target: Optional[Dict[str, Any]] = None,
                                is_critical: bool = False,
                                advantage: bool = False,
-                               disadvantage: bool = False) -> Dict[str, Any]:
+                               disadvantage: bool = False,
+                               action_type: str = 'main_hand') -> Dict[str, Any]:
         """
         Calculate attack roll and damage for a weapon attack.
+
+        Args:
+            weapon: Weapon data dictionary
+            character: Character data dictionary
+            target: Target data (optional)
+            is_critical: Whether this is a critical hit
+            advantage: Attack has advantage
+            disadvantage: Attack has disadvantage
+            action_type: 'main_hand', 'off_hand', 'ranged', etc.
 
         Returns:
             Dict containing:
@@ -82,94 +92,458 @@ class WeaponAttackService:
             - damage_breakdown: str
             - modifiers_applied: List[str]
         """
-        # This will be expanded to include all the attack calculation logic
-        # Currently returns a placeholder
+        import random
+
+        modifiers_applied = []
+
+        # Roll attack
+        if advantage and disadvantage:
+            attack_roll = random.randint(1, 20)
+        elif advantage:
+            attack_roll = max(random.randint(1, 20), random.randint(1, 20))
+            modifiers_applied.append('Advantage')
+        elif disadvantage:
+            attack_roll = min(random.randint(1, 20), random.randint(1, 20))
+            modifiers_applied.append('Disadvantage')
+        else:
+            attack_roll = random.randint(1, 20)
+
+        # Calculate attack bonus
+        weapon_properties = self._normalize_weapon_properties(weapon.get('weapon_properties'))
+        weapon_name = weapon.get('name')
+        if not weapon_name:
+            raise ValueError("Weapon name is required but missing")
+        is_ranged = 'ranged' in weapon_properties or any(x in weapon_name.lower() for x in ['bow', 'crossbow', 'sling'])
+        is_finesse = 'finesse' in weapon_properties
+
+        # Determine ability modifier
+        if is_finesse:
+            ability_mod = max(
+                (character.get('strength', 10) - 10) // 2,
+                (character.get('dexterity', 10) - 10) // 2
+            )
+        elif is_ranged:
+            ability_mod = (character.get('dexterity', 10) - 10) // 2
+        else:
+            ability_mod = (character.get('strength', 10) - 10) // 2
+
+        # Proficiency bonus
+        level = character.get('level', 1)
+        prof_bonus = 2 + ((level - 1) // 4)
+
+        # Fighting style bonuses to attack
+        fighting_style_attack = self.get_fighting_style_attack_bonus(weapon, character)
+        if fighting_style_attack > 0:
+            modifiers_applied.append(f'Fighting Style +{fighting_style_attack}')
+
+        attack_total = attack_roll + ability_mod + prof_bonus + fighting_style_attack
+
+        # Check if critical
+        if attack_roll == 20:
+            is_critical = True
+            modifiers_applied.append('Critical Hit!')
+
+        # Calculate damage
+        damage_dice = weapon.get('damage_dice')
+        if not damage_dice:
+            raise ValueError(f"Weapon '{weapon.get('name', 'Unknown')}' missing damage_dice")
+        num_dice, die_size = self._parse_damage_dice(damage_dice)
+
+        # Roll damage dice
+        if is_critical:
+            # Double dice on critical
+            damage_rolls = [random.randint(1, die_size) for _ in range(num_dice * 2)]
+        else:
+            damage_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+
+        # Apply fighting style damage effects to dice
+        fighting_styles = self.get_character_fighting_styles(character.get('id'))
+        damage_rolls, style_desc = self.apply_fighting_style_effects(
+            damage_rolls, fighting_styles, weapon, character, action_type
+        )
+        if style_desc:
+            modifiers_applied.append(style_desc)
+
+        # Calculate damage bonuses
+        damage_bonus = ability_mod
+
+        # Fighting style flat damage bonuses
+        fighting_damage = self.get_fighting_style_damage_bonus(
+            weapon, character, action_type, fighting_styles
+        )
+        if fighting_damage > 0:
+            damage_bonus += fighting_damage
+            modifiers_applied.append(f'Fighting Style +{fighting_damage} damage')
+
+        # Two-Weapon Fighting special case for off-hand
+        if action_type == 'off_hand' and 'light' in weapon_props:
+            if 'Two-Weapon Fighting' not in fighting_styles:
+                # Normally off-hand doesn't get ability mod
+                damage_bonus -= ability_mod
+                modifiers_applied.append('Off-hand (no ability mod)')
+            else:
+                modifiers_applied.append('Two-Weapon Fighting (ability mod to off-hand)')
+
+        damage_total = sum(damage_rolls) + damage_bonus
+
+        # Build damage breakdown string
+        if is_critical:
+            damage_breakdown = f'{num_dice*2}d{die_size}'
+        else:
+            damage_breakdown = f'{num_dice}d{die_size}'
+        if damage_bonus != 0:
+            damage_breakdown += f'{damage_bonus:+d}'
+
         return {
-            'attack_roll': 10,
-            'attack_total': 15,
-            'damage_rolls': [6],
-            'damage_total': 8,
-            'damage_breakdown': '1d8+2',
-            'modifiers_applied': []
+            'attack_roll': attack_roll,
+            'attack_total': attack_total,
+            'damage_rolls': damage_rolls,
+            'damage_total': max(0, damage_total),  # Damage can't be negative
+            'damage_breakdown': damage_breakdown,
+            'modifiers_applied': modifiers_applied
         }
 
     def apply_fighting_style_effects(self,
                                     dice_rolls: List[int],
-                                    fighting_style: str,
+                                    fighting_styles: List[str],
                                     weapon: Dict[str, Any],
-                                    character: Dict[str, Any]) -> Tuple[List[int], str]:
+                                    character: Dict[str, Any],
+                                    action_type: str = 'main_hand') -> Tuple[List[int], str]:
         """
         Apply fighting style effects to damage dice.
 
         Args:
             dice_rolls: Original damage dice rolls
-            fighting_style: Name of the fighting style
+            fighting_styles: List of fighting style names the character has
             weapon: Weapon data
             character: Character data
+            action_type: Type of action being performed
 
         Returns:
             Tuple of (modified_dice_rolls, description)
         """
         modified_rolls = dice_rolls.copy()
-        description = ""
+        descriptions = []
 
-        if fighting_style == 'Great Weapon Fighting':
-            # Reroll 1s and 2s on damage dice for two-handed weapons
-            weapon_properties = weapon.get('weapon_properties', '').lower()
-            if 'two-handed' in weapon_properties or 'versatile' in weapon_properties:
+        # Check for Great Weapon Fighting
+        if any('Great Weapon Fighting' in style for style in fighting_styles):
+            # Handle weapon_properties that might be a list or None
+            weapon_props = weapon.get('weapon_properties', '')
+            if isinstance(weapon_props, list):
+                weapon_props = ', '.join(weapon_props)
+            elif weapon_props is None:
+                weapon_props = ''
+            weapon_properties = weapon_props.lower()
+
+            # GWF applies to two-handed, heavy, or versatile weapons
+            if any(prop in weapon_properties for prop in ['two-handed', 'heavy', 'versatile']):
+                # D&D 2024 rules: treat 1s and 2s as 3s
+                changes = 0
                 new_rolls = []
-                rerolled_count = 0
                 for roll in modified_rolls:
-                    if roll in [1, 2]:
-                        new_roll = random.randint(1, self._get_die_size_from_weapon(weapon))
-                        new_rolls.append(new_roll)
-                        rerolled_count += 1
+                    if roll <= 2:
+                        new_rolls.append(3)
+                        changes += 1
                     else:
                         new_rolls.append(roll)
 
-                if rerolled_count > 0:
+                if changes > 0:
                     modified_rolls = new_rolls
-                    description = f"Great Weapon Fighting: rerolled {rerolled_count} dice"
+                    descriptions.append(f"Great Weapon Fighting: treated {changes} low rolls as 3")
 
-        return modified_rolls, description
+        return modified_rolls, '; '.join(descriptions)
 
-    def calculate_dueling_bonus(self, weapon: Dict[str, Any], off_hand: Optional[str]) -> int:
+    def get_fighting_style_damage_bonus(self,
+                                       weapon: Dict[str, Any],
+                                       character: Dict[str, Any],
+                                       action_type: str,
+                                       fighting_styles: List[str]) -> int:
         """
-        Calculate the Dueling fighting style damage bonus.
+        Calculate flat damage bonuses from fighting styles.
+
+        Args:
+            weapon: Weapon data
+            character: Character data
+            action_type: Type of action being performed
+            fighting_styles: List of fighting styles the character has
 
         Returns:
-            +2 if wielding a one-handed weapon with no off-hand weapon, 0 otherwise
+            Total damage bonus from fighting styles
         """
-        weapon_properties = weapon.get('weapon_properties', '').lower()
+        bonus = 0
+        weapon_properties = self._normalize_weapon_properties(weapon.get('weapon_properties', ''))
 
-        # Must be one-handed (not two-handed, not versatile being used two-handed)
-        if 'two-handed' in weapon_properties:
-            return 0
+        weapon_name = weapon.get('name')
+        if not weapon_name:
+            raise ValueError("Weapon name is required but missing")
+        weapon_name = weapon_name.lower()
 
-        # No weapon in off-hand (shield is OK)
-        if off_hand and off_hand != 'shield':
-            return 0
+        # Dueling: +2 damage when wielding a melee weapon in one hand with no other weapons
+        if any('Dueling' in style for style in fighting_styles):
+            # Must be melee (not ranged)
+            is_ranged = 'ranged' in weapon_properties or any(x in weapon_name for x in ['bow', 'crossbow', 'sling'])
+            if not is_ranged:
+                # Must not be two-handed
+                if 'two-handed' not in weapon_properties:
+                    # Must be main hand attack (off-hand implies two weapons)
+                    if action_type != 'off_hand':
+                        bonus += 2
 
-        return 2
+        # Thrown Weapon Fighting: +2 damage to thrown weapons used at range
+        if any('Thrown Weapon Fighting' in style for style in fighting_styles):
+            if 'thrown' in weapon_properties and action_type == 'ranged':
+                bonus += 2
+
+        return bonus
+
+    def get_fighting_style_attack_bonus(self, weapon: Dict[str, Any], character: Dict[str, Any]) -> int:
+        """
+        Calculate attack bonuses from fighting styles.
+
+        Args:
+            weapon: Weapon data
+            character: Character data
+
+        Returns:
+            Total attack bonus from fighting styles
+        """
+        bonus = 0
+        fighting_styles = self.get_character_fighting_styles(character.get('id'))
+
+        weapon_properties = self._normalize_weapon_properties(weapon.get('weapon_properties', ''))
+
+        weapon_name = weapon.get('name')
+        if not weapon_name:
+            raise ValueError("Weapon name is required but missing")
+        weapon_name = weapon_name.lower()
+
+        # Archery: +2 to ranged weapon attacks
+        if any('Archery' in style for style in fighting_styles):
+            is_ranged = 'ranged' in weapon_properties or any(x in weapon_name for x in ['bow', 'crossbow', 'sling'])
+            if is_ranged:
+                bonus += 2
+
+        return bonus
+
+    def get_character_fighting_styles(self, character_id: str) -> List[str]:
+        """
+        Get all fighting styles for a character.
+
+        Args:
+            character_id: Character ID
+
+        Returns:
+            List of fighting style names
+        """
+        if not character_id:
+            return []
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT feature_name FROM character_features
+                WHERE character_id = ? AND feature_name LIKE 'Fighting Style:%'
+            """, (character_id,))
+
+            styles = cursor.fetchall()
+            return [style['feature_name'] for style in styles]
 
     def apply_savage_attacker(self,
                              dice_rolls: List[int],
                              num_dice: int,
-                             die_size: int) -> Tuple[List[int], str]:
+                             die_size: int,
+                             character: Dict[str, Any],
+                             is_first_attack: bool = True) -> Tuple[List[int], str]:
         """
         Apply Savage Attacker feat - reroll damage dice and use higher result.
+        Only applies to the first attack per round.
+
+        Args:
+            dice_rolls: Original damage rolls
+            num_dice: Number of dice
+            die_size: Size of each die
+            character: Character data
+            is_first_attack: Whether this is the first attack this round
 
         Returns:
             Tuple of (best_rolls, description)
         """
+        # Only applies to first attack per round
+        if not is_first_attack:
+            return dice_rolls, ""
+
+        # Check if character has Savage Attacker feat
+        character_feats = character.get('feats', [])
+        if 'Savage Attacker' not in character_feats:
+            # Check database for feat
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 1 FROM character_features
+                    WHERE character_id = ? AND feature_name = 'Savage Attacker'
+                    LIMIT 1
+                """, (character.get('id', ''),))
+
+                if not cursor.fetchone():
+                    return dice_rolls, ""
+
         # Roll a second set
         second_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
 
         # Compare totals and use the better set
-        if sum(second_rolls) > sum(dice_rolls):
-            return second_rolls, f"Savage Attacker: rerolled for {sum(second_rolls)} (was {sum(dice_rolls)})"
+        first_total = sum(dice_rolls)
+        second_total = sum(second_rolls)
+
+        if second_total > first_total:
+            return second_rolls, f"Savage Attacker: rerolled for {second_total} (was {first_total})"
         else:
-            return dice_rolls, ""
+            return dice_rolls, f"Savage Attacker: kept original {first_total} (reroll was {second_total})"
+
+    def apply_weapon_mastery_effects(self,
+                                    weapon: Dict[str, Any],
+                                    character: Dict[str, Any],
+                                    target: Optional[Dict[str, Any]],
+                                    hit: bool,
+                                    damage_total: int = 0,
+                                    attack_total: int = 0) -> Dict[str, Any]:
+        """
+        Apply weapon mastery effects based on the weapon's mastery property.
+
+        Args:
+            weapon: Weapon data including mastery property
+            character: Character data
+            target: Target data (optional)
+            hit: Whether the attack hit
+            damage_total: Total damage dealt
+            attack_total: Total attack roll
+
+        Returns:
+            Dict describing mastery effects applied
+        """
+        effects = {}
+
+        # Check if character has access to weapon mastery
+        has_mastery_access = False
+        if self.has_character_unlimited_mastery(character.get('id')):
+            has_mastery_access = True
+        else:
+            # Check if they have limited mastery access
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT weapon_mastery_count FROM characters WHERE id = ?
+                """, (character.get('id'),))
+                result = cursor.fetchone()
+                if result and result['weapon_mastery_count'] > 0:
+                    has_mastery_access = True
+
+        # If character can't use mastery, don't require weapon to have mastery property
+        if not has_mastery_access:
+            return effects
+
+        # Get weapon's mastery property (only required if character can use mastery)
+        mastery_type = weapon.get('mastery_property')
+        if not mastery_type:
+            raise ValueError(f"Weapon '{weapon.get('name', 'Unknown')}' missing mastery_property")
+
+        # Check for Tactical Master override (Fighter level 9+)
+        if character.get('class_id', '').lower() == 'fighter' and character.get('level', 0) >= 9:
+            # Can substitute Push, Sap, or Slow
+            # This would need UI interaction to choose, so we'll note it
+            if mastery_type in ['Push', 'Sap', 'Slow']:
+                effects['tactical_master'] = {
+                    'available': True,
+                    'original': mastery_type,
+                    'options': ['Push', 'Sap', 'Slow']
+                }
+
+        weapon_name = weapon.get('name')
+        if not weapon_name:
+            raise ValueError("Weapon name is required but missing")
+        return self._apply_specific_mastery(mastery_type, weapon_name, hit, damage_total, character)
+
+    def _apply_specific_mastery(self,
+                               mastery_type: str,
+                               weapon_name: str,
+                               hit: bool,
+                               damage_total: int,
+                               character: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply specific weapon mastery effects.
+
+        Returns:
+            Dict describing the mastery effects
+        """
+        effects = {}
+
+        if not mastery_type:
+            return effects
+
+        mastery_lower = mastery_type.lower()
+
+        if mastery_lower == 'cleave' and hit:
+            # Calculate ability modifier for cleave damage
+            str_mod = (character.get('strength', 10) - 10) // 2
+            effects['cleave'] = {
+                'description': f'Can make an attack against a second creature within 5 feet for {str_mod} damage',
+                'damage': str_mod,
+                'type': 'ability_modifier_only'
+            }
+        elif mastery_lower == 'graze' and not hit:
+            # Calculate ability modifier for graze damage
+            str_mod = (character.get('strength', 10) - 10) // 2
+            dex_mod = (character.get('dexterity', 10) - 10) // 2
+            ability_mod = max(str_mod, dex_mod) if 'finesse' in weapon_name.lower() else str_mod
+            effects['graze'] = {
+                'description': f'Deal {ability_mod} damage on a miss',
+                'damage': ability_mod,
+                'type': 'ability_modifier'
+            }
+        elif mastery_lower == 'nick' and hit:
+            effects['nick'] = {
+                'description': 'Make an additional attack as part of the Attack action',
+                'restriction': 'Must have Light weapon in other hand',
+                'type': 'extra_attack'
+            }
+        elif mastery_lower == 'push' and hit:
+            effects['push'] = {
+                'description': 'Push Large or smaller creature 10 feet away',
+                'distance': 10,
+                'size_limit': 'Large',
+                'type': 'forced_movement'
+            }
+        elif mastery_lower == 'sap' and hit:
+            effects['sap'] = {
+                'description': 'Target has disadvantage on next attack roll',
+                'duration': 'Until start of your next turn',
+                'type': 'debuff'
+            }
+        elif mastery_lower == 'slow' and hit:
+            effects['slow'] = {
+                'description': 'Reduce target speed by 10 feet',
+                'duration': 'Until start of your next turn',
+                'amount': 10,
+                'type': 'speed_reduction'
+            }
+        elif mastery_lower == 'topple' and hit:
+            # Calculate save DC
+            prof_bonus = 2 + ((character.get('level', 1) - 1) // 4)
+            str_mod = (character.get('strength', 10) - 10) // 2
+            save_dc = 8 + prof_bonus + str_mod
+            effects['topple'] = {
+                'description': f'Target must make Constitution save (DC {save_dc}) or be knocked prone',
+                'save_dc': save_dc,
+                'save_type': 'Constitution',
+                'type': 'knockdown'
+            }
+        elif mastery_lower == 'vex' and hit:
+            effects['vex'] = {
+                'description': 'Gain advantage on next attack against this target',
+                'duration': 'Before end of your next turn',
+                'type': 'advantage'
+            }
+
+        return effects
 
     def get_weapon_mastery_effects(self,
                                   mastery_type: str,
@@ -239,17 +613,72 @@ class WeaponAttackService:
 
         return effects
 
+    def _normalize_weapon_properties(self, weapon_props) -> str:
+        """Normalize weapon properties from various formats to a string."""
+        if isinstance(weapon_props, list):
+            return ', '.join(weapon_props).lower()
+        elif weapon_props is None:
+            return ''
+        else:
+            return str(weapon_props).lower()
+
     def _get_die_size_from_weapon(self, weapon: Dict[str, Any]) -> int:
-        """Extract die size from weapon damage dice string."""
-        damage_dice = weapon.get('damage_dice', '1d6')
-        if 'd' in damage_dice:
-            parts = damage_dice.split('d')
-            if len(parts) == 2:
-                try:
-                    return int(parts[1].split('+')[0].split('-')[0].strip())
-                except:
-                    pass
-        return 6  # Default to d6
+        """Extract die size from weapon damage dice string.
+
+        Raises:
+            ValueError: If damage_dice is missing from weapon
+        """
+        damage_dice = weapon.get('damage_dice')
+        if not damage_dice:
+            raise ValueError(f"Weapon '{weapon.get('name', 'Unknown')}' missing damage_dice")
+        _, die_size = self._parse_damage_dice(damage_dice)
+        return die_size
+
+    def _parse_damage_dice(self, damage_dice: str) -> Tuple[int, int]:
+        """Parse damage dice string into number of dice and die size.
+
+        Args:
+            damage_dice: String like '2d6', '1d8+2', etc.
+
+        Returns:
+            Tuple of (num_dice, die_size)
+
+        Raises:
+            ValueError: If damage_dice format is invalid
+        """
+        if not damage_dice:
+            raise ValueError(f"Invalid damage dice format: '{damage_dice}' - cannot be empty")
+
+        if 'd' not in damage_dice:
+            raise ValueError(f"Invalid damage dice format: '{damage_dice}' - must contain 'd'")
+
+        parts = damage_dice.split('d')
+        if len(parts) != 2:
+            raise ValueError(f"Invalid damage dice format: '{damage_dice}' - must be in format 'XdY'")
+
+        try:
+            # Parse number of dice (left side of 'd')
+            if not parts[0]:
+                raise ValueError(f"Missing number of dice in '{damage_dice}' - use '1d6' not 'd6'")
+            num_dice = int(parts[0])
+
+            # Parse die size (right side of 'd', strip modifiers)
+            die_part = parts[1].split('+')[0].split('-')[0].strip()
+            if not die_part:
+                raise ValueError(f"Missing die size in '{damage_dice}'")
+            die_size = int(die_part)
+
+            if num_dice <= 0:
+                raise ValueError(f"Number of dice must be positive: {num_dice}")
+            if die_size <= 0:
+                raise ValueError(f"Die size must be positive: {die_size}")
+
+            return num_dice, die_size
+
+        except ValueError as e:
+            if "invalid literal for int()" in str(e):
+                raise ValueError(f"Invalid number in damage dice '{damage_dice}': {e}")
+            raise  # Re-raise our custom ValueError messages
 
     def has_character_unlimited_mastery(self, character_id: str) -> bool:
         """
