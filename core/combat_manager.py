@@ -16,6 +16,7 @@ from services.proficiency_system import ProficiencySystem
 from services.proficiency_bonus import get_proficiency_bonus
 from services.advantage_system import advantage_system, RollType
 from services.fighter_abilities import FighterAbilitiesService
+from services.standardized_attack_processor import StandardizedAttackProcessor
 
 class ActionType(Enum):
     ACTION = "action"
@@ -39,6 +40,7 @@ class CombatAction:
     damage_type: Optional[str] = None
     target_required: bool = True
     range_feet: Optional[int] = None
+    standardized_attack: Optional[Any] = None  # Store full standardized attack for effects
 
 @dataclass
 class Combatant:
@@ -106,6 +108,7 @@ class CombatManager:
         self.combat_log: List[str] = []
         self.proficiency_system = ProficiencySystem(db_path)
         self.fighter_service = FighterAbilitiesService(db_path)
+        self.attack_processor = StandardizedAttackProcessor()
         
     def add_player_combatant(self, character_data: Dict[str, Any]) -> Combatant:
         """Add player character to combat"""
@@ -531,62 +534,38 @@ class CombatManager:
             return 0  # 1 total attack
     
     def _parse_monster_actions(self, actions_json: str) -> List[CombatAction]:
-        """Parse monster actions from database JSON format"""
+        """Parse monster actions from standardized JSON format"""
         try:
-            actions_data = json.loads(actions_json) if isinstance(actions_json, str) else actions_json
+            # Use the standardized attack processor to parse the new format
+            standardized_attacks = self.attack_processor.process_monster_attacks(actions_json)
             actions = []
-            
-            for action_data in actions_data:
-                name = action_data.get('name', 'Unknown')
-                entries = action_data.get('entries', [])
-                
-                # Skip Multiattack for now (handled separately)
-                if name.lower() == 'multiattack':
-                    continue
-                
-                # Parse attack information from entries
-                attack_bonus = None
+
+            for attack in standardized_attacks:
+                # Convert standardized attack to old CombatAction format for compatibility
                 damage_dice = None
                 damage_type = None
-                
-                if entries:
-                    entry_text = entries[0] if entries else ""
-                    
-                    # Extract attack bonus (e.g., {@hit 5})
-                    import re
-                    hit_match = re.search(r'\{@hit (\d+)\}', entry_text)
-                    if hit_match:
-                        attack_bonus = int(hit_match.group(1))
-                    
-                    # Extract damage (e.g., {@damage 1d8 + 3})
-                    damage_match = re.search(r'\{@damage ([^}]+)\}', entry_text)
-                    if damage_match:
-                        damage_info = damage_match.group(1)
-                        # Extract dice and type
-                        dice_match = re.search(r'(\d+d\d+(?:\s*[+\-]\s*\d+)?)', damage_info)
-                        if dice_match:
-                            damage_dice = dice_match.group(1).replace(' ', '')
-                        
-                        # Extract damage type
-                        type_words = ['piercing', 'slashing', 'bludgeoning', 'fire', 'cold', 'lightning', 'thunder', 'acid', 'poison', 'necrotic', 'radiant', 'psychic', 'force']
-                        for word in type_words:
-                            if word in entry_text.lower():
-                                damage_type = word
-                                break
-                
+
+                if attack.primary_damage:
+                    damage_dice = attack.primary_damage.dice
+                    damage_type = attack.primary_damage.type
+
                 action = CombatAction(
-                    name=name,
+                    name=attack.name,
                     action_type=ActionType.ACTION,
-                    description=entry_text,
-                    attack_bonus=attack_bonus,
+                    description=attack.description,
+                    attack_bonus=attack.attack_bonus,
                     damage_dice=damage_dice,
                     damage_type=damage_type
                 )
+
+                # Store the full standardized attack for advanced features
+                action.standardized_attack = attack
                 actions.append(action)
-            
+
             return actions
-            
-        except (json.JSONDecodeError, TypeError):
+
+        except Exception as e:
+            self.log(f"[ERROR] Failed to parse monster actions: {e}")
             return []
     
     def _parse_multiattack(self, actions: List[CombatAction]) -> Optional[List[str]]:
@@ -705,18 +684,28 @@ class CombatManager:
             if target.hit_points <= 0:
                 target.hit_points = 0
                 target.is_alive = False
-            
+
+            # Process standardized attack effects (conditions, saves, etc.)
+            effect_results = []
+            if hasattr(action, 'standardized_attack') and action.standardized_attack:
+                effect_results = self._process_attack_effects(action.standardized_attack, target, attacker)
+
             if is_critical:
                 self.log(f"[COMBAT] [CRITICAL HIT!] {attacker.name} {action.name} critically hits! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class} for {damage} damage")
             else:
                 self.log(f"[COMBAT] [HIT] {attacker.name} {action.name} hits! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class} for {damage} damage")
-            
+
+            # Log any effects
+            for effect_result in effect_results:
+                self.log(f"[EFFECT] {effect_result}")
+
             return {
                 'hit': True,
-                'attack_roll': total_attack, 
+                'attack_roll': total_attack,
                 'damage': damage,
                 'target_hp': target.hit_points,
-                'is_critical': is_critical
+                'is_critical': is_critical,
+                'effects': effect_results
             }
         else:
             self.log(f"[COMBAT] [MISS] {attacker.name} {action.name} misses! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class}")
@@ -760,6 +749,123 @@ class CombatManager:
         except (ValueError, IndexError):
             return 1
     
+    def _process_attack_effects(self, standardized_attack, target: Combatant, attacker: Combatant) -> List[str]:
+        """Process standardized attack effects (saves, conditions, etc.)"""
+        effect_results = []
+
+        if not standardized_attack.effects:
+            return effect_results
+
+        for effect in standardized_attack.effects:
+            try:
+                result = self._process_single_effect(effect, target, attacker)
+                if result:
+                    effect_results.append(result)
+            except Exception as e:
+                self.log(f"[ERROR] Failed to process effect {effect.type}: {e}")
+
+        return effect_results
+
+    def _process_single_effect(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
+        """Process a single standardized effect"""
+        effect_type = effect.type.value if hasattr(effect.type, 'value') else str(effect.type)
+
+        if effect_type == "save_or_condition":
+            return self._handle_save_or_condition(effect, target, attacker)
+        elif effect_type == "save_or_damage":
+            return self._handle_save_or_damage(effect, target, attacker)
+        elif effect_type == "automatic_condition":
+            return self._handle_automatic_condition(effect, target, attacker)
+        elif effect_type == "size_condition":
+            return self._handle_size_condition(effect, target, attacker)
+        else:
+            return f"Unknown effect type: {effect_type}"
+
+    def _handle_save_or_condition(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
+        """Handle save-or-condition effects (e.g., paralysis, poisoned)"""
+        if target.type != CombatantType.PLAYER:
+            return None  # For now, only apply conditions to players
+
+        save_dc = effect.save_dc
+        save_ability = effect.save_ability
+        condition = effect.condition
+
+        # Roll saving throw
+        d20_roll = random.randint(1, 20)
+        save_modifier = self._get_saving_throw_modifier(target, save_ability)
+        total_save = d20_roll + save_modifier
+
+        if total_save >= save_dc:
+            return f"{target.name} saves against {condition}! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+        else:
+            # Apply condition
+            if condition not in target.conditions:
+                target.conditions.append(condition)
+            return f"{target.name} fails save and is {condition}! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+
+    def _handle_save_or_damage(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
+        """Handle save-or-damage effects (e.g., poison damage)"""
+        save_dc = effect.save_dc
+        save_ability = effect.save_ability
+
+        # Roll saving throw
+        d20_roll = random.randint(1, 20)
+        save_modifier = self._get_saving_throw_modifier(target, save_ability)
+        total_save = d20_roll + save_modifier
+
+        if total_save >= save_dc:
+            # Success - half damage or different effect
+            if effect.damage_success:
+                damage = self._roll_damage(effect.damage_success.dice)
+                target.hit_points -= damage
+                return f"{target.name} saves! Takes {damage} {effect.damage_success.type} damage (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+            else:
+                return f"{target.name} saves! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+        else:
+            # Failure - full damage
+            if effect.damage_fail:
+                damage = self._roll_damage(effect.damage_fail.dice)
+                target.hit_points -= damage
+                return f"{target.name} fails save! Takes {damage} {effect.damage_fail.type} damage (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+            else:
+                return f"{target.name} fails save! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
+
+    def _handle_automatic_condition(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
+        """Handle automatic conditions (e.g., restrained by web)"""
+        if target.type != CombatantType.PLAYER:
+            return None
+
+        condition = effect.condition
+        if condition not in target.conditions:
+            target.conditions.append(condition)
+        return f"{target.name} is automatically {condition}!"
+
+    def _handle_size_condition(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
+        """Handle size-based conditions (e.g., grapple large or smaller)"""
+        if target.type != CombatantType.PLAYER:
+            return None
+
+        # For simplicity, assume players are Medium size
+        max_size = effect.max_size
+        if max_size in ["huge", "large", "medium"]:  # Player qualifies
+            condition = effect.condition
+            if condition not in target.conditions:
+                target.conditions.append(condition)
+            return f"{target.name} is {condition} (size restriction)!"
+        else:
+            return f"{target.name} is too large to be affected!"
+
+    def _get_saving_throw_modifier(self, combatant: Combatant, ability: str) -> int:
+        """Get saving throw modifier for a given ability"""
+        # For now, return a basic modifier based on type
+        # In a full implementation, this would look up actual ability scores
+        if combatant.type == CombatantType.PLAYER:
+            # Players get decent saves
+            return 2  # Basic proficiency bonus
+        else:
+            # Monsters get minimal saves
+            return 0
+
     def _find_monster_action(self, monster: Combatant, action_name: str) -> Optional[CombatAction]:
         """Find monster action by name"""
         for action in monster.actions:

@@ -71,7 +71,8 @@
       "Bash(cd:*)",
       "Bash(git stash:*)",
       "Bash(copy:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   },

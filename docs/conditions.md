@@ -317,26 +317,26 @@ def apply_berserker_rage_immunities(character_id: str):
 ## Implementation Phases
 
 ### Phase 1: Core Infrastructure
-- [ ] Create condition database tables
-- [ ] Implement ConditionManager service
-- [ ] Basic condition application/removal
-- [ ] Integration with existing advantage system
+- [x] Create condition database tables
+- [x] Implement ConditionManager service
+- [x] Basic condition application/removal
+- [x] Integration with existing advantage system
 
 ### Phase 2: Mechanical Effects
-- [ ] Automatic stat modification system
-- [ ] Action economy integration
-- [ ] Turn-based duration tracking
-- [ ] Saving throw automation
+- [x] Automatic stat modification system
+- [x] Action economy integration
+- [x] Turn-based duration tracking
+- [x] Saving throw automation
 
 ### Phase 3: UI Integration
-- [ ] Character sheet condition display
+- [x] Character sheet condition display
 - [ ] Action panel condition effects
 - [ ] Log panel condition events
 - [ ] Combat encounter condition management
 
 ### Phase 4: Advanced Features
 - [ ] Concentration tracking
-- [ ] Condition immunity system
+- [x] Condition immunity system
 - [ ] Complex condition interactions
 - [ ] Monster condition AI
 

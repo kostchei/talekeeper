@@ -264,34 +264,149 @@ class AdvantageSystem:
     def get_common_disadvantage_sources(roll_type: RollType, context: Dict[str, Any]) -> List[str]:
         """
         Get common sources of disadvantage for different roll types.
-        
+
         Args:
             roll_type: Type of roll being made
             context: Context information (character stats, conditions, etc.)
-            
+
         Returns:
             List of disadvantage source descriptions
         """
         disadvantage_sources = []
-        
+
+        # Check for condition-based disadvantage
+        character_id = context.get('character_id')
+        if character_id:
+            condition_disadvantage = AdvantageSystem._get_condition_disadvantage_sources(
+                character_id, roll_type, context
+            )
+            disadvantage_sources.extend(condition_disadvantage)
+
         # Check for general conditions
         if context.get('target_prone', False) and roll_type == RollType.ATTACK and context.get('ranged_attack', False):
             disadvantage_sources.append("Target is prone (ranged)")
-        
+
         if context.get('attacker_prone', False) and roll_type == RollType.ATTACK:
             disadvantage_sources.append("Attacker is prone")
-        
+
         if context.get('in_darkness', False):
             disadvantage_sources.append("Darkness/blinded")
-        
+
         if context.get('long_range', False) and roll_type == RollType.ATTACK:
             disadvantage_sources.append("Long range")
-        
+
         # Weapon mastery effects
         if context.get('sap_effect', False) and roll_type == RollType.ATTACK:
             disadvantage_sources.append("Sap weapon mastery")
-        
+
         return disadvantage_sources
+
+    @staticmethod
+    def get_common_advantage_sources(roll_type: RollType, context: Dict[str, Any]) -> List[str]:
+        """
+        Get common sources of advantage for different roll types.
+
+        Args:
+            roll_type: Type of roll being made
+            context: Context information (character stats, conditions, etc.)
+
+        Returns:
+            List of advantage source descriptions
+        """
+        advantage_sources = []
+
+        # Check for condition-based advantage
+        character_id = context.get('character_id')
+        if character_id:
+            condition_advantage = AdvantageSystem._get_condition_advantage_sources(
+                character_id, roll_type, context
+            )
+            advantage_sources.extend(condition_advantage)
+
+        # Check for general advantage conditions
+        if context.get('target_prone', False) and roll_type == RollType.ATTACK and not context.get('ranged_attack', False):
+            advantage_sources.append("Target is prone (melee)")
+
+        if context.get('unseen_attacker', False) and roll_type == RollType.ATTACK:
+            advantage_sources.append("Unseen attacker")
+
+        return advantage_sources
+
+    @staticmethod
+    def _get_condition_disadvantage_sources(character_id: str, roll_type: RollType, context: Dict[str, Any]) -> List[str]:
+        """Get disadvantage sources from character conditions."""
+        try:
+            from services.condition_stat_service import condition_stat_service
+
+            sources = []
+
+            if roll_type == RollType.ATTACK:
+                modifiers = condition_stat_service.get_attack_roll_modifier(character_id)
+                if modifiers.get("disadvantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "disadvantage" in s])
+
+            elif roll_type == RollType.SAVING_THROW:
+                ability = context.get('ability', 'constitution')
+                modifiers = condition_stat_service.get_saving_throw_modifier(character_id, ability)
+                if modifiers.get("disadvantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "disadvantage" in s])
+
+            elif roll_type in [RollType.ABILITY_CHECK, RollType.SKILL_CHECK]:
+                ability = context.get('ability', 'strength')
+                modifiers = condition_stat_service.get_ability_check_modifier(character_id, ability)
+                if modifiers.get("disadvantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "disadvantage" in s])
+
+            elif roll_type == RollType.INITIATIVE:
+                modifiers = condition_stat_service.get_initiative_modifier(character_id)
+                if modifiers.get("disadvantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "disadvantage" in s])
+
+            return sources
+
+        except ImportError:
+            return []
+        except Exception as e:
+            print(f"[AdvantageSystem] Error getting condition disadvantage: {e}")
+            return []
+
+    @staticmethod
+    def _get_condition_advantage_sources(character_id: str, roll_type: RollType, context: Dict[str, Any]) -> List[str]:
+        """Get advantage sources from character conditions."""
+        try:
+            from services.condition_stat_service import condition_stat_service
+
+            sources = []
+
+            if roll_type == RollType.ATTACK:
+                modifiers = condition_stat_service.get_attack_roll_modifier(character_id)
+                if modifiers.get("advantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "advantage" in s])
+
+            elif roll_type == RollType.SAVING_THROW:
+                ability = context.get('ability', 'constitution')
+                modifiers = condition_stat_service.get_saving_throw_modifier(character_id, ability)
+                if modifiers.get("advantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "advantage" in s])
+
+            elif roll_type in [RollType.ABILITY_CHECK, RollType.SKILL_CHECK]:
+                ability = context.get('ability', 'strength')
+                modifiers = condition_stat_service.get_ability_check_modifier(character_id, ability)
+                if modifiers.get("advantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "advantage" in s])
+
+            elif roll_type == RollType.INITIATIVE:
+                modifiers = condition_stat_service.get_initiative_modifier(character_id)
+                if modifiers.get("advantage"):
+                    sources.extend([s for s in modifiers.get("sources", []) if "advantage" in s])
+
+            return sources
+
+        except ImportError:
+            return []
+        except Exception as e:
+            print(f"[AdvantageSystem] Error getting condition advantage: {e}")
+            return []
 
 # Global instance for easy access
 advantage_system = AdvantageSystem()

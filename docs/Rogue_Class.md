@@ -69,7 +69,7 @@ The extra damage increases as you gain Rogue levels, as shown in the Sneak Attac
 You know Thieves' Cant and one other language of your choice.
 
 ### Level 1: Weapon Mastery
-Your training with weapons allows you to use the mastery properties of two kinds of weapons of your choice with which you have proficiency. Whenever you finish a Long Rest, you can change the kinds of weapons you chose.
+Your training with weapons allows you to use the mastery properties of weapons 
 
 ### Level 2: Cunning Action
 On your turn, you can take one of the following actions as a Bonus Action: Dash, Disengage, or Hide.

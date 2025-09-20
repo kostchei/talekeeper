@@ -28,6 +28,7 @@ from services.character_resources import CharacterResourceService
 from services.weapon_mastery_service import WeaponMasteryService
 from services.equipment_database import EquipmentDatabase
 from services.weapon_attack_service import WeaponAttackService
+from core.combat_manager import CombatManager
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 
@@ -123,6 +124,7 @@ class ActionPanel(QWidget):
         self._equipment_database: Optional[EquipmentDatabase] = None
         self._weapon_mastery_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         self._weapon_attack_service: Optional[WeaponAttackService] = None
+        self._combat_manager: Optional[CombatManager] = None
         
         # Lucky feat state tracking
         # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
@@ -1210,11 +1212,11 @@ class ActionPanel(QWidget):
                 # Update action economy
                 self._update_action_economy(action_type)
                 
-                # For combat actions, trigger monster counter-attacks after player's turn
+                # For combat actions, advance turn in combat manager after player's turn
                 if self._is_combat_action(action_type):
                     encounter_panel = self._get_encounter_panel()
                     if encounter_panel:
-                        self._trigger_monster_counter_attacks(encounter_panel)
+                        self._advance_combat_turn(encounter_panel)
     
     def _is_combat_action(self, action_type: ActionType) -> bool:
         """Check if an action is a combat action that should trigger monster retaliation."""
@@ -1326,9 +1328,9 @@ class ActionPanel(QWidget):
             print(f"DEBUG: All monsters defeated, ending combat")
             self._end_combat(encounter_panel)
         else:
-            # Monsters still alive, trigger counter-attacks
-            print(f"DEBUG: About to trigger counter-attacks after player attack")
-            self._trigger_monster_counter_attacks(encounter_panel)
+            # Monsters still alive, advance turn to next combatant
+            print(f"DEBUG: About to advance turn after player attack")
+            self._advance_combat_turn(encounter_panel)
     
     def _new_execute_attack(self, action_type: ActionType, context: Dict[str, Any]):
         """NEW ATTACK SYSTEM - Built from scratch with Fighter Extra Attacks support."""
@@ -1480,8 +1482,8 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
             self._end_combat(encounter_panel)
         else:
-            # Trigger monster counter-attacks after full attack sequence
-            self._trigger_monster_counter_attacks(encounter_panel)
+            # Advance turn to next combatant after full attack sequence
+            self._advance_combat_turn(encounter_panel)
     
     def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
         """Execute the attack without rolling initiative (used for immediate attacks and pending attacks)."""
@@ -1737,9 +1739,9 @@ class ActionPanel(QWidget):
                     parent = parent.parent()
                 return  # Skip monster reactions, player gets another action
             else:
-                # Use the working monster attack system (bypassing broken initiative system for now)
-                print(f"NEW ATTACK: Using working monster counter-attack system")
-                self._trigger_monster_counter_attacks(encounter_panel)
+                # Advance turn to next combatant using combat manager
+                print(f"NEW ATTACK: Advancing turn to next combatant")
+                self._advance_combat_turn(encounter_panel)
     
     def _handle_cleave_followup(self, action_type: ActionType, context: Dict[str, Any], encounter_panel, original_target_id: str, weapon_name: str):
         """Resolve Cleave mastery follow-up attack against a random nearby foe."""
@@ -1835,8 +1837,8 @@ class ActionPanel(QWidget):
                 
         except Exception as e:
             print(f"Error executing initiative turns: {e}")
-            # Fall back to regular counter-attacks
-            self._trigger_monster_counter_attacks(encounter_panel)
+            import traceback
+            traceback.print_exc()
     
     def _get_barbarian_level_from_database(self) -> int:
         """Get the character's barbarian class level from database (for multiclass support)."""
@@ -2010,7 +2012,121 @@ class ActionPanel(QWidget):
             
         except Exception as e:
             print(f"Error triggering monster counter-attacks: {e}")
-    
+
+    def _advance_combat_turn(self, encounter_panel):
+        """Advance to the next combatant's turn using the CombatManager."""
+        try:
+            combat_manager = self._get_combat_manager()
+
+            # Check if combat manager is active
+            if not combat_manager.combat_active:
+                print(f"ERROR: Combat manager not active - combat should be initialized before attacking")
+                return
+
+            # Debug: Check current state before advancing
+            current_before = combat_manager.get_current_combatant()
+            if current_before:
+                print(f"DEBUG: Before advance - current combatant: {current_before.name} (type: {current_before.type.value})")
+                print(f"DEBUG: Player turn check: {combat_manager.is_player_turn()}")
+
+                # If it's currently the player's turn, mark their action as taken
+                if current_before.type.value == 'player':
+                    print(f"DEBUG: Marking player action as taken")
+                    current_before.has_taken_action = True
+            else:
+                print(f"DEBUG: Before advance - no current combatant")
+
+            # Advance to next combatant
+            next_combatant = combat_manager.advance_turn()
+
+            if next_combatant is None:
+                print(f"DEBUG: No next combatant, combat may have ended")
+                return
+
+            print(f"DEBUG: Advanced to {next_combatant.name}'s turn (type: {next_combatant.type.value})")
+            print(f"DEBUG: After advance - Player turn check: {combat_manager.is_player_turn()}")
+
+            # If it's a monster's turn, execute their action
+            if next_combatant.type.value == 'monster':
+                # Check if monster is still alive in the encounter panel
+                monster_still_alive = self._is_monster_alive_in_encounter(encounter_panel, next_combatant.id)
+                if not monster_still_alive:
+                    print(f"DEBUG: Monster {next_combatant.name} is dead, skipping their turn")
+                    # Skip this dead monster and continue to next turn
+                    self._continue_combat_turn_cycle(encounter_panel)
+                    return
+
+                result = combat_manager.execute_monster_turn(next_combatant.id)
+
+                if 'error' not in result:
+                    # Handle the attack results
+                    total_damage = result.get('total_damage', 0)
+                    if total_damage > 0:
+                        # Get HP before damage for proper logging
+                        hp_before = self.character_context.get('hit_points_current', self.character_context.get('hp', 0))
+                        max_hp = self.character_context.get('hit_points_max', self.character_context.get('max_hp', 0))
+
+                        # Use the existing damage application system that properly updates UI
+                        self._apply_damage_to_player(total_damage, encounter_panel, "physical")
+
+                        # Get HP after damage for logging
+                        hp_after = self.character_context.get('hit_points_current', self.character_context.get('hp', 0))
+                        actual_damage_taken = hp_before - hp_after
+
+                        # Log the attack with correct HP values
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'log_panel'):
+                                parent.log_panel.log_combat(f"[MONSTER ATTACK] {next_combatant.name} hits for {total_damage} damage!")
+                                parent.log_panel.log_combat(f"    Player HP: {hp_before}/{max_hp} -> {hp_after}/{max_hp}")
+                                if actual_damage_taken != total_damage:
+                                    parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {total_damage} damage reduced to {actual_damage_taken}")
+                                break
+                            parent = parent.parent()
+
+                    # Continue to next turn (but don't recurse infinitely)
+                    self._continue_combat_turn_cycle(encounter_panel)
+                else:
+                    print(f"ERROR: Monster turn failed: {result['error']}")
+                    # Continue to next turn anyway to avoid getting stuck
+                    self._continue_combat_turn_cycle(encounter_panel)
+
+            elif next_combatant.type.value == 'player':
+                # Player's turn - log and wait for action
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("[LIGHTNING] Your turn! Choose your next action.")
+                        break
+                    parent = parent.parent()
+
+        except Exception as e:
+            print(f"CRITICAL ERROR: Failed to advance combat turn: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _is_monster_alive_in_encounter(self, encounter_panel, monster_id: str) -> bool:
+        """Check if a monster is still alive in the encounter panel."""
+        try:
+            # Get living monsters from encounter panel
+            living_monsters = encounter_panel.get_living_monsters()
+            for monster in living_monsters:
+                if monster.id == monster_id and monster.is_alive and monster.current_hit_points > 0:
+                    return True
+            return False
+        except Exception as e:
+            print(f"ERROR: Failed to check monster alive status: {e}")
+            return False
+
+    def _continue_combat_turn_cycle(self, encounter_panel):
+        """Continue the combat turn cycle with a small delay to prevent infinite recursion."""
+        try:
+            # Use QTimer to avoid infinite recursion and give UI time to update
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(100, lambda: self._advance_combat_turn(encounter_panel))
+        except Exception as e:
+            print(f"ERROR: Failed to continue combat turn cycle: {e}")
+
     def _execute_monster_attacks_with_delay(self, living_monsters, monster_data, encounter_panel):
         """Execute monster attacks with a small delay between each attack."""
         try:
@@ -2579,9 +2695,12 @@ class ActionPanel(QWidget):
             
             # Start combat officially
             current_encounter.start_combat()
-            
+
             # Switch encounter panel to combat mode
             encounter_panel.set_combat_mode()
+
+            # Set up combat manager with combatants
+            self._setup_combat_manager(encounter_panel, initiative_order)
             
             # Check if player goes first - if not, store pending attack and execute monster attacks first
             print(f"⚔ [DEBUG] Initiative check - first actor type: {initiative_order[0]['type'] if initiative_order else 'no order'}")
@@ -2768,6 +2887,27 @@ class ActionPanel(QWidget):
         """Execute a single monster's attack against the player."""
         try:
             print(f"⚔ [DEBUG] {monster_instance.monster_name} is attacking!")
+
+            # Try to use the combat manager if available and set up
+            try:
+                combat_manager = self._get_combat_manager()
+                if combat_manager.combat_active and monster_instance.id in combat_manager.combatants:
+                    print(f"⚔ [DEBUG] Using combat manager for {monster_instance.monster_name}")
+                    result = combat_manager.execute_monster_turn(monster_instance.id)
+
+                    if 'error' not in result:
+                        # Log and apply results
+                        self._handle_combat_manager_result(result, monster_instance, encounter_panel)
+                        return
+                    else:
+                        print(f"⚔ [DEBUG] Combat manager error: {result['error']}, falling back to old system")
+                else:
+                    print(f"⚔ [DEBUG] Combat manager not ready, using old system")
+            except Exception as e:
+                print(f"⚔ [DEBUG] Combat manager failed: {e}, using old system")
+
+            # Fall back to the original system if combat manager isn't available
+            print(f"⚔ [DEBUG] Using original attack system for {monster_instance.monster_name}")
             
             # Get monster's actions
             actions = monster_stats.get('action', [])
@@ -3379,6 +3519,116 @@ class ActionPanel(QWidget):
             service = WeaponAttackService(db_path)
             self._weapon_attack_service = service
         return service
+
+    def _get_combat_manager(self) -> CombatManager:
+        """Lazily construct the combat manager with the active DB path."""
+        db_path = self._resolve_db_path()
+        manager = getattr(self, '_combat_manager', None)
+        if manager is None or getattr(manager, 'db_path', None) != db_path:
+            manager = CombatManager(db_path)
+            self._combat_manager = manager
+        return manager
+
+    def _setup_combat_manager(self, encounter_panel, initiative_order):
+        """Set up the combat manager with player and monster combatants."""
+        try:
+            combat_manager = self._get_combat_manager()
+
+            # Add player combatant with normalized HP fields
+            if self.character_context:
+                # Normalize HP field names for CombatManager
+                character_data = self.character_context.copy()
+                if 'hit_points_current' in character_data and 'hp' not in character_data:
+                    character_data['hp'] = character_data['hit_points_current']
+                if 'hit_points_max' in character_data and 'max_hp' not in character_data:
+                    character_data['max_hp'] = character_data['hit_points_max']
+                if 'armor_class' in character_data and 'ac' not in character_data:
+                    character_data['ac'] = character_data['armor_class']
+
+                player_combatant = combat_manager.add_player_combatant(character_data)
+                print(f"⚔ [DEBUG] Added player to combat manager: {player_combatant.name} ({player_combatant.hit_points}/{player_combatant.max_hit_points} HP)")
+
+            # Add monster combatants
+            for entry in initiative_order:
+                if entry['type'] == 'monster':
+                    monster_instance = entry.get('instance')
+                    if monster_instance:
+                        # Get monster data from database
+                        monster_data = self._get_monster_data_for_combat_manager(monster_instance)
+                        if monster_data:
+                            monster_combatant = combat_manager.add_monster_combatant(monster_instance.id, monster_data)
+                            print(f"⚔ [DEBUG] Added monster to combat manager: {monster_combatant.name}")
+
+            # Start combat in the manager
+            combat_manager.start_combat()
+            print(f"⚔ [DEBUG] Combat manager started with {len(combat_manager.combatants)} combatants")
+
+        except Exception as e:
+            print(f"Error setting up combat manager: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _get_monster_data_for_combat_manager(self, monster_instance):
+        """Get monster data in the format expected by combat manager."""
+        try:
+            # Get monster data from database
+            import sqlite3
+            db_path = self._resolve_db_path()
+
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM monsters WHERE name = ?", (monster_instance.monster_name,))
+                row = cursor.fetchone()
+
+                if row:
+                    # Get column names
+                    columns = [description[0] for description in cursor.description]
+                    monster_data = dict(zip(columns, row))
+
+                    # Add instance-specific data
+                    monster_data['hit_points'] = monster_instance.current_hit_points
+                    monster_data['max_hit_points'] = monster_instance.max_hit_points
+
+                    return monster_data
+
+        except Exception as e:
+            print(f"Error getting monster data: {e}")
+
+        return None
+
+    def _handle_combat_manager_result(self, result, monster_instance, encounter_panel):
+        """Handle the results from combat manager monster attack."""
+        try:
+            # Log attack results
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    # Log each attack
+                    for attack in result.get('attacks', []):
+                        if attack.get('hit'):
+                            parent.log_panel.log_combat(f"[MONSTER ATTACK] {monster_instance.monster_name} hits for {attack.get('damage', 0)} damage!")
+
+                            # Log any effects (conditions, saves)
+                            for effect in attack.get('effects', []):
+                                parent.log_panel.log_combat(f"[EFFECT] {effect}")
+                        else:
+                            parent.log_panel.log_combat(f"[MONSTER ATTACK] {monster_instance.monster_name} misses!")
+
+                    # Apply total damage to player
+                    total_damage = result.get('total_damage', 0)
+                    if total_damage > 0 and hasattr(parent, 'character_sheet'):
+                        self._apply_damage_to_player(total_damage, "physical", parent.character_sheet.character_data)
+                        parent.log_panel.log_combat(f"[DAMAGE] Player takes {total_damage} total damage!")
+
+                    break
+                parent = parent.parent()
+
+            print(f"⚔ [DEBUG] Combat manager result processed: {result}")
+
+        except Exception as e:
+            print(f"Error handling combat manager result: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _build_weapon_dict_from_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Build weapon dictionary from action context for service calls.
