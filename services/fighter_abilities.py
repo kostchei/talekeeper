@@ -44,8 +44,17 @@ class FighterAbilitiesService:
     
     def update_fighter_resources_for_level(self, character_id: str, level: int) -> None:
         """Update fighter resource maximums based on level."""
-        # Second Wind uses
-        if level >= 1:
+        # Get character's class to determine resources
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT class_id FROM characters WHERE id = ?", (character_id,))
+            result = cursor.fetchone()
+            if not result:
+                return
+            class_id = result['class_id'].lower()
+
+        # Second Wind uses (Fighter only)
+        if class_id == 'fighter' and level >= 1:
             second_wind_max = 2  # Base 2 uses
             if level >= 4:
                 second_wind_max = 3
@@ -53,23 +62,27 @@ class FighterAbilitiesService:
                 second_wind_max = 4
         else:
             second_wind_max = 0
-            
-        # Action Surge uses
-        action_surge_max = 1 if level >= 2 else 0
-        if level >= 17:
-            action_surge_max = 2
-            
-        # Indomitable uses
+
+        # Action Surge uses (Fighter only)
+        action_surge_max = 0
+        if class_id == 'fighter':
+            action_surge_max = 1 if level >= 2 else 0
+            if level >= 17:
+                action_surge_max = 2
+
+        # Indomitable uses (Fighter only)
         indomitable_max = 0
-        if level >= 9:
-            indomitable_max = 1
-        if level >= 13:
-            indomitable_max = 2
-        if level >= 17:
-            indomitable_max = 3
-            
-        # Weapon Mastery count
-        weapon_mastery_count = -1
+        if class_id == 'fighter':
+            if level >= 9:
+                indomitable_max = 1
+            if level >= 13:
+                indomitable_max = 2
+            if level >= 17:
+                indomitable_max = 3
+
+        # Weapon Mastery count - unlimited for Fighter, Barbarian, Rogue, Paladin
+        unlimited_mastery_classes = ['fighter', 'barbarian', 'rogue', 'paladin']
+        weapon_mastery_count = -1 if class_id in unlimited_mastery_classes else 0
         
         # Update critical range based on Champion features
         critical_range_min = 20  # Default

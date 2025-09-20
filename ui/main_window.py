@@ -601,6 +601,11 @@ class MainWindow(QMainWindow):
             save_character_data = self._prepare_character_for_save(character_data)
             saved_character = self.game_engine.create_new_character_sync(save_character_data, save_slot=save_slot)
 
+            # Update weapon mastery resources for applicable classes
+            from services.weapon_attack_service import WeaponAttackService
+            weapon_service = WeaponAttackService('talekeeper.db')
+            weapon_service.update_character_mastery_resources(saved_character['id'])
+
             # Store the last used slot for auto-loading
             self.game_engine.settings['last_character_slot'] = save_slot
             self.game_engine.save_settings()

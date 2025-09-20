@@ -4855,21 +4855,12 @@ class ActionPanel(QWidget):
             desc.setWordWrap(True)
             layout.addWidget(desc)
 
-            if has_weapon_mastery:
-                mastery_note = QLabel("Fighters keep every weapon mastery they have learned. Resting only lets you reorder favorites; no mastery access is lost.")
-                mastery_note.setWordWrap(True)
-                mastery_note.setStyleSheet("color: #9bd5ff; margin-bottom: 12px;")
-                layout.addWidget(mastery_note)
             
             # Buttons
             button_layout = QHBoxLayout()
 
             short_tooltip = "Recover short-rest abilities and healing."
             long_tooltip = "Recover all abilities, spell slots, and HP."
-            if has_weapon_mastery:
-                mastery_tooltip_note = " Fighters retain access to every weapon mastery after swapping; use this rest to reorganize favorites."
-                short_tooltip += mastery_tooltip_note
-                long_tooltip += mastery_tooltip_note
             
             short_rest_btn = QPushButton("Short Rest (1 hour)")
             short_rest_btn.clicked.connect(lambda: self._take_short_rest(dialog))
@@ -4959,7 +4950,6 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
 
-            self._maybe_prompt_weapon_mastery_swap('short')
 
         except Exception as e:
             print(f"Error during short rest: {e}")
@@ -4997,66 +4987,10 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
 
-            self._maybe_prompt_weapon_mastery_swap('long')
 
         except Exception as e:
             print(f"Error during long rest: {e}")
     
-    def _maybe_prompt_weapon_mastery_swap(self, rest_type: str) -> None:
-        """Offer the player a chance to adjust weapon masteries after a rest."""
-        try:
-            if not self._character_has_weapon_mastery_feature():
-                return
-
-            character_id = self._resolve_character_id()
-            if not character_id:
-                return
-
-            service = self._get_weapon_mastery_service()
-            options = service.get_character_weapon_options(character_id)
-            if not options:
-                return
-
-            current_assignments = service.get_character_masteries(character_id)
-            if current_assignments:
-                selected_names = [entry.get('weapon_name', '') for entry in current_assignments]
-            else:
-                selected_names = [option.get('weapon_name', '') for option in options]
-
-            dialog = WeaponMasteryDialog(options, selected_names, parent=self)
-            if dialog.exec() != int(dialog.DialogCode.Accepted):
-                return
-
-            selections = dialog.selected_options()
-            if not selections:
-                # Fighters treat all masteries as known, so default to activating everything the character carries.
-                selections = options
-
-            normalized = service.set_character_masteries(character_id, selections)
-            mastery_names = [entry.get('mastery_type', '') for entry in normalized]
-            self.load_weapon_masteries(mastery_names, normalized)
-            self._log_weapon_mastery_refresh(rest_type, normalized)
-        except Exception as exc:
-            print(f"Error updating weapon masteries during {rest_type} rest: {exc}")
-
-    def _log_weapon_mastery_refresh(self, rest_type: str, assignments: List[Dict[str, str]]) -> None:
-        """Log the updated mastery selections to the combat log."""
-        parent = self.parent()
-        while parent:
-            log_panel = getattr(parent, 'log_panel', None)
-            if log_panel:
-                summary = ', '.join(
-                    f"{entry.get('weapon_name', 'Unknown')} ({entry.get('mastery_type', '?')})"
-                    for entry in assignments
-                    if entry.get('weapon_name') and entry.get('mastery_type')
-                )
-                rest_label = 'Long Rest' if rest_type == 'long' else 'Short Rest'
-                if summary:
-                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery ready for {summary} (all mastery options remain prepared)")
-                else:
-                    log_panel.log_combat(f"[SWORD] {rest_label}: Weapon Mastery refreshed. Fighters retain access to every mastery property even without spotlighted weapons.")
-                break
-            parent = parent.parent()
 
     def _save_character_xp(self):
         """Save character XP to database."""

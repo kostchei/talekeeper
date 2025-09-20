@@ -1394,13 +1394,13 @@ class CharacterPanel(QWidget):
 
             if hasattr(skill_widget, 'prof_label'):
                 if is_expertise:
-                    indicator = '?'
+                    indicator = '★'
                     color = '#2a1c10'
                 elif is_proficient:
-                    indicator = '?'
+                    indicator = '●'
                     color = '#2a1c10'
                 else:
-                    indicator = 'o'
+                    indicator = '○'
                     color = '#695d52'
 
                 skill_widget.prof_label.setText(indicator)

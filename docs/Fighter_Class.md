@@ -66,7 +66,7 @@ When you reach certain Fighter levels, you gain more uses of this feature, as sh
 ### Level 1: Weapon Mastery
 Your training with weapons allows you to use the mastery properties of all Simple or Martial weapons.
 
-Whenever you finish a Short or Long Rest, you can reorder which mastery techniques you spotlight, but TaleKeeper always treats Fighters as knowing every mastery property. There are no mastery slots to track.
+Fighters, Barbarians, Rogues, and Paladins have unlimited access to all weapon mastery properties - there are no slots or limits to track.
 
 ### Level 2: Action Surge
 You can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action, except the Magic action.
@@ -142,10 +142,11 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 ---
 
 ### Weapon Mastery Persistence & Tactical Master Rules
-- Fighters always treat every weapon mastery as known; `FighterAbilitiesService.update_fighter_resources_for_level` stores `weapon_mastery_count = -1` so downstream consumers never gate the feature behind slot counts (`services/fighter_abilities.py:72`).
-- Mastery spotlight selections are persisted purely for presentation through `WeaponMasteryService.set_character_masteries`, which rehydrates metadata without pruning options on rest swaps (`services/weapon_mastery_service.py:53`).
-- Tactical Master overrides layer on top of that persistence: the feature exposes Push/Sap/Slow replacements via `core/class_features.py:395`, so combat resolution should honor the player's override while keeping the weapon's original mastery metadata intact.
-- When multiple classes grant mastery, prefer the Fighter override while leaving other class slot limits unchanged to avoid regressions for multiclass parties.
+- **Unlimited Access Classes**: Fighter, Barbarian, Rogue, and Paladin all have unlimited weapon mastery access (`weapon_mastery_count = -1`), meaning they can use any weapon's mastery property without slot restrictions.
+- This is handled by `WeaponAttackService.update_character_mastery_resources()` which sets unlimited access for these four classes (`services/weapon_attack_service.py`).
+- `FighterAbilitiesService.update_fighter_resources_for_level` also respects this for all four classes (`services/fighter_abilities.py:84-85`).
+- Tactical Master (Fighter level 9+) allows substituting Push/Sap/Slow on any attack via `core/class_features.py:395`.
+- No rest-based swapping or spotlight selection is needed - all masteries are always available for these classes.
 
 ## Implementation Status
 
@@ -172,14 +173,53 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - Ran `pytest test/core/test_features.py::test_action_panel_uses_resource_service` to exercise the rest workflow and confirm the updated messaging stays wired into the ActionPanel.
 - Fighter onboarding tips now frame rests as organizational moments instead of slot management, so no TaleKeeper docs ask players to track mastery counts.
 - Added automated coverage for Remarkable Athlete skill rolls and initiative via the AdvantageSystem updates (`services/advantage_system.py`, `core/combat_manager.py`, `services/fighter_abilities.py`, `test/services/test_fighter_champion.py`).
+- Updated weapon mastery to give unlimited access to Fighter, Barbarian, Rogue, and Paladin classes (2025-09-20).
 
 **TODO**
 - [x] Automate Champion subclass hooks so Remarkable Athlete integrates with initiative and skill rolls, Heroic Warrior awards inspiration at turn start, and Survivor updates `character_combat_state`.
 - [ ] Migrate remaining ActionPanel weapon feature logic into the service-first pipeline and harden mastery and equip edge cases during the metadata rollout.
-  - Inventory Fighter-specific helpers in `action_cards/action_panel.py` that still mutate dice or mastery state locally (for example `_apply_fighting_style_effects`, `_apply_savage_attacker`, `_apply_dueling_bonus`, `_apply_great_weapon_fighting`, `_apply_weapon_mastery_effects`) and fold them into the service layer.
-  - Expose a `WeaponAttackService` (or extend `FighterAbilitiesService`) endpoint that returns mastery overrides/damage adjustments so the panel becomes a thin presenter.
-  - Add regression coverage for multi-weapon loadouts and variant weapons once the service owns mastery metadata.
+  - [ ] **Phase 1: Service Creation**
+    - [ ] Create `WeaponAttackService` in `services/weapon_attack_service.py` to centralize weapon attack calculations
+    - [ ] Define service interface with methods like `calculate_attack_damage()`, `apply_mastery_effects()`, `get_fighting_style_modifiers()`
+    - [ ] Implement dependency injection pattern to allow ActionPanel to consume the service
+  - [ ] **Phase 2: Fighting Style Migration**
+    - [ ] Extract `_apply_fighting_style_effects()` from `action_panel.py:3872` to service layer
+    - [ ] Migrate `_apply_dueling_bonus()` from `action_panel.py:4057` (currently returns +2 damage for one-handed weapons)
+    - [ ] Migrate `_apply_great_weapon_fighting()` from `action_panel.py:4084` (rerolls 1s and 2s on damage dice)
+    - [ ] Update Defense fighting style AC calculations to use service
+    - [ ] Ensure Two-Weapon Fighting ability modifier application uses service
+  - [ ] **Phase 3: Feat & Feature Migration**
+    - [ ] Extract `_apply_savage_attacker()` from `action_panel.py:4015` to service (reroll damage dice, keep higher)
+    - [ ] Consolidate critical hit damage calculations into service
+    - [ ] Move Tactical Master property substitution logic to service layer
+  - [ ] **Phase 4: Weapon Mastery Effects**
+    - [ ] Migrate `_apply_weapon_mastery_effects()` from `action_panel.py:4137` to service
+    - [ ] Implement mastery property handlers (Push, Sap, Slow, Cleave, Graze, Nick, Topple, Vex)
+    - [ ] Add Tactical Master override layer for Push/Sap/Slow substitution at level 9+
+    - [ ] Ensure Fighter's persistent mastery access (no slot limits) is preserved
+  - [ ] **Phase 5: Testing & Validation**
+    - [ ] Add unit tests for each migrated function in `test/services/test_weapon_attack_service.py`
+    - [ ] Create integration tests for multi-weapon loadouts with different masteries
+    - [ ] Test variant weapons (magical items) to ensure metadata inheritance works
+    - [ ] Validate damage calculations match current implementation before switching
 - [ ] Extend `pytest-qt` end-to-end ActionPanel coverage after the UI refactor merges so resource usage and refreshes stay under test.
-  - Stage a `pytest-qt` harness that drives `ActionPanel` through rests, resource expenditure, and mastery reordering using `FeatureSystemIntegration` seeded databases.
-  - Assert resource counters, mastery tooltips, and card availability updates to lock in the service-first flow when the refactor lands.
+  - [ ] **Test Infrastructure Setup**
+    - [ ] Create `test/ui/test_action_panel_integration.py` with pytest-qt fixtures
+    - [ ] Set up test database with seeded Fighter characters at various levels
+    - [ ] Create helper functions for simulating UI interactions (clicks, drags, key presses)
+  - [ ] **Resource Management Tests**
+    - [ ] Test Second Wind usage and recovery on short/long rests
+    - [ ] Test Action Surge activation and cooldown mechanics
+    - [ ] Test Indomitable save reroll prompts and usage tracking
+    - [ ] Verify resource counters update correctly in UI after each use
+  - [ ] **Weapon Mastery Tests**
+    - [ ] Test mastery reordering during rest (should preserve Fighter's access to all)
+    - [ ] Test Tactical Master property substitution UI at level 9+
+    - [ ] Verify mastery tooltips display correct properties and effects
+    - [ ] Test switching between weapons with different mastery properties
+  - [ ] **Combat Flow Tests**
+    - [ ] Test complete attack sequence with fighting styles applied
+    - [ ] Test critical hit damage calculations with Champion's expanded crit range
+    - [ ] Test Studied Attacks advantage tracking after misses
+    - [ ] Verify damage logs show correct breakdown of modifiers
 - [x] Document the Weapon Mastery persistence and Tactical Master override rules so downstream systems align on the no-slot tracking behavior (see "Weapon Mastery Persistence & Tactical Master Rules").

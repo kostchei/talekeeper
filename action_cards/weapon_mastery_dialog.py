@@ -34,8 +34,7 @@ class WeaponMasteryDialog(QDialog):
         layout = QVBoxLayout(self)
 
         intro = QLabel(
-            "Prepare the weapons whose mastery properties you want at your fingertips.\n"
-            "Fighters never lose access to mastery techniques--swapping favorites after a rest just changes which ones are spotlighted."
+            "Select weapon mastery properties to use."
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
