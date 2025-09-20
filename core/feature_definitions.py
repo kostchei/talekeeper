@@ -259,49 +259,76 @@ class ClassFeatures:
                 feature_type="modal",
                 mechanics={
                     "extra_damage": "1d10",
-                    "effects": ["hamstring", "push", "stagger"]
+                    "effects": ["forceful", "hamstring"]
                 },
                 scaling={
-                    9: {"damage": "1d10"},
-                    13: {"damage": "2d10"},
-                    17: {"damage": "3d10"}
+                    9: {"damage": "1d10", "effects": ["forceful", "hamstring"]},
+                    13: {"damage": "1d10", "effects": ["forceful", "hamstring", "staggering", "sundering"]},
+                    17: {"damage": "2d10", "effects": ["forceful", "hamstring", "staggering", "sundering"]}
                 }
             )
         ],
         11: [
             FeatureDefinition(
                 name="Relentless Rage",
-                description="Keep fighting at 0 hit points while raging",
+                description="When you drop to 0 HP while raging, make Constitution save to drop to 2×level HP instead",
                 level_acquired=11,
                 feature_type="triggered",
-                mechanics={"trigger": "drop_to_0_hp", "dc": 10, "dc_increase": 5}
+                mechanics={"trigger": "drop_to_0_hp", "dc": 10, "dc_increase": 5, "hp_recovery": "2*level"}
+            )
+        ],
+        13: [
+            FeatureDefinition(
+                name="Improved Brutal Strike",
+                description="Add Staggering Blow and Sundering Blow to Brutal Strike options",
+                level_acquired=13,
+                feature_type="progression",
+                mechanics={"brutal_strike_upgrade": True}
             )
         ],
         15: [
             FeatureDefinition(
                 name="Persistent Rage",
-                description="Rage doesn't end early unless you choose or fall unconscious",
+                description="Regain all Rage uses when rolling Initiative (once per Long Rest); Rage lasts 10 minutes without extension",
                 level_acquired=15,
                 feature_type="passive",
-                mechanics={"rage_persistent": True}
+                mechanics={"rage_persistent": True, "initiative_rage_recovery": True}
+            )
+        ],
+        17: [
+            FeatureDefinition(
+                name="Brutal Strike Upgrade",
+                description="Brutal Strike damage increases to 2d10 and you can apply two effects per use",
+                level_acquired=17,
+                feature_type="progression",
+                mechanics={"brutal_strike_damage": "2d10", "brutal_strike_dual_effects": True}
             )
         ],
         18: [
             FeatureDefinition(
                 name="Indomitable Might",
-                description="Strength checks minimum equals Strength score",
+                description="If Strength check or save is lower than Strength score, use Strength score instead",
                 level_acquired=18,
                 feature_type="passive",
-                mechanics={"str_check_minimum": "str_score"}
+                mechanics={"strength_minimum": "ability_score"}
+            )
+        ],
+        19: [
+            FeatureDefinition(
+                name="Epic Boon",
+                description="Gain an Epic Boon feat or another feat of your choice",
+                level_acquired=19,
+                feature_type="passive",
+                mechanics={"feat_choice": "epic_boon"}
             )
         ],
         20: [
             FeatureDefinition(
                 name="Primal Champion",
-                description="+4 to Strength and Constitution (max 24)",
+                description="Strength and Constitution increase by 4 (maximum 25)",
                 level_acquired=20,
                 feature_type="passive",
-                mechanics={"str_bonus": 4, "con_bonus": 4, "max_score": 24}
+                mechanics={"ability_increase": {"strength": 4, "constitution": 4}, "new_maximum": 25}
             )
         ]
     }

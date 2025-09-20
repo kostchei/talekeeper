@@ -66,6 +66,14 @@ class ActionType(Enum):
     RECKLESS_ATTACK = "reckless_attack"
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
+
+    # Barbarian Features
+    BRUTAL_STRIKE_FORCEFUL = "brutal_strike_forceful"
+    BRUTAL_STRIKE_HAMSTRING = "brutal_strike_hamstring"
+    BRUTAL_STRIKE_STAGGERING = "brutal_strike_staggering"
+    BRUTAL_STRIKE_SUNDERING = "brutal_strike_sundering"
+    INSTINCTIVE_POUNCE = "instinctive_pounce"
+    INTIMIDATING_PRESENCE = "intimidating_presence"
     
     # Subclass Features
     SIGNATURE_MOVE = "signature_move"  # Gladiator level 10
@@ -454,6 +462,67 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
+
+        # Barbarian Features
+        if self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
+            level = self.character_context.get('level', 1)
+
+            # Brutal Strike (Level 9+)
+            if level >= 9:
+                brutal_strike_feature = self._get_feature_data('Brutal Strike')
+                if brutal_strike_feature:
+                    # Forceful Blow (always available at level 9)
+                    card = ActionCard(ActionType.BRUTAL_STRIKE_FORCEFUL, "[FORCE]", "Forceful Blow", "Push 15 ft & move toward target (+1d10 damage)")
+                    card.feature_data = brutal_strike_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.BRUTAL_STRIKE_FORCEFUL] = card
+
+                    # Hamstring Blow (always available at level 9)
+                    card = ActionCard(ActionType.BRUTAL_STRIKE_HAMSTRING, "[SLOW]", "Hamstring Blow", "Reduce speed by 15 ft (+1d10 damage)")
+                    card.feature_data = brutal_strike_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.BRUTAL_STRIKE_HAMSTRING] = card
+
+                    # Additional effects at level 13+
+                    if level >= 13:
+                        # Staggering Blow
+                        card = ActionCard(ActionType.BRUTAL_STRIKE_STAGGERING, "[STUN]", "Staggering Blow", "Disadvantage on saves, no opportunity attacks (+1d10 damage)")
+                        card.feature_data = brutal_strike_feature
+                        card.action_triggered.connect(self._trigger_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.BRUTAL_STRIKE_STAGGERING] = card
+
+                        # Sundering Blow
+                        card = ActionCard(ActionType.BRUTAL_STRIKE_SUNDERING, "[BREAK]", "Sundering Blow", "Next attack vs target gets +5 (+1d10 damage)")
+                        card.feature_data = brutal_strike_feature
+                        card.action_triggered.connect(self._trigger_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.BRUTAL_STRIKE_SUNDERING] = card
+
+            # Instinctive Pounce (Level 7+)
+            if level >= 7:
+                instinctive_pounce_feature = self._get_feature_data('Instinctive Pounce')
+                if instinctive_pounce_feature:
+                    card = ActionCard(ActionType.INSTINCTIVE_POUNCE, "[LEAP]", "Instinctive Pounce", "Move half speed when entering Rage")
+                    card.feature_data = instinctive_pounce_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.INSTINCTIVE_POUNCE] = card
+
+            # Path of the Berserker features
+            subclass = self.character_context.get('subclass', '').lower()
+            if subclass == 'berserker':
+                # Intimidating Presence (Level 14+)
+                if level >= 14:
+                    intimidating_presence_feature = self._get_feature_data('Intimidating Presence')
+                    if intimidating_presence_feature:
+                        card = ActionCard(ActionType.INTIMIDATING_PRESENCE, "[FEAR]", "Intimidating Presence", "Frighten enemies in 30 ft (Wis save)")
+                        card.feature_data = intimidating_presence_feature
+                        card.action_triggered.connect(self._trigger_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.INTIMIDATING_PRESENCE] = card
 
         # Create subclass feature cards
         if self.character_context:
@@ -1120,6 +1189,20 @@ class ActionPanel(QWidget):
                     self._toggle_reckless_attack()
                 elif action_type == ActionType.LAY_ON_HANDS:
                     self._use_lay_on_hands()
+
+                # Handle barbarian features
+                elif action_type == ActionType.BRUTAL_STRIKE_FORCEFUL:
+                    self._use_brutal_strike('forceful')
+                elif action_type == ActionType.BRUTAL_STRIKE_HAMSTRING:
+                    self._use_brutal_strike('hamstring')
+                elif action_type == ActionType.BRUTAL_STRIKE_STAGGERING:
+                    self._use_brutal_strike('staggering')
+                elif action_type == ActionType.BRUTAL_STRIKE_SUNDERING:
+                    self._use_brutal_strike('sundering')
+                elif action_type == ActionType.INSTINCTIVE_POUNCE:
+                    self._use_instinctive_pounce()
+                elif action_type == ActionType.INTIMIDATING_PRESENCE:
+                    self._use_intimidating_presence()
                 
                 # Emit signal
                 self.action_triggered.emit(action_type, full_context)
@@ -4535,7 +4618,10 @@ class ActionPanel(QWidget):
             ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
             ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.USE_POTION,
             ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE,
-            ActionType.ATTACK_OFF_HAND
+            ActionType.ATTACK_OFF_HAND, ActionType.INSTINCTIVE_POUNCE,
+            ActionType.INTIMIDATING_PRESENCE, ActionType.BRUTAL_STRIKE_FORCEFUL,
+            ActionType.BRUTAL_STRIKE_HAMSTRING, ActionType.BRUTAL_STRIKE_STAGGERING,
+            ActionType.BRUTAL_STRIKE_SUNDERING
         }
         
         # Reactions
@@ -5745,6 +5831,84 @@ class ActionCard(QWidget):
     def set_resource_manager(self, resource_manager):
         """Set the advantage resource manager."""
         self.resource_manager = resource_manager
+
+    def _use_brutal_strike(self, strike_type: str):
+        """Use a Brutal Strike with the specified effect."""
+        if not (self.character_context.get('class_id', '').lower() == 'barbarian' and
+                self.character_context.get('level', 1) >= 9):
+            return
+
+        level = self.character_context.get('level', 1)
+        damage_dice = "2d10" if level >= 17 else "1d10"
+
+        # Apply strike effect based on type
+        effect_descriptions = {
+            'forceful': f"Push target 15 ft away and move toward them (+{damage_dice} damage)",
+            'hamstring': f"Reduce target's speed by 15 ft until next turn (+{damage_dice} damage)",
+            'staggering': f"Target has disadvantage on next save and can't make opportunity attacks (+{damage_dice} damage)",
+            'sundering': f"Next attack roll vs target gains +5 bonus (+{damage_dice} damage)"
+        }
+
+        # Store the brutal strike effect for the next attack
+        if isinstance(self.character_context, dict):
+            self.character_context['brutal_strike_active'] = strike_type
+            self.character_context['brutal_strike_damage'] = damage_dice
+
+        # Log the effect
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    effect_desc = effect_descriptions.get(strike_type, f"Unknown effect (+{damage_dice} damage)")
+                    parent.log_panel.log_combat(f"[BRUTAL] Brutal Strike ({strike_type.title()}) ready: {effect_desc}")
+                    parent.log_panel.log_combat("Next Reckless Attack will apply this effect instead of advantage!")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging brutal strike: {e}")
+
+    def _use_instinctive_pounce(self):
+        """Use Instinctive Pounce movement when entering Rage."""
+        if not (self.character_context.get('class_id', '').lower() == 'barbarian' and
+                self.character_context.get('level', 1) >= 7):
+            return
+
+        # This is typically triggered automatically when Rage is activated
+        # but can be used as a standalone action if needed
+
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat("[LEAP] Instinctive Pounce: Move up to half your speed!")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging instinctive pounce: {e}")
+
+    def _use_intimidating_presence(self):
+        """Use Intimidating Presence to frighten nearby enemies."""
+        if not (self.character_context.get('class_id', '').lower() == 'barbarian' and
+                self.character_context.get('subclass', '').lower() == 'berserker' and
+                self.character_context.get('level', 1) >= 14):
+            return
+
+        # Calculate save DC
+        strength_mod = self.character_context.get('strength_modifier', 0)
+        proficiency_bonus = self.character_context.get('proficiency_bonus', 2)
+        save_dc = 8 + strength_mod + proficiency_bonus
+
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[FEAR] Intimidating Presence activated!")
+                    parent.log_panel.log_combat(f"All enemies within 30 ft must make a Wisdom save (DC {save_dc}) or be Frightened for 1 minute")
+                    parent.log_panel.log_combat("Frightened creatures can repeat the save at the end of each turn")
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error logging intimidating presence: {e}")
 
 
 

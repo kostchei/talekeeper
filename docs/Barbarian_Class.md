@@ -153,3 +153,324 @@
   - 30 ft emanation → Wis Save DC (8 + Str mod + Prof)
   - On fail: Frightened for 1 minute (repeat save each turn)
   - Use again after Long Rest or by expending a Rage use
+
+## Barbarian Implementation Plan
+
+Based on analysis of the Fighter implementation patterns in TaleKeeper, this plan provides a comprehensive approach to implementing the Barbarian class following the same architectural patterns and quality standards.
+
+### Implementation Analysis from Fighter Patterns
+
+#### Key Fighter Implementation Components:
+1. **Database Layer**: `fighter_features` table + `FighterAbilitiesService`
+2. **Backend Services**: `services/fighter_abilities.py` with resource management
+3. **Frontend UI**: Action cards in `action_cards/action_panel.py`
+4. **Feature Integration**: Core feature system via `core/feature_integration.py`
+5. **Testing Framework**: Comprehensive test suite in `test/features/`
+
+#### Critical Success Patterns Identified:
+- **Resource Management**: Uses unified resource system with current/max tracking
+- **Action Cards**: Barbarian features already partially implemented (Rage, Reckless Attack)
+- **Database Schema**: `barbarian_features` table exists but needs expansion
+- **Combat Integration**: Rage damage bonuses integrated into weapon attack calculations
+- **State Tracking**: Combat state persistence during encounters
+
+### Database Implementation Plan
+
+#### Phase 1: Expand `barbarian_features` Table
+**File**: `database/migrations/002_expand_barbarian_features.sql`
+
+```sql
+-- Expand barbarian_features table for all features
+ALTER TABLE barbarian_features ADD COLUMN fast_movement_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN feral_instinct_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN brutal_strike_uses_current INTEGER DEFAULT 0;
+ALTER TABLE barbarian_features ADD COLUMN brutal_strike_uses_max INTEGER DEFAULT 0;
+ALTER TABLE barbarian_features ADD COLUMN relentless_rage_uses_current INTEGER DEFAULT 0;
+ALTER TABLE barbarian_features ADD COLUMN relentless_rage_uses_max INTEGER DEFAULT 0;
+ALTER TABLE barbarian_features ADD COLUMN persistent_rage_recharge_used BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN primal_knowledge_skills TEXT; -- JSON array
+ALTER TABLE barbarian_features ADD COLUMN instinctive_pounce_available BOOLEAN DEFAULT FALSE;
+
+-- Path of the Berserker features
+ALTER TABLE barbarian_features ADD COLUMN frenzy_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN mindless_rage_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN retaliation_available BOOLEAN DEFAULT FALSE;
+ALTER TABLE barbarian_features ADD COLUMN intimidating_presence_uses_current INTEGER DEFAULT 0;
+ALTER TABLE barbarian_features ADD COLUMN intimidating_presence_uses_max INTEGER DEFAULT 0;
+```
+
+#### Phase 2: Feature Definitions
+**File**: `core/feature_definitions.py` (expand BARBARIAN_FEATURES)
+
+Features 3-20 need to be added to match the level table in the documentation.
+
+#### Phase 3: Class Features Data
+**File**: `database/seeds/008_barbarian_class_features.sql`
+
+```sql
+-- Insert all Barbarian class features into class_features table
+INSERT INTO class_features (class_id, level, feature_name, description, mechanics, action_type, uses_per_rest, rest_type) VALUES
+('barbarian', 3, 'Primal Knowledge', 'Gain one skill and use Strength for certain skills while Raging', '{"skills": ["animal_handling", "athletics", "intimidation", "nature", "perception", "survival"], "rage_strength_substitution": true}', 'passive', NULL, NULL),
+('barbarian', 5, 'Extra Attack', 'Make two attacks when taking the Attack action', '{"attacks": 2}', 'passive', NULL, NULL),
+('barbarian', 5, 'Fast Movement', 'Speed increases by 10 feet if not wearing Heavy armor', '{"speed_bonus": 10, "requires": "no_heavy_armor"}', 'passive', NULL, NULL),
+-- ... continue for all levels
+```
+
+### Backend Services Implementation Plan
+
+#### Phase 1: Create BarbarianAbilitiesService
+**File**: `services/barbarian_abilities.py`
+
+Follow Fighter pattern with these core methods:
+```python
+class BarbarianAbilitiesService:
+    def get_barbarian_level(self, character_id: str) -> int
+    def update_barbarian_resources_for_level(self, character_id: str, level: int) -> None
+    def use_rage(self, character_id: str) -> Dict[str, Any]
+    def end_rage(self, character_id: str) -> Dict[str, Any]
+    def use_reckless_attack(self, character_id: str) -> Dict[str, Any]
+    def use_brutal_strike(self, character_id: str, strike_type: str) -> Dict[str, Any]
+    def check_relentless_rage(self, character_id: str, damage: int) -> Dict[str, Any]
+    def rest_barbarian_resources(self, character_id: str, rest_type: str) -> None
+    def process_berserker_turn_start(self, character_id: str) -> Dict[str, Any]
+```
+
+#### Phase 2: Rage System Integration
+**References**:
+- `action_cards/action_panel.py:4778-4810` (existing _use_rage implementation)
+- `docs/Barbarian_Class.md:62-66` (TaleKeeper Implementation Notes)
+
+**Key Requirements**:
+- Rage damage bonus applied from active combat context
+- Resource tracking independent per character
+- Proper Cleave follow-up attack inheritance
+- Debug logging for ineligible attacks (ranged/thrown)
+
+#### Phase 3: Combat State Management
+**File**: Expand `character_combat_state` table
+
+```sql
+ALTER TABLE character_combat_state ADD COLUMN raging BOOLEAN DEFAULT FALSE;
+ALTER TABLE character_combat_state ADD COLUMN rage_damage_bonus INTEGER DEFAULT 0;
+ALTER TABLE character_combat_state ADD COLUMN reckless_attack_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE character_combat_state ADD COLUMN frenzy_active BOOLEAN DEFAULT FALSE;
+```
+
+### Frontend UI Implementation Plan
+
+#### Phase 1: Action Cards Enhancement
+**File**: `action_cards/action_panel.py`
+
+**Current Status**: Rage and Reckless Attack partially implemented
+**Needed Additions**:
+1. **Brutal Strike Cards** (Level 9+):
+   ```python
+   # Add to _create_feature_cards()
+   if brutal_strike_feature and level >= 9:
+       for strike_type in ['forceful', 'hamstring', 'staggering', 'sundering']:
+           if self._has_brutal_strike_option(strike_type, level):
+               card = ActionCard(ActionType.BRUTAL_STRIKE, f"[{strike_type.upper()}]",
+                               f"Brutal Strike ({strike_type.title()})", description)
+   ```
+
+2. **Instinctive Pounce Card** (Level 7+):
+   ```python
+   if instinctive_pounce_feature and level >= 7:
+       card = ActionCard(ActionType.INSTINCTIVE_POUNCE, "[POUNCE]", "Instinctive Pounce",
+                        "Move half speed when entering Rage")
+   ```
+
+3. **Intimidating Presence Card** (Level 14+ Berserker):
+   ```python
+   if intimidating_presence_feature and subclass == 'berserker' and level >= 14:
+       card = ActionCard(ActionType.INTIMIDATING_PRESENCE, "[FEAR]", "Intimidating Presence",
+                        "Frighten enemies in 30 ft (Wis save)")
+   ```
+
+#### Phase 2: Combat UI Integration
+**Files**:
+- `character_sheet/character_panel.py` (AC calculation for Unarmored Defense)
+- `encounter_pane/encounter_panel.py` (resistance application)
+
+**Key Features**:
+1. **Unarmored Defense AC Display**: Show "AC = 10 + DEX + CON" when not wearing armor
+2. **Rage Status Indicator**: Visual indicator during rage with turns remaining
+3. **Damage Resistance Visual**: Show half damage for physical damage types during rage
+
+### Feature System Integration Plan
+
+#### Phase 1: Core Feature System
+**File**: `core/class_features.py`
+
+Add Barbarian feature classes following Fighter pattern:
+```python
+class RageFeature(Feature):
+    def apply(self, character: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]
+    def can_use(self, character: Dict[str, Any], context: Optional[Dict] = None) -> bool
+
+class BrutalStrikeFeature(Feature):
+    def apply(self, character: Dict[str, Any], context: Optional[Dict] = None) -> Dict[str, Any]
+    def can_use(self, character: Dict[str, Any], context: Optional[Dict] = None) -> bool
+```
+
+#### Phase 2: Subclass System
+**File**: `services/subclass_manager.py`
+
+Expand for Berserker features:
+```python
+def process_berserker_frenzy(self, character_id: str, attack_result: Dict) -> Dict[str, Any]
+def use_berserker_retaliation(self, character_id: str, attacker_id: str) -> Dict[str, Any]
+```
+
+### Testing Implementation Plan
+
+#### Phase 1: Database Test Framework
+**File**: `test/fixtures/barbarian_test_database.py`
+
+Following Fighter pattern from `test/fixtures/fighter_test_database.py`:
+```python
+class BarbarianTestDatabase:
+    def create_test_barbarian(self, level: int, subclass: str = 'berserker') -> str
+    def setup_barbarian_equipment(self, character_id: str, level: int) -> None
+    def verify_barbarian_features(self, character_id: str, level: int) -> bool
+```
+
+#### Phase 2: Feature Test Suites
+**Files**: `test/features/test_barbarian_*.py`
+
+Based on Fighter test structure:
+1. **test_barbarian_rage.py**: Rage activation, duration, damage bonus, resistance
+2. **test_barbarian_reckless_attack.py**: Advantage mechanics, enemy advantage tracking
+3. **test_barbarian_brutal_strike.py**: Strike types, Reckless Attack interaction
+4. **test_barbarian_unarmored_defense.py**: AC calculation, armor interactions
+5. **test_berserker_subclass.py**: Frenzy, Mindless Rage, Retaliation, Intimidating Presence
+
+#### Phase 3: Combat Integration Tests
+**File**: `test/features/test_barbarian_combat_flow.py`
+
+End-to-end combat scenarios:
+- Rage → Reckless Attack → weapon attacks with damage bonus
+- Brutal Strike combinations at different levels
+- Resistance application during damage
+- Resource recovery after rests
+
+### Implementation Issues & Solutions from Fighter Analysis
+
+#### Issue 1: Resource Tracking Complexity
+**Fighter Solution**: Unified resource system in `services/character_resources.py`
+**Barbarian Application**:
+- Rage uses scale with level (2→3→4→5→6)
+- Brutal Strike uses based on Reckless Attack usage
+- Berserker features have independent resource pools
+
+#### Issue 2: Combat State Persistence
+**Fighter Solution**: `character_combat_state` table with turn-by-turn tracking
+**Barbarian Application**:
+- Rage persists across multiple turns (10 minutes)
+- Reckless Attack advantage/disadvantage tracking
+- Frenzy and Mindless Rage state management
+
+#### Issue 3: Level-Dependent Feature Scaling
+**Fighter Solution**: `update_fighter_resources_for_level()` method
+**Barbarian Application**:
+```python
+def update_barbarian_resources_for_level(self, character_id: str, level: int) -> None:
+    rage_uses = 2 if level < 3 else (3 if level < 6 else (4 if level < 12 else (5 if level < 17 else 6)))
+    rage_damage = 2 if level < 9 else (3 if level < 16 else 4)
+    # Update barbarian_features table
+```
+
+### Integration Priority Order
+
+#### Priority 1: Core Barbarian Features (Levels 1-5)
+1. Complete Rage system (already 70% implemented)
+2. Unarmored Defense AC calculation
+3. Reckless Attack (already 60% implemented)
+4. Danger Sense passive integration
+5. Fast Movement speed bonus
+
+#### Priority 2: Mid-Level Features (Levels 6-10)
+1. Primal Knowledge skill system
+2. Extra Attack (reuse Fighter implementation)
+3. Feral Instinct initiative advantage
+4. Instinctive Pounce movement on Rage
+
+#### Priority 3: Advanced Features (Levels 11-20)
+1. Brutal Strike action cards and mechanics
+2. Relentless Rage death save system
+3. Persistent Rage resource recovery
+4. Indomitable Might ability substitution
+5. Primal Champion stat increases
+
+#### Priority 4: Berserker Subclass
+1. Frenzy damage bonus (Level 3)
+2. Mindless Rage condition immunity (Level 6)
+3. Retaliation reaction attacks (Level 10)
+4. Intimidating Presence area effect (Level 14)
+
+### Quality Assurance Plan
+
+#### Code Quality Standards
+**Reference**: Fighter implementation quality patterns
+- Follow existing service class patterns
+- Use type hints and proper error handling
+- Database transactions with rollback on failure
+- Qt signal/slot patterns for UI integration
+
+#### Testing Coverage Requirements
+**Reference**: Fighter test coverage (~95%)
+- Unit tests for all service methods
+- Integration tests for combat scenarios
+- UI tests for action card interactions
+- Database tests for resource persistence
+
+#### Performance Considerations
+**Reference**: Fighter performance benchmarks
+- Database queries optimized with proper indexes
+- UI updates batched to prevent lag
+- Memory management for long combat encounters
+
+### Development Timeline Estimate
+
+#### Phase 1 (Database & Backend): 2-3 days
+- Database schema expansion
+- BarbarianAbilitiesService implementation
+- Core feature definitions
+
+#### Phase 2 (Frontend Integration): 2-3 days
+- Action card enhancements
+- Combat UI updates
+- Character sheet integration
+
+#### Phase 3 (Testing Framework): 2-3 days
+- Test database setup
+- Feature test implementation
+- Integration test scenarios
+
+#### Phase 4 (Polish & Documentation): 1-2 days
+- Bug fixes and optimization
+- Documentation updates
+- Final testing validation
+
+**Total Estimated Timeline**: 7-11 days
+
+### References and Code Locations
+
+#### Key Implementation Files:
+- **Fighter Service**: `services/fighter_abilities.py:20-692`
+- **Fighter Tests**: `test/README_FIGHTER_TESTING.md:1-202`
+- **Action Cards**: `action_cards/action_panel.py:427-448` (Rage/Reckless)
+- **Database Schema**: `database/schema/001_current_schema.sql` (barbarian_features table)
+- **Feature Definitions**: `core/feature_definitions.py:149-200` (partial Barbarian)
+
+#### Testing Framework References:
+- **Test Database**: `test/fixtures/fighter_test_database.py`
+- **Feature Tests**: `test/features/test_fighter_*.py`
+- **Test Runner**: `test/run_fighter_tests.py`
+
+#### Combat Integration References:
+- **Damage Application**: `action_cards/action_panel.py:4778-4810` (_use_rage)
+- **Resource System**: `services/character_resources.py`
+- **Combat State**: Database table `character_combat_state`
+
+This implementation plan follows the proven Fighter architecture while addressing the unique complexity of Barbarian features, particularly the Rage system's multi-turn state management and the scaling resource requirements across 20 levels.
