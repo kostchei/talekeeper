@@ -628,3 +628,103 @@ class BarbarianAbilitiesService:
                 'effect': '30 ft emanation - Wisdom save or Frightened for 1 minute (repeat save each turn)',
                 'uses_remaining': row['intimidating_presence_uses_current'] - 1
             }
+
+    def has_danger_sense_advantage(self, character_id: str, save_ability: str, conditions: List[str] = None) -> bool:
+        """Check if character gets Danger Sense advantage on a Dexterity saving throw."""
+        if save_ability.lower() != 'dexterity':
+            return False
+
+        # Check for incapacitating conditions
+        if conditions:
+            incapacitating = {'blinded', 'deafened', 'incapacitated', 'unconscious', 'paralyzed', 'stunned'}
+            if any(condition.lower() in incapacitating for condition in conditions):
+                return False
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT danger_sense_active, level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+
+            if row and row['danger_sense_active'] and row['level'] >= 2:
+                return True
+
+        return False
+
+    def get_primal_knowledge_skills(self, character_id: str) -> List[str]:
+        """Get available Primal Knowledge skills for barbarian."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT primal_knowledge_skills, level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+
+            if row and row['level'] >= 3:
+                skills_json = row['primal_knowledge_skills'] or '[]'
+                return json.loads(skills_json)
+
+            return []
+
+    def add_primal_knowledge_skill(self, character_id: str, skill_name: str) -> Dict[str, Any]:
+        """Add a skill to Primal Knowledge (Animal Handling, Athletics, Intimidation, Nature, Perception, Survival)."""
+        valid_skills = ['Animal Handling', 'Athletics', 'Intimidation', 'Nature', 'Perception', 'Survival']
+        if skill_name not in valid_skills:
+            return {'success': False, 'error': f'Invalid skill: {skill_name}. Must be one of: {", ".join(valid_skills)}'}
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT primal_knowledge_skills, level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+
+            if not row or row['level'] < 3:
+                return {'success': False, 'error': 'Primal Knowledge requires barbarian level 3+'}
+
+            current_skills = json.loads(row['primal_knowledge_skills'] or '[]')
+            if skill_name in current_skills:
+                return {'success': False, 'error': f'{skill_name} already known'}
+
+            # Calculate max skills (2 at level 3, +1 every 4 levels: 6, 10, 14, 18)
+            level = row['level']
+            max_skills = 2 + ((level - 3) // 4)
+
+            if len(current_skills) >= max_skills:
+                return {'success': False, 'error': f'Maximum {max_skills} skills allowed at level {level}'}
+
+            current_skills.append(skill_name)
+            cursor.execute("""
+                UPDATE barbarian_features
+                SET primal_knowledge_skills = ?
+                WHERE character_id = ?
+            """, (json.dumps(current_skills), character_id))
+
+            conn.commit()
+
+            return {
+                'success': True,
+                'skill_added': skill_name,
+                'total_skills': len(current_skills),
+                'max_skills': max_skills
+            }
+
+    def has_feral_instinct(self, character_id: str) -> bool:
+        """Check if character has Feral Instinct (advantage on initiative, can act if surprised)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT feral_instinct_active, level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+
+            return bool(row and row['feral_instinct_active'] and row['level'] >= 7)

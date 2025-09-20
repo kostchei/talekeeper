@@ -3434,7 +3434,21 @@ class EncounterPanel(QWidget):
             return 'The trap lashes out but misses.'
 
         save_bonus = self._get_saving_throw_bonus_for_trap(ctx, 'dexterity')
-        roll_total, detail = self._roll_d20(save_bonus)
+
+        # Check for Danger Sense advantage
+        has_advantage = self._check_danger_sense_advantage(ctx, 'dexterity')
+
+        if has_advantage:
+            # Roll with advantage (2d20, take higher)
+            roll1 = random.randint(1, 20)
+            roll2 = random.randint(1, 20)
+            d20_result = max(roll1, roll2)
+            roll_total = d20_result + save_bonus
+            detail = f"({roll1}, {roll2}) + {save_bonus} = {roll_total} (Danger Sense advantage)"
+            self._log_monster_action("[TRAP] Rolling Dexterity save with Danger Sense advantage")
+        else:
+            roll_total, detail = self._roll_d20(save_bonus)
+
         self._log_monster_action(
             f"[TRAP] Dexterity save {detail} vs DC {trap['dc']}"
         )
@@ -3501,6 +3515,27 @@ class EncounterPanel(QWidget):
             ability_key = f"{ability.lower()}_modifier"
             return character.get(ability_key, 0)
         return 0
+
+    def _check_danger_sense_advantage(self, ctx: Dict[str, Any], ability: str) -> bool:
+        """Check if character gets Danger Sense advantage on saving throw."""
+        character = ctx.get('character')
+        if not character or ability.lower() != 'dexterity':
+            return False
+
+        # Check if character is a barbarian
+        if character.get('class_id', '').lower() != 'barbarian':
+            return False
+
+        try:
+            from services.barbarian_abilities import BarbarianAbilitiesService
+            barbarian_service = BarbarianAbilitiesService()
+
+            # Get current conditions (simplified - could be expanded)
+            conditions = []  # In future, get from character status effects
+
+            return barbarian_service.has_danger_sense_advantage(character['id'], ability, conditions)
+        except Exception:
+            return False
 
     def _has_thieves_tools_equipped(self, ctx: Dict[str, Any]) -> bool:
         for item in ctx.get('inventory', []):

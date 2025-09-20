@@ -197,7 +197,24 @@ class GameEngineSQLite:
                     """, (current_ac, datetime.now().isoformat(), character_id))
                     conn.commit()
                     print(f"[SQLite] Updated AC for {character_row['name']}: {character_row['armor_class']} -> {current_ac}")
-                
+
+                # Calculate and update movement speed
+                current_speed = self._calculate_movement_speed(
+                    character_id,
+                    character_row['class_id'],
+                    character_row['level']
+                )
+
+                # Update database if speed has changed
+                stored_speed = character_row['speed'] if 'speed' in character_row.keys() else 30
+                if current_speed != stored_speed:
+                    cursor.execute("""
+                        UPDATE characters SET speed = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (current_speed, datetime.now().isoformat(), character_id))
+                    conn.commit()
+                    print(f"[SQLite] Updated speed for {character_row['name']}: {stored_speed} -> {current_speed}")
+
                 # Parse datetime fields
                 created_at = datetime.fromisoformat(character_row['created_at']) if character_row['created_at'] else datetime.now()
                 updated_at = datetime.fromisoformat(character_row['updated_at']) if character_row['updated_at'] else None
@@ -238,6 +255,7 @@ class GameEngineSQLite:
                     
                     # Combat stats
                     'armor_class': current_ac,
+                    'speed': current_speed,
                     'hit_points_max': character_row['hit_points_max'],
                     'hit_points_current': character_row['hit_points_current'],
                     'hit_points_temporary': character_row['hit_points_temporary'],
@@ -1585,11 +1603,38 @@ class GameEngineSQLite:
                     print(f"[SQLite] Magical AC bonus: +{magical_ac_bonus} (total now {ac})")
 
             return ac
-            
+
         except Exception as e:
             print(f"[SQLite] Error calculating AC: {e}")
             # Fallback to basic calculation
-            return 10 + ((dexterity - 10) // 2)
+
+    def _calculate_movement_speed(self, character_id: str, class_id: str, level: int) -> int:
+        """Calculate movement speed based on class features and level."""
+        base_speed = 30  # Standard movement speed for most races
+
+        try:
+            # Apply Fast Movement for Barbarian (Level 5+)
+            if class_id.lower() == 'barbarian' and level >= 5:
+                # Check if Fast Movement is active
+                with self._get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT fast_movement_active FROM barbarian_features
+                        WHERE character_id = ? AND level >= 5
+                    """, (character_id,))
+                    row = cursor.fetchone()
+
+                    if row and row['fast_movement_active']:
+                        base_speed += 10
+                        print(f"[SQLite] Fast Movement: +10 speed (total {base_speed})")
+
+            # TODO: Add other speed modifiers (magic items, spells, etc.)
+
+            return base_speed
+
+        except Exception as e:
+            print(f"[SQLite] Error calculating movement speed: {e}")
+            return 30  # Fallback to standard speed
     
     def get_monsters_by_cr_sync(self, min_cr: float, max_cr: float) -> List[Dict[str, Any]]:
         """Get monsters within CR range from JSON data files."""
