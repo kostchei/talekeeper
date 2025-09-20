@@ -1,4 +1,4 @@
-"""
+﻿"""
 D&D 2024 Compliant Combat Manager
 
 Handles initiative, turn order, action economy, and combat resolution
@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from services.proficiency_system import ProficiencySystem
 from services.proficiency_bonus import get_proficiency_bonus
+from services.advantage_system import advantage_system, RollType
 from services.fighter_abilities import FighterAbilitiesService
 
 class ActionType(Enum):
@@ -73,6 +74,11 @@ class Combatant:
     level: Optional[int] = None
     equipped_armor: Optional[str] = None  # Track equipped armor for adamantine check
     extra_attacks: int = 0
+    subclass_name: Optional[str] = None
+    feature_flags: Dict[str, Any] = field(default_factory=dict)
+    character_features: Optional[Any] = None
+    initiative_breakdown: Optional[Dict[str, Any]] = None
+    has_remarkable_athlete: Optional[bool] = None
 
 @dataclass 
 class CombatRound:
@@ -115,6 +121,13 @@ class CombatManager:
             character_data.get('level', 1)
         )
         
+        raw_feature_flags = character_data.get('feature_flags')
+        feature_flags = raw_feature_flags if isinstance(raw_feature_flags, dict) else {}
+        character_features = character_data.get('character_features')
+        subclass_name = character_data.get('subclass_id') or character_data.get('subclass')
+        has_ra_flag = None
+        if isinstance(feature_flags, dict) and feature_flags.get('remarkable_athlete'):
+            has_ra_flag = True
         combatant = Combatant(
             id=character_id,
             name=character_data.get('name', 'Player'),
@@ -126,7 +139,11 @@ class CombatManager:
             class_name=character_data.get('class_id'),
             level=character_data.get('level', 1),
             extra_attacks=extra_attacks,
-            equipped_armor=character_data.get('equipment_armor')  # Include equipped armor
+            equipped_armor=character_data.get('equipment_armor'),
+            subclass_name=subclass_name,
+            feature_flags=feature_flags,
+            character_features=character_features,
+            has_remarkable_athlete=has_ra_flag
         )
         
         self.combatants[character_id] = combatant
@@ -158,6 +175,42 @@ class CombatManager:
         self.combatants[monster_id] = combatant
         return combatant
     
+    def _build_initiative_context(self, combatant: Combatant) -> Dict[str, Any]:
+        """Assemble context data for initiative rolls."""
+        context: Dict[str, Any] = {
+            'dexterity_modifier': combatant.initiative_bonus
+        }
+        if combatant.feature_flags:
+            context['feature_flags'] = combatant.feature_flags
+        if combatant.character_features is not None:
+            context['character_features'] = combatant.character_features
+        if self._has_remarkable_athlete(combatant):
+            context['remarkable_athlete'] = True
+        return context
+
+    def _has_remarkable_athlete(self, combatant: Combatant) -> bool:
+        """Check and cache whether the combatant benefits from Remarkable Athlete."""
+        if combatant.type != CombatantType.PLAYER:
+            return False
+        if combatant.has_remarkable_athlete is not None:
+            return combatant.has_remarkable_athlete
+        flags = combatant.feature_flags or {}
+        if isinstance(flags, dict) and flags.get('remarkable_athlete'):
+            combatant.has_remarkable_athlete = True
+            return True
+        if (combatant.class_name or '').lower() != 'fighter' or (combatant.level or 0) < 3:
+            combatant.has_remarkable_athlete = False
+            return False
+        subclass = (combatant.subclass_name or '').lower()
+        if subclass == 'champion':
+            combatant.has_remarkable_athlete = True
+            return True
+        has_feature = self.fighter_service.has_remarkable_athlete(combatant.id)
+        combatant.has_remarkable_athlete = has_feature
+        if has_feature and not combatant.subclass_name:
+            combatant.subclass_name = 'champion'
+        return has_feature
+
     def start_combat(self) -> List[Combatant]:
         """
         Start combat by rolling initiative for all combatants.
@@ -173,9 +226,28 @@ class CombatManager:
         # Roll initiative for all combatants
         for combatant in self.combatants.values():
             if combatant.is_alive:
-                roll = random.randint(1, 20)
-                combatant.initiative_roll = roll + combatant.initiative_bonus
-                self.log(f"[COMBAT] {combatant.name} Initiative: d20({roll}) + {combatant.initiative_bonus} = {combatant.initiative_roll}")
+                context = self._build_initiative_context(combatant)
+                advantage_sources = advantage_system.get_common_advantage_sources(RollType.INITIATIVE, context)
+                disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.INITIATIVE, context)
+                advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+                total, breakdown = advantage_system.roll_d20_with_advantage(advantage_state, combatant.initiative_bonus)
+                breakdown['advantage_sources'] = list(advantage_sources)
+                breakdown['disadvantage_sources'] = list(disadvantage_sources)
+                breakdown['advantage_state'] = advantage_state.value
+                combatant.initiative_roll = total
+                combatant.initiative_breakdown = breakdown
+                description = advantage_system.format_roll_description(breakdown)
+                extras = []
+                if advantage_sources:
+                    adv_text = ', '.join(advantage_sources)
+                    extras.append(f"Adv: {adv_text}")
+                if disadvantage_sources:
+                    dis_text = ', '.join(disadvantage_sources)
+                    extras.append(f"Dis: {dis_text}")
+                if extras:
+                    extras_text = '; '.join(extras)
+                    description += f" ({extras_text})"
+                self.log(f"[COMBAT] {combatant.name} Initiative: {description}")
         
         # Sort by initiative (highest first, with ties resolved randomly)
         initiative_order = []
@@ -381,10 +453,11 @@ class CombatManager:
 
         survivor_info = result.get("survivor") or {}
         if survivor_info.get("healing_triggered") and survivor_info.get("healing"):
+            healing_amount = survivor_info.get("healing")
             new_hp = survivor_info.get("new_hp", "?")
             max_hp = survivor_info.get("max_hp", "?")
             self.log(
-                f"[COMBAT] [SURVIVOR] {combatant.name} recovers {survivor_info[\"healing\"]} HP ({new_hp}/{max_hp} HP)."
+                f"[COMBAT] [SURVIVOR] {combatant.name} recovers {healing_amount} HP ({new_hp}/{max_hp} HP)."
             )
 
 

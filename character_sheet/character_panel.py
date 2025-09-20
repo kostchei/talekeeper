@@ -428,12 +428,13 @@ class CharacterPanel(QWidget):
         layout.setContentsMargins(5, 2, 5, 2)
         layout.setSpacing(5)
         
-        # Proficiency indicator (circle or diamond)
-        prof_label = QLabel("○")
+        # Proficiency indicator (default to circle for no proficiency)
+        prof_label = QLabel('o')
         prof_label.setObjectName("proficiencyIndicator")
+        prof_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         prof_label.setFixedWidth(15)
         layout.addWidget(prof_label)
-        
+
         # Skill name
         name_label = QLabel(skill_name)
         name_label.setObjectName("skillName")
@@ -1365,28 +1366,46 @@ class CharacterPanel(QWidget):
         # Get character proficiencies
         character_id = character_data.get('id')
         char_proficiencies = proficiency_system.get_character_proficiencies(character_id) if character_id else {
-            'skill': [], 'saving_throw': [], 'weapon': [], 'armor': [], 'tool': [], 'language': []
+            'skill': [], 'saving_throw': [], 'weapon': [], 'armor': [], 'tool': [], 'language': [], 'skill_expertise': []
         }
-        skill_proficiencies = char_proficiencies.get('skill', [])
-        
+        skill_proficiencies = {name.lower() for name in char_proficiencies.get('skill', [])}
+        expertise_skills = {name.lower() for name in char_proficiencies.get('skill_expertise', [])}
+
         for skill_name, skill_widget in self.skill_widgets.items():
             ability = skill_widget.ability
             ability_score = abilities.get(ability, 10)
             ability_mod = (ability_score - 10) // 2
-            
-            # Check if proficient in this skill
-            is_proficient = skill_name in skill_proficiencies
-            skill_bonus = ability_mod + (proficiency_bonus if is_proficient else 0)
+
+            key = skill_name.lower()
+            is_expertise = key in expertise_skills
+            is_proficient = key in skill_proficiencies or is_expertise
+
+            if is_expertise:
+                skill_bonus = ability_mod + (proficiency_bonus * 2)
+            elif is_proficient:
+                skill_bonus = ability_mod + proficiency_bonus
+            else:
+                skill_bonus = ability_mod
+
             bonus_text = f"+{skill_bonus}" if skill_bonus >= 0 else str(skill_bonus)
             skill_widget.bonus_label.setText(bonus_text)
-            
-            # Update proficiency indicator (diamond for proficient)
+            skill_widget.is_proficient = is_proficient
+            skill_widget.is_expertise = is_expertise
+
             if hasattr(skill_widget, 'prof_label'):
-                skill_widget.prof_label.setText("♦" if is_proficient else "○")
-                skill_widget.prof_label.setStyleSheet(
-                    "color: #FFD700; font-size: 10px;" if is_proficient else "color: #3a3a3a; font-size: 10px;"
-                )
-        
+                if is_expertise:
+                    indicator = '?'
+                    color = '#2a1c10'
+                elif is_proficient:
+                    indicator = '?'
+                    color = '#2a1c10'
+                else:
+                    indicator = 'o'
+                    color = '#695d52'
+
+                skill_widget.prof_label.setText(indicator)
+                skill_widget.prof_label.setStyleSheet(f"color: {color}; font-size: 11px;")
+
         # Update saving throws
         save_proficiencies = char_proficiencies.get('saving_throw', [])
         

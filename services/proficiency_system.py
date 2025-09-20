@@ -2,6 +2,27 @@ import sqlite3
 from typing import Dict, List, Set, Optional, Tuple, Any
 from services.proficiency_bonus import get_proficiency_bonus
 
+SKILL_CANONICAL_MAP = {
+    'acrobatics': 'Acrobatics',
+    'animal handling': 'Animal Handling',
+    'arcana': 'Arcana',
+    'athletics': 'Athletics',
+    'deception': 'Deception',
+    'history': 'History',
+    'insight': 'Insight',
+    'intimidation': 'Intimidation',
+    'investigation': 'Investigation',
+    'medicine': 'Medicine',
+    'nature': 'Nature',
+    'perception': 'Perception',
+    'performance': 'Performance',
+    'persuasion': 'Persuasion',
+    'religion': 'Religion',
+    'sleight of hand': 'Sleight of Hand',
+    'stealth': 'Stealth',
+    'survival': 'Survival'
+}
+
 
 class ProficiencySystem:
     def __init__(self, db_path: str = 'talekeeper.db'):
@@ -125,7 +146,8 @@ class ProficiencySystem:
                     'skill': [],
                     'tool': [],
                     'language': [],
-                    'saving_throw': []
+                    'saving_throw': [],
+                    'skill_expertise': []
                 }
                 
                 for row in cursor.fetchall():
@@ -133,12 +155,85 @@ class ProficiencySystem:
                     if prof_type in proficiencies:
                         proficiencies[prof_type].append(prof_name)
                 
+                proficiencies['skill_expertise'] = self._get_skill_expertise(cursor, character_id)
+
                 return proficiencies
                 
         except Exception as e:
             print(f"[Proficiency] Error getting proficiencies: {e}")
-            return {'weapon': [], 'armor': [], 'skill': [], 'tool': [], 'language': []}
+            return {'weapon': [], 'armor': [], 'skill': [], 'tool': [], 'language': [], 'saving_throw': [], 'skill_expertise': []}
     
+
+    def _normalize_skill_name(self, skill: Any) -> Optional[str]:
+        if not isinstance(skill, str):
+            return None
+        cleaned = ' '.join(skill.replace('_', ' ').replace('-', ' ').split()).lower()
+        if not cleaned:
+            return None
+        canonical = SKILL_CANONICAL_MAP.get(cleaned)
+        if canonical:
+            return canonical
+        return skill.strip().title()
+
+    def _parse_skill_list(self, raw: Any) -> Set[str]:
+        skills: Set[str] = set()
+        if raw is None:
+            return skills
+        if isinstance(raw, str):
+            stripped = raw.strip()
+            if not stripped:
+                return skills
+            try:
+                import json
+                parsed = json.loads(stripped)
+            except Exception:
+                tokens = stripped.replace('|', ',').replace(';', ',').split(',')
+                for token in tokens:
+                    normalized = self._normalize_skill_name(token)
+                    if normalized:
+                        skills.add(normalized)
+            else:
+                skills.update(self._parse_skill_list(parsed))
+            return skills
+        if isinstance(raw, (list, tuple, set)):
+            for item in raw:
+                skills.update(self._parse_skill_list(item))
+            return skills
+        if isinstance(raw, dict):
+            for value in raw.values():
+                skills.update(self._parse_skill_list(value))
+        return skills
+
+    def _get_skill_expertise(self, cursor, character_id: str) -> List[str]:
+        expertise: Set[str] = set()
+        try:
+            cursor.execute("""
+                SELECT expertise_skills
+                FROM rogue_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+            if row and row[0]:
+                expertise.update(self._parse_skill_list(row[0]))
+        except Exception as error:
+            print(f"[Proficiency] Error loading rogue expertise: {error}")
+
+        try:
+            cursor.execute("""
+                SELECT proficiency_name
+                FROM character_proficiencies
+                WHERE character_id = ?
+                  AND proficiency_type = 'skill_expertise'
+            """, (character_id,))
+            for (name,) in cursor.fetchall():
+                normalized = self._normalize_skill_name(name)
+                if normalized:
+                    expertise.add(normalized)
+        except Exception as error:
+            print(f"[Proficiency] Error loading proficiency expertise: {error}")
+
+        return sorted(expertise)
+
     def is_proficient_with_weapon(self, character_id: str, weapon_name: str) -> Tuple[bool, str]:
         try:
             with self._get_connection() as conn:

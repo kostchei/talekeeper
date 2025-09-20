@@ -16,7 +16,7 @@ Rules:
 """
 
 from enum import Enum
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional, Set
 import random
 
 class RollType(Enum):
@@ -36,6 +36,83 @@ class AdvantageState(Enum):
 class AdvantageSystem:
     """Centralized system for handling advantage/disadvantage on d20 rolls."""
     
+    @staticmethod
+    def _normalize_feature_name(candidate: Any) -> Optional[str]:
+        """Normalize feature descriptors to lowercase names when possible."""
+        if isinstance(candidate, str):
+            return candidate.strip().lower()
+        if isinstance(candidate, dict):
+            name = candidate.get('name') or candidate.get('feature_name')
+            if isinstance(name, str):
+                return name.strip().lower()
+        return None
+
+    @classmethod
+    def _collection_has_feature(cls, candidate: Any, candidate_names: Set[str]) -> bool:
+        """Check nested feature collections (dicts/lists) for a matching feature name."""
+        if candidate is None:
+            return False
+        normalized = cls._normalize_feature_name(candidate)
+        if normalized and normalized in candidate_names:
+            return True
+        if isinstance(candidate, dict):
+            for key, value in candidate.items():
+                if cls._collection_has_feature(key, candidate_names):
+                    return True
+                if cls._collection_has_feature(value, candidate_names):
+                    return True
+            return False
+        if isinstance(candidate, (list, tuple, set)):
+            for entry in candidate:
+                if cls._collection_has_feature(entry, candidate_names):
+                    return True
+        return False
+
+    @classmethod
+    def _context_has_feature(cls, context: Dict[str, Any], *names: str) -> bool:
+        """Determine if any of the provided feature names appear in the roll context."""
+        if not context:
+            return False
+        candidate_names: Set[str] = set()
+        for name in names:
+            if not name:
+                continue
+            normalized = name.strip().lower()
+            candidate_names.add(normalized)
+            candidate_names.add(normalized.replace('_', ' '))
+            candidate_names.add(normalized.replace(' ', '_'))
+        if not candidate_names:
+            return False
+        for key in list(candidate_names):
+            if context.get(key):
+                return True
+        feature_flags = context.get('feature_flags')
+        if isinstance(feature_flags, dict):
+            for key in candidate_names:
+                flag_value = feature_flags.get(key)
+                if isinstance(flag_value, bool) and flag_value:
+                    return True
+                if isinstance(flag_value, str) and flag_value.strip():
+                    return True
+        for collection_key in ('character_features', 'features', 'feature_list', 'feats'):
+            if cls._collection_has_feature(context.get(collection_key), candidate_names):
+                return True
+        return False
+
+    @classmethod
+    def _context_has_remarkable_athlete(cls, context: Dict[str, Any]) -> bool:
+        """Check whether Remarkable Athlete is present in the context."""
+        return cls._context_has_feature(context, 'remarkable athlete', 'remarkable_athlete')
+
+    @staticmethod
+    def _is_athletics_check(context: Dict[str, Any]) -> bool:
+        """Determine if the current context refers to an Athletics skill check."""
+        for key in ('skill_name', 'skill', 'skill_id', 'skill_key'):
+            value = context.get(key) if context else None
+            if isinstance(value, str) and value.strip().lower() == 'athletics':
+                return True
+        return False
+
     @staticmethod
     def calculate_advantage_state(advantage_sources: List[str], disadvantage_sources: List[str]) -> AdvantageState:
         """
@@ -137,51 +214,52 @@ class AdvantageSystem:
     def get_common_advantage_sources(roll_type: RollType, context: Dict[str, Any]) -> List[str]:
         """
         Get common sources of advantage for different roll types.
-        
+
         Args:
             roll_type: Type of roll being made
             context: Context information (character stats, conditions, etc.)
-            
+
         Returns:
             List of advantage source descriptions
         """
-        advantage_sources = []
-        
-        # Check for general conditions
+        advantage_sources: List[str] = []
+
+        def append_unique(label: str) -> None:
+            if label and label not in advantage_sources:
+                advantage_sources.append(label)
+
         if context.get('has_help', False):
-            advantage_sources.append("Help action")
-        
-        if context.get('target_prone', False) and roll_type == RollType.ATTACK:
-            advantage_sources.append("Target is prone (melee)")
-        
-        if context.get('unseen_attacker', False) and roll_type == RollType.ATTACK:
-            advantage_sources.append("Unseen attacker")
-        
+            append_unique('Help action')
+
+        if roll_type == RollType.ATTACK and context.get('target_prone', False):
+            append_unique('Target is prone (melee)')
+
+        if roll_type == RollType.ATTACK and context.get('unseen_attacker', False):
+            append_unique('Unseen attacker')
+
         if context.get('lucky_feat_used', False):
-            advantage_sources.append("Lucky feat")
-        
-        # Class-specific advantages
-        if context.get('reckless_attack', False) and roll_type == RollType.ATTACK:
-            advantage_sources.append("Reckless Attack")
+            append_unique('Lucky feat')
 
-        if context.get('sneak_attack_advantage', False) and roll_type == RollType.ATTACK:
-            advantage_sources.append("Sneak attack conditions")
+        if roll_type == RollType.ATTACK and context.get('reckless_attack', False):
+            append_unique('Reckless Attack')
 
-        # Feat-based and feature-based advantages for initiative
+        if roll_type == RollType.ATTACK and context.get('sneak_attack_advantage', False):
+            append_unique('Sneak attack conditions')
+
         if roll_type == RollType.INITIATIVE:
-            feats = context.get('feats', [])
-            if 'Alert' in feats:
-                advantage_sources.append("Alert feat")
-
-            # Class features (also check for feats stored in character_features)
-            character_features = context.get('character_features', {})
-            if 'Alert' in character_features:
-                advantage_sources.append("Alert feat")
-            if 'Feral Instinct' in character_features:
-                advantage_sources.append("Feral Instinct")
+            if AdvantageSystem._context_has_feature(context, 'alert'):
+                append_unique('Alert feat')
+            if AdvantageSystem._context_has_feature(context, 'feral instinct'):
+                append_unique('Feral Instinct')
+            if AdvantageSystem._context_has_remarkable_athlete(context):
+                append_unique('Remarkable Athlete')
+        elif roll_type == RollType.SKILL_CHECK:
+            if (AdvantageSystem._context_has_remarkable_athlete(context) and
+                    AdvantageSystem._is_athletics_check(context)):
+                append_unique('Remarkable Athlete')
 
         return advantage_sources
-    
+
     @staticmethod
     def get_common_disadvantage_sources(roll_type: RollType, context: Dict[str, Any]) -> List[str]:
         """

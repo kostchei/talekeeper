@@ -38,7 +38,7 @@ class FighterAbilitiesService:
             """, (character_id,))
             row = cursor.fetchone()
             
-            if row and row['class_id'] == 'fighter':
+            if row and (row['class_id'] or '').lower() == 'fighter':
                 return row['level']
             return 0
     
@@ -151,6 +151,71 @@ class FighterAbilitiesService:
                 return legacy['subclass_id']
 
             return None
+
+    def has_remarkable_athlete(self, character_id: str) -> bool:
+        """Return True if the character qualifies for Remarkable Athlete."""
+        level = self.get_fighter_level(character_id)
+        if level < 3:
+            return False
+        subclass = self.get_character_subclass(character_id)
+        return bool(subclass and subclass.lower() == 'champion')
+
+    def roll_skill_check(
+        self,
+        character_id: str,
+        skill_name: str,
+        ability_modifier: int,
+        proficiency_bonus: int = 0,
+        proficient: bool = False,
+        expertise: bool = False,
+        base_context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Roll a skill check with automatic Remarkable Athlete integration."""
+        from services.advantage_system import advantage_system, RollType
+
+        context = dict(base_context or {})
+        advantage_sources = list(context.pop('advantage_sources', []))
+        disadvantage_sources = list(context.pop('disadvantage_sources', []))
+        context['skill_name'] = skill_name
+
+        normalized_skill = (skill_name or '').strip().lower()
+        remarkable_athlete_applied = False
+        if normalized_skill == 'athletics' and self.has_remarkable_athlete(character_id):
+            context['remarkable_athlete'] = True
+            remarkable_athlete_applied = True
+
+        advantage_sources.extend(advantage_system.get_common_advantage_sources(RollType.SKILL_CHECK, context))
+        disadvantage_sources.extend(advantage_system.get_common_disadvantage_sources(RollType.SKILL_CHECK, context))
+
+        def _dedupe(items):
+            seen = set()
+            ordered = []
+            for entry in items:
+                if entry not in seen:
+                    seen.add(entry)
+                    ordered.append(entry)
+            return ordered
+
+        advantage_sources = _dedupe(advantage_sources)
+        disadvantage_sources = _dedupe(disadvantage_sources)
+
+        advantage_state = advantage_system.calculate_advantage_state(advantage_sources, disadvantage_sources)
+
+        total_modifier = ability_modifier
+        if proficient:
+            total_modifier += proficiency_bonus * (2 if expertise else 1)
+
+        total, breakdown = advantage_system.roll_d20_with_advantage(advantage_state, total_modifier)
+
+        return {
+            'total': total,
+            'breakdown': breakdown,
+            'advantage_state': advantage_state.value,
+            'advantage_sources': advantage_sources,
+            'disadvantage_sources': disadvantage_sources,
+            'remarkable_athlete_applied': remarkable_athlete_applied,
+            'modifier': total_modifier
+        }
 
     def _ensure_combat_state(self, cursor: sqlite3.Cursor, character_id: str) -> None:
         """Ensure a combat state row exists for the character."""

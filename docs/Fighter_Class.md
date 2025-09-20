@@ -130,22 +130,27 @@ You gain another Fighting Style feat of your choice.
 The thrill of battle drives you toward victory. During combat, you can give yourself Heroic Inspiration whenever you start your turn without it.
 
 ### Level 15: Superior Critical
-Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18–20 on the d20.
+Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18�20 on the d20.
 
 ### Level 18: Survivor
 You attain the pinnacle of resilience in battle, giving you these benefits:
 
-**Defy Death.** You have Advantage on Death Saving Throws. Moreover, when you roll 18–20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it.
+**Defy Death.** You have Advantage on Death Saving Throws. Moreover, when you roll 18�20 on a Death Saving Throw, you gain the benefit of rolling a 20 on it.
 
 **Heroic Rally.** At the start of each of your turns, you regain Hit Points equal to 5 plus your Constitution modifier if you are Bloodied and have at least 1 Hit Point.
 
 ---
 
+### Weapon Mastery Persistence & Tactical Master Rules
+- Fighters always treat every weapon mastery as known; `FighterAbilitiesService.update_fighter_resources_for_level` stores `weapon_mastery_count = -1` so downstream consumers never gate the feature behind slot counts (`services/fighter_abilities.py:72`).
+- Mastery spotlight selections are persisted purely for presentation through `WeaponMasteryService.set_character_masteries`, which rehydrates metadata without pruning options on rest swaps (`services/weapon_mastery_service.py:53`).
+- Tactical Master overrides layer on top of that persistence: the feature exposes Push/Sap/Slow replacements via `core/class_features.py:395`, so combat resolution should honor the player's override while keeping the weapon's original mastery metadata intact.
+- When multiple classes grant mastery, prefer the Fighter override while leaving other class slot limits unchanged to avoid regressions for multiclass parties.
 
 ## Implementation Status
 
 **Current State**
-- Fighter features now load from levels 1–20 through the shared registry and integration pipeline, including Weapon Mastery, Tactical Mind/Shift, Indomitable, Tactical Master, Studied Attacks, and Epic Boon (`core/class_features.py:291`, `core/class_features.py:663`, `core/class_features.py:730`).
+- Fighter features now load from levels 1�20 through the shared registry and integration pipeline, including Weapon Mastery, Tactical Mind/Shift, Indomitable, Tactical Master, Studied Attacks, and Epic Boon (`core/class_features.py:291`, `core/class_features.py:663`, `core/class_features.py:730`).
 - Feature initialization seeds both `feature_states` and `character_resources`, so limited-use abilities pick up the correct maximums and current counts (`core/feature_integration.py:111`, `core/feature_integration.py:148`).
 - ActionPanel now queries and consumes uses through `CharacterResourceService`, and refreshes card availability after activations like Second Wind and Action Surge (`action_cards/action_panel.py:3020`, `action_cards/action_panel.py:3035`, `action_cards/action_panel.py:3058`).
 - Regression coverage includes backend feature loading and a Qt-driven smoke test that exercises the ActionPanel against the new resource flow (`test/core/test_features.py:37`, `test/core/test_features.py:214`).
@@ -166,8 +171,15 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
 - Weapon Mastery selection prompts reiterate the persistent access rule during rests (`action_cards/weapon_mastery_dialog.py:38`).
 - Ran `pytest test/core/test_features.py::test_action_panel_uses_resource_service` to exercise the rest workflow and confirm the updated messaging stays wired into the ActionPanel.
 - Fighter onboarding tips now frame rests as organizational moments instead of slot management, so no TaleKeeper docs ask players to track mastery counts.
+- Added automated coverage for Remarkable Athlete skill rolls and initiative via the AdvantageSystem updates (`services/advantage_system.py`, `core/combat_manager.py`, `services/fighter_abilities.py`, `test/services/test_fighter_champion.py`).
 
 **TODO**
-- [x] Automate Champion subclass hooks so Remarkable Athlete wires into initiative, Heroic Warrior auto-awards inspiration each turn, and Survivor healing/Defy Death state lives in `character_combat_state`.
-- [x] Fold remaining ActionPanel weapon feature logic into the service-first model and shake out mastery/equip edge cases.
-- [x] Extend pytest-qt smoke coverage for ActionPanel interactions once the UI refactor lands to keep resource sync verified.
+- [x] Automate Champion subclass hooks so Remarkable Athlete integrates with initiative and skill rolls, Heroic Warrior awards inspiration at turn start, and Survivor updates `character_combat_state`.
+- [ ] Migrate remaining ActionPanel weapon feature logic into the service-first pipeline and harden mastery and equip edge cases during the metadata rollout.
+  - Inventory Fighter-specific helpers in `action_cards/action_panel.py` that still mutate dice or mastery state locally (for example `_apply_fighting_style_effects`, `_apply_savage_attacker`, `_apply_dueling_bonus`, `_apply_great_weapon_fighting`, `_apply_weapon_mastery_effects`) and fold them into the service layer.
+  - Expose a `WeaponAttackService` (or extend `FighterAbilitiesService`) endpoint that returns mastery overrides/damage adjustments so the panel becomes a thin presenter.
+  - Add regression coverage for multi-weapon loadouts and variant weapons once the service owns mastery metadata.
+- [ ] Extend `pytest-qt` end-to-end ActionPanel coverage after the UI refactor merges so resource usage and refreshes stay under test.
+  - Stage a `pytest-qt` harness that drives `ActionPanel` through rests, resource expenditure, and mastery reordering using `FeatureSystemIntegration` seeded databases.
+  - Assert resource counters, mastery tooltips, and card availability updates to lock in the service-first flow when the refactor lands.
+- [x] Document the Weapon Mastery persistence and Tactical Master override rules so downstream systems align on the no-slot tracking behavior (see "Weapon Mastery Persistence & Tactical Master Rules").

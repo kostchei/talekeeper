@@ -262,6 +262,11 @@ class Encounter:
             'character_features': character_features or {}
         }
         
+        if character_context:
+            feature_flags = character_context.get('feature_flags')
+            if isinstance(feature_flags, dict):
+                initiative_context['feature_flags'] = feature_flags
+
         # Get advantage/disadvantage sources for initiative
         advantage_sources = advantage_system.get_common_advantage_sources(RollType.INITIATIVE, initiative_context)
         disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.INITIATIVE, initiative_context)
@@ -275,7 +280,6 @@ class Encounter:
             }
 
         if 'Remarkable Athlete' in feature_map:
-            advantage_sources.append('Remarkable Athlete')
             initiative_context['remarkable_athlete'] = True
 
         # Calculate total initiative modifier (DEX + proficiency for Alertness feat)

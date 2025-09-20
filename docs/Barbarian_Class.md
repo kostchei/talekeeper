@@ -59,6 +59,11 @@
   - Taking a Bonus Action to extend
 - Max duration: 10 minutes
 
+#### TaleKeeper Implementation Notes
+- Rage is tracked through the action card resource system. Activating the [RAGE] action card consumes a use, marks the character as raging, and refreshes melee weapon cards so the bonus is visible immediately.
+- Damage bonuses now come directly from the active combat context instead of a database lookup. This guarantees the correct +2 / +3 / +4 scaling based on barbarian level and ensures Cleave follow-up attacks inherit the Rage state.
+- If an attack is ineligible (ranged or thrown), combat logs include a debug message explaining why the Rage bonus was skipped, which helps QA and table rulings.
+
 ### Level 1: Unarmored Defense
 - AC = 10 + Dex + Con (can use a shield)
 
