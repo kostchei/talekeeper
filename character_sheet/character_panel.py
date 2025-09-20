@@ -24,6 +24,13 @@ from datetime import datetime
 import sqlite3
 import os
 
+# Import condition display widget
+try:
+    from ui.condition_display import ConditionDisplayWidget
+except ImportError:
+    ConditionDisplayWidget = None
+    print("[CharacterPanel] Condition display not available")
+
 
 class CharacterPanel(QWidget):
     """
@@ -608,11 +615,18 @@ class CharacterPanel(QWidget):
         self.init_widget = self._create_stat_widget("INIT", "+0")
         self.hp_widget = self._create_stat_widget("HP", "8/8")
         self.speed_widget = self._create_stat_widget("SPEED", "30 ft")
-        
+
         stats_layout.addWidget(self.ac_widget, 0, 0)
         stats_layout.addWidget(self.init_widget, 0, 1)
         stats_layout.addWidget(self.hp_widget, 1, 0)
         stats_layout.addWidget(self.speed_widget, 1, 1)
+
+        # Add condition display widget
+        if ConditionDisplayWidget:
+            self.conditions_widget = ConditionDisplayWidget(parent=self)
+            stats_layout.addWidget(self.conditions_widget, 2, 0, 1, 2)  # Span both columns
+        else:
+            self.conditions_widget = None
         
         row_layout.addWidget(stats_container)
         row_layout.addStretch()
@@ -1441,6 +1455,9 @@ class CharacterPanel(QWidget):
         # Update detailed panel data
         self._update_detail_panel()
 
+        # Update condition display
+        self._update_conditions(character_data)
+
         # Character data loaded successfully
 
     def _load_character_portrait(self, character_name: str):
@@ -1766,11 +1783,33 @@ class CharacterPanel(QWidget):
         spells_text += "• Racial magical traits\n"
         
         self.spells_text.setPlainText(spells_text)
-    
+
+    def _update_conditions(self, character_data: Dict[str, Any]):
+        """Update the condition display widget."""
+        if not self.conditions_widget:
+            return
+
+        character_id = character_data.get('id')
+        if character_id:
+            # Set character ID and refresh conditions
+            self.conditions_widget.set_character_id(character_id)
+        else:
+            # Clear conditions if no character ID
+            self.conditions_widget.set_character_id(None)
+
+    def refresh_conditions(self):
+        """Force refresh of condition display (for external updates)."""
+        if self.conditions_widget:
+            self.conditions_widget.refresh_conditions()
+
     def clear_character_data(self):
         """Clear the character display."""
         self.character_data = None
         self.char_name_title.setText("Character Name")
+
+        # Clear condition display
+        if self.conditions_widget:
+            self.conditions_widget.set_character_id(None)
         
         # Reset ability scores to defaults
         for ability_widget in self.ability_widgets.values():

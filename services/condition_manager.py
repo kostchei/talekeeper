@@ -179,6 +179,8 @@ class ConditionManager:
         self._ensure_tables()
         # Cache for active conditions to minimize DB queries
         self._condition_cache: Dict[str, List[ActiveCondition]] = {}
+        # Log callback for UI integration
+        self._log_callback = None
 
     def _ensure_tables(self):
         """Create condition tables if they don't exist."""
@@ -267,6 +269,10 @@ class ConditionManager:
             del self._condition_cache[character_id]
 
         print(f"[ConditionManager] Applied {condition.condition_type.value} to {character_id}")
+
+        # Log the condition application
+        self._log_condition_change(character_id, "applied", condition)
+
         return True
 
     def remove_condition(self, character_id: str, condition_type: ConditionType,
@@ -293,6 +299,14 @@ class ConditionManager:
 
         if affected:
             print(f"[ConditionManager] Removed {condition_type.value} from {character_id} ({reason})")
+
+            # Log the condition removal
+            removed_condition = ActiveCondition(
+                condition_type=condition_type,
+                source=f"Removed: {reason}",
+                duration_type="removed"
+            )
+            self._log_condition_change(character_id, "removed", removed_condition, reason)
 
         return affected
 
@@ -549,6 +563,76 @@ class ConditionManager:
             summary.append(desc)
 
         return ", ".join(summary)
+
+    def set_log_callback(self, callback):
+        """Set callback function for logging condition changes."""
+        self._log_callback = callback
+
+    def _log_condition_change(self, character_id: str, action: str, condition: ActiveCondition, reason: str = None):
+        """Log condition changes to the UI."""
+        if not self._log_callback:
+            return
+
+        try:
+            # Create detailed log message
+            condition_name = condition.condition_type.value.title()
+
+            if action == "applied":
+                message = f"[CONDITION] **{condition_name}** applied to character"
+                details = []
+
+                if condition.source:
+                    details.append(f"Source: {condition.source}")
+
+                if condition.duration_remaining > 0:
+                    details.append(f"Duration: {condition.duration_remaining} rounds")
+                elif condition.duration_type == "save_ends" and condition.save_dc:
+                    details.append(f"Save: DC {condition.save_dc} {condition.save_ability.title()}")
+                elif condition.duration_type == "permanent":
+                    details.append("Duration: Permanent")
+
+                # Add mechanical effects summary
+                effects = self._get_log_effects_summary(condition)
+                if effects:
+                    details.append(f"Effects: {effects}")
+
+                if details:
+                    message += f"\n• " + "\n• ".join(details)
+
+            elif action == "removed":
+                message = f"[REMOVED] **{condition_name}** removed from character"
+                if reason:
+                    message += f" ({reason})"
+
+            # Call the log callback
+            self._log_callback(message)
+
+        except Exception as e:
+            print(f"[ConditionManager] Error logging condition change: {e}")
+
+    def _get_log_effects_summary(self, condition: ActiveCondition) -> str:
+        """Get a brief summary of condition effects for logging."""
+        effects = ConditionEffects.get_effects(condition.condition_type)
+        if not effects:
+            return ""
+
+        summary_parts = []
+
+        # Common effects
+        if effects.get("attack_rolls") == "disadvantage":
+            summary_parts.append("Disadvantage on attacks")
+        if effects.get("movement_speed") == 0:
+            summary_parts.append("Speed 0")
+        if effects.get("no_actions"):
+            summary_parts.append("Cannot act")
+        if ConditionEffects.is_incapacitating(condition.condition_type):
+            summary_parts.append("Incapacitated")
+        if effects.get("d20_test_penalty"):
+            level = condition.exhaustion_level or 1
+            penalty = level * 2
+            summary_parts.append(f"-{penalty} to D20 tests")
+
+        return ", ".join(summary_parts[:3])  # Limit to 3 effects
 
 
 # Singleton instance

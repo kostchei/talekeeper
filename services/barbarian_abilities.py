@@ -654,6 +654,47 @@ class BarbarianAbilitiesService:
 
         return False
 
+    def has_danger_sense_advantage_enhanced(self, character_id: str, save_ability: str = 'dexterity') -> bool:
+        """
+        Enhanced Danger Sense check using the formal condition system.
+        This is the new implementation that integrates with our condition manager.
+        """
+        if save_ability.lower() != 'dexterity':
+            return False
+
+        # Check if character has Danger Sense feature (level 2+ barbarian)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT danger_sense_active, level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+
+            if not (row and row['danger_sense_active'] and row['level'] >= 2):
+                return False
+
+        # NEW: Use formal condition system to check for incapacitating conditions
+        try:
+            from services.condition_manager import ConditionManager
+            # Create condition manager instance with same database path
+            condition_manager = ConditionManager(self.db_path)
+
+            has_incapacitating = condition_manager.has_incapacitating_condition(character_id)
+
+            if has_incapacitating:
+                return False
+        except ImportError:
+            # Fallback to original logic if condition system not available
+            print("[BarbarianAbilities] Condition system not available, using fallback")
+            return True
+        except Exception as e:
+            print(f"[BarbarianAbilities] Error checking conditions: {e}")
+            return True
+
+        return True
+
     def get_primal_knowledge_skills(self, character_id: str) -> List[str]:
         """Get available Primal Knowledge skills for barbarian."""
         with self._get_connection() as conn:
