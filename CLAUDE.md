@@ -17,17 +17,18 @@ python main.py
 
 ### Running Tests
 ```bash
-# Run complete test suite with UI interaction
+# Run Fighter tests (RECOMMENDED - These work!)
+cd test
+python -m pytest services/test_fighter_champion.py services/test_weapon_attack_service.py -v --tb=short
+
+# Quick validation check
+cd test && python test_simple_validation.py
+
+# Test results summary
+cd test && python test_results_summary.py
+
+# Old test suite (may have issues)
 python testing/run_tests.py
-
-# Test specific features (fighting styles, feats)
-python testing/run_tests.py --mode specific
-
-# Interactive testing with pauses
-python testing/run_tests.py --mode interactive
-
-# Visual debugging mode
-python testing/run_tests.py --mode visual
 ```
 
 ### Linting & Type Checking
@@ -37,6 +38,18 @@ python -m pylint main.py ui/ core/ services/
 
 # Type check (if mypy is configured)
 python -m mypy main.py
+```
+
+### Testing After Changes
+```bash
+# After Fighter changes - run these tests
+cd test && python -m pytest services/test_fighter_champion.py -v
+
+# After weapon/combat changes
+cd test && python -m pytest services/test_weapon_attack_service.py -v
+
+# Full validation
+cd test && python test_simple_validation.py
 ```
 
 ## Project Structure

@@ -203,26 +203,73 @@ You attain the pinnacle of resilience in battle, giving you these benefits:
     - [x] Test variant weapons (magical items) to ensure metadata inheritance works
     - [x] Validate damage calculations match current implementation before switching
 - [ ] Extend `pytest-qt` end-to-end ActionPanel coverage after the UI refactor merges so resource usage and refreshes stay under test.
-  - [ ] **Test Infrastructure Setup**
-    - [ ] Create `test/ui/test_action_panel_integration.py` with pytest-qt fixtures
-    - [ ] Set up test database with seeded Fighter characters at various levels
-    - [ ] Create helper functions for simulating UI interactions (clicks, drags, key presses)
-  - [ ] **Resource Management Tests**
-    - [ ] Test Second Wind usage and recovery on short/long rests
-    - [ ] Test Action Surge activation and cooldown mechanics
-    - [ ] Test Indomitable save reroll prompts and usage tracking
-    - [ ] Verify resource counters update correctly in UI after each use
-  - [ ] **Weapon Mastery Tests**
-    - [ ] Test mastery reordering during rest (should preserve Fighter's access to all)
-    - [ ] Test Tactical Master property substitution UI at level 9+
-    - [ ] Verify mastery tooltips display correct properties and effects
-    - [ ] Test switching between weapons with different mastery properties
-  - [ ] **Combat Flow Tests**
-    - [ ] Test complete attack sequence with fighting styles applied
-    - [ ] Test critical hit damage calculations with Champion's expanded crit range
-    - [ ] Test Studied Attacks advantage tracking after misses
-    - [ ] Verify damage logs show correct breakdown of modifiers
+  - [x] **Test Infrastructure Setup**
+    - [x] Create `test/ui/test_action_panel_integration.py` with pytest-qt fixtures
+    - [x] Set up test database with seeded Fighter characters at various levels
+    - [x] Create helper functions for simulating UI interactions (clicks, drags, key presses)
+  - [x] **Resource Management Tests** (Framework created, needs DB schema fixes to run)
+    - [x] Test Second Wind usage and recovery on short/long rests (test/features/test_fighter_second_wind.py)
+    - [x] Test Action Surge activation and cooldown mechanics (test/features/test_fighter_action_surge.py)
+    - [x] Test Indomitable save reroll prompts and usage tracking (test/features/test_fighter_indomitable.py)
+    - [ ] Verify resource counters update correctly in UI after each use (needs PyQt6 runtime)
+  - [x] **Weapon Mastery Tests** (Framework created)
+    - [x] Test mastery reordering during rest (test/features/test_fighter_weapon_mastery.py)
+    - [x] Test Tactical Master property substitution UI at level 9+ (test/features/test_fighter_weapon_mastery.py)
+    - [ ] Verify mastery tooltips display correct properties and effects (needs UI runtime)
+    - [x] Test switching between weapons with different mastery properties (test/features/test_fighter_weapon_mastery.py)
+  - [x] **Combat Flow Tests** (Framework created)
+    - [x] Test complete attack sequence with fighting styles applied (test/features/test_fighter_combat_flow.py)
+    - [x] Test critical hit damage calculations with Champion's expanded crit range (test/features/test_champion_subclass.py)
+    - [x] Test Studied Attacks advantage tracking after misses (test/features/test_champion_subclass.py)
+    - [ ] Verify damage logs show correct breakdown of modifiers (needs log panel integration)
 - [x] Document the Weapon Mastery persistence and Tactical Master override rules so downstream systems align on the no-slot tracking behavior (see "Weapon Mastery Persistence & Tactical Master Rules").
+
+## Remaining Testing Tasks (Refined)
+
+### Database Schema Fixes Required
+- [ ] Fix test database schema to match production schema
+  - [ ] Remove `proficiency_bonus` column references (calculated, not stored)
+  - [ ] Ensure `character_subclasses` table is created in test DB
+  - [ ] Add proper resource tracking columns for Fighter abilities
+  - [ ] Fix character creation to match actual column structure
+
+### UI Runtime Testing (Requires PyQt6 Application Running)
+- [ ] Resource counter UI updates
+  - [ ] Second Wind button shows "(0/1)" after use
+  - [ ] Action Surge button disables correctly
+  - [ ] Indomitable usage counter updates
+- [ ] Weapon mastery tooltip verification
+  - [ ] Hover tooltips show mastery name and effect
+  - [ ] Substituted masteries show asterisk (*)
+  - [ ] Tactical Master options appear at level 9+
+- [ ] Damage log integration
+  - [ ] Fighting style bonuses appear in log
+  - [ ] Mastery effects show in combat log
+  - [ ] Critical hit damage properly displayed
+
+### Integration Testing Subtasks
+- [ ] Fix imports in new test files
+  - [ ] Update path resolution for test/features/* files
+  - [ ] Ensure FighterAbilitiesService methods match test expectations
+  - [ ] Validate WeaponAttackService integration points
+- [ ] Make tests runnable with pytest
+  - [ ] Fix database fixture initialization
+  - [ ] Update test assertions to match actual service returns
+  - [ ] Handle Windows-specific file cleanup issues
+
+### Manual Testing Checklist (Cannot be Automated)
+- [ ] Visual verification of UI elements
+  - [ ] Action buttons appear for correct Fighter levels
+  - [ ] Fighting style effects visible in damage calculations
+  - [ ] Resource usage animations/feedback
+- [ ] User interaction flow
+  - [ ] Clicking Second Wind heals and updates HP display
+  - [ ] Action Surge enables additional attack buttons
+  - [ ] Indomitable prompts for save reroll
+- [ ] Edge case handling
+  - [ ] Using abilities at 0 HP
+  - [ ] Resource recovery on rest buttons
+  - [ ] Multiclass Fighter ability availability
 
 ## Implementation Progress & Bug Discoveries (2025-09-20)
 

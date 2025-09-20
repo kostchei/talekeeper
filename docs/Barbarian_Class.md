@@ -68,9 +68,7 @@
 - AC = 10 + Dex + Con (can use a shield)
 
 ### Level 1: Weapon Mastery
-- Gain 2 weapon mastery choices (simple/martial melee)
-- Can change 1 weapon choice on Long Rest
-- More slots gained as you level up
+- Gain access to mastery in all weapons
 
 ### Level 2: Danger Sense
 - Advantage on Dex saves (unless Incapacitated)
