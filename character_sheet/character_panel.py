@@ -1324,6 +1324,7 @@ class CharacterPanel(QWidget):
         subclass_id = None
 
         try:
+            from services.subclass_manager import SubclassManager
             manager = SubclassManager()
             subclass_id = manager.get_character_subclass(character_data.get('id'), char_class.lower())
         except Exception as subclass_error:
@@ -1783,8 +1784,18 @@ class CharacterPanel(QWidget):
                 self.proficiencies_text.setPlainText("Error loading proficiencies")
         
         
-        # Set the complete features text  
-        self.features_text.setPlainText(features_text)
+        # Update features display (use new subclass widget or fallback to text)
+        if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
+            # The subclass features widget handles its own display
+            # Just refresh it in case features have changed
+            if hasattr(self, 'character_data') and self.character_data:
+                char_id = self.character_data.get('id')
+                level = self.character_data.get('level', 1)
+                if char_id:
+                    self.subclass_features_widget.set_character(char_id, level)
+        elif hasattr(self, 'features_text'):
+            # Fallback to text display if subclass widget not available
+            self.features_text.setPlainText(features_text)
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
         
