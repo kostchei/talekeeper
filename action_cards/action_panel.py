@@ -1535,6 +1535,11 @@ class ActionPanel(QWidget):
         hit = attack_total >= target_ac or is_critical
         
         if hit:
+            # Add advantage state to context for damage calculation (needed for sneak attack)
+            context['advantage_state'] = attack_breakdown.get('advantage_state')
+            context['has_advantage'] = attack_breakdown.get('advantage_state') == 'advantage'
+            context['has_disadvantage'] = attack_breakdown.get('advantage_state') == 'disadvantage'
+
             # Roll damage
             damage_total, damage_breakdown = self._roll_damage(context)
             
@@ -1813,6 +1818,11 @@ class ActionPanel(QWidget):
         bonus_str = f" ({' '.join(bonus_parts)})"
         
         if hit:
+            # Add advantage state to context for damage calculation (needed for sneak attack)
+            context['advantage_state'] = attack_breakdown.get('advantage_state')
+            context['has_advantage'] = attack_breakdown.get('advantage_state') == 'advantage'
+            context['has_disadvantage'] = attack_breakdown.get('advantage_state') == 'disadvantage'
+
             # === DAMAGE ROLL ===
             damage_dice, damage_type = self._get_context_damage_profile(context)
             
@@ -2610,9 +2620,13 @@ class ActionPanel(QWidget):
     def _log_player_turn_start(self):
         """Log that it's the player's turn again."""
         try:
+            # Reset sneak attack for new turn (once per turn limit)
+            if hasattr(self, 'sneak_attack_used_this_turn'):
+                self.sneak_attack_used_this_turn = False
+
             # Handle rage turn countdown
             self._update_rage_state()
-            
+
             # Handle Reckless Attack automatic deactivation
             self._update_reckless_attack_state()
             
@@ -5545,15 +5559,42 @@ class ActionPanel(QWidget):
         """Check if sneak attack can be applied."""
         if not self._has_class_feature('Sneak Attack'):
             return False
-        
+
         weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
-        
+
         # Must use finesse or ranged weapon
         is_finesse = 'finesse' in weapon_props_lower
+        damage_type = context.get('damage_type', '')
         is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
-        
-        return is_finesse or is_ranged
+
+        if not (is_finesse or is_ranged):
+            return False
+
+        # Check for sneak attack conditions
+        # 1. Has advantage on the attack (from any source including Vex, Luck, etc.)
+        has_advantage = context.get('has_advantage', False)
+
+        # Check if advantage was calculated from various sources
+        advantage_state = context.get('advantage_state')
+        if advantage_state == 'advantage':
+            has_advantage = True
+
+        # 2. An ally is within 5 feet of the target (and player doesn't have disadvantage)
+        has_disadvantage = context.get('has_disadvantage', False) or advantage_state == 'disadvantage'
+        ally_nearby = context.get('ally_within_5ft', False)
+
+        # Sneak attack triggers if:
+        # - Player has advantage OR
+        # - An ally is nearby AND player doesn't have disadvantage
+        can_sneak = has_advantage or (ally_nearby and not has_disadvantage)
+
+        # Check if already used this turn (once per turn limit)
+        if can_sneak and hasattr(self, 'sneak_attack_used_this_turn'):
+            if self.sneak_attack_used_this_turn:
+                return False
+
+        return can_sneak
     
     def _apply_sneak_attack(self, context: Dict[str, Any], damage_breakdown: dict) -> dict:
         """Apply sneak attack damage if conditions are met."""
@@ -5576,7 +5617,12 @@ class ActionPanel(QWidget):
                 damage_breakdown['sneak_attack_rolls'] = sneak_rolls
                 damage_breakdown['sneak_attack_damage'] = sneak_total
                 damage_breakdown['total'] += sneak_total
-                
+
+                # Mark sneak attack as used this turn
+                if not hasattr(self, 'sneak_attack_used_this_turn'):
+                    self.sneak_attack_used_this_turn = False
+                self.sneak_attack_used_this_turn = True
+
             except (ValueError, IndexError):
                 pass
         
