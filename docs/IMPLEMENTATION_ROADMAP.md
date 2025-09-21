@@ -169,10 +169,10 @@ python test/test_stage_2_3_ui_integration.py  # ✅ All tests passing
 ### Stage 2.4: Feature Activation System 🔄 Careful
 **Goal**: Hook features into action system
 
-- [ ] Connect Retaliation to reaction system
-- [ ] Implement Intimidating Presence action
-- [ ] Add Mindless Rage automatic triggers
-- [ ] Integrate with action cards
+- [x] Connect Retaliation to reaction system
+- [x] Implement Intimidating Presence action
+- [x] Add Mindless Rage automatic triggers
+- [x] Integrate with action cards
 
 **Testing Checkpoint 2.4**:
 ```python
@@ -198,10 +198,10 @@ def test_berserker_complete():
 ### Stage 3.1: Action Registry System ✅ New Addition
 **Goal**: Create action registry without modifying combat
 
-- [ ] Create `services/action_registry.py`
-- [ ] Define ClassActionDefinition structure
-- [ ] Register all Barbarian actions (Rage, Reckless, Brutal Strike)
-- [ ] Build validation system for action prerequisites
+- [x] Create `services/action_registry.py`
+- [x] Define ClassActionDefinition structure
+- [x] Register all Barbarian actions (Rage, Reckless, Brutal Strike)
+- [x] Build validation system for action prerequisites
 
 **Testing Checkpoint 3.1**:
 ```python
@@ -215,10 +215,10 @@ def test_action_registry():
 ### Stage 3.2: Economy Tracking Enhancement 📊 Parallel Tracking
 **Goal**: Track action usage alongside existing system
 
-- [ ] Extend ActionEconomyState for class actions
-- [ ] Add action usage logging
-- [ ] Create resource consumption tracking
-- [ ] Build duration management for effects
+- [x] Extend ActionEconomyState for class actions
+- [x] Add action usage logging
+- [x] Create resource consumption tracking
+- [x] Build duration management for effects
 
 **Testing Checkpoint 3.2**:
 ```bash
@@ -232,10 +232,10 @@ python test/test_combat_original.py
 ### Stage 3.3: Action Validation Layer 🛡️ Safety Layer
 **Goal**: Add validation without blocking existing actions
 
-- [ ] Implement `can_use_class_action()` checks
-- [ ] Add warning logs for invalid actions (don't block yet)
-- [ ] Create action availability calculator
-- [ ] Build feedback system for unavailable actions
+- [x] Implement `can_use_class_action()` checks
+- [x] Add warning logs for invalid actions (don't block yet)
+- [x] Create action availability calculator
+- [x] Build feedback system for unavailable actions
 
 **Testing Checkpoint 3.3**:
 - [ ] Run combat with validation warnings
@@ -245,10 +245,10 @@ python test/test_combat_original.py
 ### Stage 3.4: UI Action Card Integration 🎯 Visual First
 **Goal**: Update action cards based on economy
 
-- [ ] Generate action cards from registry
-- [ ] Show availability based on economy state
-- [ ] Display resource costs on cards
-- [ ] Add disabled states with reasons
+- [x] Generate action cards from registry
+- [x] Show availability based on economy state
+- [x] Display resource costs on cards
+- [x] Add disabled states with reasons
 
 **Testing Checkpoint 3.4**:
 - [ ] Visual test - cards show correct states
@@ -259,10 +259,10 @@ python test/test_combat_original.py
 ### Stage 3.5: Full Economy Enforcement 🚦 Final Integration
 **Goal**: Enforce action economy rules
 
-- [ ] Enable action blocking for invalid attempts
-- [ ] Consume resources on action use
-- [ ] Update economy state after actions
-- [ ] Integrate with combat flow
+- [x] Enable action blocking for invalid attempts
+- [x] Consume resources on action use
+- [x] Update economy state after actions
+- [x] Integrate with combat flow
 
 **Testing Checkpoint 3.5**:
 ```python
