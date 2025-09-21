@@ -766,13 +766,12 @@ class WeaponAttackService:
         if has_advantage and not has_disadvantage:
             sneak_attack_source = "advantage"
 
-        # Condition 2: Ally within 5 feet (and no disadvantage)
+        # Condition 2: Tactical advantage (and no disadvantage)
         elif not has_disadvantage:
-            # Check for ally within 5 feet
-            # This is a simplified check - in full implementation would query combat positions
-            allies_nearby = self._check_allies_near_target(character_id, target)
-            if allies_nearby:
-                sneak_attack_source = "ally_nearby"
+            # Check for tactical advantages that enable Sneak Attack in solo play
+            tactical_advantage = self._check_allies_near_target(character_id, target)
+            if tactical_advantage:
+                sneak_attack_source = "tactical_advantage"
 
         if not sneak_attack_source:
             return self._no_sneak_attack("Conditions not met")
@@ -855,22 +854,37 @@ class WeaponAttackService:
 
     def _check_allies_near_target(self, character_id: str, target: Optional[Dict[str, Any]]) -> bool:
         """
-        Check if any allies are within 5 feet of the target.
-        This is a simplified implementation - full version would query combat positions.
+        Check for favorable tactical conditions for Sneak Attack in solo play.
+        In solo play, this checks for tactical advantages rather than allies.
         """
         if not target:
             return False
 
-        # For now, return a simplified check
-        # In full implementation, this would:
-        # 1. Query the encounter to get all participants
-        # 2. Check positions relative to target
-        # 3. Filter out incapacitated allies
-        # 4. Return True if any active ally is within 5 feet
+        # For solo play, check for tactical advantages that would allow Sneak Attack:
+        # 1. Target is engaged with summoned creatures/familiars
+        # 2. Target is distracted (casting, reloading, etc.)
+        # 3. Target is flanked by environmental hazards
+        # 4. Target is focused on another threat
 
-        # Placeholder: assume allies are nearby 50% of the time in combat
+        # Simplified implementation for solo play:
+        # Check if target has any conditions that would make them vulnerable
+        target_conditions = target.get('conditions', [])
+        vulnerable_conditions = ['prone', 'restrained', 'stunned', 'paralyzed', 'incapacitated', 'surprised']
+
+        if any(condition in target_conditions for condition in vulnerable_conditions):
+            return True
+
+        # Check if target is distracted (e.g., casting a spell, reloading)
+        target_state = target.get('current_action', '')
+        distracted_states = ['casting', 'reloading', 'concentrating', 'channeling']
+
+        if any(state in target_state.lower() for state in distracted_states):
+            return True
+
+        # For general solo play balance, provide some chance for tactical positioning
+        # This represents finding an opening in combat
         import random
-        return random.choice([True, False])
+        return random.randint(1, 6) >= 5  # 33% chance of finding a tactical opening
 
     def _sneak_attack_used_this_turn(self, character_id: str) -> bool:
         """Check if sneak attack has been used this turn."""
