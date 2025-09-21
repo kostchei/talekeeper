@@ -43,7 +43,21 @@ class SubclassActionIntegration:
             "Improved Critical": self._handle_improved_critical,
             "Superior Critical": self._handle_superior_critical,
             "Remarkable Athlete": self._handle_remarkable_athlete,
-            "Additional Fighting Style": self._handle_additional_fighting_style
+            "Additional Fighting Style": self._handle_additional_fighting_style,
+
+            # Thief features
+            "Fast Hands": self._handle_fast_hands,
+            "Second-Story Work": self._handle_second_story_work,
+            "Supreme Sneak": self._handle_supreme_sneak,
+            "Use Magic Device": self._handle_use_magic_device,
+            "Thief's Reflexes": self._handle_thiefs_reflexes,
+
+            # Assassin features
+            "Assassinate": self._handle_assassinate,
+            "Assassin's Tools": self._handle_assassins_tools,
+            "Infiltration Expertise": self._handle_infiltration_expertise,
+            "Envenom Weapons": self._handle_envenom_weapons,
+            "Death Strike": self._handle_death_strike
         }
 
     def get_action_cards_for_character(self, character_id: str, level: int) -> List[Dict[str, Any]]:
@@ -56,7 +70,11 @@ class SubclassActionIntegration:
             if handler:
                 card_data = handler(character_id, feature, ActionIntegrationType.ACTION_CARD)
                 if card_data:
-                    action_cards.append(card_data)
+                    # Handle both single cards and lists of cards
+                    if isinstance(card_data, list):
+                        action_cards.extend(card_data)
+                    else:
+                        action_cards.append(card_data)
 
         return action_cards
 
@@ -273,6 +291,88 @@ class SubclassActionIntegration:
         # This is handled by the fighter abilities system, not action cards
         return None
 
+    # ==================== THIEF FEATURE HANDLERS ====================
+
+    def _handle_fast_hands(self, character_id: str, feature: SubclassFeature,
+                          integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Fast Hands feature integration."""
+        if integration_type == ActionIntegrationType.ACTION_CARD:
+            # Return a list of all Fast Hands options
+            return [
+                {
+                    "action_type": "FAST_HANDS_THIEVES_TOOLS",
+                    "name": "Fast Hands (Tools)",
+                    "description": "Use thieves' tools as a bonus action",
+                    "icon": "🔧",
+                    "feature_data": feature
+                },
+                {
+                    "action_type": "FAST_HANDS_USE_OBJECT",
+                    "name": "Fast Hands (Object)",
+                    "description": "Use an object as a bonus action",
+                    "icon": "📦",
+                    "feature_data": feature
+                },
+                {
+                    "action_type": "FAST_HANDS_SLEIGHT_OF_HAND",
+                    "name": "Fast Hands (Sleight)",
+                    "description": "Make Sleight of Hand check as bonus action",
+                    "icon": "🤏",
+                    "feature_data": feature
+                }
+            ]
+
+        return None
+
+    def _handle_second_story_work(self, character_id: str, feature: SubclassFeature,
+                                 integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Second-Story Work feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "movement_modifier",
+                "climb_speed": "normal",
+                "jump_bonus": "dex_mod",
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_supreme_sneak(self, character_id: str, feature: SubclassFeature,
+                             integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Supreme Sneak feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "stealth_advantage",
+                "condition": "half_speed_or_less",
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_use_magic_device(self, character_id: str, feature: SubclassFeature,
+                                integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Use Magic Device feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "magic_item_access",
+                "ignore_requirements": True,
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_thiefs_reflexes(self, character_id: str, feature: SubclassFeature,
+                               integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Thief's Reflexes feature integration."""
+        if integration_type == ActionIntegrationType.AUTOMATIC_TRIGGER:
+            return {
+                "trigger": "combat_start",
+                "effect": "double_first_turn",
+                "feature_data": feature
+            }
+
+        return None
+
     # ==================== ACTIVATION METHODS ====================
 
     def _activate_retaliation(self, character_id: str, feature: SubclassFeature) -> Dict[str, Any]:
@@ -385,6 +485,81 @@ class SubclassActionIntegration:
                 results.append(result)
 
         return results
+
+    # ==================== ASSASSIN FEATURE HANDLERS ====================
+
+    def _handle_assassinate(self, character_id: str, feature: SubclassFeature,
+                           integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Assassinate feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "initiative_advantage",
+                "first_round_advantage": True,
+                "sneak_attack_bonus": "rogue_level",
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_assassins_tools(self, character_id: str, feature: SubclassFeature,
+                               integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Assassin's Tools feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "tool_proficiencies",
+                "tools": ["disguise_kit", "poisoners_kit"],
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_infiltration_expertise(self, character_id: str, feature: SubclassFeature,
+                                      integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Infiltration Expertise feature integration."""
+        if integration_type == ActionIntegrationType.ACTION_CARD:
+            return [
+                {
+                    "action_type": "MASTERFUL_MIMICRY",
+                    "name": "Masterful Mimicry",
+                    "description": "Mimic speech/handwriting after 1 hour study",
+                    "icon": "🎭",
+                    "feature_data": feature
+                }
+            ]
+        elif integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "roving_aim",
+                "steady_aim_no_speed_reduction": True,
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_envenom_weapons(self, character_id: str, feature: SubclassFeature,
+                               integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Envenom Weapons feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "poison_cunning_strike_enhancement",
+                "bonus_damage": "2d6",
+                "ignores_resistance": True,
+                "feature_data": feature
+            }
+
+        return None
+
+    def _handle_death_strike(self, character_id: str, feature: SubclassFeature,
+                            integration_type) -> Optional[Dict[str, Any]]:
+        """Handle Death Strike feature integration."""
+        if integration_type == ActionIntegrationType.COMBAT_MODIFIER:
+            return {
+                "type": "death_strike",
+                "save_dc": "8+dex+prof",
+                "double_damage_first_round": True,
+                "feature_data": feature
+            }
+
+        return None
 
 
 # Singleton instance

@@ -98,6 +98,10 @@ class ActionType(Enum):
     # Subclass Features
     SIGNATURE_MOVE = "signature_move"  # Gladiator level 10
     FAST_HANDS = "fast_hands"  # Thief level 3 (modifies bonus actions)
+    FAST_HANDS_THIEVES_TOOLS = "fast_hands_thieves_tools"  # Thief level 3 - Use thieves tools as bonus action
+    FAST_HANDS_USE_OBJECT = "fast_hands_use_object"  # Thief level 3 - Use Object as bonus action
+    FAST_HANDS_SLEIGHT_OF_HAND = "fast_hands_sleight_of_hand"  # Thief level 3 - Sleight of Hand as bonus action
+    MASTERFUL_MIMICRY = "masterful_mimicry"  # Assassin level 9 - Mimic speech/handwriting
     
     # Feat Actions
     BATTLE_MEDIC = "battle_medic"  # Healer feat - Utilize action
@@ -733,6 +737,16 @@ class ActionPanel(QWidget):
             self._use_intimidating_presence()
         elif action_type == ActionType.RETALIATION:
             self._use_retaliation()
+        # Handle Thief Fast Hands features
+        elif action_type == ActionType.FAST_HANDS_THIEVES_TOOLS:
+            self._use_fast_hands_thieves_tools()
+        elif action_type == ActionType.FAST_HANDS_USE_OBJECT:
+            self._use_fast_hands_use_object()
+        elif action_type == ActionType.FAST_HANDS_SLEIGHT_OF_HAND:
+            self._use_fast_hands_sleight_of_hand()
+        # Handle Assassin features
+        elif action_type == ActionType.MASTERFUL_MIMICRY:
+            self._use_masterful_mimicry()
         elif action_type == ActionType.HEROIC_WARRIOR:
             self._use_heroic_warrior()
         elif action_type == ActionType.SURVIVOR:
@@ -5600,23 +5614,50 @@ class ActionPanel(QWidget):
         """Apply sneak attack damage if conditions are met."""
         if not self._can_sneak_attack(context):
             return damage_breakdown
-        
+
         import random
         sneak_damage_dice = self._get_sneak_attack_damage()
-        
+
         if 'd' in sneak_damage_dice:
             try:
                 num_dice, die_size = sneak_damage_dice.split('d')
                 num_dice = int(num_dice)
                 die_size = int(die_size)
-                
-                sneak_rolls = [random.randint(1, die_size) for _ in range(num_dice)]
-                sneak_total = sum(sneak_rolls)
-                
-                # Add to damage breakdown
-                damage_breakdown['sneak_attack_rolls'] = sneak_rolls
-                damage_breakdown['sneak_attack_damage'] = sneak_total
-                damage_breakdown['total'] += sneak_total
+
+                # Check for active cunning strike effects and reduce dice accordingly
+                cunning_strike_dice_cost = self._calculate_cunning_strike_cost()
+                effective_sneak_dice = max(0, num_dice - cunning_strike_dice_cost)
+
+                # Apply cunning strike effects if any are active
+                if cunning_strike_dice_cost > 0:
+                    self._apply_cunning_strike_effects(damage_breakdown, cunning_strike_dice_cost)
+
+                # Roll remaining sneak attack dice
+                if effective_sneak_dice > 0:
+                    sneak_rolls = [random.randint(1, die_size) for _ in range(effective_sneak_dice)]
+                    sneak_total = sum(sneak_rolls)
+
+                    # Add to damage breakdown
+                    damage_breakdown['sneak_attack_rolls'] = sneak_rolls
+                    damage_breakdown['sneak_attack_damage'] = sneak_total
+                    damage_breakdown['total'] += sneak_total
+
+                    # Check for Assassin Surprising Strikes bonus damage (first round)
+                    assassin_bonus = self._apply_assassin_surprising_strikes(context)
+                    if assassin_bonus > 0:
+                        damage_breakdown['assassin_surprising_strikes'] = assassin_bonus
+                        damage_breakdown['total'] += assassin_bonus
+
+                    # Check for Death Strike (level 17 Assassin, first round)
+                    death_strike_applied = self._apply_death_strike(context, damage_breakdown)
+                    if death_strike_applied:
+                        damage_breakdown['death_strike_applied'] = True
+
+                else:
+                    # All dice used for cunning strike effects
+                    damage_breakdown['sneak_attack_rolls'] = []
+                    damage_breakdown['sneak_attack_damage'] = 0
+                    damage_breakdown['sneak_attack_note'] = f"All {num_dice}d6 used for Cunning Strike effects"
 
                 # Mark sneak attack as used this turn
                 if not hasattr(self, 'sneak_attack_used_this_turn'):
@@ -5625,9 +5666,74 @@ class ActionPanel(QWidget):
 
             except (ValueError, IndexError):
                 pass
-        
+
         return damage_breakdown
-    
+
+    def _calculate_cunning_strike_cost(self) -> int:
+        """Calculate total dice cost for active cunning strike effects."""
+        total_cost = 0
+
+        # Cost mapping for cunning strike effects
+        costs = {
+            'poison': 1, 'trip': 1, 'withdraw': 1,
+            'daze': 2, 'knock_out': 6, 'obscure': 3
+        }
+
+        # Check which effects are active in character context
+        for effect_name, dice_cost in costs.items():
+            if self.character_context.get(f'cunning_strike_{effect_name}_active', False):
+                total_cost += dice_cost
+
+        return total_cost
+
+    def _apply_cunning_strike_effects(self, damage_breakdown: dict, dice_cost: int) -> None:
+        """Apply cunning strike effects and log them."""
+        effects_applied = []
+
+        # Check which effects are active and apply them
+        effect_descriptions = {
+            'poison': 'Poison (Con save)',
+            'trip': 'Trip - Prone (Dex save)',
+            'withdraw': 'Withdraw - Move half speed without opportunity attacks',
+            'daze': 'Daze - Limited actions next turn (Con save)',
+            'knock_out': 'Knock Out - Unconscious (Con save)',
+            'obscure': 'Obscure - Blinded next turn (Dex save)'
+        }
+
+        for effect_name, description in effect_descriptions.items():
+            if self.character_context.get(f'cunning_strike_{effect_name}_active', False):
+                effects_applied.append(description)
+
+                # Check for Assassin Envenom Weapons enhancement (level 13+)
+                if effect_name == 'poison' and self._is_assassin() and self.character_context.get('level', 1) >= 13:
+                    import random
+                    envenom_damage = random.randint(1, 6) + random.randint(1, 6)  # 2d6
+                    damage_breakdown['envenom_weapons_damage'] = envenom_damage
+                    damage_breakdown['total'] += envenom_damage
+
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"⚔️ Envenom Weapons: +{envenom_damage} poison damage (ignores resistance)")
+                            break
+                        parent = parent.parent()
+
+                # Clear the effect after use
+                self.character_context[f'cunning_strike_{effect_name}_active'] = False
+
+        if effects_applied:
+            damage_breakdown['cunning_strike_effects'] = effects_applied
+            damage_breakdown['cunning_strike_dice_cost'] = dice_cost
+
+            # Log the effects
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    for effect in effects_applied:
+                        parent.log_panel.log_combat(f"⚔️ Cunning Strike: {effect}")
+                    break
+                parent = parent.parent()
+
     def _has_rage_uses(self) -> bool:
         """Check if character has rage uses remaining."""
         if not self.character_context:
@@ -6937,6 +7043,151 @@ class ActionCard(QWidget):
 
         except Exception as e:
             print(f"Error using survivor: {e}")
+
+    # ==================== THIEF FEATURE METHODS ====================
+
+    def _use_fast_hands_thieves_tools(self):
+        """Use thieves' tools as a bonus action with Fast Hands."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        # Check if bonus action is available
+        # This would integrate with action economy system
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[THIEF] Fast Hands - Using thieves' tools as bonus action")
+                break
+            parent = parent.parent()
+
+    def _use_fast_hands_use_object(self):
+        """Use an object as a bonus action with Fast Hands."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        # Check if bonus action is available
+        # This would integrate with action economy system
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[THIEF] Fast Hands - Using object as bonus action")
+                break
+            parent = parent.parent()
+
+    def _use_fast_hands_sleight_of_hand(self):
+        """Make a Sleight of Hand check as a bonus action with Fast Hands."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        # Check if bonus action is available
+        # This would integrate with action economy system
+
+        # Roll Sleight of Hand check
+        import random
+        d20_roll = random.randint(1, 20)
+        dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+        proficiency = self.character_context.get('proficiency_bonus', 2)
+
+        # Assume proficiency in Sleight of Hand for rogues
+        total = d20_roll + dex_mod + proficiency
+
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[THIEF] Fast Hands - Sleight of Hand: d20({d20_roll}) +{dex_mod}(DEX) +{proficiency}(prof) = {total}")
+                break
+            parent = parent.parent()
+
+    # ==================== ASSASSIN FEATURE METHODS ====================
+
+    def _use_masterful_mimicry(self):
+        """Use Masterful Mimicry to mimic speech or handwriting."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat("[ASSASSIN] Masterful Mimicry - Can perfectly mimic speech/handwriting after 1 hour study")
+                break
+            parent = parent.parent()
+
+    def _apply_assassin_surprising_strikes(self, context: Dict[str, Any]) -> int:
+        """Apply Assassin Surprising Strikes bonus damage if conditions are met."""
+        # Check if character is an Assassin
+        if not self._is_assassin():
+            return 0
+
+        # Check if it's the first round of combat
+        if not self._is_first_round_of_combat():
+            return 0
+
+        # Check if target hasn't taken a turn yet (would have advantage, but we'll assume it's met)
+        rogue_level = self.character_context.get('level', 1)
+
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[ASSASSIN] Surprising Strikes: +{rogue_level} bonus damage (first round)")
+                break
+            parent = parent.parent()
+
+        return rogue_level
+
+    def _apply_death_strike(self, context: Dict[str, Any], damage_breakdown: dict) -> bool:
+        """Apply Death Strike if conditions are met (Assassin level 17+)."""
+        # Check if character is level 17+ Assassin
+        if not self._is_assassin() or self.character_context.get('level', 1) < 17:
+            return False
+
+        # Check if it's the first round of combat
+        if not self._is_first_round_of_combat():
+            return False
+
+        # Calculate save DC
+        dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+        proficiency = self.character_context.get('proficiency_bonus', 2)
+        save_dc = 8 + dex_mod + proficiency
+
+        # Assume target fails save for demonstration (in real implementation, would roll)
+        import random
+        target_con_save = random.randint(1, 20) + 2  # Assume +2 CON for target
+
+        if target_con_save < save_dc:
+            # Double the total damage
+            original_total = damage_breakdown['total']
+            damage_breakdown['total'] = original_total * 2
+
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[ASSASSIN] Death Strike: Target failed CON save (DC {save_dc}) - DAMAGE DOUBLED! ({original_total} → {damage_breakdown['total']})")
+                    break
+                parent = parent.parent()
+            return True
+        else:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    parent.log_panel.log_combat(f"[ASSASSIN] Death Strike: Target succeeded CON save (DC {save_dc}) - no effect")
+                    break
+                parent = parent.parent()
+            return False
+
+    def _is_assassin(self) -> bool:
+        """Check if character is an Assassin."""
+        return (self.character_context.get('class_id', '').lower() == 'rogue' and
+                self.character_context.get('subclass', '').lower() == 'assassin')
+
+    def _is_first_round_of_combat(self) -> bool:
+        """Check if it's the first round of combat."""
+        # This would integrate with combat manager to track round number
+        # For now, return True as a placeholder
+        return hasattr(self, 'first_round_of_combat') and getattr(self, 'first_round_of_combat', True)
 
 
 
