@@ -198,9 +198,9 @@ class EnhancedSubclassManager:
         self.db_path = db_path
         self._ensure_tables()
 
-        # Register subclass definitions
-        self.subclass_definitions: Dict[Tuple[str, str], SubclassDefinition] = {}
-        self._register_subclasses()
+        # Use the registry for subclass definitions instead of local storage
+        from services.subclass_registry import subclass_registry
+        self.registry = subclass_registry
 
     def _ensure_tables(self):
         """Create enhanced subclass tables if needed."""
@@ -237,19 +237,9 @@ class EnhancedSubclassManager:
 
             conn.commit()
 
-    def _register_subclasses(self):
-        """Register all subclass definitions."""
-        # Register Berserker
-        berserker = BerserkerDefinition.create()
-        self.subclass_definitions[("barbarian", "berserker")] = berserker
-
-        # Future: Add other subclasses here
-        # self.subclass_definitions[("fighter", "champion")] = ChampionDefinition.create()
-        # self.subclass_definitions[("rogue", "thief")] = ThiefDefinition.create()
-
     def get_subclass_definition(self, class_name: str, subclass_name: str) -> Optional[SubclassDefinition]:
-        """Get a subclass definition."""
-        return self.subclass_definitions.get((class_name.lower(), subclass_name.lower()))
+        """Get a subclass definition using the registry."""
+        return self.registry.get_subclass(class_name, subclass_name)
 
     def get_character_subclass_features(self, character_id: str, level: int) -> List[SubclassFeature]:
         """Get all subclass features available to a character at their level."""
