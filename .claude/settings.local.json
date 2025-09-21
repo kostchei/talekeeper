@@ -72,7 +72,9 @@
       "Bash(git stash:*)",
       "Bash(copy:*)",
       "Bash(cp:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(findstr:*)",
+      "WebSearch"
     ],
     "deny": []
   },

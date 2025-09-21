@@ -2147,12 +2147,26 @@ class ActionPanel(QWidget):
             print(f"DEBUG: Advanced to {next_combatant.name}'s turn (type: {next_combatant.type.value})")
             print(f"DEBUG: After advance - Player turn check: {combat_manager.is_player_turn()}")
 
+            # Check if combat should end first (all enemies or all players defeated)
+            if combat_manager.is_combat_ended():
+                print(f"[COMBAT] Combat has ended")
+                end_result = combat_manager.end_combat()
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        if end_result.get('result') == 'victory':
+                            parent.log_panel.log_combat("[COMBAT] Victory! All enemies have been defeated!")
+                        elif end_result.get('result') == 'defeat':
+                            parent.log_panel.log_combat("[COMBAT] Defeat! Your party has fallen...")
+                        break
+                    parent = parent.parent()
+                return
+
             # If it's a monster's turn, execute their action
             if next_combatant.type.value == 'monster':
-                # Check if monster is still alive in the encounter panel
-                monster_still_alive = self._is_monster_alive_in_encounter(encounter_panel, next_combatant.id)
-                if not monster_still_alive:
-                    print(f"DEBUG: Monster {next_combatant.name} is dead, skipping their turn")
+                # Check if monster is still alive in the combat manager
+                if not next_combatant.is_alive:
+                    print(f"DEBUG: Monster {next_combatant.name} is dead (is_alive=False), skipping their turn")
                     # Skip this dead monster and continue to next turn
                     self._continue_combat_turn_cycle(encounter_panel)
                     return
@@ -2160,7 +2174,57 @@ class ActionPanel(QWidget):
                 result = combat_manager.execute_monster_turn(next_combatant.id)
 
                 if 'error' not in result:
-                    # Handle the attack results
+                    # Log all attack results (hits and misses) first
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            # Log detailed attack information from result
+                            attacks = result.get('attacks', [])
+                            if attacks:
+                                for attack in attacks:
+                                    if attack.get('hit'):
+                                        # Enhanced hit logging with details like player attacks
+                                        d20_roll = attack.get('d20_roll', '?')
+                                        attack_bonus = attack.get('attack_bonus', 0)
+                                        attack_total = attack.get('attack_roll', 0)
+                                        target_ac = attack.get('target_ac', '?')
+                                        damage = attack.get('damage', 0)
+                                        action_name = attack.get('action_name', 'Attack')
+                                        is_critical = attack.get('is_critical', False)
+                                        damage_dice = attack.get('damage_dice', '?')
+
+                                        # Format attack type
+                                        attack_type = "[CRITICAL HIT!]" if is_critical else "[MONSTER ATTACK]"
+
+                                        # Log attack roll with breakdown
+                                        parent.log_panel.log_combat(
+                                            f"{attack_type} {next_combatant.name} {action_name} hits! Attack: d20({d20_roll}) +{attack_bonus} = {attack_total} vs AC {target_ac}"
+                                        )
+
+                                        # Log damage with dice breakdown
+                                        if damage_dice and damage_dice != '?':
+                                            parent.log_panel.log_combat(f"💥 Damage: {damage_dice} = {damage} damage")
+                                        else:
+                                            parent.log_panel.log_combat(f"💥 Damage: {damage} damage")
+
+                                        # Log any effects (conditions, saves)
+                                        for effect in attack.get('effects', []):
+                                            parent.log_panel.log_combat(f"[EFFECT] {effect}")
+                                    else:
+                                        # Enhanced miss logging with details
+                                        d20_roll = attack.get('d20_roll', '?')
+                                        attack_bonus = attack.get('attack_bonus', 0)
+                                        attack_total = attack.get('attack_roll', 0)
+                                        target_ac = attack.get('target_ac', '?')
+                                        action_name = attack.get('action_name', 'Attack')
+
+                                        parent.log_panel.log_combat(
+                                            f"[MONSTER ATTACK] {next_combatant.name} {action_name} misses! Attack: d20({d20_roll}) +{attack_bonus} = {attack_total} vs AC {target_ac}"
+                                        )
+                            break
+                        parent = parent.parent()
+
+                    # Now handle damage if any
                     total_damage = result.get('total_damage', 0)
                     if total_damage > 0:
                         # Get HP before damage for proper logging (from character sheet, not context)
@@ -2190,11 +2254,10 @@ class ActionPanel(QWidget):
 
                         actual_damage_taken = hp_before - hp_after
 
-                        # Log the attack with correct HP values
+                        # Log HP changes (only if damage was actually dealt)
                         parent = self.parent()
                         while parent:
                             if hasattr(parent, 'log_panel'):
-                                parent.log_panel.log_combat(f"[MONSTER ATTACK] {next_combatant.name} hits for {total_damage} damage!")
                                 parent.log_panel.log_combat(f"    Player HP: {hp_before}/{max_hp} -> {hp_after}/{max_hp}")
                                 if actual_damage_taken != total_damage:
                                     parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {total_damage} damage reduced to {actual_damage_taken}")
@@ -3744,16 +3807,47 @@ class ActionPanel(QWidget):
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    # Log each attack
+                    # Log each attack with detailed information
                     for attack in result.get('attacks', []):
                         if attack.get('hit'):
-                            parent.log_panel.log_combat(f"[MONSTER ATTACK] {monster_instance.monster_name} hits for {attack.get('damage', 0)} damage!")
+                            # Enhanced hit logging with details like player attacks
+                            d20_roll = attack.get('d20_roll', '?')
+                            attack_bonus = attack.get('attack_bonus', 0)
+                            attack_total = attack.get('attack_roll', 0)
+                            target_ac = attack.get('target_ac', '?')
+                            damage = attack.get('damage', 0)
+                            action_name = attack.get('action_name', 'Attack')
+                            is_critical = attack.get('is_critical', False)
+                            damage_dice = attack.get('damage_dice', '?')
+
+                            # Format attack type
+                            attack_type = "[CRITICAL HIT!]" if is_critical else "[MONSTER ATTACK]"
+
+                            # Log attack roll with breakdown
+                            parent.log_panel.log_combat(
+                                f"{attack_type} {monster_instance.monster_name} {action_name} hits! Attack: d20({d20_roll}) +{attack_bonus} = {attack_total} vs AC {target_ac}"
+                            )
+
+                            # Log damage with dice breakdown
+                            if damage_dice and damage_dice != '?':
+                                parent.log_panel.log_combat(f"💥 Damage: {damage_dice} = {damage} damage")
+                            else:
+                                parent.log_panel.log_combat(f"💥 Damage: {damage} damage")
 
                             # Log any effects (conditions, saves)
                             for effect in attack.get('effects', []):
                                 parent.log_panel.log_combat(f"[EFFECT] {effect}")
                         else:
-                            parent.log_panel.log_combat(f"[MONSTER ATTACK] {monster_instance.monster_name} misses!")
+                            # Enhanced miss logging with details
+                            d20_roll = attack.get('d20_roll', '?')
+                            attack_bonus = attack.get('attack_bonus', 0)
+                            attack_total = attack.get('attack_roll', 0)
+                            target_ac = attack.get('target_ac', '?')
+                            action_name = attack.get('action_name', 'Attack')
+
+                            parent.log_panel.log_combat(
+                                f"[MONSTER ATTACK] {monster_instance.monster_name} {action_name} misses! Attack: d20({d20_roll}) +{attack_bonus} = {attack_total} vs AC {target_ac}"
+                            )
 
                     # Apply total damage to player
                     total_damage = result.get('total_damage', 0)

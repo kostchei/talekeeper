@@ -45,6 +45,6 @@ class CampaignFrame:
     def load_from_file(path: str):
         with open(path) as f:
             data = json.load(f)
-        return CampaignFrame(**data)
+        return CampaignFrame(data)
 
 

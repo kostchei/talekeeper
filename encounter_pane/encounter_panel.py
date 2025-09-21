@@ -3015,7 +3015,7 @@ class EncounterPanel(QWidget):
                     'fiend': 0.15, 'undead': 0.10, 'dragon': 0.08,
                     'aberration': 0.05, 'celestial': 0.02
                 },
-                'difficulty_distribution': {'low': 0.3, 'moderate': 0.4, 'hard': 0.25, 'high': 0.05},
+                'difficulty_distribution': {'low': 0.4, 'moderate': 0.5, 'high': 0.1},
                 'rest_rules': {'short_rest_duration': 1, 'long_rest_duration': 8},
                 'style': 'golden',
                 'available_classes': ["Barbarian", "Fighter", "Rogue", "Paladin", "Cleric", "Warlock", "Wizard"],
@@ -4235,8 +4235,9 @@ Character Level: {character_level}"""
             # Log XP gain
             self._log_xp_gain(instance.monster_name, xp_value)
             
-            # Check if encounter is complete
-            if self.current_encounter and self.current_encounter.is_complete:
+            # Check if encounter is complete (all monsters actually defeated, not just by count)
+            # Use actual living monsters check instead of counter to avoid premature loot drops
+            if self.current_encounter and len(self.get_living_monsters()) == 0:
                 self._log_monster_action(f"Encounter completed! Total XP gained: {self.current_encounter.xp_awarded}")
                 # Replace defeated monster cards with post-combat action cards
                 self._show_post_combat_actions()

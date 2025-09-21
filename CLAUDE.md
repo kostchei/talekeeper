@@ -275,14 +275,106 @@ tester.test_defense_style()  # or test_dueling_style(), etc.
 - Combat: `core/combat_engine.py`
 - Testing: `testing/run_tests.py`
 
-## Recent Additions
+## Recent Additions (2024-2025)
 - Comprehensive Qt6 testing framework (Dec 2024)
 - Fighting style validation tests
 - Visual debugging mode for UI testing
 - HTML test reporting with screenshots
+- **Enhanced Barbarian Systems (Sept 2024)**:
+  - Condition system with D&D 2024 conditions
+  - Scalable subclass architecture (44+ subclasses)
+  - Action economy enforcement system
+  - Enhanced monster attack logging
+  - Configuration management system
+  - Debug command utilities
+
+## Enhanced Systems Documentation
+
+### Condition System
+- **Location**: `services/condition_manager.py`
+- **Features**: D&D 2024 conditions with mechanical effects
+- **Integration**: Danger Sense, advantage/disadvantage, movement restrictions
+- **Testing**: `test/services/test_condition_manager.py`
+
+### Subclass Architecture
+- **Primary**: `services/enhanced_subclass_manager.py`
+- **Registry**: `services/subclass_registry.py`
+- **Features**: Modular, scalable design for 44+ subclasses across 11 classes
+- **Example**: Champion Fighter, Berserker Barbarian implementations
+- **Testing**: `test/test_scalable_subclass_architecture.py`
+
+### Action Economy System
+- **Enforcement**: Action/bonus action/reaction tracking and validation
+- **Integration**: Works with class features and combat system
+- **UI**: Action cards show availability based on economy state
+- **Testing**: `test/test_action_economy_enforcement.py`
+
+### Configuration System
+- **Location**: `core/config.py`
+- **Features**: Performance, debug, feature, and UI settings
+- **Config File**: `talekeeper_config.json` (auto-created)
+- **Modes**: Developer mode, performance mode presets
+
+### Debug Commands
+- **Location**: `core/debug_commands.py`
+- **Usage**: `/debug <command>` in application
+- **Commands**: performance, memory, conditions, test utilities
+- **Configuration**: Enable with `debug.enable_test_commands = true`
+
+## Enhanced Testing Commands
+
+### Barbarian System Tests
+```bash
+# Run comprehensive Barbarian tests
+cd test && python test_stage_1_4_integration.py    # Conditions
+cd test && python test_stage_2_1_subclass_definitions.py  # Subclasses
+cd test && python test_barbarian_level_progression.py     # Levels 1-20
+
+# Run action economy tests
+cd test && python test_action_economy_enforcement.py
+
+# Run scalable architecture tests
+cd test && python test_scalable_subclass_architecture.py
+```
+
+### Debug Commands (In-Application)
+```
+/debug performance     # Show timing metrics
+/debug conditions <character>  # Show active conditions
+/debug test_rage <character>   # Test rage mechanics
+/debug config         # Show current configuration
+/debug help          # Full command list
+```
+
+### Configuration Management
+```python
+# Enable developer mode
+from core.config import config
+config.enable_developer_mode()
+
+# Check feature status
+if config.is_feature_enabled("use_enhanced_subclass_manager"):
+    # Use enhanced system
+```
+
+## System Integration Status
+
+### ✅ Completed Systems
+- **Condition System**: Full D&D 2024 condition support
+- **Subclass Architecture**: Scalable system ready for all classes
+- **Action Economy**: Complete enforcement and UI integration
+- **Enhanced Monster Logging**: Detailed attack breakdowns
+- **Configuration Management**: Centralized settings system
+- **Debug Utilities**: Comprehensive development tools
+
+### 🔄 Integration Points
+- All systems tested together through Stage 4.1
+- Barbarian levels 1-20 validated
+- UI integration complete
+- Database optimization implemented
 
 ## Next Priorities
 - Complete spell system implementation
 - Monster AI improvements
 - Save slot management enhancements
-- Performance optimization for large encounters
+- Expand subclass system to other classes

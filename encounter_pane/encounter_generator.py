@@ -13,7 +13,19 @@ XP_BUDGETS = [
 {"Level": 5, "Low": 500, "Moderate": 750, "High": 1100},
 {"Level": 6, "Low": 600, "Moderate": 1000, "High": 1400},
 {"Level": 7, "Low": 750, "Moderate": 1300, "High": 1700},
-# ... more levels as needed
+{"Level": 8, "Low": 900, "Moderate": 1600, "High": 2100},
+{"Level": 9, "Low": 1100, "Moderate": 1900, "High": 2600},
+{"Level": 10, "Low": 1300, "Moderate": 2300, "High": 3100},
+{"Level": 11, "Low": 1600, "Moderate": 2700, "High": 3700},
+{"Level": 12, "Low": 1900, "Moderate": 3200, "High": 4300},
+{"Level": 13, "Low": 2200, "Moderate": 3700, "High": 5000},
+{"Level": 14, "Low": 2600, "Moderate": 4300, "High": 5800},
+{"Level": 15, "Low": 3000, "Moderate": 5000, "High": 6700},
+{"Level": 16, "Low": 3500, "Moderate": 5800, "High": 7800},
+{"Level": 17, "Low": 4000, "Moderate": 6700, "High": 9000},
+{"Level": 18, "Low": 4700, "Moderate": 7800, "High": 10500},
+{"Level": 19, "Low": 5400, "Moderate": 9000, "High": 12100},
+{"Level": 20, "Low": 6300, "Moderate": 10500, "High": 14100}
 ]
 
 # CR to XP conversion table
@@ -216,27 +228,50 @@ class EncounterGenerator:
         budget = self.get_budget(level, difficulty)
 
         if difficulty == "high":
-            # High encounter = 1 strong monster
-            attempts = 0
-            max_attempts = 100  # Prevent infinite loop
-            while attempts < max_attempts:
-                monster = self.bags[level].draw()
-                if monster["xp"] >= budget * 0.8:
-                    return {
-                        "level": level,
-                        "difficulty": difficulty,
-                        "monsters": [monster],
-                        "total_xp": monster["xp"]
-                    }
-                attempts += 1
-            
-            # Fallback: return any monster if we can't find one that meets criteria
-            monster = self.bags[level].draw()
+            # High encounter = strongest available monster + smaller ones to fill budget
+            encounter = []
+            total = 0
+
+            # Get all available monsters for this level, sorted by XP descending
+            available_monsters = []
+            cr_cap = 0.25 * level if level < 5 else 0.5 * level
+            for m in MONSTER_DB:
+                if m["cr"] <= cr_cap:
+                    available_monsters.append(m)
+
+            if not available_monsters:
+                # No monsters available, fallback to moderate
+                return self.generate_encounter(level)
+
+            available_monsters.sort(key=lambda m: m["xp"], reverse=True)
+
+            # Add the strongest monster first
+            strongest = available_monsters[0]
+            encounter.append(strongest)
+            total += strongest["xp"]
+
+            # Fill remaining budget with smaller monsters
+            while total < budget and len(encounter) < 4:
+                best_fit = None
+                remaining_budget = budget - total
+
+                # Find the largest monster that fits in remaining budget
+                for m in available_monsters:
+                    if m["xp"] <= remaining_budget and m not in encounter:
+                        if best_fit is None or m["xp"] > best_fit["xp"]:
+                            best_fit = m
+
+                if best_fit:
+                    encounter.append(best_fit)
+                    total += best_fit["xp"]
+                else:
+                    break
+
             return {
                 "level": level,
-                "difficulty": "moderate",  # Downgrade difficulty
-                "monsters": [monster],
-                "total_xp": monster["xp"]
+                "difficulty": difficulty,
+                "monsters": encounter,
+                "total_xp": total
             }
         else:
             # Low/Moderate: build up encounter

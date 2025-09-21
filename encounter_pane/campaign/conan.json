@@ -10,8 +10,8 @@
     "aberration": 0.02
   },
   "difficulty_distribution": {
-    "low": 0.5,
-    "moderate": 0.4,
+    "low": 0.4,
+    "moderate": 0.5,
     "high": 0.1
   },
   "rest_rules": {

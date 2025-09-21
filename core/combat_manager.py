@@ -221,11 +221,16 @@ class CombatManager:
         """
         if not self.combatants:
             raise ValueError("No combatants added to combat")
-        
+
         self.log("[COMBAT] ==================================================")
         self.log("[COMBAT] [DICE] ROLLING INITIATIVE FOR COMBAT!")
         self.log("[COMBAT] ==================================================")
-        
+
+        # Debug: Log all combatants at start
+        self.log(f"[DEBUG] Starting combat with {len(self.combatants)} combatants:")
+        for cid, c in self.combatants.items():
+            self.log(f"[DEBUG]   - {c.name} (ID: {cid}, type: {c.type.value}, alive: {c.is_alive}, HP: {c.hit_points}/{c.max_hit_points})")
+
         # Roll initiative for all combatants
         for combatant in self.combatants.values():
             if combatant.is_alive:
@@ -377,9 +382,13 @@ class CombatManager:
             if c.type == CombatantType.PLAYER and c.is_alive:
                 player_target = c
                 break
-        
+
         if not player_target:
+            # Debug: Log all combatants and their status
             self.log(f"[COMBAT] {combatant.name} has no valid targets")
+            self.log(f"[DEBUG] Combatants status:")
+            for c in self.combatants.values():
+                self.log(f"[DEBUG]   - {c.name} (type: {c.type.value}, alive: {c.is_alive}, HP: {c.hit_points}/{c.max_hit_points})")
             return results
         
         # Use Multiattack if available, otherwise single attack
@@ -705,16 +714,29 @@ class CombatManager:
                 'damage': damage,
                 'target_hp': target.hit_points,
                 'is_critical': is_critical,
-                'effects': effect_results
+                'effects': effect_results,
+                # Enhanced logging details
+                'd20_roll': d20_roll,
+                'attack_bonus': attack_bonus,
+                'target_ac': target.armor_class,
+                'action_name': action.name,
+                'damage_dice': action.damage_dice,
+                'attacker_name': attacker.name
             }
         else:
             self.log(f"[COMBAT] [MISS] {attacker.name} {action.name} misses! Attack: {d20_roll} + {attack_bonus} = {total_attack} vs AC {target.armor_class}")
-            
+
             return {
                 'hit': False,
                 'attack_roll': total_attack,
                 'damage': 0,
-                'target_hp': target.hit_points
+                'target_hp': target.hit_points,
+                # Enhanced logging details
+                'd20_roll': d20_roll,
+                'attack_bonus': attack_bonus,
+                'target_ac': target.armor_class,
+                'action_name': action.name,
+                'attacker_name': attacker.name
             }
     
     def _roll_damage(self, damage_dice: str) -> int:
