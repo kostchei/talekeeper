@@ -186,6 +186,18 @@ class WeaponAttackService:
 
         damage_total = sum(damage_rolls) + damage_bonus
 
+        # Apply Sneak Attack if eligible (Rogue class)
+        sneak_attack_data = self._apply_sneak_attack_if_eligible(
+            character, weapon, target, advantage, disadvantage
+        )
+
+        sneak_attack_damage = 0
+        if sneak_attack_data['eligible']:
+            sneak_attack_rolls = sneak_attack_data['damage_rolls']
+            sneak_attack_damage = sum(sneak_attack_rolls)
+            damage_total += sneak_attack_damage
+            modifiers_applied.append(f"Sneak Attack {sneak_attack_data['damage_dice']} ({sneak_attack_data['source']})")
+
         # Build damage breakdown string
         if is_critical:
             damage_breakdown = f'{num_dice*2}d{die_size}'
@@ -193,11 +205,15 @@ class WeaponAttackService:
             damage_breakdown = f'{num_dice}d{die_size}'
         if damage_bonus != 0:
             damage_breakdown += f'{damage_bonus:+d}'
+        if sneak_attack_damage > 0:
+            damage_breakdown += f' + {sneak_attack_data["damage_dice"]} sneak attack'
 
         return {
             'attack_roll': attack_roll,
             'attack_total': attack_total,
             'damage_rolls': damage_rolls,
+            'sneak_attack_rolls': sneak_attack_data.get('damage_rolls', []),
+            'sneak_attack_damage': sneak_attack_damage,
             'damage_total': max(0, damage_total),  # Damage can't be negative
             'damage_breakdown': damage_breakdown,
             'modifiers_applied': modifiers_applied
@@ -702,3 +718,283 @@ class WeaponAttackService:
 
             # Check by class or by count
             return class_id in self.UNLIMITED_MASTERY_CLASSES or mastery_count == -1
+
+    def _apply_sneak_attack_if_eligible(self,
+                                       character: Dict[str, Any],
+                                       weapon: Dict[str, Any],
+                                       target: Optional[Dict[str, Any]],
+                                       has_advantage: bool,
+                                       has_disadvantage: bool) -> Dict[str, Any]:
+        """
+        Apply Sneak Attack damage if the character is eligible.
+
+        Args:
+            character: Character data dictionary
+            weapon: Weapon being used
+            target: Target data (optional)
+            has_advantage: Whether attack has advantage
+            has_disadvantage: Whether attack has disadvantage
+
+        Returns:
+            Dict with sneak attack information
+        """
+        # Check if character is a rogue
+        character_id = character.get('id')
+        if not character_id:
+            return self._no_sneak_attack("No character ID")
+
+        # Import RogueAbilitiesService here to avoid circular imports
+        try:
+            from services.rogue_abilities import RogueAbilitiesService
+        except ImportError:
+            return self._no_sneak_attack("RogueAbilitiesService not available")
+
+        rogue_service = RogueAbilitiesService(self.db_path)
+        level = rogue_service.get_rogue_level(character_id)
+
+        if level < 1:
+            return self._no_sneak_attack("Not a rogue")
+
+        # Check if weapon is eligible (finesse or ranged)
+        if not self._is_sneak_attack_weapon(weapon):
+            return self._no_sneak_attack("Weapon not eligible")
+
+        # Check conditions for sneak attack
+        sneak_attack_source = None
+
+        # Condition 1: Has advantage (and no disadvantage)
+        if has_advantage and not has_disadvantage:
+            sneak_attack_source = "advantage"
+
+        # Condition 2: Ally within 5 feet (and no disadvantage)
+        elif not has_disadvantage:
+            # Check for ally within 5 feet
+            # This is a simplified check - in full implementation would query combat positions
+            allies_nearby = self._check_allies_near_target(character_id, target)
+            if allies_nearby:
+                sneak_attack_source = "ally_nearby"
+
+        if not sneak_attack_source:
+            return self._no_sneak_attack("Conditions not met")
+
+        # Check if sneak attack already used this turn
+        if self._sneak_attack_used_this_turn(character_id):
+            return self._no_sneak_attack("Already used this turn")
+
+        # Calculate sneak attack damage
+        base_damage_dice = rogue_service._calculate_sneak_attack_dice(level)
+
+        # Check for active Cunning Strike effects and their costs
+        cunning_strike_effects = self._get_active_cunning_strike_effects(character_id)
+        total_dice_cost = sum(effect['cost'] for effect in cunning_strike_effects)
+
+        # Ensure we don't spend more dice than we have
+        if total_dice_cost > base_damage_dice:
+            return self._no_sneak_attack(f"Insufficient dice for Cunning Strike effects (need {total_dice_cost}, have {base_damage_dice})")
+
+        # Calculate actual damage dice after paying costs
+        actual_damage_dice = base_damage_dice - total_dice_cost
+        damage_dice_str = f"{actual_damage_dice}d6"
+
+        # Roll the damage
+        import random
+        damage_rolls = [random.randint(1, 6) for _ in range(actual_damage_dice)] if actual_damage_dice > 0 else []
+
+        # Mark sneak attack as used this turn
+        self._mark_sneak_attack_used(character_id)
+
+        # Apply Cunning Strike effects
+        cunning_strike_results = []
+        if cunning_strike_effects:
+            cunning_strike_results = self._apply_cunning_strike_effects(character_id, cunning_strike_effects, target)
+
+        return {
+            'eligible': True,
+            'damage_dice': damage_dice_str,
+            'damage_rolls': damage_rolls,
+            'damage_total': sum(damage_rolls),
+            'source': sneak_attack_source,
+            'level': level,
+            'cunning_strike_effects': cunning_strike_results,
+            'dice_spent_on_effects': total_dice_cost
+        }
+
+    def _no_sneak_attack(self, reason: str) -> Dict[str, Any]:
+        """Return a no-sneak-attack result."""
+        return {
+            'eligible': False,
+            'damage_dice': "0d6",
+            'damage_rolls': [],
+            'damage_total': 0,
+            'source': None,
+            'reason': reason
+        }
+
+    def _is_sneak_attack_weapon(self, weapon: Dict[str, Any]) -> bool:
+        """Check if weapon is eligible for sneak attack (finesse or ranged)."""
+        if not weapon:
+            return False
+
+        weapon_properties = self._normalize_weapon_properties(weapon.get('weapon_properties'))
+        weapon_type = weapon.get('weapon_type', '').lower()
+
+        # Check for finesse property
+        if 'finesse' in weapon_properties:
+            return True
+
+        # Check for ranged weapons
+        if weapon_type in ['ranged', 'simple ranged', 'martial ranged']:
+            return True
+
+        # Check for specific ranged weapon types by name
+        weapon_name = weapon.get('name', '').lower()
+        ranged_weapons = ['shortbow', 'longbow', 'light crossbow', 'heavy crossbow',
+                         'hand crossbow', 'dart', 'sling', 'blowgun']
+
+        return any(ranged_weapon in weapon_name for ranged_weapon in ranged_weapons)
+
+    def _check_allies_near_target(self, character_id: str, target: Optional[Dict[str, Any]]) -> bool:
+        """
+        Check if any allies are within 5 feet of the target.
+        This is a simplified implementation - full version would query combat positions.
+        """
+        if not target:
+            return False
+
+        # For now, return a simplified check
+        # In full implementation, this would:
+        # 1. Query the encounter to get all participants
+        # 2. Check positions relative to target
+        # 3. Filter out incapacitated allies
+        # 4. Return True if any active ally is within 5 feet
+
+        # Placeholder: assume allies are nearby 50% of the time in combat
+        import random
+        return random.choice([True, False])
+
+    def _sneak_attack_used_this_turn(self, character_id: str) -> bool:
+        """Check if sneak attack has been used this turn."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT sneak_attack_used_this_turn
+                FROM rogue_features
+                WHERE character_id = ?
+            """, (character_id,))
+
+            result = cursor.fetchone()
+            return result and result['sneak_attack_used_this_turn']
+
+    def _mark_sneak_attack_used(self, character_id: str) -> None:
+        """Mark sneak attack as used this turn."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE rogue_features
+                SET sneak_attack_used_this_turn = 1
+                WHERE character_id = ?
+            """, (character_id,))
+            conn.commit()
+
+    def _get_active_cunning_strike_effects(self, character_id: str) -> List[Dict[str, Any]]:
+        """Get list of active Cunning Strike effects from character context."""
+        # This would check the character's context for prepared Cunning Strike effects
+        # For now, return empty list - full implementation would check action panel state
+        return []
+
+    def _apply_cunning_strike_effects(self, character_id: str, effects: List[Dict[str, Any]], target: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Apply Cunning Strike effects to the target."""
+        results = []
+
+        for effect in effects:
+            effect_name = effect['name']
+            effect_cost = effect['cost']
+
+            # Calculate save DC (8 + DEX mod + proficiency bonus)
+            save_dc = self._calculate_cunning_strike_save_dc(character_id)
+
+            if effect_name == 'poison':
+                results.append({
+                    'name': 'Poison',
+                    'description': f'Target must make Constitution save (DC {save_dc}) or be Poisoned for 1 minute',
+                    'save_type': 'constitution',
+                    'save_dc': save_dc,
+                    'condition': 'poisoned',
+                    'duration': '1 minute',
+                    'dice_cost': effect_cost
+                })
+
+            elif effect_name == 'trip':
+                results.append({
+                    'name': 'Trip',
+                    'description': f'Target must make Dexterity save (DC {save_dc}) or be knocked Prone',
+                    'save_type': 'dexterity',
+                    'save_dc': save_dc,
+                    'condition': 'prone',
+                    'dice_cost': effect_cost
+                })
+
+            elif effect_name == 'withdraw':
+                results.append({
+                    'name': 'Withdraw',
+                    'description': 'Move up to half speed without provoking opportunity attacks',
+                    'effect': 'movement',
+                    'movement_distance': 'half_speed',
+                    'no_opportunity_attacks': True,
+                    'dice_cost': effect_cost
+                })
+
+            elif effect_name == 'daze':
+                results.append({
+                    'name': 'Daze',
+                    'description': f'Target must make Constitution save (DC {save_dc}) or have limited actions next turn',
+                    'save_type': 'constitution',
+                    'save_dc': save_dc,
+                    'effect': 'limited_actions',
+                    'duration': 'next_turn',
+                    'dice_cost': effect_cost
+                })
+
+            elif effect_name == 'knock_out':
+                results.append({
+                    'name': 'Knock Out',
+                    'description': f'Target must make Constitution save (DC {save_dc}) or be Unconscious for 1 minute',
+                    'save_type': 'constitution',
+                    'save_dc': save_dc,
+                    'condition': 'unconscious',
+                    'duration': '1 minute',
+                    'dice_cost': effect_cost
+                })
+
+            elif effect_name == 'obscure':
+                results.append({
+                    'name': 'Obscure',
+                    'description': f'Target must make Dexterity save (DC {save_dc}) or be Blinded until end of next turn',
+                    'save_type': 'dexterity',
+                    'save_dc': save_dc,
+                    'condition': 'blinded',
+                    'duration': 'end_of_next_turn',
+                    'dice_cost': effect_cost
+                })
+
+        return results
+
+    def _calculate_cunning_strike_save_dc(self, character_id: str) -> int:
+        """Calculate save DC for Cunning Strike effects: 8 + DEX mod + proficiency bonus."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT dexterity, level FROM characters WHERE id = ?
+            """, (character_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return 8  # Fallback
+
+            dexterity = result['dexterity']
+            level = result['level']
+
+            dex_mod = (dexterity - 10) // 2
+            prof_bonus = 2 + ((level - 1) // 4)  # Standard D&D proficiency progression
+
+            return 8 + dex_mod + prof_bonus

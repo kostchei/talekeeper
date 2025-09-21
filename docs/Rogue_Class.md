@@ -11,7 +11,7 @@
 | **Weapon Proficiencies** | Simple weapons and Martial weapons that have the Finesse or Light property |
 | **Tool Proficiencies** | Thieves' Tools |
 | **Armor Training** | Light armor |
-| **Starting Equipment** | Choose A or B: (A) Leather Armor, 2 Daggers, Shortsword, Shortbow, 20 Arrows, Quiver, Thieves' Tools, Burglar's Pack, and 8 GP; or (B) 100 GP |
+| **Starting Equipment** | Choose A, B, or C: (A) Leather Armor, 2 Daggers, Shortsword, Shortbow, 20 Arrows, Quiver, Thieves' Tools, Burglar's Pack, and 8 GP; (B) Studded Leather Armor, 2 Shortswords, Thieves' Tools, Burglar's Pack, and 15 GP; or (C) 100 GP |
 
 ---
 

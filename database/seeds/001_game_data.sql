@@ -161,7 +161,7 @@ INSERT INTO weapon_masteries VALUES(8,'Vex','on_hit','If you hit a creature with
 INSERT INTO class_equipment_choices VALUES(3,'barbarian','weapon_choice','Weapon Choice','["Shield + Spear", "Greataxe", "2x Scimitars"]','2025-09-02 13:33:05');
 INSERT INTO class_equipment_choices VALUES(4,'barbarian','armor_choice','Armor/Helmet Choice','["Dread Helm", "Scale Mail", "Chain Mail"]','2025-09-02 13:33:05');
 INSERT INTO class_equipment_choices VALUES(5,'rogue','armor_choice','Armor','["Studded Leather"]','2025-09-02 13:33:05');
-INSERT INTO class_equipment_choices VALUES(6,'rogue','weapon_choice','Weapon Choice','["Rapier + Dagger", "Scimitar + Shortsword"]','2025-09-02 13:33:05');
+INSERT INTO class_equipment_choices VALUES(6,'rogue','weapon_choice','Weapon Choice','["Rapier + Dagger", "Scimitar + Shortsword", "2 Shortswords"]','2025-09-02 13:33:05');
 INSERT INTO class_equipment_choices VALUES(7,'cleric','equipment_choice','Equipment','["Holy Symbol + Scale Mail + Mace + Shield", "Holy Symbol + Chain Mail + Mace + Shield"]','2025-09-02 13:33:13');
 INSERT INTO class_equipment_choices VALUES(8,'paladin','equipment_choice','Equipment Choice','["Holy Symbol + Scale Mail + Longsword + Shield", "Holy Symbol + Chain Mail + Longsword + Shield", "Holy Symbol + Scale Mail + Greatsword", "Holy Symbol + Chain Mail + Greatsword"]','2025-09-02 13:33:13');
 INSERT INTO class_equipment_choices VALUES(9,'wizard','equipment_choice','Equipment Choice','["Arcane Focus + Spellbook + Quarterstaff", "Arcane Focus + Spellbook + Dagger"]','2025-09-02 13:33:13');

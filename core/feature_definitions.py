@@ -385,6 +385,13 @@ class ClassFeatures:
         ],
         3: [
             FeatureDefinition(
+                name="Rogue Subclass",
+                description="Choose a rogue archetype specialization",
+                level_acquired=3,
+                feature_type="subclass",
+                mechanics={"subclass_selection": True}
+            ),
+            FeatureDefinition(
                 name="Steady Aim",
                 description="Gain advantage on next attack, speed becomes 0",
                 level_acquired=3,
@@ -392,78 +399,168 @@ class ClassFeatures:
                 mechanics={"effect": "advantage_next_attack", "cost": "speed_0"}
             )
         ],
+        4: [
+            FeatureDefinition(
+                name="Ability Score Improvement",
+                description="Increase ability scores or gain a feat",
+                level_acquired=4,
+                feature_type="passive",
+                mechanics={"asi_or_feat": True}
+            )
+        ],
         5: [
             FeatureDefinition(
                 name="Cunning Strike",
-                description="Add effects to Sneak Attack by reducing damage",
+                description="Add special effects to Sneak Attack",
                 level_acquired=5,
-                feature_type="modal",
+                feature_type="triggered",
                 mechanics={
-                    "options": {
-                        "poison": {"cost": "1d6", "save": "con", "effect": "poisoned_1min"},
-                        "trip": {"cost": "1d6", "save": "dex", "effect": "prone"},
-                        "withdraw": {"cost": "1d6", "effect": "move_half_no_aoo"}
-                    }
-                },
-                scaling={
-                    11: {"uses_per_attack": 2}
+                    "effects": ["poison", "trip", "withdraw"],
+                    "dice_costs": {"poison": 1, "trip": 1, "withdraw": 1}
                 }
             ),
             FeatureDefinition(
                 name="Uncanny Dodge",
-                description="Halve damage from one attack as reaction",
+                description="Halve damage from one attack per turn",
                 level_acquired=5,
                 feature_type="reaction",
-                mechanics={"trigger": "hit_by_attack", "effect": "half_damage"}
+                mechanics={"damage_reduction": "half", "uses_per_turn": 1}
+            )
+        ],
+        6: [
+            FeatureDefinition(
+                name="Expertise",
+                description="Double proficiency bonus on 2 more skills",
+                level_acquired=6,
+                feature_type="passive",
+                mechanics={"additional_expertise": 2}
             )
         ],
         7: [
             FeatureDefinition(
                 name="Evasion",
-                description="No damage on successful Dex saves, half on failure",
+                description="Take no/half damage on Dex saves",
                 level_acquired=7,
                 feature_type="passive",
-                mechanics={"dex_save_improvement": True}
+                mechanics={"save_type": "dexterity", "success": "no_damage", "failure": "half_damage"}
             ),
             FeatureDefinition(
                 name="Reliable Talent",
-                description="Treat rolls of 9 or lower as 10 on proficient checks",
+                description="Treat d20 rolls of 9 or lower as 10 for skills",
                 level_acquired=7,
                 feature_type="passive",
-                mechanics={"minimum_roll": 10, "applies_to": "proficient_checks"}
+                mechanics={"minimum_roll": 10, "applies_to": "skill_checks"}
+            )
+        ],
+        8: [
+            FeatureDefinition(
+                name="Ability Score Improvement",
+                description="Increase ability scores or gain a feat",
+                level_acquired=8,
+                feature_type="passive",
+                mechanics={"asi_or_feat": True}
+            )
+        ],
+        9: [
+            FeatureDefinition(
+                name="Subclass Feature",
+                description="Gain your subclass feature",
+                level_acquired=9,
+                feature_type="subclass",
+                mechanics={"subclass_feature": True}
+            )
+        ],
+        10: [
+            FeatureDefinition(
+                name="Ability Score Improvement",
+                description="Increase ability scores or gain a feat",
+                level_acquired=10,
+                feature_type="passive",
+                mechanics={"asi_or_feat": True}
+            )
+        ],
+        11: [
+            FeatureDefinition(
+                name="Improved Cunning Strike",
+                description="Use up to two Cunning Strike effects",
+                level_acquired=11,
+                feature_type="triggered",
+                mechanics={"max_effects": 2}
+            )
+        ],
+        12: [
+            FeatureDefinition(
+                name="Ability Score Improvement",
+                description="Increase ability scores or gain a feat",
+                level_acquired=12,
+                feature_type="passive",
+                mechanics={"asi_or_feat": True}
+            )
+        ],
+        13: [
+            FeatureDefinition(
+                name="Subclass Feature",
+                description="Gain your subclass feature",
+                level_acquired=13,
+                feature_type="subclass",
+                mechanics={"subclass_feature": True}
             )
         ],
         14: [
             FeatureDefinition(
                 name="Devious Strikes",
-                description="Additional Cunning Strike options",
+                description="Gain advanced Cunning Strike effects",
                 level_acquired=14,
-                feature_type="modal",
+                feature_type="triggered",
                 mechanics={
-                    "new_options": {
-                        "daze": {"cost": "2d6", "save": "con", "effect": "limited_action"},
-                        "knock_out": {"cost": "6d6", "save": "con", "effect": "unconscious_1min"},
-                        "obscure": {"cost": "3d6", "save": "dex", "effect": "blinded"}
-                    }
+                    "new_effects": ["daze", "knock_out", "obscure"],
+                    "dice_costs": {"daze": 2, "knock_out": 6, "obscure": 3}
                 }
             )
         ],
         15: [
             FeatureDefinition(
                 name="Slippery Mind",
-                description="Proficiency in Wisdom and Charisma saves",
+                description="Gain proficiency in Wisdom and Charisma saves",
                 level_acquired=15,
                 feature_type="passive",
                 mechanics={"save_proficiencies": ["wisdom", "charisma"]}
             )
         ],
+        16: [
+            FeatureDefinition(
+                name="Ability Score Improvement",
+                description="Increase ability scores or gain a feat",
+                level_acquired=16,
+                feature_type="passive",
+                mechanics={"asi_or_feat": True}
+            )
+        ],
+        17: [
+            FeatureDefinition(
+                name="Subclass Feature",
+                description="Gain your subclass feature",
+                level_acquired=17,
+                feature_type="subclass",
+                mechanics={"subclass_feature": True}
+            )
+        ],
         18: [
             FeatureDefinition(
                 name="Elusive",
-                description="No attack has advantage against you unless incapacitated",
+                description="No attack can have advantage against you",
                 level_acquired=18,
                 feature_type="passive",
-                mechanics={"negate_advantage": True, "unless": "incapacitated"}
+                mechanics={"prevents_advantage": True}
+            )
+        ],
+        19: [
+            FeatureDefinition(
+                name="Epic Boon",
+                description="Gain an Epic Boon feat",
+                level_acquired=19,
+                feature_type="passive",
+                mechanics={"epic_boon": True}
             )
         ],
         20: [
@@ -471,10 +568,8 @@ class ClassFeatures:
                 name="Stroke of Luck",
                 description="Turn a failed d20 test into a 20",
                 level_acquired=20,
-                feature_type="resource",
-                usage="free",
-                recharge="short_rest",
-                mechanics={"auto_success": 20}
+                feature_type="reaction",
+                mechanics={"uses_per_rest": 1, "rest_type": "short", "effect": "force_nat_20"}
             )
         ]
     }

@@ -68,6 +68,20 @@ class ActionType(Enum):
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
 
+    # Rogue Features
+    CUNNING_DASH = "cunning_dash"
+    CUNNING_DISENGAGE = "cunning_disengage"
+    CUNNING_HIDE = "cunning_hide"
+    STEADY_AIM = "steady_aim"
+    UNCANNY_DODGE = "uncanny_dodge"
+    CUNNING_STRIKE_POISON = "cunning_strike_poison"
+    CUNNING_STRIKE_TRIP = "cunning_strike_trip"
+    CUNNING_STRIKE_WITHDRAW = "cunning_strike_withdraw"
+    CUNNING_STRIKE_DAZE = "cunning_strike_daze"
+    CUNNING_STRIKE_KNOCK_OUT = "cunning_strike_knock_out"
+    CUNNING_STRIKE_OBSCURE = "cunning_strike_obscure"
+    STROKE_OF_LUCK = "stroke_of_luck"
+
     # Barbarian Features
     BRUTAL_STRIKE_FORCEFUL = "brutal_strike_forceful"
     BRUTAL_STRIKE_HAMSTRING = "brutal_strike_hamstring"
@@ -530,6 +544,98 @@ class ActionPanel(QWidget):
                         card.action_hovered.connect(self._action_hovered)
                         self.action_cards[ActionType.INTIMIDATING_PRESENCE] = card
 
+        # Rogue Features
+        if self.character_context and self.character_context.get('class_id', '').lower() == 'rogue':
+            level = self.character_context.get('level', 1)
+
+            # Cunning Action (Level 2+)
+            if level >= 2:
+                cunning_action_feature = self._get_feature_data('Cunning Action')
+                if cunning_action_feature:
+                    # Dash
+                    card = ActionCard(ActionType.CUNNING_DASH, "[DASH]", "Cunning Dash", "Dash as bonus action")
+                    card.feature_data = cunning_action_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_DASH] = card
+
+                    # Disengage
+                    card = ActionCard(ActionType.CUNNING_DISENGAGE, "[ESCAPE]", "Cunning Disengage", "Disengage as bonus action")
+                    card.feature_data = cunning_action_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_DISENGAGE] = card
+
+                    # Hide
+                    card = ActionCard(ActionType.CUNNING_HIDE, "[HIDE]", "Cunning Hide", "Hide as bonus action")
+                    card.feature_data = cunning_action_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_HIDE] = card
+
+            # Steady Aim (Level 3+)
+            if level >= 3:
+                steady_aim_feature = self._get_feature_data('Steady Aim')
+                if steady_aim_feature:
+                    card = ActionCard(ActionType.STEADY_AIM, "[AIM]", "Steady Aim", "Gain advantage on next attack (cannot move)")
+                    card.feature_data = steady_aim_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.STEADY_AIM] = card
+
+            # Cunning Strike (Level 5+)
+            if level >= 5:
+                cunning_strike_feature = self._get_feature_data('Cunning Strike')
+                if cunning_strike_feature:
+                    # Basic effects (Level 5+)
+                    card = ActionCard(ActionType.CUNNING_STRIKE_POISON, "[POISON]", "Poison Strike", "Poisoned 1 min (Con save) - Cost: 1d6")
+                    card.feature_data = cunning_strike_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_STRIKE_POISON] = card
+
+                    card = ActionCard(ActionType.CUNNING_STRIKE_TRIP, "[TRIP]", "Trip Strike", "Prone (Dex save) - Cost: 1d6")
+                    card.feature_data = cunning_strike_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_STRIKE_TRIP] = card
+
+                    card = ActionCard(ActionType.CUNNING_STRIKE_WITHDRAW, "[ESCAPE]", "Withdraw Strike", "Move half speed no AoO - Cost: 1d6")
+                    card.feature_data = cunning_strike_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.CUNNING_STRIKE_WITHDRAW] = card
+
+                    # Devious Strikes (Level 14+)
+                    if level >= 14:
+                        card = ActionCard(ActionType.CUNNING_STRIKE_DAZE, "[DAZE]", "Daze Strike", "Limited actions next turn (Con save) - Cost: 2d6")
+                        card.feature_data = cunning_strike_feature
+                        card.action_triggered.connect(self._trigger_rogue_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.CUNNING_STRIKE_DAZE] = card
+
+                        card = ActionCard(ActionType.CUNNING_STRIKE_KNOCK_OUT, "[KO]", "Knock Out Strike", "Unconscious 1 min (Con save) - Cost: 6d6")
+                        card.feature_data = cunning_strike_feature
+                        card.action_triggered.connect(self._trigger_rogue_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.CUNNING_STRIKE_KNOCK_OUT] = card
+
+                        card = ActionCard(ActionType.CUNNING_STRIKE_OBSCURE, "[BLIND]", "Obscure Strike", "Blinded next turn (Dex save) - Cost: 3d6")
+                        card.feature_data = cunning_strike_feature
+                        card.action_triggered.connect(self._trigger_rogue_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[ActionType.CUNNING_STRIKE_OBSCURE] = card
+
+            # Stroke of Luck (Level 20+)
+            if level >= 20:
+                stroke_feature = self._get_feature_data('Stroke of Luck')
+                if stroke_feature and self._has_stroke_of_luck_uses():
+                    card = ActionCard(ActionType.STROKE_OF_LUCK, "[LUCK]", "Stroke of Luck", "Turn failed d20 test into 20")
+                    card.feature_data = stroke_feature
+                    card.action_triggered.connect(self._trigger_rogue_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.STROKE_OF_LUCK] = card
+
         # Create enhanced subclass feature cards
         if self.character_context:
             character_id = self.character_context.get('character_id')
@@ -937,7 +1043,98 @@ class ActionPanel(QWidget):
                         parent.log_panel.log_info(f"[SWORD] Selected Weapon Mastery: {mastery_name}")
                         break
                     parent = parent.parent()
-    
+
+    def _trigger_rogue_action(self, action_type):
+        """Handle rogue feature actions."""
+        character_id = self.character_context.get('character_id', '')
+        if not character_id:
+            return
+
+        try:
+            from services.rogue_abilities import RogueAbilitiesService
+            rogue_service = RogueAbilitiesService(self._resolve_db_path())
+
+            # Handle Cunning Action variants
+            if action_type in [ActionType.CUNNING_DASH, ActionType.CUNNING_DISENGAGE, ActionType.CUNNING_HIDE]:
+                action_name = action_type.value.replace('cunning_', '').title()
+                result = rogue_service.use_cunning_action(character_id, action_name.lower())
+
+                if result['success']:
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"🥷 Used {action_name} as bonus action")
+                            break
+                        parent = parent.parent()
+                else:
+                    self._log_to_parent(f"❌ {result['message']}")
+
+            # Handle Steady Aim
+            elif action_type == ActionType.STEADY_AIM:
+                result = rogue_service.use_steady_aim(character_id)
+
+                if result['success']:
+                    # Set advantage for next attack and reduce speed to 0
+                    self.character_context['steady_aim_active'] = True
+                    self.character_context['speed'] = 0
+
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat("🎯 Steady Aim: Gain advantage on next attack, speed becomes 0")
+                            break
+                        parent = parent.parent()
+                else:
+                    self._log_to_parent(f"❌ {result['message']}")
+
+            # Handle Cunning Strike variants (these modify next Sneak Attack)
+            elif action_type.value.startswith('cunning_strike_'):
+                effect_name = action_type.value.replace('cunning_strike_', '')
+                self.character_context[f'cunning_strike_{effect_name}_active'] = True
+
+                # Get cost information
+                costs = {
+                    'poison': '1d6', 'trip': '1d6', 'withdraw': '1d6',
+                    'daze': '2d6', 'knock_out': '6d6', 'obscure': '3d6'
+                }
+                cost = costs.get(effect_name, '1d6')
+
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"⚔️ {effect_name.title()} Strike prepared - will apply on next Sneak Attack (Cost: {cost})")
+                        break
+                    parent = parent.parent()
+
+            # Handle Stroke of Luck
+            elif action_type == ActionType.STROKE_OF_LUCK:
+                # This would be triggered reactively when a d20 test fails
+                self.character_context['stroke_of_luck_available'] = True
+
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("🍀 Stroke of Luck ready - next failed d20 test becomes 20")
+                        break
+                    parent = parent.parent()
+
+        except Exception as e:
+            self._log_to_parent(f"❌ Error using rogue ability: {e}")
+
+    def _has_stroke_of_luck_uses(self) -> bool:
+        """Check if character has Stroke of Luck uses remaining."""
+        character_id = self.character_context.get('character_id', '')
+        if not character_id:
+            return False
+
+        try:
+            from services.rogue_abilities import RogueAbilitiesService
+            rogue_service = RogueAbilitiesService(self._resolve_db_path())
+            features = rogue_service.get_rogue_features(character_id)
+            return features.get('stroke_of_luck_uses_current', 0) > 0
+        except:
+            return False
+
     def _calculate_hit_bonus(self, weapon: Dict[str, Any], hand: str) -> int:
         """Calculate attack bonus for a weapon."""
         # Base proficiency bonus (assume level 1 = +2 for now)
