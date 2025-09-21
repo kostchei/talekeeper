@@ -128,52 +128,31 @@ class SkillChallengeRewards:
         return self.apply_penalty(character_data, cost)
 
     def _apply_rest(self, character_data: Dict) -> Tuple[Dict, List[str]]:
-        """Apply rest benefits (short or long rest)."""
-        rest_type = random.choice(['short', 'long'])
+        """Apply long rest benefits."""
         messages = []
 
-        if rest_type == 'short':
-            # Short rest: restore some HP and class resources
-            current_hp = character_data.get('hit_points_current', 0)
-            max_hp = character_data.get('hit_points_max', 0)
+        # Long rest: full healing and resource restoration
+        max_hp = character_data.get('hit_points_max', 0)
+        current_hp = character_data.get('hit_points_current', 0)
+        character_data['hit_points_current'] = max_hp
 
-            if current_hp < max_hp:
-                # Use hit dice for healing (simplified)
-                level = character_data.get('level', 1)
-                hit_dice_available = character_data.get('hit_dice_current', 1)
+        # Restore hit dice (half, minimum 1)
+        max_hit_dice = character_data.get('hit_dice_max', 1)
+        restored_dice = max(1, max_hit_dice // 2)
+        character_data['hit_dice_current'] = min(max_hit_dice,
+            character_data.get('hit_dice_current', 0) + restored_dice)
 
-                if hit_dice_available > 0:
-                    # Heal 1 hit die worth + CON modifier
-                    con_modifier = (character_data.get('constitution', 10) - 10) // 2
-                    healing = random.randint(1, 8) + con_modifier  # Assuming d8 hit die
-                    healing = max(1, healing)
+        # Reset death saves
+        character_data['death_saves_successes'] = 0
+        character_data['death_saves_failures'] = 0
 
-                    new_hp = min(max_hp, current_hp + healing)
-                    character_data['hit_points_current'] = new_hp
-                    character_data['hit_dice_current'] = hit_dice_available - 1
+        # Calculate healing done
+        healing_done = max_hp - current_hp
 
-                    messages.append(f"Short rest: Healed {new_hp - current_hp} HP using hit dice")
-                else:
-                    messages.append("Short rest: No hit dice available for healing")
-            else:
-                messages.append("Short rest: Already at full HP")
-
+        if healing_done > 0:
+            messages.append(f"Long rest: Healed {healing_done} HP to full health and restored {restored_dice} hit dice")
         else:
-            # Long rest: full healing and resource restoration
-            max_hp = character_data.get('hit_points_max', 0)
-            character_data['hit_points_current'] = max_hp
-
-            # Restore hit dice (half, minimum 1)
-            max_hit_dice = character_data.get('hit_dice_max', 1)
-            restored_dice = max(1, max_hit_dice // 2)
-            character_data['hit_dice_current'] = min(max_hit_dice,
-                character_data.get('hit_dice_current', 0) + restored_dice)
-
-            # Reset death saves
-            character_data['death_saves_successes'] = 0
-            character_data['death_saves_failures'] = 0
-
-            messages.append(f"Long rest: Full healing and {restored_dice} hit dice restored")
+            messages.append(f"Long rest: Already at full HP, restored {restored_dice} hit dice")
 
         return character_data, messages
 
