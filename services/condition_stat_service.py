@@ -251,7 +251,14 @@ class ConditionStatService:
         for condition in conditions:
             effects = ConditionEffects.get_effects(condition.condition_type)
 
-            # Check for action restrictions
+            # Check for incapacitating conditions (includes all action restrictions)
+            if effects.get("has_incapacitated") or ConditionEffects.is_incapacitating(condition.condition_type):
+                result["actions"] = False
+                result["bonus_actions"] = False
+                result["reactions"] = False
+                result["restrictions"].append(f"{condition.condition_type.value}: Incapacitated (cannot take actions)")
+
+            # Check for specific action restrictions
             if effects.get("no_actions"):
                 result["actions"] = False
                 result["restrictions"].append(f"{condition.condition_type.value}: Cannot take actions")
