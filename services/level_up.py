@@ -360,8 +360,226 @@ class LevelUpService:
     
     def _grant_rogue_features(self, cursor, character_id: str, level: int):
         """Grant Rogue-specific features."""
-        # Add rogue features as needed
-        pass
+        try:
+            # Calculate sneak attack dice based on level (1d6 per 2 levels, rounded up)
+            sneak_attack_dice = (level + 1) // 2
+
+            # Check if rogue_features entry exists
+            cursor.execute("SELECT character_id FROM rogue_features WHERE character_id = ?", (character_id,))
+            exists = cursor.fetchone() is not None
+
+            if not exists:
+                # Create new entry with all defaults
+                cursor.execute("""
+                    INSERT INTO rogue_features
+                    (character_id, level, sneak_attack_dice, cunning_action_available,
+                     expertise_count, uncanny_dodge_available, evasion_available,
+                     cunning_strike_available, reliable_talent_active, improved_cunning_strike,
+                     slippery_mind_active, elusive_active, stroke_of_luck_uses_current, stroke_of_luck_uses_max)
+                    VALUES (?, ?, ?, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                """, (character_id, level, sneak_attack_dice))
+                print(f"[LevelUp] Created rogue_features entry for character {character_id}")
+            else:
+                # Update existing entry
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET level = ?, sneak_attack_dice = ?
+                    WHERE character_id = ?
+                """, (level, sneak_attack_dice, character_id))
+                print(f"[LevelUp] Updated rogue_features level={level}, sneak_attack_dice={sneak_attack_dice}")
+
+            if level == 1:
+                # Sneak Attack
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Sneak Attack", "passive", "permanent", 1, f"Deal extra {sneak_attack_dice}d6 damage when you have advantage", f'{{"sneak_attack_dice": {sneak_attack_dice}}}'))
+
+                # Thieves' Cant
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Thieves' Cant", "passive", "permanent", 1, "Secret language of rogues and criminals", ""))
+
+                # Expertise (1st level)
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Expertise", "passive", "permanent", 1, "Double proficiency bonus for 2 skills", '{"expertise_count": 2}'))
+
+                print(f"[LevelUp] Granted Sneak Attack, Thieves' Cant, and Expertise to Rogue")
+
+            elif level == 2:
+                # Cunning Action
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Cunning Action", "bonus_action", "permanent", 2, "Take Dash, Disengage, or Hide as bonus action", '{"cunning_action_options": ["dash", "disengage", "hide"]}'))
+
+                # Update rogue-specific table
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET cunning_action_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Cunning Action to Rogue")
+
+            elif level == 3:
+                # Subclass selection handled separately
+                print(f"[LevelUp] Level 3: Roguish Archetype selection")
+
+            elif level == 5:
+                # Uncanny Dodge
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Uncanny Dodge", "reaction", "permanent", 5, "Use reaction to halve damage from one attack", '{"damage_reduction": 0.5}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET uncanny_dodge_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                # Cunning Strike
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Cunning Strike", "passive", "permanent", 5, "Forgo Sneak Attack damage to apply debuffs", '{"cunning_strike_effects": ["trip", "withdraw", "poison"]}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET cunning_strike_available = 1, cunning_strike_effects_known = '["trip", "withdraw", "poison"]'
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Uncanny Dodge and Cunning Strike to Rogue")
+
+            elif level == 6:
+                # Expertise improvement
+                cursor.execute("""
+                    UPDATE character_features
+                    SET mechanics = '{"expertise_count": 4}', description = "Double proficiency bonus for 4 skills"
+                    WHERE character_id = ? AND feature_name = 'Expertise'
+                """, (character_id,))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET expertise_count = 4
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Improved Expertise to 4 skills")
+
+            elif level == 7:
+                # Evasion
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Evasion", "passive", "permanent", 7, "Take no damage on successful DEX saves, half on failure", '{"dex_save_advantage": true}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET evasion_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Evasion to Rogue")
+
+            elif level == 11:
+                # Reliable Talent
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Reliable Talent", "passive", "permanent", 11, "Treat d20 rolls of 9 or lower as 10 for proficient skills", '{"minimum_roll": 10}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET reliable_talent_active = 1, reliable_talent_minimum = 10
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Reliable Talent to Rogue")
+
+            elif level == 14:
+                # Improved Cunning Strike
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET improved_cunning_strike = 1, cunning_strike_effects_known = '["trip", "withdraw", "poison", "daze", "knock_out", "obscure"]'
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Improved Cunning Strike with additional effects")
+
+            elif level == 15:
+                # Slippery Mind
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Slippery Mind", "passive", "permanent", 15, "Proficiency in Wisdom saving throws", '{"wis_save_proficiency": true}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET slippery_mind_active = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Slippery Mind to Rogue")
+
+            elif level == 18:
+                # Elusive
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Elusive", "passive", "permanent", 18, "No attack has advantage against you unless incapacitated", '{"no_advantage": true}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET elusive_active = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Elusive to Rogue")
+
+            elif level == 20:
+                # Stroke of Luck
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Stroke of Luck", "action", "short_rest", 20, "Turn a miss into a hit, or turn a hit into a critical", '{"uses": 1}'))
+
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET stroke_of_luck_uses_current = 1, stroke_of_luck_uses_max = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+
+                print(f"[LevelUp] Granted Stroke of Luck to Rogue")
+
+            # Always update Sneak Attack for odd levels
+            if level % 2 == 1:
+                cursor.execute("""
+                    UPDATE character_features
+                    SET mechanics = ?, description = ?
+                    WHERE character_id = ? AND feature_name = 'Sneak Attack'
+                """, (f'{{"sneak_attack_dice": {sneak_attack_dice}}}', f"Deal extra {sneak_attack_dice}d6 damage when you have advantage", character_id))
+
+                print(f"[LevelUp] Updated Sneak Attack to {sneak_attack_dice}d6")
+
+        except Exception as e:
+            print(f"[LevelUp] Error granting rogue features: {e}")
     
     def _get_species_hp_bonus(self, cursor, character_id: str) -> int:
         """Get HP bonus per level from species traits."""

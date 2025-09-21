@@ -3031,7 +3031,8 @@ class EncounterPanel(QWidget):
             'equipment_choices': {},
             'saving_throw_proficiencies': saving_throw_profs,
             'selected_class_skills': self.character_creation_data.get('selected_class_skills', []),
-            'selected_species_skills': self.character_creation_data.get('selected_species_skills', [])
+            'selected_species_skills': self.character_creation_data.get('selected_species_skills', []),
+            'rogue_features': self.character_creation_data.get('rogue_features', {})  # Include rogue expertise
         }
 
         # Record selected equipment options - break down combination strings

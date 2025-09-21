@@ -125,6 +125,7 @@ class TrainingHallInterface(QWidget):
         super().__init__(parent)
         self.character_data = character_data
         self.level_up_service = LevelUpService()
+        self.db_path = "talekeeper.db"
         self.selected_class = None
         print(f"[TrainingHall] Initializing for {character_data.get('name')} level {character_data.get('level')}")
         self.is_asi_level = False

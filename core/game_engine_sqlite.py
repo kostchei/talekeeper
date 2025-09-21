@@ -1121,36 +1121,47 @@ class GameEngineSQLite:
             # Use equipment service instead of hardcoded data
             from services.equipment import equipment_service
             
-            # Process each equipment choice
+            # Process each equipment choice using compound choice parsing
             for choice_key, item_name in equipment_choices.items():
-                equipment_data = equipment_service.get_item(item_name)
-                if equipment_data:
-                    # Get item properties from database
-                    item_type = equipment_data['item_type']
-                    weight_lb = equipment_data['weight_lb']
-                    description = equipment_data['description'] or ''
-                    value_gp = equipment_data['cost_gp']
-                    
-                    # Determine if equipped based on choice type
-                    equipped = 1 if any(key in choice_key.lower() for key in ['weapon', 'armor', 'shield']) else 0
-                    
-                    cursor.execute("""
-                        INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (str(uuid.uuid4()), character_id, item_name, item_type, 1, weight_lb, description, value_gp, equipped))
-                    print(f"[SQLite] Added {item_name} to inventory (from {choice_key}) - equipped: {equipped}")
-                    
-                    # Handle shield separately if it's part of a weapon choice
-                    if 'Shield' in item_name and item_type != 'shield':
-                        shield_data = equipment_service.get_item('Shield')
-                        if shield_data:
-                            cursor.execute("""
-                                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (str(uuid.uuid4()), character_id, 'Shield', 'shield', 1, shield_data['weight_lb'], shield_data['description'], shield_data['cost_gp'], 1))
-                            print(f"[SQLite] Also added Shield from {item_name}")
-                else:
-                    print(f"[SQLite] Warning: Equipment '{item_name}' not found in database")
+                print(f"[SQLite] Processing choice '{choice_key}': {item_name}")
+
+                # Parse compound equipment choices (e.g., "Scimitar + Shortsword", "2 Shortswords")
+                items_to_add = self._parse_equipment_choice(item_name)
+
+                for item_entry in items_to_add:
+                    item_name_clean = item_entry['name']
+                    quantity = item_entry.get('quantity', 1)
+
+                    print(f"[SQLite] Processing individual item: {item_name_clean} (qty: {quantity})")
+
+                    equipment_data = equipment_service.get_item(item_name_clean)
+                    if equipment_data:
+                        # Get item properties from database
+                        item_type = equipment_data['item_type']
+                        weight_lb = equipment_data['weight_lb']
+                        description = equipment_data['description'] or ''
+                        value_gp = equipment_data['cost_gp']
+
+                        # Determine if equipped based on choice type
+                        equipped = 1 if any(key in choice_key.lower() for key in ['weapon', 'armor', 'shield']) else 0
+
+                        cursor.execute("""
+                            INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (str(uuid.uuid4()), character_id, item_name_clean, item_type, quantity, weight_lb, description, value_gp, equipped))
+                        print(f"[SQLite] Added {item_name_clean} (qty: {quantity}) to inventory (from {choice_key}) - equipped: {equipped}")
+
+                        # Handle shield separately if it's part of a weapon choice
+                        if 'Shield' in item_name_clean and item_type != 'shield':
+                            shield_data = equipment_service.get_item('Shield')
+                            if shield_data:
+                                cursor.execute("""
+                                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (str(uuid.uuid4()), character_id, 'Shield', 'shield', 1, shield_data['weight_lb'], shield_data['description'], shield_data['cost_gp'], 1))
+                                print(f"[SQLite] Also added Shield from {item_name_clean}")
+                    else:
+                        print(f"[SQLite] Warning: Equipment '{item_name_clean}' not found in database")
         
         # Fighter Class Starting Equipment
         if class_id in ['fighter']:
@@ -1485,23 +1496,30 @@ class GameEngineSQLite:
     def _initialize_rogue_features(self, cursor, character_id: str, character_data: Dict):
         """Initialize Rogue-specific features."""
         level = character_data.get('level', 1)
-        
+
         # Calculate sneak attack dice (1d6 at 1st, +1d6 every 2 levels)
         sneak_attack_dice = 1 + ((level - 1) // 2)
-        
+
+        # Get expertise skills from character_data
+        import json
+        expertise_skills = []
+        if 'rogue_features' in character_data and 'expertise_skills' in character_data['rogue_features']:
+            expertise_skills = character_data['rogue_features']['expertise_skills']
+        expertise_json = json.dumps(expertise_skills) if expertise_skills else '[]'
+
         cursor.execute("""
             INSERT INTO rogue_features (
                 character_id, level, sneak_attack_dice, expertise_skills,
                 cunning_action_available, uncanny_dodge_available, evasion_available, archetype
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            character_id, level, sneak_attack_dice, '[]',  # JSON array of expertise skills
+            character_id, level, sneak_attack_dice, expertise_json,
             level >= 2,  # Cunning Action at level 2
             level >= 5,  # Uncanny Dodge at level 5
             level >= 7,  # Evasion at level 7
             None  # Archetype chosen at level 3
         ))
-        print(f"[SQLite] Initialized Rogue features - {sneak_attack_dice}d6 sneak attack")
+        print(f"[SQLite] Initialized Rogue features - {sneak_attack_dice}d6 sneak attack, expertise: {expertise_skills}")
     
     def _get_full_caster_spell_slots(self, level: int) -> Dict[int, int]:
         """Get spell slot progression for full casters (Wizard, Cleric)."""

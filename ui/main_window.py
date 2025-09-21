@@ -1537,6 +1537,11 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
 
+        # Include rogue-specific features (expertise skills)
+        if class_id == 'rogue' and 'rogue_features' in character_data:
+            save_data['rogue_features'] = character_data['rogue_features']
+            print(f"[DEBUG] Including rogue features in save data: {save_data['rogue_features']}")
+
         return save_data
     
     def _apply_feat_effects(self, character_data: Dict, feat_names: List[str]) -> Dict:

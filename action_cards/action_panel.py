@@ -281,7 +281,6 @@ class ActionPanel(QWidget):
         # Create non-weapon action cards first
         static_actions = {
             ActionCategory.COMBAT: [
-                (ActionType.CAST_SPELL, "✨", "Magic", "Cast a spell from your repertoire"),
                 (ActionType.USE_ITEM, "[POTION]", "Use Item", "Use an item from your inventory"),
                 (ActionType.DODGE, "[SHIELD]", "Dodge", "Gain advantage on Dexterity saves"),
             ],
@@ -295,12 +294,9 @@ class ActionPanel(QWidget):
                 (ActionType.INVESTIGATE, "🕵️", "Investigate", "Make a detailed investigation"),
                 (ActionType.REST, "😴", "Rest", "Take a short rest to recover"),
                 (ActionType.USE_POTION, "[POTION]", "Use Potion", "Drink a healing potion (2d4+4 HP)"),
-                (ActionType.RAGE, "[RAGE]", "Rage", "Enter barbarian rage (+2 damage, resistance)"),
-                (ActionType.LAY_ON_HANDS, "✋", "Lay on Hands", "Heal 5 HP with divine touch"),
             ],
             ActionCategory.FREE: [
                 (ActionType.INTERACT, "[HAND]", "Interact", "Interact with objects or environment"),
-                (ActionType.RECKLESS_ATTACK, "[RECKLESS]", "Reckless Attack", "Toggle advantage on STR attacks (enemies get advantage too)"),
             ],
             ActionCategory.REACTION: [
                 (ActionType.OPPORTUNITY, "[LIGHTNING]", "Opportunity", "Make an opportunity attack"),
@@ -486,6 +482,61 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
+
+        # Thief Features
+        if (self.character_context and self.character_context.get('class_id', '').lower() == 'rogue'
+            and self.character_context.get('subclass_id') == 'thief'):
+            level = self.character_context.get('level', 1)
+
+            # Fast Hands (Level 3+) - Thieves Tools as bonus action
+            if level >= 3:
+                fast_hands_feature = self._get_feature_data('Fast Hands')
+                if fast_hands_feature:
+                    card = ActionCard(ActionType.FAST_HANDS_THIEVES_TOOLS, "[TOOLS]", "Use Thieves Tools", "Use thieves tools as bonus action")
+                    card.feature_data = fast_hands_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.FAST_HANDS_THIEVES_TOOLS] = card
+
+                    card = ActionCard(ActionType.FAST_HANDS_USE_OBJECT, "[OBJECT]", "Use Object", "Use Object action as bonus action")
+                    card.feature_data = fast_hands_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.FAST_HANDS_USE_OBJECT] = card
+
+                    card = ActionCard(ActionType.FAST_HANDS_SLEIGHT_OF_HAND, "[SLEIGHT]", "Sleight of Hand", "Sleight of Hand check as bonus action")
+                    card.feature_data = fast_hands_feature
+                    card.action_triggered.connect(self._trigger_action)
+                    card.action_hovered.connect(self._action_hovered)
+                    self.action_cards[ActionType.FAST_HANDS_SLEIGHT_OF_HAND] = card
+
+        # Spellcasting Features
+        if self.character_context:
+            class_id = self.character_context.get('class_id', '').lower()
+            subclass_id = self.character_context.get('subclass_id', '').lower()
+            level = self.character_context.get('level', 1)
+
+            # Check if character can cast spells
+            is_spellcaster = False
+
+            # Full spellcasters (start at level 1)
+            if class_id in ['wizard', 'cleric', 'warlock', 'sorcerer', 'druid', 'bard']:
+                is_spellcaster = True
+
+            # Half-casters (start at level 2)
+            elif class_id in ['paladin', 'ranger'] and level >= 2:
+                is_spellcaster = True
+
+            # Third-casters (subclass specific, start at level 3)
+            elif ((class_id == 'rogue' and subclass_id == 'arcane_trickster') or
+                  (class_id == 'fighter' and subclass_id == 'eldritch_knight')) and level >= 3:
+                is_spellcaster = True
+
+            if is_spellcaster:
+                card = ActionCard(ActionType.CAST_SPELL, "✨", "Cast Spell", "Cast a spell from your repertoire")
+                card.action_triggered.connect(self._trigger_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[ActionType.CAST_SPELL] = card
 
         # Barbarian Features
         if self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
@@ -1330,14 +1381,37 @@ class ActionPanel(QWidget):
             # Only show bonus actions that the character actually has
             bonus_actions = []
 
-            # Add class feature bonus actions that the character actually has
-            if ActionType.RAGE in self.action_cards:
-                bonus_actions.append(ActionType.RAGE)
-            if ActionType.SECOND_WIND in self.action_cards:
-                bonus_actions.append(ActionType.SECOND_WIND)
-            if ActionType.INTIMIDATING_PRESENCE in self.action_cards:
-                bonus_actions.append(ActionType.INTIMIDATING_PRESENCE)
-            
+            # Dynamically find all bonus action features from database
+            character_id = self._resolve_character_id()
+            if character_id:
+                # Get all bonus action features for this character
+                import sqlite3
+                try:
+                    with sqlite3.connect("talekeeper.db") as conn:
+                        cursor = conn.cursor()
+
+                        # Query character features marked as bonus_action
+                        cursor.execute("""
+                            SELECT feature_name, mechanics
+                            FROM character_features
+                            WHERE character_id = ? AND feature_type = 'bonus_action'
+                        """, (character_id,))
+
+                        for feature_name, mechanics in cursor.fetchall():
+                            # Convert feature to action type and add if it exists
+                            action_type = self._feature_name_to_action_type(feature_name)
+                            if action_type and action_type in self.action_cards:
+                                bonus_actions.append(action_type)
+                except Exception as e:
+                    print(f"Error loading bonus actions from database: {e}")
+                    # Fallback to hardcoded list
+                    if ActionType.RAGE in self.action_cards:
+                        bonus_actions.append(ActionType.RAGE)
+                    if ActionType.SECOND_WIND in self.action_cards:
+                        bonus_actions.append(ActionType.SECOND_WIND)
+                    if ActionType.INTIMIDATING_PRESENCE in self.action_cards:
+                        bonus_actions.append(ActionType.INTIMIDATING_PRESENCE)
+
             # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
             if ActionType.ATTACK_OFF_HAND in self.action_cards:
                 bonus_actions.append(ActionType.ATTACK_OFF_HAND)
@@ -3870,6 +3944,25 @@ class ActionPanel(QWidget):
 
 
 
+
+    def _feature_name_to_action_type(self, feature_name: str) -> Optional[ActionType]:
+        """Convert a feature name to its corresponding ActionType."""
+        feature_map = {
+            'Rage': ActionType.RAGE,
+            'Second Wind': ActionType.SECOND_WIND,
+            'Action Surge': ActionType.ACTION_SURGE,
+            'Reckless Attack': ActionType.RECKLESS_ATTACK,
+            'Lay on Hands': ActionType.LAY_ON_HANDS,
+            'Intimidating Presence': ActionType.INTIMIDATING_PRESENCE,
+            'Retaliation': ActionType.RETALIATION,
+            'Fast Hands': ActionType.FAST_HANDS_THIEVES_TOOLS,  # Main thief feature
+            'Brutal Strike': ActionType.BRUTAL_STRIKE_FORCEFUL,  # Default brutal strike
+            'Instinctive Pounce': ActionType.INSTINCTIVE_POUNCE,
+            'Heroic Warrior': ActionType.HEROIC_WARRIOR,
+            'Survivor': ActionType.SURVIVOR,
+            'Masterful Mimicry': ActionType.MASTERFUL_MIMICRY,
+        }
+        return feature_map.get(feature_name)
 
     def _resolve_character_id(self) -> Optional[str]:
         """Resolve the active character ID from context or parent widgets."""
