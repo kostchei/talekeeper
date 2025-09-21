@@ -126,7 +126,6 @@ ALTER TABLE rogue_features ADD COLUMN stroke_of_luck_uses_max INTEGER DEFAULT 1;
 **Technical Requirements:**
 1. **Weapon Eligibility**: Finesse or ranged weapon detection
 2. **Advantage Detection**: Integration with existing advantage system
-3. **Ally Detection**: 5-foot proximity calculation in combat grid
 4. **Once-Per-Turn Enforcement**: Turn-based resource tracking
 5. **Damage Integration**: Seamless addition to weapon damage rolls
 
