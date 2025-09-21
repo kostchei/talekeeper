@@ -1863,6 +1863,8 @@ class EncounterPanel(QWidget):
         # Handle class-specific features
         if selected_class_name == "Fighter":
             self._setup_fighter_features()
+        elif selected_class_name == "Rogue":
+            self._setup_rogue_features()
         else:
             # For non-Fighter classes, show placeholder text
             info_label = QLabel(f"{selected_class_name} other class features will be implemented soon.")
@@ -1928,7 +1930,210 @@ class EncounterPanel(QWidget):
         self.fighting_style_combo.currentIndexChanged.connect(self._on_fighting_style_selected)
         
         self.class_features_layout.addWidget(fighting_style_group)
-    
+
+    def _setup_rogue_features(self):
+        """Setup Rogue Level 1 class features."""
+
+        # Expertise selection
+        expertise_group = QGroupBox("Expertise (Level 1)")
+        expertise_layout = QVBoxLayout(expertise_group)
+
+        expertise_description = QLabel("Choose 2 skills from your proficiencies to gain Expertise (double proficiency bonus).")
+        expertise_description.setWordWrap(True)
+        expertise_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        expertise_layout.addWidget(expertise_description)
+
+        # Get skills the character is proficient in
+        proficient_skills = self._get_character_proficient_skills()
+
+        if not proficient_skills:
+            no_skills_label = QLabel("Select your class skills above, then expertise choices will appear here.")
+            no_skills_label.setStyleSheet("color: #ffa500; font-style: italic;")
+            expertise_layout.addWidget(no_skills_label)
+
+            # Store a reference to this label so we can update it later
+            self.expertise_placeholder_label = no_skills_label
+
+        else:
+            # Create checkboxes for expertise selection
+            expertise_skills_frame = QFrame()
+            expertise_skills_layout = QGridLayout(expertise_skills_frame)
+
+            self.expertise_checkboxes = {}
+            row, col = 0, 0
+            for skill in proficient_skills:
+                checkbox = QCheckBox(skill)
+                checkbox.toggled.connect(
+                    lambda state, s=skill: self._on_expertise_skill_toggled(s, state)
+                )
+                self.expertise_checkboxes[skill] = checkbox
+                expertise_skills_layout.addWidget(checkbox, row, col)
+
+                col += 1
+                if col > 2:  # 3 columns
+                    col = 0
+                    row += 1
+
+            expertise_layout.addWidget(expertise_skills_frame)
+
+            # Add selection count label
+            self.expertise_count_label = QLabel("Selected: 0 / 2")
+            self.expertise_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+            expertise_layout.addWidget(self.expertise_count_label)
+
+        self.class_features_layout.addWidget(expertise_group)
+
+        # Thieves' Tools note
+        tools_group = QGroupBox("Starting Proficiencies")
+        tools_layout = QVBoxLayout(tools_group)
+
+        tools_note = QLabel("You automatically gain proficiency with Thieves' Tools and starting equipment includes Thieves' Tools.")
+        tools_note.setWordWrap(True)
+        tools_note.setStyleSheet("color: #4a9eff; font-style: italic;")
+        tools_layout.addWidget(tools_note)
+
+        self.class_features_layout.addWidget(tools_group)
+
+    def _get_character_proficient_skills(self):
+        """Get list of skills the character is proficient in from their selections."""
+        proficient_skills = []
+
+        # Get selected class skills
+        if hasattr(self, 'class_skill_checkboxes'):
+            class_skills = []
+            for skill, checkbox in self.class_skill_checkboxes.items():
+                if checkbox.isChecked():
+                    class_skills.append(skill)
+                    proficient_skills.append(skill)
+
+        # Get background skills (from character creation data)
+        background_data = self.character_creation_data.get('background')
+        if background_data and isinstance(background_data, dict):
+            bg_skills = background_data.get('skill_proficiencies', [])
+            if isinstance(bg_skills, list):
+                proficient_skills.extend(bg_skills)
+            elif isinstance(bg_skills, str):
+                try:
+                    import json
+                    bg_skills_list = json.loads(bg_skills)
+                    proficient_skills.extend(bg_skills_list)
+                except:
+                    pass
+
+        # Get species skills
+        species_data = self.character_creation_data.get('species')
+        if species_data and isinstance(species_data, dict):
+            species_skills = species_data.get('skill_proficiencies', [])
+            if isinstance(species_skills, list):
+                proficient_skills.extend(species_skills)
+
+        # Remove duplicates and return
+        final_skills = list(set(proficient_skills))
+        return final_skills
+
+    def _on_expertise_skill_toggled(self, skill_name: str, checked: bool):
+        """Handle expertise skill checkbox toggle with selection limit."""
+        # Count currently selected expertise skills
+        selected_count = sum(1 for cb in self.expertise_checkboxes.values() if cb.isChecked())
+
+        # Update count label
+        if hasattr(self, 'expertise_count_label'):
+            self.expertise_count_label.setText(f"Selected: {selected_count} / 2")
+
+            # Change color based on selection status
+            if selected_count == 2:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #28a745;")  # green
+            elif selected_count > 2:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #dc3545;")  # red
+            else:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")  # blue
+
+        # Enforce selection limit
+        if selected_count > 2:
+            # Find and uncheck the checkbox that was just checked
+            if checked:  # This was the checkbox that put us over the limit
+                checkbox = self.expertise_checkboxes[skill_name]
+                checkbox.setChecked(False)
+                selected_count = 2  # Reset count
+                if hasattr(self, 'expertise_count_label'):
+                    self.expertise_count_label.setText(f"Selected: {selected_count} / 2")
+                    self.expertise_count_label.setStyleSheet("font-weight: bold; color: #28a745;")
+
+        # Store expertise selections in character creation data
+        if not hasattr(self, 'character_creation_data'):
+            self.character_creation_data = {}
+        if 'rogue_features' not in self.character_creation_data:
+            self.character_creation_data['rogue_features'] = {}
+
+        expertise_skills = [skill for skill, cb in self.expertise_checkboxes.items() if cb.isChecked()]
+        self.character_creation_data['rogue_features']['expertise_skills'] = expertise_skills
+
+    def _refresh_expertise_options(self):
+        """Refresh the expertise selection options when skills change."""
+        # Get updated list of proficient skills
+        proficient_skills = self._get_character_proficient_skills()
+
+        # Find the expertise group box
+        expertise_group = None
+        for i in range(self.class_features_layout.count()):
+            widget = self.class_features_layout.itemAt(i).widget()
+            if widget and isinstance(widget, QGroupBox) and "Expertise" in widget.title():
+                expertise_group = widget
+                break
+
+        if not expertise_group:
+            return
+
+        expertise_layout = expertise_group.layout()
+        if not expertise_layout:
+            return
+
+        # Clear existing content after the description
+        # Keep the description (index 0), remove everything else
+        for i in reversed(range(1, expertise_layout.count())):
+            child = expertise_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+
+        # Clear any existing checkboxes
+        if hasattr(self, 'expertise_checkboxes'):
+            self.expertise_checkboxes.clear()
+        else:
+            self.expertise_checkboxes = {}
+
+        # If no proficient skills, show placeholder message
+        if not proficient_skills:
+            no_skills_label = QLabel("Select your class skills above, then expertise choices will appear here.")
+            no_skills_label.setStyleSheet("color: #ffa500; font-style: italic;")
+            expertise_layout.addWidget(no_skills_label)
+            return
+
+        # Create skill selection interface
+        expertise_skills_frame = QFrame()
+        expertise_skills_layout = QGridLayout(expertise_skills_frame)
+
+        row, col = 0, 0
+        for skill in proficient_skills:
+            checkbox = QCheckBox(skill)
+            checkbox.toggled.connect(
+                lambda state, s=skill: self._on_expertise_skill_toggled(s, state)
+            )
+            self.expertise_checkboxes[skill] = checkbox
+            expertise_skills_layout.addWidget(checkbox, row, col)
+
+            col += 1
+            if col > 2:  # 3 columns
+                col = 0
+                row += 1
+
+        expertise_layout.addWidget(expertise_skills_frame)
+
+        # Add selection count label
+        self.expertise_count_label = QLabel("Selected: 0 / 2")
+        self.expertise_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+        expertise_layout.addWidget(self.expertise_count_label)
+
+
     def _setup_class_skill_selection(self, class_id: str):
         """Setup skill selection interface for the selected class."""
         # Query database for class skill choices
@@ -2020,6 +2225,13 @@ class EncounterPanel(QWidget):
         # Store selected skills in character creation data
         selected_skills = [skill for skill, cb in self.class_skill_checkboxes.items() if cb.isChecked()]
         self.character_creation_data['selected_class_skills'] = selected_skills
+
+        # Refresh expertise options for Rogue if applicable
+        selected_class_data = self.character_creation_data.get('class')
+        if selected_class_data:
+            class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
+            if class_name == "Rogue":
+                self._refresh_expertise_options()
     
     def _setup_species_skill_selection(self, species_id: str):
         """Setup skill selection interface for the selected species."""
@@ -4384,7 +4596,22 @@ Character Level: {character_level}"""
                 parent = parent.parent()
         except Exception as e:
             print(f"Could not update character sheet XP: {e}")
-    
+
+    def _calculate_skill_challenge_xp(self, character_level: int, success: bool = True) -> int:
+        """Calculate XP reward for skill challenge based on character level."""
+        # Base XP values for low difficulty encounters by level tier
+        if character_level <= 4:
+            base_xp = 50   # Levels 1-4
+        elif character_level <= 10:
+            base_xp = 100  # Levels 5-10
+        elif character_level <= 16:
+            base_xp = 150  # Levels 11-16
+        else:
+            base_xp = 200  # Levels 17-20
+
+        # Full XP for success, half XP for failure
+        return base_xp if success else base_xp // 2
+
     # === DATABASE PERSISTENCE METHODS ===
     
     def _save_encounter_to_db(self):
@@ -5880,17 +6107,27 @@ Character Level: {character_level}"""
             return
 
         try:
-            # Apply the reward/penalty
+            # Calculate XP based on outcome
+            character_level = character_data.get('level', 1)
             if outcome == 'success':
+                # Success: low challenge XP
+                xp_gained = self._calculate_skill_challenge_xp(character_level, success=True)
                 updated_character, log_messages = self.skill_challenge_rewards.apply_reward(
                     character_data, reward_text
                 )
                 self._log_monster_action(f"[SUCCESS] Skill challenge completed! Reward: {reward_text}")
             else:
+                # Failure: half of low challenge XP
+                xp_gained = self._calculate_skill_challenge_xp(character_level, success=False)
                 updated_character, log_messages = self.skill_challenge_rewards.apply_penalty(
                     character_data, reward_text
                 )
                 self._log_monster_action(f"[FAILURE] Skill challenge failed! Penalty: {reward_text}")
+
+            # Award XP for participation
+            if xp_gained > 0:
+                self._add_xp_to_character(xp_gained)
+                self._log_monster_action(f"[XP] Gained {xp_gained} XP from skill challenge")
 
             # Log individual effects
             for message in log_messages:

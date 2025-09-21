@@ -919,51 +919,131 @@ class GameEngineSQLite:
         if 'inventory' not in character_data:
             character_data['inventory'] = []
         
-        # Process all equipment choices - frontend now sends individual items
+        # Process all equipment choices - handle compound choices like "Scimitar + Shortsword"
         for choice_key, item_name in equipment_choices.items():
             print(f"[SQLite] Processing choice '{choice_key}': {item_name}")
-            
-            # Get item data from equipment JSON to determine type
-            item_data = self.get_equipment_item_sync(item_name)
-            if not item_data:
-                print(f"[SQLite] Warning: Item '{item_name}' not found in equipment database")
-                continue
-            
-            item_type = item_data.get('item_type', '')
-            
-            # Add to inventory first
-            character_data['inventory'].append({
-                'name': item_name,
-                'quantity': 1,
-                'weight': item_data.get('weight_lb', 0)
-            })
-            print(f"[SQLite] Added '{item_name}' to inventory")
-            
-            # Auto-equip based on item type
-            if item_type == 'weapon':
-                if not character_data.get('equipment_main_hand'):
-                    character_data['equipment_main_hand'] = item_name
-                    print(f"[SQLite] Equipped '{item_name}' as main hand weapon")
-                elif not character_data.get('equipment_off_hand') and 'light' in item_data.get('weapon_properties', []):
-                    character_data['equipment_off_hand'] = item_name
-                    print(f"[SQLite] Equipped '{item_name}' as off hand weapon")
-                    
-            elif item_type == 'armor':
-                character_data['equipment_armor'] = item_name
-                print(f"[SQLite] Equipped '{item_name}' as armor")
-                
-            elif item_type == 'shield':
-                character_data['equipment_off_hand'] = item_name
-                print(f"[SQLite] Equipped '{item_name}' as shield")
-                
-            elif item_type in ['spellcasting_focus', 'spellbook']:
-                # Add to inventory but don't auto-equip focuses/spellbooks
-                print(f"[SQLite] Added '{item_name}' ({item_type}) to inventory")
-                
-            elif item_type == 'helmet':
-                character_data['equipment_helmet'] = item_name
-                print(f"[SQLite] Equipped '{item_name}' as helmet")
-    
+
+            # Parse compound equipment choices (e.g., "Scimitar + Shortsword", "2 Shortswords")
+            items_to_add = self._parse_equipment_choice(item_name)
+
+            for item_entry in items_to_add:
+                item_name_clean = item_entry['name']
+                quantity = item_entry.get('quantity', 1)
+
+                print(f"[SQLite] Processing individual item: {item_name_clean} (qty: {quantity})")
+
+                # Get item data from equipment database
+                item_data = self.get_equipment_item_sync(item_name_clean)
+                if not item_data:
+                    print(f"[SQLite] Warning: Item '{item_name_clean}' not found in equipment database")
+                    continue
+                item_type = item_data.get('item_type', '')
+
+                # Add each instance to inventory (for multiple quantities)
+                for i in range(quantity):
+                    character_data['inventory'].append({
+                        'name': item_name_clean,
+                        'quantity': 1,
+                        'weight': item_data.get('weight_lb', 0)
+                    })
+                    print(f"[SQLite] Added '{item_name_clean}' to inventory (instance {i+1}/{quantity})")
+                # Auto-equip based on item type (only for the first instance)
+                if item_type == 'weapon':
+                    if not character_data.get('equipment_main_hand'):
+                        character_data['equipment_main_hand'] = item_name_clean
+                        print(f"[SQLite] Equipped '{item_name_clean}' as main hand weapon")
+                    elif not character_data.get('equipment_off_hand') and 'light' in item_data.get('weapon_properties', []):
+                        character_data['equipment_off_hand'] = item_name_clean
+                        print(f"[SQLite] Equipped '{item_name_clean}' as off hand weapon")
+
+                elif item_type == 'armor':
+                    character_data['equipment_armor'] = item_name_clean
+                    print(f"[SQLite] Equipped '{item_name_clean}' as armor")
+
+                elif item_type == 'shield':
+                    character_data['equipment_off_hand'] = item_name_clean
+                    print(f"[SQLite] Equipped '{item_name_clean}' as shield")
+
+                elif item_type in ['spellcasting_focus', 'spellbook']:
+                    # Add to inventory but don't auto-equip focuses/spellbooks
+                    print(f"[SQLite] Added '{item_name_clean}' ({item_type}) to inventory")
+
+                elif item_type == 'helmet':
+                    character_data['equipment_helmet'] = item_name_clean
+                    print(f"[SQLite] Equipped '{item_name_clean}' as helmet")
+
+    def _parse_equipment_choice(self, choice_string: str) -> List[Dict[str, any]]:
+        """Parse equipment choice strings like 'Scimitar + Shortsword' or '2 Shortswords' into individual items."""
+        items = []
+
+        # Handle patterns like "2 Shortswords", "2x Scimitars"
+        import re
+        quantity_match = re.match(r'^(\d+)(?:x?\s+)?(.+)$', choice_string.strip())
+        if quantity_match:
+            quantity = int(quantity_match.group(1))
+            item_name = quantity_match.group(2).strip()
+            # Convert plural forms to singular for database lookup
+            item_name = self._normalize_item_name(item_name)
+            items.append({'name': item_name, 'quantity': quantity})
+            return items
+
+        # Handle compound choices separated by " + " or ", "
+        if ' + ' in choice_string:
+            parts = [part.strip() for part in choice_string.split(' + ')]
+        elif ', ' in choice_string:
+            parts = [part.strip() for part in choice_string.split(', ')]
+        else:
+            # Single item
+            parts = [choice_string.strip()]
+
+        for part in parts:
+            # Handle individual parts that might have quantities
+            quantity_match = re.match(r'^(\d+)(?:x?\s+)?(.+)$', part.strip())
+            if quantity_match:
+                quantity = int(quantity_match.group(1))
+                item_name = quantity_match.group(2).strip()
+            else:
+                quantity = 1
+                item_name = part.strip()
+
+            if item_name:  # Only add non-empty items
+                # Convert plural forms to singular for database lookup
+                item_name = self._normalize_item_name(item_name)
+                items.append({'name': item_name, 'quantity': quantity})
+
+        print(f"[SQLite] Parsed '{choice_string}' into: {items}")
+        return items
+
+    def _normalize_item_name(self, item_name: str) -> str:
+        """Convert plural item names to singular forms for database lookup."""
+        # Common pluralization patterns for D&D equipment
+        normalizations = {
+            'scimitars': 'Scimitar',
+            'shortswords': 'Shortsword',
+            'longswords': 'Longsword',
+            'daggers': 'Dagger',
+            'handaxes': 'Handaxe',
+            'javelins': 'Javelin',
+            'arrows': 'Arrow'
+        }
+
+        # Check for exact plural matches (case insensitive)
+        lower_name = item_name.lower()
+        if lower_name in normalizations:
+            return normalizations[lower_name]
+
+        # Handle generic plurals ending in 's'
+        if lower_name.endswith('s') and len(lower_name) > 1:
+            # Try removing 's' and see if we can find a match
+            singular_candidate = item_name[:-1]
+            # Only do this for weapon-like names to avoid false positives
+            weapon_indicators = ['sword', 'axe', 'hammer', 'spear', 'bow', 'crossbow']
+            if any(indicator in lower_name for indicator in weapon_indicators):
+                return singular_candidate
+
+        # Return as-is if no normalization needed
+        return item_name
+
     def _apply_feat_effects_to_character(self, character_dict: Dict[str, Any], feats: List[str]) -> Dict[str, Any]:
         """Apply mechanical effects of feats to character stats."""
         if not feats:
