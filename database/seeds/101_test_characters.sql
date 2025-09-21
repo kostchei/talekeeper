@@ -265,7 +265,7 @@ VALUES
 -- Valerius features
 INSERT INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description)
 VALUES 
-    ('test_valerius', 'Alert', 'feat', 'permanent', 1, '+5 to initiative, cannot be surprised'),
+    ('test_valerius', 'Alert', 'feat', 'permanent', 1, 'Add proficiency bonus to initiative, advantage on initiative rolls (solo play adaptation)'),
     ('test_valerius', 'Lucky', 'feat', 'permanent', 1, '3 luck points per long rest'),
     ('test_valerius', 'Fighting Style: Dueling', 'passive', 'permanent', 1, '+2 damage with one-handed weapon'),
     ('test_valerius', 'Second Wind', 'bonus_action', 'short_rest', 1, 'Regain 1d10+1 hit points');

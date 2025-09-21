@@ -70,7 +70,7 @@ INSERT INTO races VALUES('human','Human','Versatile and ambitious, humans are th
 INSERT INTO races VALUES('dwarf','Dwarf','Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal.','Medium',25,'{}','{"darkvision": "You have Darkvision with a range of 120 feet.", "dwarven_resilience": "You have Resistance to Poison damage. You also have Advantage on saving throws you make to avoid or end the Poisoned condition.", "dwarven_toughness": "Your Hit Point maximum increases by 1, and it increases by 1 again whenever you gain a level."}','["Common", "Dwarvish"]','[]',1);
 INSERT INTO feats VALUES('ability_score_improvement','Ability Score Improvement','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('actor','Actor','','[]','{}','{}','SRD','general');
-INSERT INTO feats VALUES('alert','Alert','You gain the following benefits: Initiative Proficiency - When you roll Initiative, you can add your Proficiency Bonus to the roll.','[]','{}','{}','SRD','O');
+INSERT INTO feats VALUES('alert','Alert','You gain the following benefits: Initiative Proficiency - When you roll Initiative, you can add your Proficiency Bonus to the roll. Initiative Advantage - You have advantage on Initiative rolls (adapted for solo play).','[]','{}','{}','SRD','O');
 INSERT INTO feats VALUES('archery','Archery','You gain a +2 bonus to attack rolls you make with ranged weapons.','[{"class": {"fighter": 1}}, {"class": {"paladin": 2}}]','{}','{}','SRD','fighting_style');
 INSERT INTO feats VALUES('athlete','Athlete','','[]','{}','{}','SRD','general');
 INSERT INTO feats VALUES('blessed_warrior','Blessed Warrior','','[]','{}','{}','SRD','general');

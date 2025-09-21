@@ -202,13 +202,19 @@ class FeatEffectsProcessor:
         feat_name = feat_data.get('name', '')
         effects = []
         
-        # Alert feat - Initiative Proficiency
+        # Alert feat - Initiative Proficiency and Advantage
         if feat_name == 'Alert':
             effects.append(FeatEffect(
                 feat_name=feat_name,
                 effect_type='combat',
                 value={'type': 'initiative_proficiency'},
                 description='Add proficiency bonus to Initiative rolls'
+            ))
+            effects.append(FeatEffect(
+                feat_name=feat_name,
+                effect_type='combat',
+                value={'type': 'initiative_advantage'},
+                description='Advantage on Initiative rolls (solo play adaptation)'
             ))
         
         # Savage Attacker - Damage reroll

@@ -617,6 +617,15 @@ class GameEngineSQLite:
                         INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
                         VALUES (?, ?, ?, ?)
                     """, (character_id, feat_name, 'character_creation', character_data.get('level', 1)))
+
+                    # Initialize feat resources if needed
+                    if feat_name == 'Lucky':
+                        cursor.execute("""
+                            UPDATE characters
+                            SET lucky_uses_current = 3, lucky_uses_max = 3
+                            WHERE id = ?
+                        """, (character_id,))
+                        print(f"[SQLite] Initialized Lucky feat resources (3/3) for character")
                 
                 # Initialize proficiencies using the proficiency system (pass the connection)
                 selected_class_skills = character_data.get('selected_class_skills', [])
@@ -1929,11 +1938,18 @@ class GameEngineSQLite:
                 # Apply feat effects if needed (e.g., Tough increases HP)
                 if feat_name == 'Tough':
                     cursor.execute("""
-                        UPDATE characters 
+                        UPDATE characters
                         SET hit_points_max = hit_points_max + (level * 2),
                             hit_points_current = hit_points_current + (level * 2)
                         WHERE id = ?
                     """, (character_id,))
+                elif feat_name == 'Lucky':
+                    cursor.execute("""
+                        UPDATE characters
+                        SET lucky_uses_current = 3, lucky_uses_max = 3
+                        WHERE id = ?
+                    """, (character_id,))
+                    print(f"[SQLite] Initialized Lucky feat resources (3/3) for character")
                 
                 conn.commit()
                 print(f"[SQLite] Added feat '{feat_name}' to character")

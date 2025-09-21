@@ -695,7 +695,7 @@ Training includes food and lodging (counts as a long rest)."""
             # Add some default feats as fallback
             default_feats = [
                 ("Tough", "+2 HP per level"),
-                ("Alert", "+5 initiative, can't be surprised"),
+                ("Alert", "Add proficiency bonus to initiative, advantage on initiative rolls (solo play)"),
                 ("Lucky", "3 luck points per long rest")
             ]
             for feat_name, desc in default_feats:

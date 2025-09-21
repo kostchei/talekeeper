@@ -487,7 +487,7 @@ class TestCharacterPopulator:
     def get_feat_description(self, feat):
         """Get description for feat."""
         descriptions = {
-            'Alert': '+5 to initiative, cannot be surprised',
+            'Alert': 'Add proficiency bonus to initiative, advantage on initiative rolls (solo play)',
             'Lucky': '3 luck points per long rest',
             'Tough': '+2 HP per level',
             'Savage Attacker': 'Reroll damage dice once per turn'

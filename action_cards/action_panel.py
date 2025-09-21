@@ -1955,8 +1955,27 @@ class ActionPanel(QWidget):
                         parent.log_panel.log_combat(f'[DEBUG] Rage check error: {e}')
                         break
                     parent = parent.parent()
+            # === SNEAK ATTACK ===
+            # Apply sneak attack damage if conditions are met (solo game - advantage only)
+            sneak_attack_damage = 0
+            sneak_attack_dice = []
+            if self._can_sneak_attack(context):
+                sneak_damage_dice = self._get_sneak_attack_damage()
+                if 'd' in sneak_damage_dice:
+                    try:
+                        num_dice, die_size = sneak_damage_dice.split('d')
+                        num_dice = int(num_dice)
+                        die_size = int(die_size)
+                        sneak_attack_dice = [random.randint(1, die_size) for _ in range(num_dice)]
+                        sneak_attack_damage = sum(sneak_attack_dice)
+                        self._log_to_parent(f"[SNEAK ATTACK] Applied {num_dice}d{die_size} = {sneak_attack_damage} damage!")
+                        # Mark sneak attack as used this turn
+                        self.sneak_attack_used_this_turn = True
+                    except (ValueError, AttributeError):
+                        pass
+
             # Calculate total damage
-            total_damage = dice_total + sum(value for _, value in damage_components)
+            total_damage = dice_total + sum(value for _, value in damage_components) + sneak_attack_damage
 
             # === LOG DAMAGE ===
             dice_str = f"[{', '.join(map(str, dice_rolls))}]"
@@ -1970,6 +1989,9 @@ class ActionPanel(QWidget):
             if crit_bonus:
                 crit_rolls_str = f"[{', '.join(map(str, crit_dice_rolls))}]"
                 damage_formula_parts.append(f"+crit {crit_rolls_str} = {crit_bonus}")
+            if sneak_attack_damage > 0:
+                sneak_rolls_str = f"[{', '.join(map(str, sneak_attack_dice))}]"
+                damage_formula_parts.append(f"+sneak {sneak_rolls_str} = {sneak_attack_damage}")
             damage_formula_text = ' '.join(damage_formula_parts)
 
             # Apply damage to monster
@@ -5591,29 +5613,28 @@ class ActionPanel(QWidget):
 
         # Check if advantage was calculated from various sources
         advantage_state = context.get('advantage_state')
-        if advantage_state == 'advantage':
+        if advantage_state == 'advantage' or (hasattr(advantage_state, 'value') and advantage_state.value == 'advantage'):
             has_advantage = True
 
-        # 2. An ally is within 5 feet of the target (and player doesn't have disadvantage)
-        has_disadvantage = context.get('has_disadvantage', False) or advantage_state == 'disadvantage'
-        ally_nearby = context.get('ally_within_5ft', False)
-
-        # Sneak attack triggers if:
-        # - Player has advantage OR
-        # - An ally is nearby AND player doesn't have disadvantage
-        can_sneak = has_advantage or (ally_nearby and not has_disadvantage)
+        # Solo game - sneak attack triggers if player has advantage (simplified)
+        can_sneak = has_advantage
 
         # Check if already used this turn (once per turn limit)
         if can_sneak and hasattr(self, 'sneak_attack_used_this_turn'):
             if self.sneak_attack_used_this_turn:
                 return False
 
+        print(f"DEBUG SNEAK: Advantage: {has_advantage}, Can sneak: {can_sneak}")
         return can_sneak
     
     def _apply_sneak_attack(self, context: Dict[str, Any], damage_breakdown: dict) -> dict:
         """Apply sneak attack damage if conditions are met."""
+        print(f"[DEBUG SNEAK APPLY] _apply_sneak_attack called")
         if not self._can_sneak_attack(context):
+            print(f"[DEBUG SNEAK APPLY] Sneak attack conditions not met, returning original breakdown")
             return damage_breakdown
+
+        print(f"[DEBUG SNEAK APPLY] Sneak attack conditions MET! Applying damage...")
 
         import random
         sneak_damage_dice = self._get_sneak_attack_damage()
@@ -5641,6 +5662,8 @@ class ActionPanel(QWidget):
                     damage_breakdown['sneak_attack_rolls'] = sneak_rolls
                     damage_breakdown['sneak_attack_damage'] = sneak_total
                     damage_breakdown['total'] += sneak_total
+
+                    print(f"[SNEAK] Applied {effective_sneak_dice}d{die_size} = {sneak_total} damage! New total: {damage_breakdown['total']}")
 
                     # Check for Assassin Surprising Strikes bonus damage (first round)
                     assassin_bonus = self._apply_assassin_surprising_strikes(context)
