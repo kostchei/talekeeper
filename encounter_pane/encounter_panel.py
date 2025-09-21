@@ -1095,10 +1095,18 @@ class EncounterPanel(QWidget):
         # self.mode_label.setText("In Combat")
         # self.mode_label.setStyleSheet("color: #ff4444; border-color: #ff4444;")
         self.content_tabs.setCurrentIndex(1)  # Encounters tab
-        
+
+        # Mark current encounter as combat
+        if self.current_encounter:
+            self.current_encounter.start_combat()
+
         # Initialize combat session for action economy
         self._init_combat_session()
-        
+
+        # Update town tab state since we're now in combat
+        if hasattr(self, 'town_tab') and self.town_tab is not None:
+            self._update_town_tab_state()
+
         self._update_action_buttons()
     
     def _init_combat_session(self):
@@ -1141,7 +1149,11 @@ class EncounterPanel(QWidget):
                 parent = parent.parent()
             else:
                 print("Could not find action panel to end combat session")
-                
+
+            # Update town tab state since combat has ended
+            if hasattr(self, 'town_tab') and self.town_tab is not None:
+                self._update_town_tab_state()
+
         except Exception as e:
             print(f"Error ending combat session: {e}")
     
@@ -1299,12 +1311,35 @@ class EncounterPanel(QWidget):
         self.creation_step = 0
         self.character_creation_data = {}
     
+    def _is_in_combat(self) -> bool:
+        """Check if currently in combat"""
+        return (self.current_encounter is not None and
+                hasattr(self.current_encounter, 'is_combat') and
+                self.current_encounter.is_combat and
+                len(self.get_living_monsters()) > 0)
+
+    def _update_town_tab_state(self):
+        """Update town tab tooltip and enabled state based on combat status"""
+        if self.town_tab_index < 0:
+            return
+
+        if self._is_in_combat():
+            # Disable interaction during combat
+            tooltip = "Can't go to town to train yet, still in combat"
+            self.content_tabs.setTabEnabled(self.town_tab_index, False)
+        else:
+            # Enable interaction outside combat
+            tooltip = "Go here to level up"
+            self.content_tabs.setTabEnabled(self.town_tab_index, True)
+
+        self.content_tabs.setTabToolTip(self.town_tab_index, tooltip)
+
     def show_town_encounter(self):
         """Show the town encounter tab if level up is available"""
         # Check if character can level up
         if not self._can_character_level_up():
             return
-        
+
         # Create town tab if it doesn't exist
         if self.town_tab is None:
             character_data = self._get_current_character_data()
@@ -1313,11 +1348,15 @@ class EncounterPanel(QWidget):
                 char_dict = character_data
                 self.town_tab = TownEncounterPanel(char_dict, self)
                 self.town_tab_index = self.content_tabs.addTab(self.town_tab, "🏘️ Town")
-        
-        # Show and switch to town tab
+
+        # Show town tab but don't automatically switch if in combat
         if self.town_tab_index >= 0:
             self.content_tabs.setTabVisible(self.town_tab_index, True)
-            self.content_tabs.setCurrentIndex(self.town_tab_index)
+            self._update_town_tab_state()
+
+            # Only switch to town tab if not in combat
+            if not self._is_in_combat():
+                self.content_tabs.setCurrentIndex(self.town_tab_index)
     
     def hide_town_encounter(self):
         """Hide the town encounter tab"""
@@ -1383,10 +1422,13 @@ class EncounterPanel(QWidget):
     def refresh_character_data(self):
         """Refresh character data and check if town tab should be shown/hidden"""
         can_level = self._can_character_level_up()
-        
+
         if can_level and self.town_tab is None:
             # Character can now level up - show town tab
             self.show_town_encounter()
+        elif can_level and self.town_tab is not None:
+            # Character can level up and tab exists - update its state
+            self._update_town_tab_state()
         elif not can_level and self.town_tab is not None:
             # Character can no longer level up - remove town tab
             self.remove_town_encounter()
