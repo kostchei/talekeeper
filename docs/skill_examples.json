@@ -1,0 +1,165 @@
+[
+  {
+    "name": "Scaling and Climbing",
+    "skills": ["Athletics", "Acrobatics", "Survival"],
+    "success": ["Rest", "Rations", "View of 2 hexes"],
+    "failure": ["Exhaustion", "Falling damage", "Poison condition"],
+    "refuse": ["Rations"]
+  },
+  {
+    "name": "Access to Ancient Lore",
+    "skills": ["Investigation", "Arcana", "History"],
+    "success": ["Easy Quest", "Coin"],
+    "failure": ["Hard Quest", "Rations"],
+    "refuse": ["None"]
+  },
+  {
+    "name": "Social Encounter",
+    "skills": ["Insight", "Deception", "Persuasion"],
+    "success": ["Coin", "Reputation", "Rest", “Item”],
+    "failure": ["Lose Coin", "Poison condition"],
+    "refuse": ["Hard encounter vs humanoids", "Next Vendor has only 1d6 common items"]
+  },
+   {
+    "name": "The Raging River Ford",
+    "skills": ["Athletics", "Acrobatics", "Nature"],
+    "success": ["Inspiration", "Rations"],
+    "failure": ["Exhaustion", "Bludgeoning damage", "Lost Gear"],
+    "refuse": ["Rations” , “Hard encounter vs beasts"]
+  },
+
+  {
+    "name": "Calming the Wild Beast",
+    "skills": ["Animal Handling", "Nature", "Survival"],
+    "success": ["Inspiration", "Item"],
+    "failure": [“Hard Encounter vs Beasts with disadvantage Initiative"],
+    "refuse": ["Medium Encounter vs Beasts", “Rations”]
+  },
+  {
+    "name": "The Festival Games",
+    "skills": ["Performance", "Sleight of Hand", "Acrobatics"],
+    "success": ["Coin", “Item”, "Reputation"],
+    "failure": ["Easy Encounter vs Humanoids"],
+    "refuse": ["None”]
+  },
+  {
+    "name": "Navigating the Haunted Mire",
+    "skills": ["Nature", "Religion", "Perception"],
+    "success": [ "Consumable", "Inspiration"],
+    "failure": [“Hard encounter vs Undead", "Exhaustion"],
+    "refuse": ["Rations"]
+  },
+  {
+    "name": "Deciphering the Merchant's Cipher",
+    "skills": ["Investigation", "Sleight of Hand", "Thieves' Tools"],
+    "success": ["Easy Quest", "Coin", "Item"],
+    "failure": ["Reputation", “Hard encounter vs Construct"],
+    "refuse": ["Vendor x1.2 Cost"]
+  },
+  {
+    "name": "Wilderness Medicine Emergency",
+    "skills": ["Medicine", "Nature", "Herbalism Kit"],
+    "success": [ "Healing Potion", "Healer’s Kit"],
+    "failure": ["Rations", "Poisoned"],
+    "refuse": [ “Reputation loss"]
+  },
+  {
+    "name": "Navigating Court Intrigue",
+    "skills": ["Performance", "Intimidation", "Insight"],
+    "success": ["Patron", "Secrets", "Invitation"],
+    "failure": ["Disadvantage with Nobles", "Enemy", "Banished"],
+    "refuse": ["Lose access to noble quarter"]
+  },
+  {
+    "name": "Spirit Bridge Crossing",
+    "skills": ["Arcana", "Religion", "Performance"],
+    "success": ["Resistance", "Password", "Ethereal Sight"],
+    "failure": ["No Rest", "Vulnerability", "Disadvantage on Attacks"],
+    "refuse": ["Guaranteed difficult combat encounter"]
+  },
+  {
+    "name": "Navigate Magical Storm",
+    "skills": ["Nature", "Arcana", "Perception"],
+    "success": ["Safe passage", "Spell Scroll", "Identify hazard"],
+    "failure": ["Wild Magic", "Lost", "Spell slot loss"],
+    "refuse": ["Detour: 2x rations, encounter risk"]
+  },
+  {
+    "name": "Negotiate Trade Route",
+    "skills": ["Persuasion", "Investigation", "Intimidation"],
+    "success": ["Reputation", "Vendor x0.8 Cost", "Medium Quest"],
+    "failure": ["Coin", "Hard Quest", "Hard Encounter vs Humanoids"],
+    "refuse": ["Vendor x1.2 Cost"]
+  },
+  {
+    "name": "Decipher Coded Message",
+    "skills": ["Investigation", "History", "Insight"],
+    "success": ["Easy Quest", "Coin", "Rest"],
+    "failure": ["Dangerous Trap", "Reputation"],
+    "refuse": ["Hard Quest"]
+  },
+  {
+    "name": "Calm Panicked Civilians",
+    "skills": ["Performance", "Persuasion", "Medicine"],
+    "success": ["Rest", "Coin"],
+    "failure": ["Easy Humanoid Encounter", "Reputation", "Bludgeoning damage"],
+    "refuse": ["Setback trap"]
+  },
+  {
+    "name": "Forage and Purify",
+    "skills": ["Survival", "Nature", "Medicine"],
+    "success": ["Rations", "Rest"],
+    "failure": ["Poisoned", "Hazard"],
+    "refuse": ["Rations"]
+  },
+  {
+    "name": "Night Watch and Camp Security",
+    "skills": ["Perception", "Stealth", "Survival"],
+    "success": ["Rest", "Easy Encounter", "Advantage on next Initiative roll"],
+    "failure": ["Exhaustion", "Medium Encounter"],
+    "refuse": ["Medium encounter at disadvantage to Initiative roll"]
+  },
+  {
+    "name": "Rescue the Bogged Cart",
+    "skills": ["Animal Handling", "Athletics", "Investigation"],
+    "success": ["Item", "Coin", "Reputation"],
+    "failure": ["Exhaustion", "Item", "Damage"],
+    "refuse": ["Vendor x1.2 Cost"]
+  },
+  {
+    "name": "Smuggler’s Cache",
+    "skills": ["Investigation", "Perception", "Sleight of Hand"],
+    "success": ["Coin", "Consumable", "Easy Quest"],
+    "failure": ["Dangerous Trap", "Medium Encounter vs Humanoid"],
+    "refuse": ["None"]
+  },
+  {
+    "name": "The Rickety Rope Bridge",
+    "skills": ["Acrobatics", "Sleight of Hand", "Investigation"],
+    "success": ["View 3 hexes", "Potion of Healing"],
+    "failure": ["3d6 bludgeoning", "Lose Inspiration"],
+    "refuse": ["rations”, “easy beast encounter"]
+  },
+
+  {
+    "name": "Calming the Stampede",
+    "skills": ["Animal Handling", "Nature", "Intimidation"],
+    "success": ["Free Lodging", "+2 Reputation"],
+    "failure": ["Coin", "Bludgeoning Damage”, “Hard encounter vs beasts”],
+    "refuse": ["Reputation”, “easy encounter vs beasts”]
+  },
+  {
+    "name": "Disarming the Ancient Ward",
+    "skills": ["Arcana", "Investigation", "Religion"],
+    "success": [“Hoard", "View 2 hexes"],
+    "failure": ["4d6 Force Damage"],
+    "refuse": ["sacrifice Coin", “rations to go round”]
+  },
+  {
+    "name": "The Icy Crevasse",
+    "skills": ["Athletics", "Survival", "Perception"],
+    "success": ["Easy Quest", "Gain Inspiration"],
+    "failure": ["Cold and Bludgeoning Damage"],
+    "refuse": ["NPC dies + Reputation loss"]
+  }
+]

@@ -33,6 +33,9 @@ from services.equipment_database import EquipmentDatabase
 from services.proficiency_bonus import get_proficiency_bonus
 from .town_encounter import TownEncounterPanel, ShopInterface
 from .alt_encounters import generate_trap, generate_hazard, generate_skill_challenge
+from .skill_challenge_widget import SkillChallengeWidget
+from services.skill_challenge_manager import SkillChallengeManager
+from services.skill_challenge_rewards import SkillChallengeRewards
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Optional, Dict
@@ -498,6 +501,11 @@ class EncounterPanel(QWidget):
         self.selected_monster_id = None  # Currently selected monster for targeting
         self.current_encounter = None  # Current Encounter object for database tracking
         self.vendor_widget = None  # Active vendor/shop interface
+
+        # Skill challenge system
+        self.skill_challenge_manager = SkillChallengeManager()
+        self.skill_challenge_rewards = SkillChallengeRewards()
+        self.skill_challenge_widget = None  # Active skill challenge interface
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -3658,11 +3666,42 @@ class EncounterPanel(QWidget):
         self.monsters_frame.setVisible(False)
 
     def _generate_skill_challenge(self):
-        level = self._get_character_level() or 1
-        challenge = generate_skill_challenge(level)
-        self.encounter_details_text.setPlainText(challenge['text'])
+        """Generate an interactive skill challenge."""
+        character_data = self._get_current_character_data()
+        if not character_data:
+            self.encounter_details_text.setPlainText("No active character found.")
+            return
+
+        # Clean up any existing widgets
+        self._cleanup_active_widgets()
+
+        # Get available challenge templates
+        templates = self.skill_challenge_manager.get_all_templates()
+        if not templates:
+            self.encounter_details_text.setPlainText("No skill challenges available.")
+            return
+
+        # Select a random challenge template
+        template = random.choice(templates)
+
+        # Create skill challenge widget
+        self.skill_challenge_widget = SkillChallengeWidget()
+        self.skill_challenge_widget.set_character_data(character_data)
+
+        # Connect signals
+        self.skill_challenge_widget.challenge_completed.connect(self._on_skill_challenge_completed)
+        self.skill_challenge_widget.challenge_refused.connect(self._on_skill_challenge_refused)
+
+        # Start the challenge
+        self.skill_challenge_widget.start_challenge(template)
+
+        # Hide other UI elements and show skill challenge
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
+        self.encounter_details_text.setVisible(False)
+
+        # Add skill challenge widget to layout
+        self.encounters_layout.addWidget(self.skill_challenge_widget)
 
     def _generate_vendor_encounter(self):
         character_data = self._get_current_character_data()
@@ -5820,5 +5859,106 @@ Character Level: {character_level}"""
         except Exception as e:
             print(f"[UI] Error refreshing equipment panel: {e}")
             self._log_monster_action(f"[FAIL] Long rest failed: {e}")
+
+    def _cleanup_active_widgets(self):
+        """Clean up any active encounter widgets (vendor, skill challenge, etc.)."""
+        if self.vendor_widget:
+            self.vendor_widget.setParent(None)
+            self.vendor_widget = None
+
+        if self.skill_challenge_widget:
+            self.skill_challenge_widget.setParent(None)
+            self.skill_challenge_widget = None
+
+        # Show standard UI elements
+        self.encounter_details_text.setVisible(True)
+
+    def _on_skill_challenge_completed(self, outcome: str, reward_text: str):
+        """Handle skill challenge completion."""
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        try:
+            # Apply the reward/penalty
+            if outcome == 'success':
+                updated_character, log_messages = self.skill_challenge_rewards.apply_reward(
+                    character_data, reward_text
+                )
+                self._log_monster_action(f"[SUCCESS] Skill challenge completed! Reward: {reward_text}")
+            else:
+                updated_character, log_messages = self.skill_challenge_rewards.apply_penalty(
+                    character_data, reward_text
+                )
+                self._log_monster_action(f"[FAILURE] Skill challenge failed! Penalty: {reward_text}")
+
+            # Log individual effects
+            for message in log_messages:
+                self._log_monster_action(f"[EFFECT] {message}")
+
+            # Save character changes
+            self.skill_challenge_rewards.save_character_data(updated_character)
+
+            # Log to rewards tracking
+            self.skill_challenge_rewards.log_reward_application(
+                character_data.get('id', ''), outcome, reward_text, "; ".join(log_messages)
+            )
+
+            # Clean up the skill challenge widget
+            self._cleanup_active_widgets()
+
+            # Refresh character data in other panels
+            self._force_reload_character()
+
+        except Exception as e:
+            self._log_monster_action(f"[ERROR] Failed to apply skill challenge outcome: {e}")
+
+    def _on_skill_challenge_refused(self, refuse_cost: str):
+        """Handle skill challenge refusal."""
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        try:
+            # Apply the refusal cost
+            updated_character, log_messages = self.skill_challenge_rewards.apply_refuse_cost(
+                character_data, refuse_cost
+            )
+
+            self._log_monster_action(f"[REFUSED] Skill challenge refused. Cost: {refuse_cost}")
+
+            # Log individual effects
+            for message in log_messages:
+                self._log_monster_action(f"[EFFECT] {message}")
+
+            # Save character changes
+            self.skill_challenge_rewards.save_character_data(updated_character)
+
+            # Log to rewards tracking
+            self.skill_challenge_rewards.log_reward_application(
+                character_data.get('id', ''), 'refused', refuse_cost, "; ".join(log_messages)
+            )
+
+            # Clean up the skill challenge widget
+            self._cleanup_active_widgets()
+
+            # Refresh character data in other panels
+            self._force_reload_character()
+
+        except Exception as e:
+            self._log_monster_action(f"[ERROR] Failed to apply skill challenge refusal cost: {e}")
+
+    def _force_reload_character(self):
+        """Force reload character data in all panels."""
+        try:
+            # Find main window and trigger character reload
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, '_force_reload_character'):
+                    parent._force_reload_character()
+                    return
+                parent = parent.parent()
+        except Exception as e:
+            print(f"[UI] Error forcing character reload: {e}")
 
 
