@@ -31,6 +31,13 @@ except ImportError:
     ConditionDisplayWidget = None
     print("[CharacterPanel] Condition display not available")
 
+# Import subclass features widget
+try:
+    from ui.subclass_features_widget import SubclassFeaturesWidget
+except ImportError:
+    SubclassFeaturesWidget = None
+    print("[CharacterPanel] Subclass features display not available")
+
 
 class CharacterPanel(QWidget):
     """
@@ -289,17 +296,23 @@ class CharacterPanel(QWidget):
         self.features_frame.setObjectName("featuresFrame")
         features_layout = QVBoxLayout(self.features_frame)
         features_layout.setContentsMargins(5, 5, 5, 5)
-        
-        features_label = QLabel("Features & Traits")
-        features_label.setObjectName("sectionTitle")
-        features_layout.addWidget(features_label)
-        
-        
-        self.features_text = QTextEdit()
-        self.features_text.setObjectName("featuresText")
-        self.features_text.setReadOnly(True)
-        self.features_text.setPlainText("Racial traits, class features, and special abilities will appear here...")
-        features_layout.addWidget(self.features_text, 1)
+
+        # Create subclass features widget if available
+        if SubclassFeaturesWidget:
+            self.subclass_features_widget = SubclassFeaturesWidget(self)
+            self.subclass_features_widget.feature_activated.connect(self._on_subclass_feature_activated)
+            features_layout.addWidget(self.subclass_features_widget, 1)
+        else:
+            # Fallback to simple text display
+            features_label = QLabel("Features & Traits")
+            features_label.setObjectName("sectionTitle")
+            features_layout.addWidget(features_label)
+
+            self.features_text = QTextEdit()
+            self.features_text.setObjectName("featuresText")
+            self.features_text.setReadOnly(True)
+            self.features_text.setPlainText("Racial traits, class features, and special abilities will appear here...")
+            features_layout.addWidget(self.features_text, 1)
         
         # === PROFICIENCIES SECTION ===
         self.proficiencies_frame = QFrame()
@@ -1292,6 +1305,11 @@ class CharacterPanel(QWidget):
             self.character_data['feats'] = []
             self.character_data['features'] = {}
 
+        # Update subclass features widget if available
+        if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
+            level = character_data.get('level', 1)
+            self.subclass_features_widget.set_character(char_id, level)
+
         # Update character name in title
         name = character_data.get('name', 'Unknown Character')
         level = character_data.get('level', 1)
@@ -1870,3 +1888,53 @@ class CharacterPanel(QWidget):
         """Update the AC display when equipment changes."""
         if hasattr(self, 'ac_widget') and self.ac_widget:
             self.ac_widget.value_label.setText(str(new_ac))
+
+    def _on_subclass_feature_activated(self, feature_name: str, character_id: str):
+        """Handle activation of a subclass feature."""
+        try:
+            from services.enhanced_subclass_manager import EnhancedSubclassManager
+            manager = EnhancedSubclassManager()
+
+            # Handle specific feature activations
+            if feature_name == "Intimidating Presence":
+                result = manager.use_intimidating_presence(character_id)
+                self._log_feature_activation(feature_name, result)
+            elif feature_name == "Second Wind":
+                # Handle Second Wind if implemented in subclass system
+                self._log_feature_activation(feature_name, {"success": True, "message": "Second Wind used"})
+            else:
+                # Generic feature activation
+                self._log_feature_activation(feature_name, {"success": True, "message": f"{feature_name} activated"})
+
+            # Refresh the features display to update availability
+            if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
+                self.subclass_features_widget.update_feature_availability()
+
+        except Exception as e:
+            print(f"[CharacterPanel] Error activating {feature_name}: {e}")
+            self._log_feature_activation(feature_name, {"success": False, "error": str(e)})
+
+    def _log_feature_activation(self, feature_name: str, result: dict):
+        """Log feature activation to the game log."""
+        try:
+            # Find the log panel in parent hierarchy
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'log_panel'):
+                    character_name = self.character_data.get('name', 'Character') if self.character_data else 'Character'
+
+                    if result.get('success', False):
+                        message = f"{character_name} uses {feature_name}"
+                        if 'save_dc' in result:
+                            message += f" (DC {result['save_dc']})"
+                        if 'uses_remaining' in result:
+                            message += f" ({result['uses_remaining']} uses remaining)"
+                    else:
+                        reason = result.get('reason', 'Failed')
+                        message = f"{character_name} cannot use {feature_name}: {reason}"
+
+                    parent.log_panel.log_action(message)
+                    break
+                parent = parent.parent()
+        except Exception as e:
+            print(f"[CharacterPanel] Error logging feature activation: {e}")
