@@ -75,6 +75,11 @@ class ActionType(Enum):
     BRUTAL_STRIKE_SUNDERING = "brutal_strike_sundering"
     INSTINCTIVE_POUNCE = "instinctive_pounce"
     INTIMIDATING_PRESENCE = "intimidating_presence"
+    RETALIATION = "retaliation"
+
+    # Champion Features
+    HEROIC_WARRIOR = "heroic_warrior"
+    SURVIVOR = "survivor"
     
     # Subclass Features
     SIGNATURE_MOVE = "signature_move"  # Gladiator level 10
@@ -137,7 +142,6 @@ class ActionPanel(QWidget):
         self.vex_target_id = None  # Monster ID that player has Vex advantage against
         self.target_monster_id = None  # Currently targeted monster for attacks
         self.pending_attack = None  # Store attack to execute after monsters' turns
-        self.cleave_used_this_turn = False  # Track Cleave mastery usage per turn
         self._cleave_followup_in_progress = False  # Prevent recursive Cleave triggers
         
         # Action Economy Integration - NEW
@@ -526,13 +530,33 @@ class ActionPanel(QWidget):
                         card.action_hovered.connect(self._action_hovered)
                         self.action_cards[ActionType.INTIMIDATING_PRESENCE] = card
 
-        # Create subclass feature cards
+        # Create enhanced subclass feature cards
         if self.character_context:
             character_id = self.character_context.get('character_id')
+            level = self.character_context.get('level', 1)
             if character_id:
+                from services.subclass_action_integration import subclass_action_integration
+
+                # Get action cards for this character's subclass features
+                subclass_cards = subclass_action_integration.get_action_cards_for_character(character_id, level)
+
+                for card_data in subclass_cards:
+                    action_type_name = card_data.get('action_type')
+                    if hasattr(ActionType, action_type_name):
+                        action_type = getattr(ActionType, action_type_name)
+                        name = card_data.get('name')
+                        description = card_data.get('description')
+                        icon = card_data.get('icon', '⚡')
+
+                        card = ActionCard(action_type, icon, name, description)
+                        card.feature_data = card_data.get('feature_data')
+                        card.action_triggered.connect(self._trigger_subclass_action)
+                        card.action_hovered.connect(self._action_hovered)
+                        self.action_cards[action_type] = card
+
+                # Legacy support for existing Signature Move
                 from services.subclass_manager import SubclassManager
                 subclass_manager = SubclassManager()
-
                 if subclass_manager.has_feature(character_id, 'Signature Move'):
                     description = "Special attack: +2d6 damage, can frighten (DC 8+prof+STR)"
                     card = ActionCard(ActionType.SIGNATURE_MOVE, "✨", "Signature Move", description)
@@ -594,16 +618,24 @@ class ActionPanel(QWidget):
     
     def _trigger_subclass_action(self, action_type):
         """Handle subclass feature actions."""
-        if action_type == ActionType.SIGNATURE_MOVE:
-            # Get character ID
-            character_id = self.character_context.get('character_id', '')
-            if not character_id:
-                return
-            
-            # Check if can use feature
+        character_id = self.character_context.get('character_id', '')
+        if not character_id:
+            return
+
+        # Handle enhanced subclass features
+        if action_type == ActionType.INTIMIDATING_PRESENCE:
+            self._use_intimidating_presence()
+        elif action_type == ActionType.RETALIATION:
+            self._use_retaliation()
+        elif action_type == ActionType.HEROIC_WARRIOR:
+            self._use_heroic_warrior()
+        elif action_type == ActionType.SURVIVOR:
+            self._use_survivor()
+        elif action_type == ActionType.SIGNATURE_MOVE:
+            # Legacy Signature Move handling
             from services.subclass_manager import SubclassManager
             subclass_manager = SubclassManager()
-            
+
             current_uses, max_uses = subclass_manager.get_feature_uses(character_id, 'Signature Move')
             if current_uses <= 0:
                 parent = self.parent()
@@ -613,12 +645,12 @@ class ActionPanel(QWidget):
                         break
                     parent = parent.parent()
                 return
-            
+
             # Use the feature
             if subclass_manager.use_feature(character_id, 'Signature Move'):
                 # Apply special attack effects in context
                 self.character_context['signature_move_active'] = True
-                
+
                 # Log usage
                 parent = self.parent()
                 while parent:
@@ -693,8 +725,22 @@ class ActionPanel(QWidget):
 
             # Fallback to character context if no character sheet found
             if not found_character_sheet:
-                current_hp = self.character_context.get('hit_points_current', 0)
-                max_hp = self.character_context.get('hit_points_max', 1)
+                current_hp = self.character_context.get('hit_points_current',
+                                                      self.character_context.get('current_hit_points', 0))
+                max_hp = self.character_context.get('hit_points_max',
+                                                   self.character_context.get('max_hit_points',
+                                                   self.character_context.get('hit_points_maximum', None)))
+
+                # If we can't find max HP anywhere, abort the healing
+                if max_hp is None or max_hp <= 0:
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat("[ERROR] Cannot determine character's max HP - Second Wind failed")
+                            break
+                        parent = parent.parent()
+                    return
+
             print(f"[DEBUG] Second Wind: current_hp={current_hp}, max_hp={max_hp}, total_healing={total_healing}")
             new_hp = min(max_hp, current_hp + total_healing)
             actual_healing = new_hp - current_hp
@@ -1072,12 +1118,14 @@ class ActionPanel(QWidget):
         elif self.current_category == ActionCategory.BONUS:
             # Only show bonus actions that the character actually has
             bonus_actions = []
-            
+
             # Add class feature bonus actions that the character actually has
             if ActionType.RAGE in self.action_cards:
                 bonus_actions.append(ActionType.RAGE)
             if ActionType.SECOND_WIND in self.action_cards:
                 bonus_actions.append(ActionType.SECOND_WIND)
+            if ActionType.INTIMIDATING_PRESENCE in self.action_cards:
+                bonus_actions.append(ActionType.INTIMIDATING_PRESENCE)
             
             # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
             if ActionType.ATTACK_OFF_HAND in self.action_cards:
@@ -1128,6 +1176,11 @@ class ActionPanel(QWidget):
                     
         elif self.current_category == ActionCategory.REACTION:
             reaction_actions = [ActionType.OPPORTUNITY]
+
+            # Add character-specific reaction actions
+            if ActionType.RETALIATION in self.action_cards:
+                reaction_actions.append(ActionType.RETALIATION)
+
             for action_type in reaction_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
@@ -1139,8 +1192,24 @@ class ActionPanel(QWidget):
     
     def _trigger_action(self, action_type: ActionType, context: Dict[str, Any]):
         """Handle action trigger from card."""
-        # Check if action is available
-        if self._is_action_available(action_type):
+        # Check if action is available (both resource availability and action economy)
+        if not self._is_action_available(action_type):
+            return
+
+        # Check action economy if enabled
+        if self.action_economy_enabled and self.current_combat_session:
+            if not self._is_action_available_by_economy(action_type):
+                reason = self._get_economy_unavailability_reason(action_type)
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"[BLOCKED] Cannot use action: {reason}")
+                        break
+                    parent = parent.parent()
+                return
+
+        # Action is available - proceed
+        if True:  # Changed from if condition to always execute
             # Add character context
             full_context = {**context, **self.character_context}
             
@@ -1205,13 +1274,21 @@ class ActionPanel(QWidget):
                     self._use_instinctive_pounce()
                 elif action_type == ActionType.INTIMIDATING_PRESENCE:
                     self._use_intimidating_presence()
-                
+                elif action_type == ActionType.RETALIATION:
+                    self._use_retaliation()
+                elif action_type == ActionType.HEROIC_WARRIOR:
+                    self._use_heroic_warrior()
+                elif action_type == ActionType.SURVIVOR:
+                    self._use_survivor()
+
+                # CRITICAL: Update action economy AFTER action is processed but BEFORE signal
+                # This ensures the action effect (like rage activation) happens first,
+                # then the economy is consumed to prevent subsequent actions
+                self._update_action_economy(action_type)
+
                 # Emit signal
                 self.action_triggered.emit(action_type, full_context)
-                
-                # Update action economy
-                self._update_action_economy(action_type)
-                
+
                 # For combat actions, advance turn in combat manager after player's turn
                 if self._is_combat_action(action_type):
                     encounter_panel = self._get_encounter_panel()
@@ -1219,19 +1296,33 @@ class ActionPanel(QWidget):
                         self._advance_combat_turn(encounter_panel)
     
     def _is_combat_action(self, action_type: ActionType) -> bool:
-        """Check if an action is a combat action that should trigger monster retaliation."""
-        combat_actions = {
-            ActionType.CAST_SPELL,   # Casting spells in combat
-            ActionType.USE_ITEM,     # Using items in combat  
-            ActionType.USE_POTION,   # Using potions in combat
-            ActionType.DODGE,        # Dodging is a combat action
-            ActionType.DASH,         # Dashing in combat
-            ActionType.SEARCH,       # Searching in combat
-            ActionType.HIDE,         # Hiding in combat
-            # Note: MOVE, INVESTIGATE, INTERACT, REST are not typically combat actions
-            # that would provoke attacks, but can be added if desired
+        """Check if an action should trigger turn advancement (end player turn)."""
+        # In D&D 5e, the turn ends when:
+        # 1. Player uses their main Action (unless Action Surge gives another)
+        # 2. Player declares their turn is done
+        # 3. Player has used all available actions and movement
+
+        # For now, we'll end the turn after ANY significant combat action
+        # This includes main actions, and some bonus actions like potions/healing
+        # The action economy will prevent multiple bonus actions per turn
+
+        if self.action_economy_enabled and hasattr(self, '_map_action_to_economy_type'):
+            try:
+                from models.action_economy import ActionEconomyType
+                economy_type = self._map_action_to_economy_type(action_type)
+
+                # End turn after main actions or significant bonus actions
+                return economy_type in [ActionEconomyType.ACTION, ActionEconomyType.BONUS_ACTION]
+            except:
+                pass
+
+        # Fallback list for actions that should end the turn
+        turn_ending_actions = {
+            ActionType.CAST_SPELL, ActionType.USE_ITEM, ActionType.DODGE,
+            ActionType.DASH, ActionType.SEARCH, ActionType.HIDE,
+            ActionType.USE_POTION, ActionType.SECOND_WIND  # Bonus actions that often end turn
         }
-        return action_type in combat_actions
+        return action_type in turn_ending_actions
     
     def _execute_single_attack(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
         """Execute a single attack (used by two-weapon fighting system)."""
@@ -1270,7 +1361,8 @@ class ActionPanel(QWidget):
                         damage_breakdown['is_critical'] = True
                     except:
                         pass
-            
+
+
             # Apply weapon mastery effects on hit
             service = self._get_weapon_attack_service()
             weapon_data = self._build_weapon_dict_from_context(context)
@@ -1316,9 +1408,7 @@ class ActionPanel(QWidget):
         if action_type in [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]:
             ability_name = "Second Wind" if action_type == ActionType.SECOND_WIND else "Action Surge"
             self._use_ability(ability_name)
-        
-        self._update_action_economy(action_type)
-        
+
         # Check if all monsters are defeated after this attack
         living_monsters_after_attack = encounter_panel.get_living_monsters()
         print(f"DEBUG: After attack, {len(living_monsters_after_attack)} monsters remaining")
@@ -1469,7 +1559,6 @@ class ActionPanel(QWidget):
             QTest.qWait(500)
         
         # After all attacks, check for monster counter-attacks
-        self._update_action_economy(action_type)
         living_monsters_after = encounter_panel.get_living_monsters()
         
         if not living_monsters_after:
@@ -1747,12 +1836,20 @@ class ActionPanel(QWidget):
         """Resolve Cleave mastery follow-up attack against a random nearby foe."""
         if getattr(self, '_cleave_followup_in_progress', False):
             return
-        if getattr(self, 'cleave_used_this_turn', False):
-            return
 
+        # Force refresh of living monsters list after the first attack
         living_monsters = []
         if hasattr(encounter_panel, 'get_living_monsters'):
             living_monsters = encounter_panel.get_living_monsters() or []
+
+        # Debug logging
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                monster_names = [getattr(m, 'monster_name', 'Unknown') for m in living_monsters]
+                parent.log_panel.log_combat(f"[DEBUG] CLEAVE: Available monsters: {monster_names}")
+                break
+            parent = parent.parent()
 
         candidates = [m for m in living_monsters if getattr(m, 'id', None) not in (None, original_target_id) and getattr(m, 'current_hit_points', 0) > 0]
         if not candidates:
@@ -1770,6 +1867,7 @@ class ActionPanel(QWidget):
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[MASTERY] CLEAVE: Can make an additional attack against another target within 5 feet")
                 parent.log_panel.log_combat(f"[MASTERY] CLEAVE: Following through onto {secondary_target.monster_name}")
                 break
             parent = parent.parent()
@@ -1779,17 +1877,20 @@ class ActionPanel(QWidget):
         followup_context['is_cleave_followup'] = True
         followup_context['suppress_ability_damage_bonus'] = True
 
+        # Force target selection in encounter panel
         if hasattr(encounter_panel, '_select_monster_card'):
             encounter_panel._select_monster_card(secondary_target.id)
         elif hasattr(encounter_panel, 'selected_monster_id'):
             encounter_panel.selected_monster_id = secondary_target.id
+
+        # Also update target_monster_id for the action panel
+        self.target_monster_id = secondary_target.id
 
         self._cleave_followup_in_progress = True
         try:
             self._execute_attack_without_initiative(action_type, followup_context, encounter_panel)
         finally:
             self._cleave_followup_in_progress = False
-            self.cleave_used_this_turn = True
 
 
     def _execute_remaining_initiative_turns(self, encounter_panel, current_encounter):
@@ -2062,15 +2163,31 @@ class ActionPanel(QWidget):
                     # Handle the attack results
                     total_damage = result.get('total_damage', 0)
                     if total_damage > 0:
-                        # Get HP before damage for proper logging
-                        hp_before = self.character_context.get('hit_points_current', self.character_context.get('hp', 0))
-                        max_hp = self.character_context.get('hit_points_max', self.character_context.get('max_hp', 0))
+                        # Get HP before damage for proper logging (from character sheet, not context)
+                        parent = self.parent()
+                        hp_before = 0
+                        max_hp = 0
+                        while parent:
+                            if hasattr(parent, 'character_sheet') and parent.character_sheet.character_data:
+                                character_data = parent.character_sheet.character_data
+                                hp_before = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+                                max_hp = character_data.get('max_hit_points', character_data.get('hit_points_max', 0))
+                                break
+                            parent = parent.parent()
 
                         # Use the existing damage application system that properly updates UI
                         self._apply_damage_to_player(total_damage, encounter_panel, "physical")
 
-                        # Get HP after damage for logging
-                        hp_after = self.character_context.get('hit_points_current', self.character_context.get('hp', 0))
+                        # Get HP after damage for logging (from character sheet, not context)
+                        parent = self.parent()
+                        hp_after = 0
+                        while parent:
+                            if hasattr(parent, 'character_sheet') and parent.character_sheet.character_data:
+                                character_data = parent.character_sheet.character_data
+                                hp_after = character_data.get('current_hit_points', character_data.get('hit_points_current', 0))
+                                break
+                            parent = parent.parent()
+
                         actual_damage_taken = hp_before - hp_after
 
                         # Log the attack with correct HP values
@@ -2241,7 +2358,6 @@ class ActionPanel(QWidget):
             
             # Reset Savage Attacker for new turn
             self.first_attack_this_round = True
-            self.cleave_used_this_turn = False
             
             parent = self.parent()
             while parent:
@@ -2263,11 +2379,31 @@ class ActionPanel(QWidget):
             # Rage ends
             self.character_context['raging'] = False
             self.character_context['rage_turns_remaining'] = 0
-            
+
+            # Trigger automatic subclass features when rage ends
+            character_id = self._resolve_character_id()
+            if character_id:
+                try:
+                    from services.subclass_action_integration import subclass_action_integration
+                    automatic_triggers = subclass_action_integration.trigger_automatic_feature(character_id, "rage_end")
+
+                    # Log any automatic feature deactivations
+                    for trigger_result in automatic_triggers:
+                        if trigger_result.get('success'):
+                            feature_name = trigger_result.get('feature_name', 'Unknown Feature')
+                            parent = self.parent()
+                            while parent:
+                                if hasattr(parent, 'log_panel'):
+                                    parent.log_panel.log_combat(f"[AUTO] {feature_name} deactivated")
+                                    break
+                                parent = parent.parent()
+                except Exception as e:
+                    print(f"Error triggering rage end features: {e}")
+
             # Refresh weapon cards to remove rage damage bonus
             self._create_weapon_cards()
             self._update_visible_cards()
-            
+
             try:
                 parent = self.parent()
                 while parent:
@@ -3131,12 +3267,17 @@ class ActionPanel(QWidget):
             return 1
     
     def _apply_damage_to_player(self, damage: int, encounter_panel, damage_type: str = "physical"):
-        """Apply damage to the player character, with rage resistance."""
+        """Apply damage to the player character, with class-specific resistances."""
         try:
-            # Check for rage damage resistance (bludgeoning, piercing, slashing)
+            # Check for rage damage resistance (bludgeoning, piercing, slashing) - BARBARIANS ONLY
             original_damage = damage
             rage_resistance_applied = False
-            if self.character_context.get('raging', False) and damage_type in ['physical', 'bludgeoning', 'piercing', 'slashing']:
+
+            # Only apply rage resistance if character is a Barbarian AND raging
+            is_barbarian = self.character_context.get('class_id', '').lower() == 'barbarian'
+            is_raging = self.character_context.get('raging', False)
+
+            if is_barbarian and is_raging and damage_type in ['physical', 'bludgeoning', 'piercing', 'slashing']:
                 damage = damage // 2  # Half damage (rounded down)
                 if damage < original_damage:
                     rage_resistance_applied = True
@@ -3767,10 +3908,14 @@ class ActionPanel(QWidget):
             print(f"DEBUG: Error in _use_feat_resource: {e}")
     
     def _refresh_action_availability(self):
-        """Refresh the availability state of all action cards."""
+        """Refresh the availability state of all action cards and tabs."""
         for action_type, card in self.action_cards.items():
             available = self._is_action_available(action_type)
             card.set_available(available)
+
+        # Also update economy display and tab states if in combat
+        if self.action_economy_enabled and self.current_combat_session:
+            self._update_economy_status_display()
     
     def _get_action_cooldown(self, action_type: ActionType) -> int:
         """Get the cooldown turns for an action."""
@@ -3782,9 +3927,25 @@ class ActionPanel(QWidget):
     
     def _update_action_economy(self, used_action: ActionType):
         """Update action economy after using an action."""
-        # This would track used actions, bonus actions, reactions per turn
-        # For now, just update the display
-        pass
+        if not self.action_economy_enabled or not self.current_combat_session:
+            return
+
+        # Map the action to its economy type and consume it
+        try:
+            from models.action_economy import ActionEconomyType
+            economy_type = self._map_action_to_economy_type(used_action)
+
+            if economy_type and self.character_id:
+                # Consume the action in the combat session
+                self.current_combat_session.action_economy.use_action(self.character_id, economy_type)
+
+                # Update the display to reflect the new state
+                self._refresh_action_availability()
+
+                print(f"[ACTION ECONOMY] Consumed {economy_type.value} for {used_action.value}")
+
+        except Exception as e:
+            print(f"Error updating action economy: {e}")
     
     def _update_cooldowns(self):
         """Update action cooldowns (called by timer)."""
@@ -4046,7 +4207,7 @@ class ActionPanel(QWidget):
         return 2
     
     def _get_rage_damage_bonus(self, context: Dict[str, Any]) -> int:
-        """Check if Barbarian gets rage damage bonus for melee weapon attacks."""
+        """Check if Barbarian gets rage damage bonus for melee weapon attacks using Strength."""
         if not isinstance(self.character_context, dict):
             return 0
 
@@ -4054,19 +4215,29 @@ class ActionPanel(QWidget):
         if not self.character_context.get('raging', False):
             return 0
 
-        # Determine if attack qualifies for rage bonus (melee only)
+        # Rage bonus only applies to barbarians
+        class_id = self.character_context.get('class_id', '').lower()
+        if class_id != 'barbarian':
+            return 0
+
+        # Determine if attack qualifies for rage bonus
+        # D&D 5e: Rage damage applies to melee weapon attacks using Strength
         _, damage_type = self._get_context_damage_profile(context)
         weapon_props = self._get_context_weapon_properties(context)
         weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
         is_ranged = 'ranged' in weapon_props_lower or damage_type == 'ranged'
 
+        # Must be melee attack
         if is_ranged:
             return 0
 
-        # Rage bonus only applies to barbarians
-        class_id = self.character_context.get('class_id', '').lower()
-        if class_id != 'barbarian':
-            return 0
+        # Check if attack uses Strength (most melee weapons do, but finesse weapons could use Dex)
+        # For now, assume all melee attacks use Strength unless it's explicitly a Dex-based weapon
+        # TODO: Add proper ability score checking for finesse weapons
+
+        # Unarmed strikes always use Strength (unless monk with Dex, but monks don't get Rage)
+        # Great axe definitely uses Strength
+        # Most melee weapons use Strength unless finesse property
 
         level = self.character_context.get('level', 1)
         if level >= 16:
@@ -4636,8 +4807,6 @@ class ActionPanel(QWidget):
             if mastery_key == 'cleave':
                 if context.get('is_cleave_followup') or getattr(self, '_cleave_followup_in_progress', False):
                     return {}
-                if getattr(self, 'cleave_used_this_turn', False):
-                    return {}
 
             definition = self._get_mastery_definition(mastery_name)
             if not definition:
@@ -4830,15 +4999,84 @@ class ActionPanel(QWidget):
         movement = status.get("movement_remaining", 30)
         
         status_text = f"R{round_num} | Action: {action_icon} | Bonus: {bonus_icon} | Reaction: {reaction_icon} | Move: {movement}ft"
-        
+
         # Color code the status label based on active turn
         if status.get("is_active_turn", False):
             self.economy_status_label.setStyleSheet("color: #4a90e2; font-weight: bold;")
         else:
             self.economy_status_label.setStyleSheet("color: #888888;")
-        
+
         self.economy_status_label.setText(status_text)
-    
+
+        # Update tab visual states based on action economy
+        self._update_tab_availability(status)
+
+    def _update_action_economy_display(self):
+        """Update action economy display including tabs and cards."""
+        self._refresh_action_availability()
+
+    def _update_tab_availability(self, status: Dict[str, Any]):
+        """Update the visual state of category tabs based on action economy."""
+        if not self.category_buttons:
+            return
+
+        # Map categories to their availability status
+        category_availability = {
+            ActionCategory.COMBAT: status.get("action_available", True),
+            ActionCategory.MOVEMENT: status.get("movement_remaining", 30) > 0,
+            ActionCategory.BONUS: status.get("bonus_action_available", True),
+            ActionCategory.REACTION: status.get("reaction_available", True),
+            ActionCategory.FREE: True  # Free actions always available
+        }
+
+        # Apply styles to each category button
+        for i, category in enumerate(ActionCategory):
+            button = self.category_buttons.buttons()[i]
+            available = category_availability.get(category, True)
+
+            if available:
+                # Available - normal style
+                button.setStyleSheet("""
+                    QPushButton#categoryButton {
+                        background-color: #3a3a3a;
+                        color: white;
+                        border: 1px solid #555;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        font-weight: bold;
+                    }
+                    QPushButton#categoryButton:checked {
+                        background-color: #4a90e2;
+                        border: 2px solid #357abd;
+                    }
+                    QPushButton#categoryButton:hover {
+                        background-color: #4a4a4a;
+                    }
+                """)
+            else:
+                # Unavailable - greyed out style
+                button.setStyleSheet("""
+                    QPushButton#categoryButton {
+                        background-color: #2a2a2a;
+                        color: #666666;
+                        border: 1px solid #444;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        font-weight: normal;
+                    }
+                    QPushButton#categoryButton:checked {
+                        background-color: #333333;
+                        border: 2px solid #555555;
+                        color: #777777;
+                    }
+                    QPushButton#categoryButton:hover {
+                        background-color: #2a2a2a;
+                    }
+                """)
+
+            # Optionally disable the button entirely (uncomment if desired)
+            # button.setEnabled(available)
+
     def _is_action_available_by_economy(self, action_type: ActionType) -> bool:
         """Check if an action is available based on action economy rules."""
         if not self.current_combat_session or not self.character_id:
@@ -4857,16 +5095,15 @@ class ActionPanel(QWidget):
         
         # Actions that consume your main Action
         main_actions = {
-            ActionType.ATTACK_MAIN_HAND, ActionType.ATTACK_UNARMED,
-            ActionType.CAST_SPELL, ActionType.DASH, ActionType.DISENGAGE, ActionType.DODGE,
-            ActionType.HELP, ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM,
+            ActionType.ATTACK_MAIN_HAND,
+            ActionType.CAST_SPELL, ActionType.DASH, ActionType.DODGE,
+            ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM,
             ActionType.SIGNATURE_MOVE
         }
         
         # Bonus Actions
         bonus_actions = {
-            ActionType.SECOND_WIND, ActionType.CUNNING_ACTION, ActionType.HEALING_WORD,
-            ActionType.SPIRITUAL_WEAPON, ActionType.HUNTER_MARK, ActionType.USE_POTION,
+            ActionType.SECOND_WIND, ActionType.USE_POTION,
             ActionType.NICK_MASTERY, ActionType.CLEAVE_MASTERY, ActionType.RAGE,
             ActionType.ATTACK_OFF_HAND, ActionType.INSTINCTIVE_POUNCE,
             ActionType.INTIMIDATING_PRESENCE, ActionType.BRUTAL_STRIKE_FORCEFUL,
@@ -4876,7 +5113,7 @@ class ActionPanel(QWidget):
         
         # Reactions
         reactions = {
-            ActionType.OPPORTUNITY_ATTACK, ActionType.COUNTERSPELL, ActionType.SHIELD
+            ActionType.OPPORTUNITY, ActionType.RETALIATION
         }
         
         if action_type in main_actions:
@@ -5128,6 +5365,24 @@ class ActionPanel(QWidget):
             self.character_context['raging'] = True
             self.character_context['rage_damage_bonus'] = rage_damage
             self.character_context['rage_turns_remaining'] = 10  # Rage lasts 10 rounds
+
+        # Trigger automatic subclass features when rage starts
+        try:
+            from services.subclass_action_integration import subclass_action_integration
+            automatic_triggers = subclass_action_integration.trigger_automatic_feature(character_id, "rage_start")
+
+            # Log any automatic feature activations
+            for trigger_result in automatic_triggers:
+                if trigger_result.get('success'):
+                    feature_name = trigger_result.get('feature_name', 'Unknown Feature')
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"[AUTO] {feature_name} activated by Rage!")
+                            break
+                        parent = parent.parent()
+        except Exception as e:
+            print(f"Error triggering automatic subclass features: {e}")
 
         # Refresh weapon cards to show rage damage bonus
         self._create_weapon_cards()
@@ -6031,8 +6286,7 @@ class ActionCard(QWidget):
         # Check action type for weapon attacks
         if hasattr(self, 'action_type') and self.action_type in [
             ActionType.ATTACK_MAIN_HAND,
-            ActionType.ATTACK_OFF_HAND,
-            ActionType.ATTACK_UNARMED
+            ActionType.ATTACK_OFF_HAND
         ]:
             print(f"[DEBUG] Card matches attack action type: {self.action_type}")
             return True
@@ -6138,29 +6392,214 @@ class ActionCard(QWidget):
 
     def _use_intimidating_presence(self):
         """Use Intimidating Presence to frighten nearby enemies."""
-        if not (self.character_context.get('class_id', '').lower() == 'barbarian' and
-                self.character_context.get('subclass', '').lower() == 'berserker' and
-                self.character_context.get('level', 1) >= 14):
+        character_id = self._resolve_character_id()
+        if not character_id:
             return
 
-        # Calculate save DC
-        strength_mod = self.character_context.get('strength_modifier', 0)
-        proficiency_bonus = self.character_context.get('proficiency_bonus', 2)
-        save_dc = 8 + strength_mod + proficiency_bonus
+        # Check if bonus action is available
+        if self.action_economy_enabled and self.current_combat_session:
+            from models.action_economy import ActionEconomyType
+            state = self.current_combat_session.action_economy.get_combatant_state(character_id)
+            if state and not state.bonus_action_available:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"{character_name} cannot use Intimidating Presence: Bonus action already used this turn")
+                        break
+                    parent = parent.parent()
+                return
+
+        # Use the enhanced subclass integration
+        try:
+            from services.subclass_action_integration import subclass_action_integration
+            result = subclass_action_integration.activate_feature(character_id, "Intimidating Presence")
+
+            if result.get('success'):
+                # Consume the bonus action
+                if self.action_economy_enabled and self.current_combat_session:
+                    try:
+                        self.current_combat_session.action_economy.use_action(character_id, ActionEconomyType.BONUS_ACTION)
+                    except Exception as e:
+                        print(f"Error consuming bonus action for Intimidating Presence: {e}")
+
+                # Log the successful activation
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        save_dc = result.get('save_dc', 'Unknown')
+                        uses_remaining = result.get('uses_remaining', 0)
+
+                        parent.log_panel.log_combat(f"[BONUS ACTION] [FEAR] {character_name} uses Intimidating Presence!")
+                        parent.log_panel.log_combat(f"All enemies within 30 ft must make a Wisdom save (DC {save_dc}) or be Frightened for 1 minute")
+                        parent.log_panel.log_combat("Frightened creatures can repeat the save at the end of each turn")
+
+                        if uses_remaining == 0:
+                            parent.log_panel.log_combat("Intimidating Presence depleted (recharges on long rest)")
+
+                        # Update action economy display
+                        if hasattr(parent, 'action_panel'):
+                            parent.action_panel._update_action_economy_display()
+
+                        break
+                    parent = parent.parent()
+
+                # Update action card availability
+                self._refresh_action_availability()
+            else:
+                # Log the failure
+                reason = result.get('reason', 'Unknown error')
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"{character_name} cannot use Intimidating Presence: {reason}")
+                        break
+                    parent = parent.parent()
+
+        except ImportError:
+            # Fallback to old implementation
+            if not (self.character_context.get('class_id', '').lower() == 'barbarian' and
+                    self.character_context.get('subclass', '').lower() == 'berserker' and
+                    self.character_context.get('level', 1) >= 14):
+                return
+
+            # Calculate save DC
+            strength_mod = self.character_context.get('strength_modifier', 0)
+            proficiency_bonus = self.character_context.get('proficiency_bonus', 2)
+            save_dc = 8 + strength_mod + proficiency_bonus
+
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat(f"[FEAR] Intimidating Presence activated!")
+                        parent.log_panel.log_combat(f"All enemies within 30 ft must make a Wisdom save (DC {save_dc}) or be Frightened for 1 minute")
+                        parent.log_panel.log_combat("Frightened creatures can repeat the save at the end of each turn")
+                        break
+                    parent = parent.parent()
+            except Exception as e:
+                print(f"Error logging intimidating presence: {e}")
+
+        except Exception as e:
+            print(f"Error using enhanced intimidating presence: {e}")
+
+    def _use_retaliation(self):
+        """Use Retaliation reaction to attack an enemy that damaged you."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        # Check if reaction is available
+        if self.action_economy_enabled and self.current_combat_session:
+            from models.action_economy import ActionEconomyType
+            state = self.current_combat_session.action_economy.get_combatant_state(character_id)
+            if state and not state.reaction_available:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"{character_name} cannot retaliate: Reaction already used this round")
+                        break
+                    parent = parent.parent()
+                return
 
         try:
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat(f"[FEAR] Intimidating Presence activated!")
-                    parent.log_panel.log_combat(f"All enemies within 30 ft must make a Wisdom save (DC {save_dc}) or be Frightened for 1 minute")
-                    parent.log_panel.log_combat("Frightened creatures can repeat the save at the end of each turn")
-                    break
-                parent = parent.parent()
+            from services.subclass_action_integration import subclass_action_integration
+            result = subclass_action_integration.activate_feature(character_id, "Retaliation")
+
+            if result.get('success'):
+                # Consume the reaction
+                if self.action_economy_enabled and self.current_combat_session:
+                    try:
+                        self.current_combat_session.action_economy.use_action(character_id, ActionEconomyType.REACTION)
+                    except Exception as e:
+                        print(f"Error consuming reaction for Retaliation: {e}")
+
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"[REACTION] {character_name} retaliates with a melee attack!")
+
+                        if result.get('adds_rage_damage'):
+                            parent.log_panel.log_combat("Attack includes Rage damage bonus")
+
+                        # Update action economy display
+                        if hasattr(parent, 'action_panel'):
+                            parent.action_panel._update_action_economy_display()
+
+                        break
+                    parent = parent.parent()
+            else:
+                reason = result.get('error', 'Unknown error')
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"{character_name} cannot retaliate: {reason}")
+                        break
+                    parent = parent.parent()
+
         except Exception as e:
-            print(f"Error logging intimidating presence: {e}")
+            print(f"Error using retaliation: {e}")
 
+    def _use_heroic_warrior(self):
+        """Trigger Heroic Warrior inspiration gain."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
 
+        try:
+            from services.subclass_action_integration import subclass_action_integration
+            result = subclass_action_integration.activate_feature(character_id, "Heroic Warrior")
+
+            if result.get('success'):
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"[INSPIRATION] {character_name} gains Heroic Inspiration!")
+                        break
+                    parent = parent.parent()
+
+        except Exception as e:
+            print(f"Error using heroic warrior: {e}")
+
+    def _use_survivor(self):
+        """Trigger Survivor healing if conditions are met."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        try:
+            from services.subclass_action_integration import subclass_action_integration
+            result = subclass_action_integration.activate_feature(character_id, "Survivor")
+
+            if result.get('success'):
+                healing = result.get('healing', 0)
+                new_hp = result.get('new_hp', 0)
+
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        character_name = self.character_context.get('name', 'Character')
+                        parent.log_panel.log_combat(f"[HEALING] {character_name} Survivor healing: {healing} HP")
+                        break
+                    parent = parent.parent()
+
+                # Update HP display if available
+                if hasattr(self.parent(), 'character_sheet'):
+                    max_hp = self.character_context.get('hit_points_max', new_hp)
+                    self.parent().character_sheet.update_hp(new_hp, max_hp)
+
+            else:
+                # Don't log failures for automatic features like Survivor
+                pass
+
+        except Exception as e:
+            print(f"Error using survivor: {e}")
 
 
 

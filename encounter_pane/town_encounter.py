@@ -348,6 +348,23 @@ class TrainingHallInterface(QWidget):
         if available_subclasses:
             selection_level = min((subclass.get('selection_level') or 3) for subclass in available_subclasses)
         existing_subclass = subclass_manager.get_character_subclass(character_id, self.selected_class)
+
+        # Also check the enhanced subclass system
+        if not existing_subclass:
+            try:
+                from services.enhanced_subclass_manager import EnhancedSubclassManager
+                enhanced_manager = EnhancedSubclassManager(self.db_path)
+                # Check if character has subclass in enhanced system
+                import sqlite3
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (character_id,))
+                    row = cursor.fetchone()
+                    if row and row[0]:
+                        existing_subclass = row[0]
+                        print(f"[Training] Found enhanced subclass: {existing_subclass}")
+            except Exception as e:
+                print(f"[Training] Could not check enhanced subclass system: {e}")
         print(f"[Training] Subclass check: selected_class='{self.selected_class}', current_level={current_class_level}, next_level={next_level}")
         print(f"[Training] Available classes: {current_classes}")
         print(f"[Training] Character ID: {character_id}")

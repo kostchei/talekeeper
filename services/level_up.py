@@ -123,6 +123,26 @@ class LevelUpService:
             return False
 
         existing_subclass = subclass_manager.get_character_subclass(character_id, class_normalized)
+
+        # Also check the enhanced subclass system
+        enhanced_subclass = None
+        try:
+            from services.enhanced_subclass_manager import EnhancedSubclassManager
+            enhanced_manager = EnhancedSubclassManager(self.db_path)
+            # Check if character has subclass in enhanced system
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (character_id,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    enhanced_subclass = row[0]
+                    print(f"[LevelUp] Found enhanced subclass: {enhanced_subclass}")
+        except Exception as e:
+            print(f"[LevelUp] Could not check enhanced subclass system: {e}")
+
+        # Use enhanced subclass if available, otherwise fall back to old system
+        if enhanced_subclass:
+            existing_subclass = enhanced_subclass
         pending_subclass = None
         subclass_selection_level = 3
         new_class_level = None
