@@ -412,6 +412,18 @@ class SkillChallengeManager:
         level = character_data.get('level', 1)
         proficiency_bonus = get_proficiency_bonus(level)
 
+        # Get item bonuses from equipped items (like luckstone)
+        try:
+            from services.item_effects import ItemEffectsService
+            item_effects = ItemEffectsService(self.db_path)
+            character_id = character_data.get('id')
+            if character_id:
+                bonuses = item_effects.get_character_bonuses(character_id)
+                ability_check_bonus = bonuses.get('ability_check_bonus', 0)
+                ability_modifier += ability_check_bonus
+        except Exception as e:
+            print(f"Error getting item bonuses for skill check: {e}")
+
         # Check if character is proficient in this skill
         # For now, assume proficiency for simplicity - could be enhanced
         # to check character's actual skill proficiencies

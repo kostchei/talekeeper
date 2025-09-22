@@ -1867,7 +1867,17 @@ class ActionPanel(QWidget):
     def _execute_attack_without_initiative(self, action_type: ActionType, context: Dict[str, Any], encounter_panel):
         """Execute the attack without rolling initiative (used for immediate attacks and pending attacks)."""
         import random
-        
+
+        # Check if player is attacking from hidden
+        is_hidden = False
+        if hasattr(encounter_panel, 'player_hidden') and encounter_panel.player_hidden:
+            is_hidden = True
+            context['is_hidden'] = True
+            # After first attack, player is no longer hidden
+            encounter_panel.player_hidden = False
+            encounter_panel.stealth_dc = 0
+            self._log_to_parent("[STEALTH] You attack from hiding, gaining advantage!")
+
         # Get target info
         target_id = context.get('target_monster_id')
         weapon_name = context.get('name', 'weapon')
@@ -1904,12 +1914,13 @@ class ActionPanel(QWidget):
         if fighting_style_attack_bonus > 0:
             bonus_parts.append(f"+{fighting_style_attack_bonus} fighting style")
         bonus_str = f" ({' '.join(bonus_parts)})"
-        
+
         if hit:
             # Add advantage state to context for damage calculation (needed for sneak attack)
             context['advantage_state'] = attack_breakdown.get('advantage_state')
-            context['has_advantage'] = attack_breakdown.get('advantage_state') == 'advantage'
+            context['has_advantage'] = attack_breakdown.get('advantage_state') == 'advantage' or is_hidden
             context['has_disadvantage'] = attack_breakdown.get('advantage_state') == 'disadvantage'
+            context['is_hidden'] = is_hidden
 
             # === DAMAGE ROLL ===
             damage_dice, damage_type = self._get_context_damage_profile(context)
@@ -1944,6 +1955,22 @@ class ActionPanel(QWidget):
             if style_desc:
                 self._log_to_parent(f"[FIGHTING STYLE] {style_desc}")
             dice_total = sum(dice_rolls)
+
+            # Check for Assassin Surprising Strikes (D&D 2024)
+            assassin_bonus = 0
+            if self.character_context:
+                subclass = self.character_context.get('subclass_id', '').lower()
+                level = self.character_context.get('level', 1)
+                if 'assassin' in subclass and level >= 3:
+                    # Check if it's the first round of combat
+                    encounter_panel = self._get_encounter_panel()
+                    if encounter_panel and hasattr(encounter_panel, 'current_encounter'):
+                        current_encounter = encounter_panel.current_encounter
+                        if current_encounter and hasattr(current_encounter, 'current_round'):
+                            if current_encounter.current_round == 1:
+                                # Surprising Strikes: Extra damage equal to Rogue level on first round
+                                assassin_bonus = level
+                                self._log_to_parent(f"[ASSASSINATE] Surprising Strikes! +{assassin_bonus} damage on first round")
 
             # === CRITICAL HIT ===
             # Double damage DICE ONLY on critical hit (not modifiers)
@@ -2051,6 +2078,33 @@ class ActionPanel(QWidget):
             # Calculate total damage
             total_damage = dice_total + sum(value for _, value in damage_components) + sneak_attack_damage
 
+            # Check for Death Strike (Assassin level 17 - D&D 2024)
+            death_strike_damage = 0
+            if self.character_context:
+                subclass = self.character_context.get('subclass_id', '').lower()
+                level = self.character_context.get('level', 1)
+                if 'assassin' in subclass and level >= 17:
+                    # Check if it's the first round of combat and this is a sneak attack
+                    encounter_panel = self._get_encounter_panel()
+                    if encounter_panel and hasattr(encounter_panel, 'current_encounter'):
+                        current_encounter = encounter_panel.current_encounter
+                        if current_encounter and hasattr(current_encounter, 'current_round'):
+                            if current_encounter.current_round == 1 and sneak_attack_damage > 0:
+                                # Death Strike - target must make CON save or damage is doubled
+                                dex_mod = (self.character_context.get('dexterity', 10) - 10) // 2
+                                from services.proficiency_bonus import get_proficiency_bonus_from_context
+                                prof_bonus = get_proficiency_bonus_from_context(self.character_context)
+                                death_strike_dc = 8 + dex_mod + prof_bonus
+
+                                # For simplicity, assume target fails save 50% of the time
+                                import random
+                                if random.randint(1, 20) < death_strike_dc - 10:  # Simplified save
+                                    death_strike_damage = total_damage
+                                    total_damage *= 2
+                                    self._log_to_parent(f"[DEATH STRIKE] Target failed save (DC {death_strike_dc})! Damage doubled: {death_strike_damage} -> {total_damage}")
+                                else:
+                                    self._log_to_parent(f"[DEATH STRIKE] Target saved (DC {death_strike_dc}), normal damage")
+
             # === LOG DAMAGE ===
             dice_str = f"[{', '.join(map(str, dice_rolls))}]"
             base_dice_total = dice_total - crit_bonus
@@ -2063,9 +2117,14 @@ class ActionPanel(QWidget):
             if crit_bonus:
                 crit_rolls_str = f"[{', '.join(map(str, crit_dice_rolls))}]"
                 damage_formula_parts.append(f"+crit {crit_rolls_str} = {crit_bonus}")
+            if assassin_bonus > 0:
+                damage_formula_parts.append(f"+{assassin_bonus} Surprising Strikes")
+                total_damage += assassin_bonus
             if sneak_attack_damage > 0:
                 sneak_rolls_str = f"[{', '.join(map(str, sneak_attack_dice))}]"
                 damage_formula_parts.append(f"+sneak {sneak_rolls_str} = {sneak_attack_damage}")
+            if death_strike_damage > 0:
+                damage_formula_parts.append(f" x2 Death Strike = {total_damage}")
             damage_formula_text = ' '.join(damage_formula_parts)
 
             # Apply damage to monster
@@ -2890,6 +2949,10 @@ class ActionPanel(QWidget):
         # Get advantage/disadvantage sources
         advantage_sources = advantage_system.get_common_advantage_sources(RollType.ATTACK, context)
         disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.ATTACK, context)
+
+        # Check if attacking from hidden
+        if context.get('is_hidden', False):
+            advantage_sources.append("Attacking from Hidden")
         
         # Check for pending advantage from Lucky/Inspiration triangle clicks
         if hasattr(self, 'resource_manager') and self.resource_manager:

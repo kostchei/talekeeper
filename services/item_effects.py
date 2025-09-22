@@ -61,7 +61,8 @@ class ItemEffectsService:
             'con_bonus': 0,
             'int_bonus': 0,
             'wis_bonus': 0,
-            'cha_bonus': 0
+            'cha_bonus': 0,
+            'ability_check_bonus': 0
         }
 
         try:
@@ -151,7 +152,8 @@ class ItemEffectsService:
             'con_bonus': 0,
             'int_bonus': 0,
             'wis_bonus': 0,
-            'cha_bonus': 0
+            'cha_bonus': 0,
+            'ability_check_bonus': 0
         }
 
         try:
@@ -170,7 +172,7 @@ class ItemEffectsService:
                 elif 'luckstone' in item_name.lower() or 'stone of good luck' in item_name.lower():
                     # Luckstone: +1 to ability checks and saves (no AC)
                     bonuses['save_bonus'] += 1
-                    # Note: Ability check bonuses handled separately
+                    bonuses['ability_check_bonus'] += 1
                 elif 'bracers of defense' in item_name.lower():
                     # +2 AC only if no armor and no shield equipped
                     # TODO: Check for no armor/shield condition
@@ -237,8 +239,8 @@ class ItemEffectsService:
                 cursor.execute("""
                     INSERT OR REPLACE INTO character_magical_bonuses (
                         character_id, ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id,
                     bonuses['ac_bonus'],
@@ -250,7 +252,8 @@ class ItemEffectsService:
                     bonuses['con_bonus'],
                     bonuses['int_bonus'],
                     bonuses['wis_bonus'],
-                    bonuses['cha_bonus']
+                    bonuses['cha_bonus'],
+                    bonuses['ability_check_bonus']
                 ))
 
                 print(f"[ITEM_EFFECTS] Saved bonuses for {character_id}: {bonuses}")
@@ -287,7 +290,7 @@ class ItemEffectsService:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus
+                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus
                     FROM character_magical_bonuses
                     WHERE character_id = ?
                 """, (character_id,))
@@ -304,13 +307,14 @@ class ItemEffectsService:
                         'con_bonus': row[6] or 0,
                         'int_bonus': row[7] or 0,
                         'wis_bonus': row[8] or 0,
-                        'cha_bonus': row[9] or 0
+                        'cha_bonus': row[9] or 0,
+                        'ability_check_bonus': row[10] or 0
                     }
                 else:
                     return {
                         'ac_bonus': 0, 'save_bonus': 0, 'attack_bonus': 0, 'damage_bonus': 0,
                         'str_bonus': 0, 'dex_bonus': 0, 'con_bonus': 0, 'int_bonus': 0,
-                        'wis_bonus': 0, 'cha_bonus': 0
+                        'wis_bonus': 0, 'cha_bonus': 0, 'ability_check_bonus': 0
                     }
 
         except Exception as e:

@@ -487,7 +487,7 @@ class GameEngineSQLite:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, item_name, item_type, quantity, weight_lb, description, value_gp, container
+                    SELECT id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped
                     FROM character_inventory
                     WHERE character_id = ?
                     ORDER BY item_type, item_name
@@ -495,12 +495,6 @@ class GameEngineSQLite:
 
                 inventory = []
                 for row in cursor.fetchall():
-                    # Handle container column safely - it may not exist on older saves
-                    try:
-                        container = row['container'] if row['container'] else 'backpack'
-                    except (KeyError, IndexError):
-                        container = 'backpack'
-
                     inventory.append({
                         'id': row['id'],
                         'name': row['item_name'],
@@ -509,7 +503,8 @@ class GameEngineSQLite:
                         'weight_lb': row['weight_lb'],
                         'description': row['description'],
                         'value_gp': row['value_gp'],
-                        'container': container
+                        'equipped': bool(row['equipped']),
+                        'container': 'backpack'  # Default container for now
                     })
 
                 return inventory

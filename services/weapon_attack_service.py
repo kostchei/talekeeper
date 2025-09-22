@@ -70,7 +70,8 @@ class WeaponAttackService:
                                is_critical: bool = False,
                                advantage: bool = False,
                                disadvantage: bool = False,
-                               action_type: str = 'main_hand') -> Dict[str, Any]:
+                               action_type: str = 'main_hand',
+                               is_hidden: bool = False) -> Dict[str, Any]:
         """
         Calculate attack roll and damage for a weapon attack.
 
@@ -96,12 +97,18 @@ class WeaponAttackService:
 
         modifiers_applied = []
 
+        # Check if attacking from hidden grants advantage
+        if is_hidden and not disadvantage:
+            advantage = True
+            modifiers_applied.append('Attacking from Hidden')
+
         # Roll attack
         if advantage and disadvantage:
             attack_roll = random.randint(1, 20)
         elif advantage:
             attack_roll = max(random.randint(1, 20), random.randint(1, 20))
-            modifiers_applied.append('Advantage')
+            if 'Attacking from Hidden' not in modifiers_applied:
+                modifiers_applied.append('Advantage')
         elif disadvantage:
             attack_roll = min(random.randint(1, 20), random.randint(1, 20))
             modifiers_applied.append('Disadvantage')
@@ -188,7 +195,7 @@ class WeaponAttackService:
 
         # Apply Sneak Attack if eligible (Rogue class)
         sneak_attack_data = self._apply_sneak_attack_if_eligible(
-            character, weapon, target, advantage, disadvantage
+            character, weapon, target, advantage or is_hidden, disadvantage, is_hidden
         )
 
         sneak_attack_damage = 0
@@ -724,7 +731,8 @@ class WeaponAttackService:
                                        weapon: Dict[str, Any],
                                        target: Optional[Dict[str, Any]],
                                        has_advantage: bool,
-                                       has_disadvantage: bool) -> Dict[str, Any]:
+                                       has_disadvantage: bool,
+                                       is_hidden: bool = False) -> Dict[str, Any]:
         """
         Apply Sneak Attack damage if the character is eligible.
 
@@ -762,8 +770,12 @@ class WeaponAttackService:
         # Check conditions for sneak attack
         sneak_attack_source = None
 
-        # Condition 1: Has advantage (and no disadvantage)
-        if has_advantage and not has_disadvantage:
+        # Priority 1: Attacking from hidden
+        if is_hidden:
+            sneak_attack_source = "hidden"
+
+        # Condition 2: Has advantage (and no disadvantage)
+        elif has_advantage and not has_disadvantage:
             sneak_attack_source = "advantage"
 
         # Condition 2: Tactical advantage (and no disadvantage)

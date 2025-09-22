@@ -572,21 +572,45 @@ class FighterAbilitiesService:
         with self._get_connection() as conn:
             cursor = conn.cursor()
 
-            cursor.execute(
-                """
-                SELECT level, hit_points_current, hit_points_max, constitution,
-                       inspiration_uses_current, inspiration_uses_max,
-                       class_id, subclass_id
-                FROM characters
-                WHERE id = ?
-                """,
-                (character_id,)
-            )
-            row = cursor.fetchone()
-            if not row:
-                return {"success": False, "error": "Character not found"}
-
-            character = dict(row)
+            # Try to get character data with inspiration columns, fall back if missing
+            try:
+                cursor.execute(
+                    """
+                    SELECT level, hit_points_current, hit_points_max, constitution,
+                           inspiration_uses_current, inspiration_uses_max,
+                           class_id, subclass_id
+                    FROM characters
+                    WHERE id = ?
+                    """,
+                    (character_id,)
+                )
+                row = cursor.fetchone()
+            except sqlite3.OperationalError as e:
+                if "no such column: inspiration_uses_current" in str(e):
+                    # Fall back to query without inspiration columns
+                    cursor.execute(
+                        """
+                        SELECT level, hit_points_current, hit_points_max, constitution,
+                               class_id, subclass_id
+                        FROM characters
+                        WHERE id = ?
+                        """,
+                        (character_id,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        character = dict(row)
+                        # Add default inspiration values
+                        character['inspiration_uses_current'] = 0
+                        character['inspiration_uses_max'] = 0
+                    else:
+                        return {"success": False, "error": "Character not found"}
+                else:
+                    raise e
+            else:
+                if not row:
+                    return {"success": False, "error": "Character not found"}
+                character = dict(row)
             level = character.get("level", 0) or 0
 
             subclass = (character.get("subclass_id") or "").lower()

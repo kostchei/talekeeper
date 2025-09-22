@@ -36,6 +36,7 @@ from .alt_encounters import generate_trap, generate_hazard, generate_skill_chall
 from .skill_challenge_widget import SkillChallengeWidget
 from services.skill_challenge_manager import SkillChallengeManager
 from services.skill_challenge_rewards import SkillChallengeRewards
+from services.stealth_mechanics import StealthMechanicsService
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
 from typing import Any, Optional, Dict
@@ -77,6 +78,11 @@ class CombatSession:
     is_active: bool = True
     current_round: int = 1
     current_turn: int = 0
+
+    # Stealth state
+    player_hidden: bool = False
+    stealth_dc: int = 0
+    surprise_round: bool = False
     
     # Action Economy
     action_economy: Optional[Any] = None  # CombatActionEconomy imported when needed
@@ -506,6 +512,15 @@ class EncounterPanel(QWidget):
         self.skill_challenge_manager = SkillChallengeManager()
         self.skill_challenge_rewards = SkillChallengeRewards()
         self.skill_challenge_widget = None  # Active skill challenge interface
+
+        # Initialize stealth mechanics
+        try:
+            self.stealth_service = StealthMechanicsService()
+        except Exception as e:
+            print(f"Warning: Could not initialize stealth service: {e}")
+            self.stealth_service = None
+        self.player_hidden = False
+        self.stealth_dc = 0
         
         # Set fixed size (fits above action cards)
         self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
@@ -531,7 +546,35 @@ class EncounterPanel(QWidget):
         main_content_layout = QVBoxLayout(self.main_content_tab)
         main_content_layout.setContentsMargins(1, 1, 1, 1)
         main_content_layout.setSpacing(1)
-        
+
+        # Hidden status indicator (initially hidden)
+        self.hidden_status_frame = QFrame()
+        self.hidden_status_frame.setObjectName("hiddenStatusFrame")
+        self.hidden_status_frame.setStyleSheet("""
+            QFrame#hiddenStatusFrame {
+                background-color: #1a3a2a;
+                border: 2px solid #4a8a6a;
+                border-radius: 4px;
+                padding: 4px;
+            }
+        """)
+        hidden_layout = QHBoxLayout(self.hidden_status_frame)
+        hidden_layout.setContentsMargins(6, 3, 6, 3)
+
+        self.hidden_status_label = QLabel("[HIDDEN] You are undetected (Stealth DC: 0)")
+        self.hidden_status_label.setStyleSheet("""
+            QLabel {
+                color: #88ff88;
+                font-weight: bold;
+                font-size: 12px;
+            }
+        """)
+        hidden_layout.addWidget(self.hidden_status_label)
+        hidden_layout.addStretch()
+
+        self.hidden_status_frame.hide()  # Initially hidden
+        main_content_layout.addWidget(self.hidden_status_frame)
+
         # Scene description area
         self.scene_text = QTextEdit()
         self.scene_text.setObjectName("sceneText")
@@ -1147,6 +1190,12 @@ class EncounterPanel(QWidget):
     def _end_combat_session(self):
         """End combat session and notify action panel."""
         try:
+            # Clear hidden state
+            self.player_hidden = False
+            self.stealth_dc = 0
+            if hasattr(self, 'hidden_status_frame'):
+                self.hidden_status_frame.hide()
+
             # Notify action panel to end combat session
             parent = self.parent()
             while parent:
@@ -1230,6 +1279,12 @@ class EncounterPanel(QWidget):
         self.current_encounter_id = None
         self.current_encounter = None  # Clear encounter tracking
         self.selected_monster_id = None  # Clear selection
+
+        # Clear hidden state
+        self.player_hidden = False
+        self.stealth_dc = 0
+        if hasattr(self, 'hidden_status_frame'):
+            self.hidden_status_frame.hide()
         
         # Clear encounters list
         if hasattr(self, 'encounters_list'):
@@ -4058,6 +4113,9 @@ Character Level: {character_level}"""
                 self.encounter_details_text.setPlainText(desc)
                 print(f"[ENCOUNTER] Updated encounter details: {desc[:50]}...")
             
+            # Check for stealth before switching to encounter mode
+            self._check_encounter_stealth(encounter_data['monsters'])
+
             # Switch to encounter mode
             self.set_encounter_mode()
             
@@ -4065,6 +4123,212 @@ Character Level: {character_level}"""
             print(f"Error generating encounter: {e}")
             import traceback
             traceback.print_exc()
+
+    def _check_encounter_stealth(self, monsters: List[Dict[str, Any]]) -> None:
+        """Check if player can start encounter hidden."""
+        try:
+            # Check if stealth service is available
+            if not self.stealth_service:
+                self.player_hidden = False
+                return
+            # Get current character data
+            character_data = self._get_current_character_data()
+            if not character_data:
+                self.player_hidden = False
+                return
+
+            character_id = character_data.get('id')
+            if not character_id:
+                self.player_hidden = False
+                return
+
+            # Perform stealth check
+            stealth_result = self.stealth_service.check_encounter_stealth(
+                character_id, character_data, monsters
+            )
+
+            # Store hidden state
+            self.player_hidden = stealth_result['hidden']
+            if self.player_hidden:
+                self.stealth_dc = stealth_result['stealth_result']['dc_to_spot']
+                # Log detailed stealth success
+                stealth_info = stealth_result['stealth_result']
+                breakdown = stealth_info['breakdown']
+                self._log_monster_action(f"[STEALTH] Stealth Check: d20({breakdown['base_roll']}) +{breakdown['dex_modifier']} DEX +{breakdown['proficiency_bonus']} Prof = {stealth_info['total']} vs DC 15")
+                self._log_monster_action(f"[STEALTH] SUCCESS! You are hidden (Stealth DC: {self.stealth_dc})")
+                if breakdown['sources']:
+                    sources_text = ', '.join(breakdown['sources'])
+                    self._log_monster_action(f"[STEALTH] Modifiers: {sources_text}")
+
+                # Update scene description
+                current_desc = self.scene_text.toPlainText()
+                stealth_text = f"\n\n[HIDDEN] You remain undetected. You can make a surprise attack or flee."
+                self.scene_text.setPlainText(current_desc + stealth_text)
+
+                # Show special action buttons for hidden state
+                self._show_hidden_action_buttons()
+
+                # Show hidden status indicator
+                self._update_hidden_status_ui()
+            else:
+                # Log why stealth failed with details
+                reason = stealth_result.get('reason', 'unknown')
+                if reason == 'no_proficiency':
+                    self._log_monster_action("[STEALTH] You lack Stealth proficiency - encounter begins normally.")
+                elif reason == 'failed_stealth':
+                    stealth_info = stealth_result.get('stealth_result', {})
+                    breakdown = stealth_info.get('breakdown', {})
+                    total = stealth_info.get('total', 0)
+                    self._log_monster_action(f"[STEALTH] Stealth Check: d20({breakdown.get('base_roll', '?')}) +{breakdown.get('dex_modifier', 0)} DEX +{breakdown.get('proficiency_bonus', 0)} Prof = {total} vs DC 15")
+                    self._log_monster_action(f"[STEALTH] FAILED! Not hidden (needed 15+)")
+                elif reason == 'spotted_by_monster':
+                    # First log the successful stealth roll
+                    stealth_info = stealth_result.get('stealth_result', {})
+                    breakdown = stealth_info.get('breakdown', {})
+                    total = stealth_info.get('total', 0)
+                    self._log_monster_action(f"[STEALTH] Stealth Check: d20({breakdown.get('base_roll', '?')}) +{breakdown.get('dex_modifier', 0)} DEX +{breakdown.get('proficiency_bonus', 0)} Prof = {total} vs DC 15")
+                    self._log_monster_action(f"[STEALTH] Stealth successful, but spotted by monsters...")
+
+                    # Then log monster perception results
+                    for result in stealth_result.get('monster_results', []):
+                        monster_name = result['monster']
+                        perception_check = result['perception_check']
+                        perception_total = perception_check['total']
+                        spotted = perception_check['spotted']
+                        self._log_monster_action(
+                            f"[STEALTH] {monster_name} Perception: d20({perception_check['roll']}) +{perception_check['perception_bonus']} = {perception_total} vs DC {self.stealth_dc} - {'SPOTTED!' if spotted else 'missed'}"
+                        )
+                        if spotted:
+                            self._log_monster_action(f"[STEALTH] DETECTED by {monster_name}! Encounter begins normally.")
+                            break
+
+        except Exception as e:
+            print(f"[STEALTH] Error checking encounter stealth: {e}")
+            import traceback
+            traceback.print_exc()
+            self.player_hidden = False
+
+    def _show_hidden_action_buttons(self) -> None:
+        """Show special action buttons when player is hidden."""
+        try:
+            # Add special hidden state buttons
+            if hasattr(self, 'action_buttons_layout'):
+                # Clear existing buttons
+                while self.action_buttons_layout.count():
+                    item = self.action_buttons_layout.takeAt(0)
+                    if item.widget():
+                        item.widget().deleteLater()
+
+                # Add hidden state actions
+                surprise_btn = QPushButton("Surprise Attack")
+                surprise_btn.clicked.connect(self._initiate_surprise_attack)
+                surprise_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #4a3030;
+                        color: #ff9999;
+                        border: 2px solid #ff6666;
+                        padding: 8px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #5a3535;
+                    }
+                """)
+
+                flee_btn = QPushButton("Flee Undetected")
+                flee_btn.clicked.connect(self._flee_encounter)
+                flee_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #303a4a;
+                        color: #99ccff;
+                        border: 2px solid #6699ff;
+                        padding: 8px;
+                        font-weight: bold;
+                    }
+                    QPushButton:hover {
+                        background-color: #354555;
+                    }
+                """)
+
+                self.action_buttons_layout.addWidget(surprise_btn)
+                self.action_buttons_layout.addWidget(flee_btn)
+
+        except Exception as e:
+            print(f"Error showing hidden action buttons: {e}")
+
+    def _initiate_surprise_attack(self) -> None:
+        """Handle surprise attack from hidden state."""
+        try:
+            # Mark that combat is starting with player hidden
+            if hasattr(self, 'current_encounter') and self.current_encounter:
+                self.current_encounter.player_hidden = True
+                self.current_encounter.surprise_round = True
+                self.current_encounter.stealth_dc = self.stealth_dc
+
+            self._log_monster_action("[COMBAT] You attack from hiding! You have advantage and trigger sneak attack.")
+
+            # Start combat with player going first
+            self._init_combat_session()
+
+            # Player automatically wins initiative when attacking from hidden
+            if self.current_encounter:
+                self.current_encounter.player_initiative = 99  # Guaranteed to go first
+
+            # Emit signal that player is attacking from hidden
+            self.combat_initiated.emit({
+                'encounter_id': self.current_encounter_id,
+                'player_hidden': True,
+                'surprise_round': True
+            })
+
+        except Exception as e:
+            print(f"Error initiating surprise attack: {e}")
+
+    def _flee_encounter(self) -> None:
+        """Handle fleeing from encounter while hidden."""
+        try:
+            self._log_monster_action("[ENCOUNTER] You slip away unnoticed, avoiding the encounter entirely.")
+
+            # Clear encounter
+            self._clear_monster_cards()
+            self.encounter_instances = {}
+            self.selected_monster_id = None
+            self.current_encounter = None
+            self.player_hidden = False
+            self.stealth_dc = 0
+
+            # Return to exploration mode
+            self.set_exploration_mode()
+            self.update_scene_description("You successfully evaded the encounter and continue exploring.")
+
+            # Hide the hidden status indicator
+            if hasattr(self, 'hidden_status_frame'):
+                self.hidden_status_frame.hide()
+
+        except Exception as e:
+            print(f"Error fleeing encounter: {e}")
+
+    def _get_current_character_data(self) -> Optional[Dict[str, Any]]:
+        """Get full character data for current character."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and hasattr(parent.game_engine, 'current_character'):
+                    return parent.game_engine.current_character
+                parent = parent.parent()
+            return None
+        except Exception as e:
+            print(f"Error getting character data: {e}")
+            return None
+
+    def _update_hidden_status_ui(self) -> None:
+        """Update the UI to show hidden status."""
+        if hasattr(self, 'hidden_status_frame') and hasattr(self, 'hidden_status_label'):
+            if self.player_hidden:
+                self.hidden_status_label.setText(f"[HIDDEN] You are undetected (Stealth DC: {self.stealth_dc})")
+                self.hidden_status_frame.show()
+            else:
+                self.hidden_status_frame.hide()
     
     def _get_character_level(self) -> Optional[int]:
         """Get the level of the current active character."""
@@ -4841,9 +5105,11 @@ Character Level: {character_level}"""
         
         # Add item drops to character's inventory
         if all_item_drops:
+            print(f"[LOOT] Adding {len(all_item_drops)} items to inventory")
             self._add_items_to_character(all_item_drops)
             item_summary = ', '.join([f"{item['name']}" for item in all_item_drops])
             self._log_monster_action(f"🎒 Items Found: {item_summary}")
+            print(f"[LOOT] Logged items to combat log: {item_summary}")
 
         # Mark loot as collected
         self._loot_already_collected = True
@@ -4984,6 +5250,7 @@ Character Level: {character_level}"""
     
     def _add_items_to_character(self, items: list):
         """Add dropped items to character inventory."""
+        print(f"[LOOT] _add_items_to_character called with {len(items)} items")
         try:
             # Get game engine from parent for character update
             parent = self.parent()
@@ -4991,51 +5258,66 @@ Character Level: {character_level}"""
                 if hasattr(parent, 'game_engine'):
                     game_engine = parent.game_engine
                     character = game_engine.current_character
-                    
+                    print(f"[LOOT] Found character: {character['id'] if character else 'None'}")
+
                     if character:
                         character_id = character['id']
-                        
+
                         import sqlite3
                         conn = sqlite3.connect("talekeeper.db")
                         cursor = conn.cursor()
-                        
+
                         for item in items:
+                            print(f"[LOOT] Processing item: {item['name']} ({item['item_type']})")
                             # Check if item already exists in inventory
                             cursor.execute("""
-                                SELECT quantity FROM character_inventory 
+                                SELECT quantity FROM character_inventory
                                 WHERE character_id = ? AND item_name = ? AND item_type = ?
                             """, (character_id, item['name'], item['item_type']))
-                            
+
                             existing = cursor.fetchone()
-                            
+                            print(f"[LOOT] Existing check result: {existing}")
+
                             if existing:
                                 # Update existing quantity
                                 new_quantity = existing[0] + 1
                                 cursor.execute("""
-                                    UPDATE character_inventory 
+                                    UPDATE character_inventory
                                     SET quantity = ?
                                     WHERE character_id = ? AND item_name = ? AND item_type = ?
                                 """, (new_quantity, character_id, item['name'], item['item_type']))
+                                print(f"[LOOT] Updated {item['name']} quantity to {new_quantity}")
                             else:
                                 # Add new item
                                 cursor.execute("""
-                                    INSERT INTO character_inventory 
-                                    (character_id, item_name, item_type, quantity, equipped) 
+                                    INSERT INTO character_inventory
+                                    (character_id, item_name, item_type, quantity, equipped)
                                     VALUES (?, ?, ?, 1, 0)
                                 """, (character_id, item['name'], item['item_type']))
-                        
+                                print(f"[LOOT] Inserted new item: {item['name']}")
+
                         conn.commit()
+                        print(f"[LOOT] Database commit completed for {len(items)} items")
                         conn.close()
-                        
+
                         # Force refresh inventory display
                         if hasattr(parent, '_force_reload_character'):
+                            print("[LOOT] Calling _force_reload_character()")
                             parent._force_reload_character()
-                    
+                        else:
+                            print("[LOOT] No _force_reload_character method found")
+
+                    else:
+                        print("[LOOT] No current character found")
                     break
+                else:
+                    print(f"[LOOT] Parent {parent} has no game_engine")
                 parent = parent.parent()
-                
+
         except Exception as e:
-            print(f"Error adding items to character: {e}")
+            print(f"[LOOT] Error adding items to character: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _check_for_hoard(self, difficulty: str) -> str:
         """Check for hoard treasure based on encounter difficulty."""
