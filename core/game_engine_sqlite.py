@@ -596,7 +596,7 @@ class GameEngineSQLite:
                     character_data.get('level', 1), character_data.get('experience_points', 0),
                     character_data['strength'], character_data['dexterity'], character_data['constitution'],
                     character_data['intelligence'], character_data['wisdom'], character_data['charisma'],
-                    calculated_ac, character_data['hit_points_max'],
+                    calculated_ac if calculated_ac is not None else character_data.get('ac', 10), character_data['hit_points_max'],
                     character_data['hit_points_current'], character_data.get('hit_points_temporary', 0),
                     character_data['hit_points_max'], character_data['hit_points_current'],
                     character_data.get('hit_dice_max', 1), character_data.get('hit_dice_current', 1),
@@ -807,7 +807,11 @@ class GameEngineSQLite:
             'wizard': 'Wizard',
             'Wizard': 'Wizard',
             'cleric': 'Cleric',
-            'Cleric': 'Cleric'
+            'Cleric': 'Cleric',
+            'warlock': 'Warlock',
+            'Warlock': 'Warlock',
+            'paladin': 'Paladin',
+            'Paladin': 'Paladin'
         }
         return class_names.get(class_id, class_id.title())
     
@@ -1406,46 +1410,74 @@ class GameEngineSQLite:
     def _initialize_warlock_features(self, cursor, character_id: str, character_data: Dict):
         """Initialize Warlock-specific features (pact magic)."""
         level = character_data.get('level', 1)
-        
-        # Warlock pact magic progression (different from full casters)
-        if level >= 17:
-            pact_slots_max = 4
-            pact_slot_level = 5
-        elif level >= 15:
-            pact_slots_max = 3
-            pact_slot_level = 5
-        elif level >= 11:
-            pact_slots_max = 3
-            pact_slot_level = 5
-        elif level >= 9:
-            pact_slots_max = 2
-            pact_slot_level = 5
-        elif level >= 7:
-            pact_slots_max = 2
-            pact_slot_level = 4
-        elif level >= 5:
-            pact_slots_max = 2
-            pact_slot_level = 3
-        elif level >= 3:
-            pact_slots_max = 2
-            pact_slot_level = 2
-        else:
-            pact_slots_max = 1
-            pact_slot_level = 1
-        
+
+        # Get pact progression from the progression table
         cursor.execute("""
-            INSERT INTO warlock_features (
-                character_id, level, pact_slots_max, pact_slots_current, pact_slot_level,
-                patron, pact_boon, eldritch_invocations, patron_feature_uses_max
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            SELECT num_slots, slot_level, invocations_known, cantrips_known, spells_known
+            FROM warlock_pact_progression
+            WHERE level = ?
+        """, (level,))
+
+        progression = cursor.fetchone()
+        if progression:
+            pact_slots = progression['num_slots']
+            pact_slot_level = progression['slot_level']
+            invocations_known = progression['invocations_known']
+            cantrips_known = progression['cantrips_known']
+            spells_known = progression['spells_known']
+        else:
+            # Fallback values for level 1
+            pact_slots = 1
+            pact_slot_level = 1
+            invocations_known = 0
+            cantrips_known = 2
+            spells_known = 2
+
+        # Get patron from character data (might be selected during creation)
+        patron = character_data.get('subclass', 'Fiend')
+
+        # Initialize warlock features table
+        cursor.execute("""
+            INSERT OR REPLACE INTO warlock_features (
+                character_id, patron, pact_boon, invocations_known, mystic_arcanum_spells,
+                last_pact_reset, pact_slots, pact_slot_level
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            character_id, level, pact_slots_max, pact_slots_max, pact_slot_level,
-            None,  # Patron chosen during character creation
-            None if level < 3 else 'chain',  # Pact Boon at level 3
+            character_id, patron,
+            None,  # Pact Boon chosen at level 3
             '[]',  # JSON array of invocations
-            1 if level >= 1 else 0  # Patron feature uses
+            '[]',  # JSON array of mystic arcanum spells
+            datetime.now().isoformat(),
+            pact_slots, pact_slot_level
         ))
-        print(f"[SQLite] Initialized Warlock features - {pact_slots_max} level {pact_slot_level} pact slots")
+
+        # Initialize spellcasting entry for Warlock
+        cursor.execute("""
+            INSERT OR REPLACE INTO character_spellcasting (
+                character_id, spellcasting_class, spellcasting_ability,
+                spell_save_dc, spell_attack_bonus, prepared_spells, known_spells,
+                cantrips_known, ritual_casting, spellcasting_focus
+            ) VALUES (?, 'warlock', 'Charisma', ?, ?, '[]', '[]', ?, 0, 'arcane_focus')
+        """, (
+            character_id,
+            8 + 2 + ((character_data.get('charisma', 10) - 10) // 2),  # Base DC calculation
+            2 + ((character_data.get('charisma', 10) - 10) // 2),  # Attack bonus calculation
+            cantrips_known
+        ))
+
+        # Apply patron-specific features
+        try:
+            from services.warlock_patrons import get_patron_manager
+            patron_manager = get_patron_manager(self.db_path)
+            patron_manager.initialize_patron_features(character_id, patron, level)
+        except ImportError:
+            # Fallback for older implementation
+            if patron == 'Fiend':
+                from services.warlock_service import FiendPatronService
+                fiend_service = FiendPatronService(self.db_path)
+                fiend_service.apply_fiend_features(character_id, level)
+
+        print(f"[SQLite] Initialized Warlock features - {pact_slots} level {pact_slot_level} pact slots, {patron} patron")
     
     def _initialize_cleric_features(self, cursor, character_id: str, character_data: Dict):
         """Initialize Cleric-specific features (full spellcaster + divine)."""
