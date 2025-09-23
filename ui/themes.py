@@ -9,48 +9,48 @@ from __future__ import annotations
 
 # Light theme based on Light_.JPG color palette
 LIGHT_THEME = {
-    # Base colors from Light_.JPG - warm, bright tones (made lighter)
-    "background": "#f5e9d8",          # Much lighter warm cream background
-    "surface": "#f0e1d0",             # Light warm beige for panels
-    "text": "#3d3530",                # Darker muted charcoal-brown text
-    "text_secondary": "#5a504a",      # Medium muted gray-brown for secondary text
-    
+    # Base colors from Light_.JPG - warm, bright tones with higher contrast
+    "background": "#faf2e7",          # Brighter warm cream background
+    "surface": "#f4e5d4",             # Light warm beige for panels
+    "text": "#2b211c",                # Deep brown text for stronger contrast
+    "text_secondary": "#4c3d35",      # Muted brown-gray for secondary text
+
     # Accent colors from Light_.JPG swatches
-    "accent_primary": "#8b5a3c",      # Rich reddish-brown from palette
-    "accent_secondary": "#a0673f",    # Warm orange-brown accent
-    "accent_tertiary": "#5c8b7a",     # Blue-teal from palette (use for all blue elements)
-    "accent_quaternary": "#d4956b",   # Light orange tone
-    
+    "accent_primary": "#7c4f32",      # Rich reddish-brown from palette
+    "accent_secondary": "#a45f38",    # Warm orange-brown accent
+    "accent_tertiary": "#3f7663",     # Blue-teal accent used for selections
+    "accent_quaternary": "#cf8a5b",   # Light orange tone
+
     # UI element colors
-    "button": "#a0673f",              # Warm orange-brown for buttons
-    "button_hover": "#b8784a",        # Lighter on hover
-    "button_pressed": "#8b5a3c",      # Darker when pressed
-    "border": "#d0c4b0",              # Lighter soft brown border
-    "selection": "#5c8b7a",           # Blue-teal for selections, links, active states
-    "highlight": "#fbf5ef",           # Even lighter warm highlight
+    "button": "#a45f38",              # Warm orange-brown for buttons
+    "button_hover": "#bb7346",        # Lighter on hover
+    "button_pressed": "#7c4f32",      # Darker when pressed
+    "border": "#c9b59c",              # Soft but pronounced border
+    "selection": "#3f7663",           # Blue-teal for selections, links, active states
+    "highlight": "#fff9f1",           # Even lighter warm highlight
 }
 
 # Dark theme based on Dark.JPG color palette
 DARK_THEME = {
-    # Base colors from Dark.JPG - deep, rich tones
-    "background": "#2d2419",          # Deep brown-black from darkest swatch
-    "surface": "#3a3025",             # Slightly lighter dark brown for panels
-    "text": "#d4c4a8",                # Light warm cream text for readability
-    "text_secondary": "#b8a890",      # Muted cream for secondary text
-    
+    # Base colors from Dark.JPG - deep, rich tones with elevated contrast
+    "background": "#1f150d",          # Deeper brown-black for strong contrast
+    "surface": "#2d2116",             # Slightly lighter dark brown for panels
+    "text": "#f2e6cf",                # Bright warm cream text for readability
+    "text_secondary": "#d6c6ac",      # Muted cream for secondary text
+
     # Accent colors from Dark.JPG swatches
-    "accent_primary": "#5c4a38",      # Medium brown from palette
-    "accent_secondary": "#6b5645",    # Warm brown accent
-    "accent_tertiary": "#4a6b5c",     # Blue-teal from palette (use for all blue elements)
-    "accent_quaternary": "#7a6350",   # Warm brown-gray tone
-    
+    "accent_primary": "#5b4633",      # Medium brown from palette
+    "accent_secondary": "#74543c",    # Warm brown accent
+    "accent_tertiary": "#3d6d5a",     # Blue-teal from palette (use for all blue elements)
+    "accent_quaternary": "#8a6748",   # Warm brown-gray tone
+
     # UI element colors for dark theme
-    "button": "#5c4a38",              # Medium brown for buttons
-    "button_hover": "#6b5645",        # Lighter brown on hover
-    "button_pressed": "#453529",      # Darker when pressed
-    "border": "#4a3e32",              # Subtle dark brown border
-    "selection": "#4a6b5c",           # Blue-teal for selections, links, active states
-    "highlight": "#3a3025",           # Subtle dark highlight
+    "button": "#5b4633",              # Medium brown for buttons
+    "button_hover": "#74543c",        # Lighter brown on hover
+    "button_pressed": "#3d2d20",      # Darker when pressed
+    "border": "#4c3a2a",              # Pronounced dark brown border
+    "selection": "#3d6d5a",           # Blue-teal for selections, links, active states
+    "highlight": "#302217",           # Subtle dark highlight
 }
 
 def build_stylesheet(palette: dict[str, str]) -> str:

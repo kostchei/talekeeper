@@ -8,14 +8,14 @@ PyQt6 widget that serves as the main content display area:
 - Combat interfaces
 - Exploration content
 
-Designed to match ui_plan.md specifications:
-- Fixed size: 648x972 (center panel)
+- Designed to match ui_plan.md specifications:
+- Layout dimensions follow the active profile for center panel sizing
 - Flexible content display
 - Dark theme styling
 - Integration ready for GameEngine encounter data
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QScrollArea,
                             QTabWidget, QListWidget, QListWidgetItem,
                             QSplitter, QGroupBox, QGridLayout, QComboBox,
@@ -42,6 +42,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional, Dict
 from datetime import datetime
 
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
 def sync_hit_dice_with_level(character):
     """Ensure hit dice maximum matches level and add only new dice."""
@@ -489,8 +490,15 @@ class EncounterPanel(QWidget):
     character_created = pyqtSignal(dict)  # Emitted when character creation is complete
     monster_selected = pyqtSignal(str)  # Emitted when monster card is selected (instance_id)
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        parent: Optional[QWidget] = None,
+        layout_profile: Optional[LayoutProfile] = None,
+    ):
         super().__init__(parent)
+        self.layout_profile = layout_profile or BASELINE_PROFILE
+        self.panel_width = self.layout_profile.encounter_panel_width
+        self.panel_height = self.layout_profile.encounter_panel_height
         self.current_encounter = None
         self.encounter_mode = "exploration"  # exploration, encounter, combat, character_creation
         self.character_creation_data = {}  # Store character creation progress
@@ -523,7 +531,7 @@ class EncounterPanel(QWidget):
         self.stealth_dc = 0
         
         # Set fixed size (fits above action cards)
-        self.setFixedSize(648, 672)  # 726 - 54 = 672px available space
+        self.setFixedSize(self.panel_width, self.panel_height)
         self._setup_ui()
         self._apply_styles()
         self._show_initial_random_encounter()

@@ -28,6 +28,7 @@ from PyQt6.QtGui import QFontDatabase, QFont
 
 from core.game_engine_sqlite import GameEngineSQLite
 from ui.main_window import MainWindow
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
 
 def setup_logging():
@@ -47,7 +48,7 @@ def setup_logging():
     )
 
 
-def main():
+def main(layout_profile: LayoutProfile | None = None):
     """Main application entry point."""
     try:
         # Setup logging
@@ -107,7 +108,8 @@ def main():
         game_engine = GameEngineSQLite()
         
         # Create main application window
-        window = MainWindow()
+        profile = layout_profile or BASELINE_PROFILE
+        window = MainWindow(layout_profile=profile)
         window.setWindowTitle("TaleKeeper - D&D 2024 Adventure")
         window.show()
         

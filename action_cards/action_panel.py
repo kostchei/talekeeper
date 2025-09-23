@@ -9,13 +9,13 @@ PyQt6 widget that provides quick access to character actions:
 - Context-sensitive action availability
 
 Designed to match ui_plan.md specifications:
-- Fixed size: 1728x300 (full width minus margins)
+- Fixed size is determined by the active layout profile
 - Horizontal card layout
 - Dark theme styling
 - Action cooldowns and availability
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QScrollArea, QButtonGroup,
                             QToolTip, QProgressBar)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRect
@@ -31,6 +31,8 @@ from services.weapon_attack_service import WeaponAttackService
 from core.combat_manager import CombatManager
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
+
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
 print("DEBUG: action_panel.py module loaded/imported at line 25")
 
@@ -132,8 +134,15 @@ class ActionPanel(QWidget):
     action_hovered = pyqtSignal(ActionType, str)  # action, description
     category_changed = pyqtSignal(ActionCategory)  # category
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        parent: Optional[QWidget] = None,
+        layout_profile: Optional[LayoutProfile] = None,
+    ):
         super().__init__(parent)
+        self.layout_profile = layout_profile or BASELINE_PROFILE
+        self.panel_width = self.layout_profile.usable_width
+        self.panel_height = self.layout_profile.action_panel_height
         self.current_category = ActionCategory.COMBAT
         self.action_cards = {}  # ActionType -> ActionCard mapping
         self.action_cooldowns = {}  # ActionType -> remaining turns
@@ -175,8 +184,8 @@ class ActionPanel(QWidget):
         self._inspiration_offensive_active = False
         self._lucky_offensive_active = False
         
-        # Set fixed size (center + right columns only)
-        self.setFixedSize(1280, 300)  # Extended width to almost reach equipment panel
+        # Set fixed size (spans usable width inside the margins)
+        self.setFixedSize(self.panel_width, self.panel_height)
         self.setAutoFillBackground(True)  # Ensure background is filled
         
         # Initialize UI components
@@ -1271,65 +1280,78 @@ class ActionPanel(QWidget):
             return f"{damage_dice} {damage_type}"
     
     def _apply_styles(self):
-        """Apply dark theme styling to action panel components."""
-        style_sheet = """
-        ActionPanel {
-            background-color: #1a1a1a;
-        }
-        
-        QFrame#headerFrame {
-            background-color: #333333;
-            border: 1px solid #555555;
+        """Apply initial styling based on the active theme."""
+        theme_name = 'light'
+        parent = self.parent()
+        if parent and hasattr(parent, 'current_theme'):
+            theme_name = getattr(parent, 'current_theme', 'light')
+        self._apply_styles_for_theme(theme_name)
+
+    def _apply_styles_for_theme(self, theme_name: str):
+        from ui.themes import get_theme_palette
+
+        palette = get_theme_palette(theme_name)
+        style_sheet = f"""
+        ActionPanel {{
+            background-color: {palette['surface']};
+            border-top: 2px solid {palette['border']};
+        }}
+
+        QFrame#headerFrame {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
             border-radius: 4px;
-        }
-        
-        QLabel#titleLabel {
-            color: #ffffff;
+        }}
+
+        QLabel#titleLabel {{
+            color: {palette['text']};
             font-size: 16px;
             font-weight: bold;
-        }
-        
-        QPushButton#categoryButton {
-            background-color: #404040;
-            color: #cccccc;
-            border: 1px solid #666666;
+        }}
+
+        QPushButton#categoryButton {{
+            background-color: {palette['button']};
+            color: {palette['text']};
+            border: 1px solid {palette['border']};
             border-radius: 4px;
             padding: 4px 12px;
             font-size: 11px;
             font-weight: bold;
-        }
-        
-        QPushButton#categoryButton:hover {
-            background-color: #505050;
-        }
-        
-        QPushButton#categoryButton:checked {
-            background-color: #4a90e2;
-            color: #ffffff;
-            border-color: #6ab0ff;
-        }
-        
-        QScrollArea#scrollArea {
-            background-color: #1e1e1e;
-            border: 1px solid #444444;
+        }}
+
+        QPushButton#categoryButton:hover {{
+            background-color: {palette['button_hover']};
+        }}
+
+        QPushButton#categoryButton:checked {{
+            background-color: {palette['selection']};
+            color: {palette['text']};
+            border-color: {palette['accent_primary']};
+        }}
+
+        QScrollArea#scrollArea {{
+            background-color: {palette['surface']};
+            border: 1px solid {palette['border']};
             border-radius: 4px;
-        }
-        
-        QScrollBar:horizontal {
-            background-color: #2a2a2a;
+        }}
+
+        QScrollBar:horizontal {{
+            background-color: {palette['surface']};
             height: 12px;
             border-radius: 6px;
-        }
-        
-        QScrollBar::handle:horizontal {
-            background-color: #555555;
+            border: 1px solid {palette['border']};
+        }}
+
+        QScrollBar::handle:horizontal {{
+            background-color: {palette['accent_primary']};
             border-radius: 6px;
             min-width: 20px;
-        }
-        
-        QScrollBar::handle:horizontal:hover {
-            background-color: #666666;
-        }
+            border: 1px solid {palette['border']};
+        }}
+
+        QScrollBar::handle:horizontal:hover {{
+            background-color: {palette['accent_secondary']};
+        }}
         """
         self.setStyleSheet(style_sheet)
     
@@ -4488,6 +4510,7 @@ class ActionPanel(QWidget):
     
     def update_theme(self, theme_name: str):
         """Update all action cards to use the specified theme."""
+        self._apply_styles_for_theme(theme_name)
         for card in self.action_cards.values():
             card.update_theme_styles(theme_name)
     
@@ -6693,39 +6716,39 @@ class ActionCard(QWidget):
     def update_theme_styles(self, theme_name: str):
         """Update styling based on theme."""
         if theme_name == "light":
-            # Light theme colors
-            card_bg = "#d4b896"        # surface color from light theme
-            card_border = "#a0673f"    # button color from light theme
-            card_border_hover = "#5c8b7a"  # accent_tertiary from light theme
-            icon_bg = "#e8c5a0"        # background color from light theme
-            name_color = "#4a3528"     # Very dark text from light theme
-            desc_color = "#6b4d3a"     # Secondary text from light theme
-            button_bg = "#a0673f"      # button color from light theme
-            button_hover = "#b8784a"   # button_hover from light theme
-            button_pressed = "#8b5a3c" # accent_primary from light theme
+            # Light theme colors tuned to palette
+            card_bg = "#f4e5d4"        # surface color from light theme
+            card_border = "#a45f38"    # button color from light theme
+            card_border_hover = "#3f7663"  # accent_tertiary from light theme
+            icon_bg = "#f8ecdf"        # background highlight
+            name_color = "#2b211c"     # Primary text color
+            desc_color = "#4c3d35"     # Secondary text color
+            button_bg = "#a45f38"      # button color from light theme
+            button_hover = "#bb7346"   # button_hover from light theme
+            button_pressed = "#7c4f32" # accent_primary from light theme
             button_text = "#ffffff"    # White text on colored buttons
-            button_disabled_bg = "#c4a484"  # Lighter surface color
-            button_disabled_text = "#8b7355"  # Darker secondary text
-            cooldown_border = "#a0673f"
-            cooldown_bg = "#e8c5a0"
-            cooldown_chunk = "#d4956b"  # accent_quaternary from light theme
+            button_disabled_bg = "#ddc3a7"  # Lighter surface color
+            button_disabled_text = "#83644b"  # Darker secondary text
+            cooldown_border = "#a45f38"
+            cooldown_bg = "#fff9f1"
+            cooldown_chunk = "#cf8a5b"  # accent_quaternary from light theme
         else:
-            # Dark theme colors (original)
-            card_bg = "#2d2d2d"
-            card_border = "#555555"
-            card_border_hover = "#4a90e2"
-            icon_bg = "#333333"
-            name_color = "#ffffff"
-            desc_color = "#cccccc"
-            button_bg = "#4a90e2"
-            button_hover = "#6ab0ff"
-            button_pressed = "#3a80d2"
-            button_text = "#ffffff"
-            button_disabled_bg = "#555555"
-            button_disabled_text = "#888888"
-            cooldown_border = "#666666"
-            cooldown_bg = "#1a1a1a"
-            cooldown_chunk = "#ff6b6b"
+            # Dark theme colors tuned to palette
+            card_bg = "#2d2116"
+            card_border = "#4c3a2a"
+            card_border_hover = "#3d6d5a"
+            icon_bg = "#1f150d"
+            name_color = "#f2e6cf"
+            desc_color = "#d6c6ac"
+            button_bg = "#3d6d5a"
+            button_hover = "#4f846d"
+            button_pressed = "#2c5242"
+            button_text = "#f2e6cf"
+            button_disabled_bg = "#3b2b1f"
+            button_disabled_text = "#8c7b63"
+            cooldown_border = "#5b4633"
+            cooldown_bg = "#1f150d"
+            cooldown_chunk = "#8a6748"
         
         self.setStyleSheet(f"""
         ActionCard {{
