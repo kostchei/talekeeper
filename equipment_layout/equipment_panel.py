@@ -4,18 +4,18 @@ Equipment Panel Widget - Expandable inventory and equipment display
 PyQt6 widget that manages character equipment and inventory:
 - Equipment slots (armor, weapons, accessories)
 - Inventory grid with item management
-- Expandable from 432px to 1080px width
+- Expandable width scales with layout profile settings
 - Drag & drop item management
 - Item tooltips and details
 
 Designed to match ui_plan.md specifications:
-- Default size: 432x486
-- Expanded size: 1080x486
+- Default size follows the active layout profile
+- Expanded size reaches across the encounter column
 - Animation duration: 400ms with OutCubic easing
 - Dark theme styling
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QScrollArea, QGridLayout,
                             QListWidget, QListWidgetItem, QTabWidget,
                             QGroupBox, QProgressBar, QSpinBox)
@@ -24,6 +24,8 @@ from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QDrag, QPixmap, QPainter, Q
 from typing import Optional, Dict, Any, List
 from enum import Enum
 from services.equipment import equipment_service
+
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
 
 class EquipmentSlot(Enum):
@@ -60,8 +62,19 @@ class EquipmentPanel(QWidget):
     inventory_changed = pyqtSignal()
     ac_changed = pyqtSignal(int)  # new AC value
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        parent: Optional[QWidget] = None,
+        layout_profile: Optional[LayoutProfile] = None,
+    ):
         super().__init__(parent)
+        self.layout_profile = layout_profile or BASELINE_PROFILE
+        self.panel_width = self.layout_profile.equipment_panel_width
+        self.panel_height = self.layout_profile.equipment_panel_height
+        self.expanded_width = (
+            self.panel_width + self.layout_profile.encounter_panel_width
+        )
+        self.toggle_height = max(1, self.panel_height - 14)
         self.expanded = False
         self.animation = None
         self.equipped_items = {}  # slot -> item mapping
@@ -79,7 +92,7 @@ class EquipmentPanel(QWidget):
         self.item_effects = ItemEffectsService()
 
         # Set initial size (extends to bottom of window)
-        self.setFixedSize(432, 486)
+        self.setFixedSize(self.panel_width, self.panel_height)
         self._setup_ui()
         self._apply_styles()
     
@@ -273,172 +286,12 @@ class EquipmentPanel(QWidget):
             self.slots_layout.addWidget(slot_widget, row, col)
     
     def _apply_styles(self):
-        """Apply dark theme styling to equipment panel components."""
-        style_sheet = """
-        EquipmentPanel {
-            background-color: #222222;
-            border: 2px solid #555555;
-            border-radius: 8px;
-        }
-        
-        QFrame#headerFrame {
-            background-color: #2a2a2a;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        
-        QFrame#attacksFrame {
-            background-color: #252525;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        
-        QLabel#attackValue {
-            color: #4a90e2;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        QFrame#equipmentSlotsFrame {
-            background-color: #1e1e1e;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        
-        QLabel#titleLabel {
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        QLabel#statValue {
-            color: #4a90e2;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        QLabel#weightLabel {
-            color: #cccccc;
-            font-size: 11px;
-            min-width: 50px;
-        }
-        
-        QPushButton#expandButton {
-            background-color: #404040;
-            color: #ffffff;
-            border: 1px solid #666666;
-            border-radius: 3px;
-            padding: 4px 8px;
-            font-weight: bold;
-            font-size: 10px;
-        }
-        
-        QPushButton#expandButton:hover {
-            background-color: #505050;
-        }
-        
-        QPushButton#smallButton {
-            background-color: #404040;
-            color: #ffffff;
-            border: 1px solid #666666;
-            border-radius: 3px;
-            padding: 4px 8px;
-            font-size: 10px;
-            font-weight: bold;
-            min-width: 40px;
-        }
-        
-        QPushButton#smallButton:hover {
-            background-color: #505050;
-        }
-        
-        QPushButton#smallButton:pressed {
-            background-color: #303030;
-        }
-        
-        QTabWidget#contentTabs {
-            background-color: transparent;
-        }
-        
-        QTabWidget#contentTabs::pane {
-            border: 1px solid #444444;
-            border-radius: 4px;
-            background-color: #1e1e1e;
-        }
-        
-        QTabBar::tab {
-            background-color: #2a2a2a;
-            color: #cccccc;
-            border: 1px solid #444444;
-            border-bottom: none;
-            border-radius: 3px 3px 0px 0px;
-            padding: 4px 8px;
-            margin: 1px;
-            font-size: 10px;
-        }
-        
-        QTabBar::tab:selected {
-            background-color: #1e1e1e;
-            color: #ffffff;
-            border-bottom: 1px solid #1e1e1e;
-        }
-        
-        QTabBar::tab:hover {
-            background-color: #3a3a3a;
-        }
-        
-        QListWidget#inventoryList {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            border: 1px solid #555555;
-            border-radius: 4px;
-            alternate-background-color: #222222;
-        }
-        
-        QListWidget#inventoryList::item {
-            padding: 4px;
-            border-bottom: 1px solid #333333;
-        }
-        
-        QListWidget#inventoryList::item:selected {
-            background-color: #4a90e2;
-            color: #ffffff;
-        }
-        
-        QListWidget#inventoryList::item:hover {
-            background-color: #2a2a2a;
-        }
-        
-        QProgressBar#weightBar {
-            border: 1px solid #666666;
-            border-radius: 3px;
-            text-align: center;
-            background-color: #1a1a1a;
-            height: 16px;
-        }
-        
-        QProgressBar#weightBar::chunk {
-            background-color: #4a9;
-            border-radius: 2px;
-        }
-        
-        QScrollBar:vertical {
-            background-color: #2a2a2a;
-            width: 10px;
-            border-radius: 5px;
-        }
-        
-        QScrollBar::handle:vertical {
-            background-color: #555555;
-            border-radius: 5px;
-            min-height: 15px;
-        }
-        
-        QScrollBar::handle:vertical:hover {
-            background-color: #666666;
-        }
-        """
-        self.setStyleSheet(style_sheet)
+        """Apply initial styling using the active theme palette."""
+        theme_name = 'light'
+        parent = self.parent()
+        if parent and hasattr(parent, 'current_theme'):
+            theme_name = getattr(parent, 'current_theme', 'light')
+        self.update_theme(theme_name)
     
     def update_theme(self, theme_name: str):
         """Update styling based on theme."""
@@ -569,27 +422,27 @@ class EquipmentPanel(QWidget):
         # Toggle expansion state
         self.expanded = not self.expanded
         
+        width_delta = self.expanded_width - self.panel_width
+
         if self.expanded:
             # EXPAND: Move left and resize to cover encounter pane
             current_pos = self.pos()
-            # Move left by the difference in width (1080 - 432 = 648)
-            new_x = current_pos.x() - (1080 - 432)
+            new_x = current_pos.x() - width_delta
             self.move(new_x, current_pos.y())
-            
-            self.setFixedSize(1080, 472)
+
+            self.setFixedSize(self.expanded_width, self.toggle_height)
             self.expand_btn.setText("▲ Collapse")
             self.raise_()  # Bring to front to cover encounter pane
-            
+
             # Switch to expanded layout
             self._switch_to_expanded_layout()
         else:
             # COLLAPSE: Move right and resize back to normal position
             current_pos = self.pos()
-            # Move right by the difference in width (1080 - 432 = 648)
-            new_x = current_pos.x() + (1080 - 432)
+            new_x = current_pos.x() + width_delta
             self.move(new_x, current_pos.y())
-            
-            self.setFixedSize(432, 472)
+
+            self.setFixedSize(self.panel_width, self.toggle_height)
             self.expand_btn.setText("▼ Expand")
             
             # Switch to compact layout

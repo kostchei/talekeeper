@@ -3,15 +3,15 @@ Character Sheet Widget - Expandable character information panel
 
 PyQt6 widget that displays character information with animation capability:
 - Character stats, abilities, and details
-- Expandable from 648px to 1296px width
+- Expandable width scales with layout profile settings
 - Smooth animation using QPropertyAnimation
 - Integration ready for GameEngine character data
 
 Designed to match ui_plan.md specifications:
-- Default size: 648x972
-- Expanded size: 1296x972  
+- Default size driven by the active layout profile
+- Expanded size doubles the profile width for detailed content
 - Animation duration: 400ms with OutCubic easing
-- Dark theme styling
+- Theme-aware styling
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -23,6 +23,8 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import sqlite3
 import os
+
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
 # Import condition display widget
 try:
@@ -51,16 +53,24 @@ class CharacterPanel(QWidget):
     expansion_changed = pyqtSignal(bool)  # expanded state
     character_action_requested = pyqtSignal(str)  # action name
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        parent: Optional[QWidget] = None,
+        layout_profile: Optional[LayoutProfile] = None,
+    ):
         super().__init__(parent)
+        self.layout_profile = layout_profile or BASELINE_PROFILE
+        self.base_width = self.layout_profile.character_panel_width
+        self.expanded_width = self.layout_profile.character_panel_max_width
+        self.panel_height = self.layout_profile.character_panel_height
         self.expanded = False
         self.animation = None
         self.character_data = None
-        
+
         # Set initial size (fits between menu and action cards)
-        self.setMinimumSize(648, 570)  # Use minimum size instead of fixed
-        self.setMaximumSize(1296, 570)  # Allow expansion to double width
-        self.resize(648, 570)  # Set initial size
+        self.setMinimumSize(self.base_width, self.panel_height)
+        self.setMaximumSize(self.expanded_width, self.panel_height)
+        self.resize(self.base_width, self.panel_height)
         self._setup_ui()
         self._apply_styles()
     
@@ -73,7 +83,7 @@ class CharacterPanel(QWidget):
         
         # Basic character panel (always visible)
         self.basic_panel = QWidget()
-        self.basic_panel.setFixedWidth(648)
+        self.basic_panel.setFixedWidth(self.base_width)
         self.basic_layout = QVBoxLayout(self.basic_panel)
         self.basic_layout.setContentsMargins(0, 0, 0, 0)
         self.basic_layout.setSpacing(0)
@@ -134,16 +144,10 @@ class CharacterPanel(QWidget):
         # Apply styling directly to override global theme
         self.expand_btn.setStyleSheet("""
             QPushButton {
-                background-color: #404040;
-                color: #ffffff;
-                border: 1px solid #666666;
-                border-radius: 3px;
-                padding: 4px 8px;
                 font-size: 10px;
                 font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #505050;
+                padding: 4px 8px;
+                border-radius: 3px;
             }
         """)
         header_layout.addWidget(self.expand_btn)
@@ -1269,18 +1273,18 @@ class CharacterPanel(QWidget):
         
         if self.expanded:
             # EXPAND: Show detail panel and resize main widget
-            self.detail_panel.setMinimumWidth(648)
-            self.detail_panel.setMaximumWidth(648)
-            self.setMinimumSize(1296, 570)
-            self.setMaximumSize(1296, 570)
+            self.detail_panel.setMinimumWidth(self.base_width)
+            self.detail_panel.setMaximumWidth(self.base_width)
+            self.setMinimumSize(self.expanded_width, self.panel_height)
+            self.setMaximumSize(self.expanded_width, self.panel_height)
             self.expand_btn.setText("▲ Collapse")
             self.raise_()  # Bring to front to cover encounter pane
         else:
             # COLLAPSE: Hide detail panel and resize main widget
             self.detail_panel.setMinimumWidth(0)
             self.detail_panel.setMaximumWidth(0)
-            self.setMinimumSize(648, 570)
-            self.setMaximumSize(1296, 570)  # Allow future expansion
+            self.setMinimumSize(self.base_width, self.panel_height)
+            self.setMaximumSize(self.expanded_width, self.panel_height)  # Allow future expansion
             self.expand_btn.setText("▼ Expand")
         
         # Force immediate layout update
