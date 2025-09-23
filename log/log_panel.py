@@ -24,6 +24,8 @@ from enum import Enum
 import json
 from datetime import datetime
 
+from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
+
 
 class LogLevel(Enum):
     """Message severity levels."""
@@ -47,14 +49,22 @@ class LogPanel(QWidget):
     log_exported = pyqtSignal(str)  # file path
     filter_changed = pyqtSignal(list)  # enabled levels
     
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        parent: Optional[QWidget] = None,
+        layout_profile: Optional[LayoutProfile] = None,
+    ):
         super().__init__(parent)
+        self.layout_profile = layout_profile or BASELINE_PROFILE
         self.log_entries = []
         self.enabled_levels = set(LogLevel)  # All levels enabled by default
         self.max_entries = 1000  # Limit to prevent memory issues
-        
+
         # Set fixed size
-        self.setFixedSize(432, 486)
+        self.setFixedSize(
+            self.layout_profile.log_panel_width,
+            self.layout_profile.log_panel_height,
+        )
         self._setup_ui()
         self._apply_styles()
         
@@ -135,126 +145,12 @@ class LogPanel(QWidget):
         self.main_layout.addWidget(self.controls_frame)
     
     def _apply_styles(self):
-        """Apply dark theme styling to log panel components."""
-        style_sheet = """
-        LogPanel {
-            background-color: #181818;
-            border: 2px solid #555555;
-            border-radius: 8px;
-        }
-        
-        QFrame#headerFrame {
-            background-color: #222222;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        
-        QFrame#controlsFrame {
-            background-color: #222222;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-        
-        QLabel#titleLabel {
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        QTextEdit#logText {
-            background-color: #151515;
-            color: #ffffff;
-            border: 1px solid #444444;
-            border-radius: 4px;
-            padding: 5px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 11px;
-        }
-        
-        QComboBox#filterCombo {
-            background-color: #2a2a2a;
-            color: #ffffff;
-            border: 1px solid #555555;
-            border-radius: 3px;
-            padding: 3px 6px;
-            min-width: 100px;
-        }
-        
-        QComboBox#filterCombo::drop-down {
-            border: none;
-        }
-        
-        QComboBox#filterCombo::down-arrow {
-            width: 12px;
-            height: 12px;
-        }
-        
-        QComboBox#filterCombo QAbstractItemView {
-            background-color: #2a2a2a;
-            color: #ffffff;
-            border: 1px solid #555555;
-            selection-background-color: #4a90e2;
-        }
-        
-        QCheckBox#autoScrollCheckBox {
-            color: #ffffff;
-            font-size: 11px;
-        }
-        
-        QCheckBox#autoScrollCheckBox::indicator {
-            width: 16px;
-            height: 16px;
-            background-color: #2a2a2a;
-            border: 1px solid #555555;
-            border-radius: 3px;
-        }
-        
-        QCheckBox#autoScrollCheckBox::indicator:checked {
-            background-color: #4a90e2;
-            border-color: #4a90e2;
-        }
-        
-        QPushButton#smallButton {
-            background-color: #404040;
-            color: #ffffff;
-            border: 1px solid #666666;
-            border-radius: 3px;
-            padding: 4px 8px;
-            font-size: 10px;
-            font-weight: bold;
-            min-width: 50px;
-        }
-        
-        QPushButton#smallButton:hover {
-            background-color: #505050;
-        }
-        
-        QPushButton#smallButton:pressed {
-            background-color: #303030;
-        }
-        
-        QScrollBar:vertical {
-            background-color: #2a2a2a;
-            width: 12px;
-            border-radius: 6px;
-        }
-        
-        QScrollBar::handle:vertical {
-            background-color: #555555;
-            border-radius: 6px;
-            min-height: 20px;
-        }
-        
-        QScrollBar::handle:vertical:hover {
-            background-color: #666666;
-        }
-        
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            border: none;
-            background: none;
-        }
-        """
-        self.setStyleSheet(style_sheet)
+        """Apply initial styling based on the active theme."""
+        theme_name = 'light'
+        parent = self.parent()
+        if parent and hasattr(parent, 'current_theme'):
+            theme_name = getattr(parent, 'current_theme', 'light')
+        self.update_theme(theme_name)
     
     def update_theme(self, theme_name: str):
         """Update styling based on theme."""

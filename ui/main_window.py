@@ -28,6 +28,10 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence
 
 from ui.themes import build_stylesheet, get_theme_palette
+from ui.layout_profiles import (
+    BASELINE_PROFILE,
+    LayoutProfile,
+)
 from menu.game_menu import GameMenu
 from character_sheet.character_panel import CharacterPanel
 from encounter_pane.encounter_panel import EncounterPanel
@@ -38,10 +42,14 @@ from core.game_engine_sqlite import GameEngineSQLite
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, layout_profile: LayoutProfile | None = None):
         super().__init__()
+        self.layout_profile = layout_profile or BASELINE_PROFILE
         self.setWindowTitle("TaleKeeper - D&D 2024 Adventure")
-        self.setMinimumSize(1920, 1080)
+        self.setMinimumSize(
+            self.layout_profile.min_window_width,
+            self.layout_profile.min_window_height,
+        )
         
         # Initialize game engine
         self.game_engine = GameEngineSQLite()
@@ -66,46 +74,64 @@ class MainWindow(QMainWindow):
     def _setup_ui(self):
         """Setup fixed position UI layout - no splitters, no animations"""
         
-        # 5% margins: 96px on each side, 54px top/bottom
-        # Usable area: 1728x972
-        
+        profile = self.layout_profile
+
         # === FIXED POSITION WIDGETS ===
-        
+
         # Menu (top left)
         self.menu = GameMenu(self)
-        self.menu.move(96, 54)  # Top left with 5% margin
+        self.menu.move(profile.horizontal_margin, profile.vertical_margin)
         self.menu.show()
         self.menu.raise_()
-        
-        # Character sheet (below menu, left column)  
-        self.character_sheet = CharacterPanel(self)
-        self.character_sheet.move(96, 54 + 90)  # Below menu, moved up more to reduce gap
+
+        # Character sheet (below menu, left column)
+        self.character_sheet = CharacterPanel(self, layout_profile=profile)
+        self.character_sheet.move(
+            profile.horizontal_margin,
+            profile.vertical_margin + profile.menu_character_gap,
+        )
         self.character_sheet.show()
-        
+
         # Encounter pane (center, full height)
-        self.encounter_pane = EncounterPanel(self) 
-        self.encounter_pane.move(96 + 648, 54)  # Center column
+        encounter_x = profile.horizontal_margin + profile.character_panel_width
+        self.encounter_pane = EncounterPanel(self, layout_profile=profile)
+        self.encounter_pane.move(encounter_x, profile.vertical_margin)
         self.encounter_pane.show()
-        
+
         # Log panel (top right)
-        self.log_panel = LogPanel(self)
-        self.log_panel.move(96 + 648 + 648, 54)  # Right column
+        right_column_x = encounter_x + profile.encounter_panel_width
+        self.log_panel = LogPanel(self, layout_profile=profile)
+        self.log_panel.move(right_column_x, profile.vertical_margin)
         self.log_panel.show()
-        
+
         # Equipment panel (bottom right)
-        self.equipment_panel = EquipmentPanel(self)
-        self.equipment_panel.move(96 + 648 + 648, 54 + 486)  # Below log
+        self.equipment_panel = EquipmentPanel(self, layout_profile=profile)
+        self.equipment_panel.move(
+            right_column_x,
+            profile.vertical_margin + profile.log_panel_height,
+        )
         self.equipment_panel.show()
-        
+
         # Action cards (bottom left)
-        self.action_panel = ActionPanel(self)
-        self.action_panel.move(96, 1080 - 54 - 300)  # Bottom left
+        self.action_panel = ActionPanel(self, layout_profile=profile)
+        action_y = (
+            profile.min_window_height
+            - profile.vertical_margin
+            - profile.action_panel_height
+        )
+        self.action_panel.move(profile.horizontal_margin, action_y)
         self.action_panel.show()
         self.action_panel.raise_()
-        
+
         # Theme toggle button (top right, near log panel)
         self.theme_toggle_button = QPushButton("[MOON] Dark", self)  # Start with moon for switching to dark
-        self.theme_toggle_button.setGeometry(96 + 648 + 648 - 100, 20, 90, 30)  # Top right, above log panel
+        toggle_x = right_column_x + profile.log_panel_width - profile.theme_toggle_inset
+        self.theme_toggle_button.setGeometry(
+            toggle_x,
+            20,
+            profile.theme_toggle_width,
+            profile.theme_toggle_height,
+        )
         self.theme_toggle_button.clicked.connect(self._toggle_theme)
         self.theme_toggle_button.setToolTip("Toggle between Light and Dark themes (Ctrl+T)")
         self.theme_toggle_button.show()
