@@ -909,7 +909,7 @@ class EncounterPanel(QWidget):
             border: 1px solid #555555;
             border-radius: 4px;
             padding: 2px;
-            font-size: 12px;
+            font-size: 13px;
         }
         
         QLabel#racialBonus {
@@ -2780,26 +2780,130 @@ class EncounterPanel(QWidget):
     def _update_bg_species_description(self):
         """Update the combined background/species description."""
         description = ""
-        
+
         if 'background' in self.character_creation_data:
             bg = self.character_creation_data['background']
-            description += f"**Background: {bg['name']}**\n{bg.get('description', '')}\n\n"
-        
+
+            # Parse skills from the database format
+            import json
+            skill_proficiencies = []
+            tool_proficiencies = []
+            language_proficiencies = []
+
+            # Try to get skill proficiencies from database
+            try:
+                import sqlite3
+                conn = sqlite3.connect("talekeeper.db")
+                cursor = conn.cursor()
+
+                # Get unique skills (using DISTINCT to avoid duplicates)
+                cursor.execute("""SELECT DISTINCT proficiency_name FROM background_proficiencies
+                                WHERE background_id = ? AND proficiency_type = 'skill'
+                                ORDER BY proficiency_name""", (bg['name'].lower(),))
+                skills = cursor.fetchall()
+                skill_proficiencies = [skill[0] for skill in skills]
+
+                # Get unique tools (using DISTINCT to avoid duplicates)
+                cursor.execute("""SELECT DISTINCT proficiency_name FROM background_proficiencies
+                                WHERE background_id = ? AND proficiency_type = 'tool'
+                                ORDER BY proficiency_name""", (bg['name'].lower(),))
+                tools = cursor.fetchall()
+                tool_proficiencies = [tool[0].replace('_', ' ').title() for tool in tools]
+
+                # Get languages if any
+                cursor.execute("""SELECT DISTINCT proficiency_name FROM background_proficiencies
+                                WHERE background_id = ? AND proficiency_type = 'language'
+                                ORDER BY proficiency_name""", (bg['name'].lower(),))
+                languages = cursor.fetchall()
+                for lang in languages:
+                    if 'choice' in lang[0].lower():
+                        # Handle language choices
+                        num = lang[0].split('_')[-1] if '_' in lang[0] else '1'
+                        language_proficiencies.append(f"Any {num} language(s)")
+                    else:
+                        language_proficiencies.append(lang[0])
+
+                conn.close()
+            except Exception as e:
+                print(f"Error loading background proficiencies: {e}")
+                # Fallback to parsing from the stored JSON if database query fails
+                try:
+                    if bg.get('skill_proficiencies'):
+                        skill_proficiencies = json.loads(bg['skill_proficiencies']) if isinstance(bg['skill_proficiencies'], str) else bg['skill_proficiencies']
+                    if bg.get('tool_proficiencies'):
+                        tool_proficiencies = json.loads(bg['tool_proficiencies']) if isinstance(bg['tool_proficiencies'], str) else bg['tool_proficiencies']
+                except:
+                    pass
+
+            # Build the description with HTML formatting
+            description += f"<u><b>Background: {bg['name']}</b></u><br>"
+
+            if skill_proficiencies:
+                description += f"<b>Skill Proficiencies:</b> {', '.join(skill_proficiencies)}<br>"
+
+            if tool_proficiencies:
+                description += f"<b>Tool Proficiencies:</b> {', '.join(tool_proficiencies)}<br>"
+
+            if language_proficiencies:
+                description += f"<b>Languages:</b> {', '.join(language_proficiencies)}<br>"
+
+            if bg.get('feat'):
+                description += f"<b>Origin Feat:</b> {bg['feat']}<br>"
+
+            description += "<br>"
+
         if 'species' in self.character_creation_data:
             species = self.character_creation_data['species']
-            description += f"**Species: {species['name']}**\n{species.get('description', '')}"
-        
-        self.bg_species_description.setPlainText(description)
+            description += f"<u><b>Species: {species['name']}</b></u><br>"
+
+            # Add size and speed
+            if species.get('size'):
+                description += f"<b>Size:</b> {species['size']}<br>"
+            if species.get('speed'):
+                description += f"<b>Speed:</b> {species['speed']} feet<br>"
+
+            # Add languages
+            if species.get('languages'):
+                languages = species['languages']
+                if isinstance(languages, str):
+                    import json
+                    try:
+                        languages = json.loads(languages)
+                    except:
+                        languages = [languages]
+                if languages:
+                    description += f"<b>Languages:</b> {', '.join(languages)}<br>"
+
+            # Add traits
+            if species.get('traits'):
+                traits = species['traits']
+                if isinstance(traits, str):
+                    import json
+                    try:
+                        traits = json.loads(traits)
+                    except:
+                        traits = {}
+
+                if traits:
+                    description += "<b>Traits:</b><br>"
+                    for trait_name, trait_desc in traits.items():
+                        # Format trait names (convert from snake_case to Title Case)
+                        formatted_name = trait_name.replace('_', ' ').title()
+                        description += f"• <b>{formatted_name}:</b> {trait_desc}<br>"
+
+        self.bg_species_description.setHtml(description)
     
     def _auto_select_background_feat(self, bg_data):
         """Auto-select the default feat for the chosen background."""
         # Map backgrounds to their default feats from 2024 SRD
         default_feats = {
             "Acolyte": "Magic Initiate; Cleric",
-            "Criminal": "Alert", 
+            "Criminal": "Alert",
             "Sage": "Magic Initiate; Wizard",
             "Soldier": "Savage Attacker",
-            "Farmer": "Tough"
+            "Farmer": "Tough",
+            "Scribe": "Skilled",
+            "Entertainer": "Musician"
         }
         
         bg_name = bg_data.get('name', '')

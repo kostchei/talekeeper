@@ -2379,10 +2379,12 @@ class EncounterPanel(QWidget):
         # Map backgrounds to their default feats from 2024 SRD
         default_feats = {
             "Acolyte": "Magic Initiate; Cleric",
-            "Criminal": "Alert", 
+            "Criminal": "Alert",
             "Sage": "Magic Initiate; Wizard",
             "Soldier": "Savage Attacker",
-            "Farmer": "Tough"
+            "Farmer": "Tough",
+            "Scribe": "Skilled",
+            "Entertainer": "Musician"
         }
         
         bg_name = bg_data.get('name', '')
