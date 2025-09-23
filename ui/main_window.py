@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         self.action_panel.raise_()
 
         # Theme toggle button (top right, near log panel)
-        self.theme_toggle_button = QPushButton("[MOON] Dark", self)  # Start with moon for switching to dark
+        self.theme_toggle_button = QPushButton("Dark", self)  # Simple text
         toggle_x = right_column_x + profile.log_panel_width - profile.theme_toggle_inset
         self.theme_toggle_button.setGeometry(
             toggle_x,
@@ -138,32 +138,9 @@ class MainWindow(QMainWindow):
         self.theme_toggle_button.raise_()
     
     def _setup_menu_bar(self):
-        """Setup menu bar with theme toggle."""
-        menubar = self.menuBar()
-        
-        # View menu
-        view_menu = menubar.addMenu('View')
-        
-        # Theme submenu
-        theme_menu = view_menu.addMenu('Theme')
-        
-        # Light theme action
-        light_action = QAction('Light Theme', self)
-        light_action.setShortcut(QKeySequence('Ctrl+1'))
-        light_action.triggered.connect(lambda: self._apply_theme('light'))
-        theme_menu.addAction(light_action)
-        
-        # Dark theme action
-        dark_action = QAction('Dark Theme', self)
-        dark_action.setShortcut(QKeySequence('Ctrl+2'))
-        dark_action.triggered.connect(lambda: self._apply_theme('dark'))
-        theme_menu.addAction(dark_action)
-        
-        # Theme toggle action
-        toggle_action = QAction('Toggle Theme', self)
-        toggle_action.setShortcut(QKeySequence('Ctrl+T'))
-        toggle_action.triggered.connect(self._toggle_theme)
-        theme_menu.addAction(toggle_action)
+        """Menu bar removed per user request."""
+        # Hide the menu bar completely
+        self.menuBar().hide()
     
     def _apply_theme(self, theme_name: str):
         """Apply the specified theme to the main window and all child widgets.
@@ -187,12 +164,12 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'encounter_panel'):
                 self.encounter_panel.update_theme(theme_name)
             
-            # Update toggle button text/icon based on current theme
+            # Update toggle button text based on current theme
             if hasattr(self, 'theme_toggle_button'):
                 if theme_name == 'light':
-                    self.theme_toggle_button.setText("[MOON] Dark")  # Moon icon to switch to dark
+                    self.theme_toggle_button.setText("Dark")  # Show option to switch to dark
                 else:
-                    self.theme_toggle_button.setText("☀️ Light")  # Sun icon to switch to light
+                    self.theme_toggle_button.setText("Light")  # Show option to switch to light
                     
         except ValueError as e:
             # Log error and fall back to light theme
