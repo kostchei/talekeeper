@@ -700,7 +700,7 @@ class EquipmentPanel(QWidget):
             item_type = item.get('item_type', '')
             slot_name = slot.value.replace('_', ' ').title()
             
-            display_text = f"[ATTACK] {item_name} [Equipped - {slot_name}]"
+            display_text = f"{item_name} [Equipped - {slot_name}]"
             if item_type:
                 display_text += f" ({item_type})"
             
