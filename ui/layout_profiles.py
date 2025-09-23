@@ -57,11 +57,11 @@ class LayoutProfile:
 
 BASELINE_PROFILE = LayoutProfile(
     name="baseline",
-    horizontal_margin=96,
-    vertical_margin=54,
+    horizontal_margin=72,  # Reduced from 96 (25% reduction)
+    vertical_margin=40,     # Reduced from 54 (25% reduction)
     character_panel_width=648,
-    encounter_panel_width=648,
-    log_panel_width=432,
+    encounter_panel_width=698,  # Increased from 648 (halfway to 748)
+    log_panel_width=454,    # Increased from 432 (halfway to 476)
     action_panel_height=300,
 )
 

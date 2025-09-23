@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
         toggle_x = right_column_x + profile.log_panel_width - profile.theme_toggle_inset
         self.theme_toggle_button.setGeometry(
             toggle_x,
-            20,
+            5,  # Moved up from 20 to avoid overlap
             profile.theme_toggle_width,
             profile.theme_toggle_height,
         )
