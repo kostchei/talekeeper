@@ -141,7 +141,7 @@ class ActionPanel(QWidget):
     ):
         super().__init__(parent)
         self.layout_profile = layout_profile or BASELINE_PROFILE
-        self.panel_width = self.layout_profile.usable_width
+        self.panel_width = 1280  # Fixed width that doesn't overlap equipment panel
         self.panel_height = self.layout_profile.action_panel_height
         self.current_category = ActionCategory.COMBAT
         self.action_cards = {}  # ActionType -> ActionCard mapping
