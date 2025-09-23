@@ -43,7 +43,7 @@ class GameMenu(QWidget):
         super().__init__(parent)
         self.dropdown_visible = False
         self.setAutoFillBackground(True)  # Ensure background is filled
-        self.setFixedSize(648, 140)  # Slightly taller for better button fit
+        self.setFixedSize(520, 140)  # Match character sheet width
         self._setup_ui()
         self._apply_styles()
     
