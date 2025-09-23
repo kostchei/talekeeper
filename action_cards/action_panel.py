@@ -3769,14 +3769,18 @@ class ActionPanel(QWidget):
                     
                     # Update character sheet display
                     parent.character_sheet.load_character_data(character_data)
-                    
+
+                    # Check for concentration saves if character took damage
+                    if damage > 0:
+                        self._check_concentration_save(character_data.get('id'), damage)
+
                     # Log damage with HP tracking (similar to monster damage)
                     log_parent = self.parent()
                     while log_parent:
                         if hasattr(log_parent, 'log_panel'):
                             # Log HP change
                             log_parent.log_panel.log_combat(f"    Player HP: {current_hp}/{max_hp} -> {new_hp}/{max_hp}")
-                            
+
                             # Log rage resistance if applicable
                             if rage_resistance_applied:
                                 log_parent.log_panel.log_combat(f"    [SHIELD] RAGE RESISTANCE: {original_damage} damage reduced to {damage}")
@@ -3789,7 +3793,51 @@ class ActionPanel(QWidget):
         except Exception as e:
             print(f"Error applying damage to player: {e}")
             return 0
-    
+
+    def _check_concentration_save(self, character_id: str, damage: int):
+        """Check for concentration saves when character takes damage."""
+        try:
+            from services.concentration_system import get_concentration_system
+
+            concentration_system = get_concentration_system()
+            concentration_spell = concentration_system.get_concentration_spell(character_id)
+
+            if concentration_spell:
+                # Get Constitution modifier
+                constitution_modifier = self._get_constitution_modifier()
+
+                # Make concentration save
+                success, dc, roll = concentration_system.make_concentration_save(
+                    character_id, damage, constitution_modifier
+                )
+
+                # Log the result
+                log_parent = self.parent()
+                while log_parent:
+                    if hasattr(log_parent, 'log_panel'):
+                        spell_name = concentration_spell['spell_name']
+                        if success:
+                            log_parent.log_panel.log_combat(
+                                f"    [CONCENTRATION] {spell_name}: Save successful ({roll} vs DC {dc})"
+                            )
+                        else:
+                            log_parent.log_panel.log_combat(
+                                f"    [CONCENTRATION] {spell_name}: Save failed ({roll} vs DC {dc}) - spell ends"
+                            )
+                        break
+                    log_parent = log_parent.parent()
+
+        except Exception as e:
+            print(f"Error checking concentration save: {e}")
+
+    def _get_constitution_modifier(self) -> int:
+        """Get character's Constitution modifier."""
+        try:
+            constitution = self.character_context.get('constitution', 10)
+            return (constitution - 10) // 2
+        except:
+            return 0
+
     def _apply_healing_to_player(self, healing: int):
         """Apply healing to the player character."""
         try:
