@@ -652,6 +652,11 @@ class EquipmentPanel(QWidget):
                     target_slot = EquipmentSlot.BELT
                     self._equip_item(item, target_slot)
 
+                elif item_type == 'tool' and 'thieves tools' in item.get('name', '').lower():
+                    # Thieves Tools can be equipped to belt slot
+                    target_slot = EquipmentSlot.BELT
+                    self._equip_item(item, target_slot)
+
                 else:
                     # Not equipment, treat as consumable
                     self.item_used.emit(item)

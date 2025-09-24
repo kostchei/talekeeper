@@ -3633,7 +3633,7 @@ class EncounterPanel(QWidget):
 
     def _resolve_setback_trap(self, trap: dict, level: int) -> Dict[str, str]:
         ctx = self._ensure_trap_context()
-        skill_name, skill_bonus = self._determine_detection_check(ctx)
+        skill_name, skill_bonus, has_advantage = self._determine_detection_check(ctx)
 
         if not skill_name:
             message = "No active character found to resolve the setback automatically."
@@ -3645,9 +3645,10 @@ class EncounterPanel(QWidget):
             self._log_monster_action(combined)
             return {'result': combined, 'summary_append': combined}
 
-        roll_total, detail = self._roll_d20(skill_bonus)
+        roll_total, detail = self._roll_d20(skill_bonus, advantage=has_advantage)
+        advantage_text = " with advantage" if has_advantage else ""
         self._log_monster_action(
-            f"[TRAP] Setback detection check ({skill_name}) vs DC {trap['dc']}: {detail}"
+            f"[TRAP] Setback detection check ({skill_name}{advantage_text}) vs DC {trap['dc']}: {detail}"
         )
 
         if roll_total >= trap['dc']:
@@ -3737,7 +3738,7 @@ class EncounterPanel(QWidget):
             btn.setEnabled(False)
 
         ctx = self._ensure_trap_context()
-        skill_name, skill_bonus = self._determine_detection_check(ctx)
+        skill_name, skill_bonus, has_advantage = self._determine_detection_check(ctx)
         if not skill_name:
             message = "No active character found to resolve the trap."
             output_label.setText(message)
@@ -3750,9 +3751,10 @@ class EncounterPanel(QWidget):
             self._log_monster_action(combined)
             return
 
-        roll_total, detail = self._roll_d20(skill_bonus)
+        roll_total, detail = self._roll_d20(skill_bonus, advantage=has_advantage)
+        advantage_text = " with advantage" if has_advantage else ""
         self._log_monster_action(
-            f"[TRAP] Dangerous trap survey ({skill_name}) vs DC {trap['dc']}: {detail}"
+            f"[TRAP] Dangerous trap survey ({skill_name}{advantage_text}) vs DC {trap['dc']}: {detail}"
         )
 
         outcome_parts = []
@@ -3795,8 +3797,11 @@ class EncounterPanel(QWidget):
 
         has_tools_equipped = self._has_thieves_tools_equipped(ctx)
         has_investigation_prof = 'investigation' in skill_profs
+        has_sleight_of_hand_prof = 'sleight of hand' in skill_profs or 'sleight_of_hand' in skill_profs
         tool_proficient = 'thieves_tools' in tool_profs
-        advantage = has_tools_equipped and tool_proficient and has_investigation_prof
+
+        # Advantage if tools equipped AND proficient in either Investigation or Sleight of Hand
+        advantage = has_tools_equipped and tool_proficient and (has_investigation_prof or has_sleight_of_hand_prof)
 
         options = [
             ("Thieves' Tools", tool_bonus, advantage),
@@ -3828,17 +3833,41 @@ class EncounterPanel(QWidget):
         }
 
     def _determine_detection_check(self, ctx: Dict[str, Any]) -> tuple:
+        """Determine the best skill check for trap detection, with potential advantage."""
         options = []
+
+        # Check for equipped thieves tools and proficiencies
+        has_tools_equipped = self._has_thieves_tools_equipped(ctx)
+        profs = ctx.get('proficiencies', {})
+        skill_profs = [p.lower() for p in profs.get('skill', [])]
+        has_investigation_prof = 'investigation' in skill_profs
+        has_sleight_of_hand_prof = 'sleight of hand' in skill_profs or 'sleight_of_hand' in skill_profs
+
+        # Check each detection skill
         for skill in ('Investigation', 'Perception'):
             bonus = self._get_skill_bonus(ctx, skill)
-            options.append((skill, bonus))
+
+            # Check if this skill gets advantage from equipped thieves tools
+            has_advantage = False
+            if skill.lower() == 'investigation' and has_tools_equipped and has_investigation_prof:
+                has_advantage = True
+
+            options.append((skill, bonus, has_advantage))
+
         if not options:
-            return None, 0
+            return None, 0, False
+
+        # Choose best option (prioritize advantage, then highest bonus)
         best = options[0]
         for option in options[1:]:
-            if option[1] > best[1]:
+            # Prefer option with advantage
+            if option[2] and not best[2]:
                 best = option
-        return best
+            # Or higher bonus if neither/both have advantage
+            elif option[2] == best[2] and option[1] > best[1]:
+                best = option
+
+        return best[0], best[1], best[2]
 
     def _trigger_trap_effect(self, trap: dict, ctx: Dict[str, Any]) -> str:
         character = ctx.get('character')
@@ -3968,6 +3997,17 @@ class EncounterPanel(QWidget):
             return False
 
     def _has_thieves_tools_equipped(self, ctx: Dict[str, Any]) -> bool:
+        """Check if thieves tools are equipped in the belt slot."""
+        character = ctx.get('character')
+        if not character:
+            return False
+
+        # Check if Thieves Tools are equipped in belt slot
+        belt_item = character.get('equipment_belt', '')
+        if belt_item and 'thieves tools' in belt_item.lower():
+            return True
+
+        # Fallback: check inventory for backwards compatibility
         for item in ctx.get('inventory', []):
             name = item.get('name', '').lower()
             if 'thieves' in name and 'tool' in name:
