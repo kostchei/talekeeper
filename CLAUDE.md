@@ -378,3 +378,4 @@ if config.is_feature_enabled("use_enhanced_subclass_manager"):
 - Monster AI improvements
 - Save slot management enhancements
 - Expand subclass system to other classes
+- never use unicode. Text or an image

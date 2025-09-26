@@ -62,6 +62,8 @@ HAZARDS = [
      'effect': 'Dex save or take 2d6 bludgeoning damage.'},
 ]
 
+LEGACY_HAZARDS = HAZARDS
+
 PRONOUN_SETS = [
     {'subject': 'he', 'object': 'him', 'possessive': 'his'},
     {'subject': 'she', 'object': 'her', 'possessive': 'her'},
@@ -333,8 +335,16 @@ def generate_trap(level: int) -> dict:
     return {'type': trap_type, **details}
 
 
-def generate_hazard() -> dict:
-    return random.choice(HAZARDS)
+def generate_hazard(level: int = 1) -> dict:
+    from services.hazard_service import HazardService
+
+    hazard_service = HazardService()
+    hazard = hazard_service.get_random_hazard(level)
+
+    if hazard:
+        return hazard
+
+    return random.choice(LEGACY_HAZARDS)
 
 
 def generate_skill_challenge(level: int) -> dict:

@@ -34,6 +34,7 @@ from services.proficiency_bonus import get_proficiency_bonus
 from .town_encounter import TownEncounterPanel, ShopInterface
 from .alt_encounters import generate_trap, generate_hazard, generate_skill_challenge
 from .skill_challenge_widget import SkillChallengeWidget
+from .hazard_widget import HazardWidget
 from services.skill_challenge_manager import SkillChallengeManager
 from services.skill_challenge_rewards import SkillChallengeRewards
 from services.stealth_mechanics import StealthMechanicsService
@@ -520,6 +521,9 @@ class EncounterPanel(QWidget):
         self.skill_challenge_manager = SkillChallengeManager()
         self.skill_challenge_rewards = SkillChallengeRewards()
         self.skill_challenge_widget = None  # Active skill challenge interface
+
+        # Hazard system
+        self.hazard_widget = None  # Active hazard interface
 
         # Initialize stealth mechanics
         try:
@@ -4076,14 +4080,33 @@ class EncounterPanel(QWidget):
     def _combine_trap_text(self, *parts: str) -> str:
         return '\n'.join([part for part in parts if part])
     def _generate_hazard_encounter(self):
-        hazard = generate_hazard()
-        text = (
-            f"Hazard: {hazard['name']}\n"
-            f"DC {hazard['dc']} - {hazard['effect']}"
-        )
-        self.encounter_details_text.setPlainText(text)
+        character_data = self._get_current_character_data()
+        if not character_data:
+            self.encounter_details_text.setPlainText("No active character found.")
+            return
+
+        self._cleanup_active_widgets()
+
+        character_level = character_data.get('level', 1)
+        hazard = generate_hazard(character_level)
+
+        if not hazard:
+            self.encounter_details_text.setPlainText("No hazards available for this level.")
+            return
+
+        self.hazard_widget = HazardWidget()
+        self.hazard_widget.set_character_data(character_data)
+
+        self.hazard_widget.hazard_completed.connect(self._on_hazard_completed)
+        self.hazard_widget.hazard_cancelled.connect(self._on_hazard_cancelled)
+
+        self.hazard_widget.start_hazard(hazard)
+
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
+        self.encounter_details_text.setVisible(False)
+
+        self.encounters_layout.addWidget(self.hazard_widget)
 
     def _generate_skill_challenge(self):
         """Generate an interactive skill challenge."""
@@ -6523,7 +6546,7 @@ Character Level: {character_level}"""
             self._log_monster_action(f"[FAIL] Long rest failed: {e}")
 
     def _cleanup_active_widgets(self):
-        """Clean up any active encounter widgets (vendor, skill challenge, etc.)."""
+        """Clean up any active encounter widgets (vendor, skill challenge, hazard, etc.)."""
         if self.vendor_widget:
             self.vendor_widget.setParent(None)
             self.vendor_widget = None
@@ -6531,6 +6554,10 @@ Character Level: {character_level}"""
         if self.skill_challenge_widget:
             self.skill_challenge_widget.setParent(None)
             self.skill_challenge_widget = None
+
+        if self.hazard_widget:
+            self.hazard_widget.setParent(None)
+            self.hazard_widget = None
 
         # Show standard UI elements
         self.encounter_details_text.setVisible(True)
@@ -6619,6 +6646,49 @@ Character Level: {character_level}"""
 
         except Exception as e:
             self._log_monster_action(f"[ERROR] Failed to apply skill challenge refusal cost: {e}")
+
+    def _on_hazard_completed(self, success: bool, xp_gained: int, damage_taken: int):
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        try:
+            if success:
+                self._log_monster_action(f"[SUCCESS] Hazard survived! No damage taken.")
+            else:
+                self._log_monster_action(f"[FAILURE] Hazard triggered! Taking {damage_taken} damage.")
+
+                if damage_taken > 0:
+                    current_hp = character_data.get('current_hit_points', 0)
+                    new_hp = max(0, current_hp - damage_taken)
+                    character_data['current_hit_points'] = new_hp
+
+                    import sqlite3
+                    conn = sqlite3.connect("talekeeper.db")
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        UPDATE characters
+                        SET current_hit_points = ?
+                        WHERE id = ?
+                    """, (new_hp, character_data['id']))
+                    conn.commit()
+                    conn.close()
+
+                    self._log_monster_action(f"[HP] {current_hp} -> {new_hp}")
+
+            if xp_gained > 0:
+                self._add_xp_to_character(xp_gained)
+                self._log_monster_action(f"[XP] Gained {xp_gained} XP from hazard")
+
+            self._cleanup_active_widgets()
+            self._force_reload_character()
+
+        except Exception as e:
+            self._log_monster_action(f"[ERROR] Failed to apply hazard outcome: {e}")
+
+    def _on_hazard_cancelled(self):
+        self._log_monster_action("[AVOIDED] Hazard avoided, no XP gained")
+        self._cleanup_active_widgets()
 
     def _force_reload_character(self):
         """Force reload character data in all panels."""
