@@ -4098,7 +4098,6 @@ class EncounterPanel(QWidget):
         self.hazard_widget.set_character_data(character_data)
 
         self.hazard_widget.hazard_completed.connect(self._on_hazard_completed)
-        self.hazard_widget.hazard_cancelled.connect(self._on_hazard_cancelled)
 
         self.hazard_widget.start_hazard(hazard)
 
@@ -6647,34 +6646,44 @@ Character Level: {character_level}"""
         except Exception as e:
             self._log_monster_action(f"[ERROR] Failed to apply skill challenge refusal cost: {e}")
 
-    def _on_hazard_completed(self, success: bool, xp_gained: int, damage_taken: int):
+    def _on_hazard_completed(self, success: bool, xp_gained: int, damage_taken: int, exhaustion_gained: int, roll_summary: str):
         character_data = self._get_current_character_data()
         if not character_data:
             return
 
         try:
-            if success:
-                self._log_monster_action(f"[SUCCESS] Hazard survived! No damage taken.")
-            else:
-                self._log_monster_action(f"[FAILURE] Hazard triggered! Taking {damage_taken} damage.")
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
 
-                if damage_taken > 0:
-                    current_hp = character_data.get('current_hit_points', 0)
-                    new_hp = max(0, current_hp - damage_taken)
-                    character_data['current_hit_points'] = new_hp
+            self._log_monster_action(f"[HAZARD] {roll_summary}")
 
-                    import sqlite3
-                    conn = sqlite3.connect("talekeeper.db")
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        UPDATE characters
-                        SET current_hit_points = ?
-                        WHERE id = ?
-                    """, (new_hp, character_data['id']))
-                    conn.commit()
-                    conn.close()
+            if damage_taken > 0:
+                current_hp = character_data.get('current_hit_points', 0)
+                new_hp = max(0, current_hp - damage_taken)
 
-                    self._log_monster_action(f"[HP] {current_hp} -> {new_hp}")
+                cursor.execute("""
+                    UPDATE characters
+                    SET current_hit_points = ?
+                    WHERE id = ?
+                """, (new_hp, character_data['id']))
+
+                self._log_monster_action(f"[HP] {current_hp} -> {new_hp}")
+
+            if exhaustion_gained > 0:
+                current_exhaustion = character_data.get('exhaustion_level', 0)
+                new_exhaustion = min(6, current_exhaustion + exhaustion_gained)
+
+                cursor.execute("""
+                    UPDATE characters
+                    SET exhaustion_level = ?
+                    WHERE id = ?
+                """, (new_exhaustion, character_data['id']))
+
+                self._log_monster_action(f"[EXHAUSTION] {current_exhaustion} -> {new_exhaustion}")
+
+            conn.commit()
+            conn.close()
 
             if xp_gained > 0:
                 self._add_xp_to_character(xp_gained)
@@ -6685,10 +6694,6 @@ Character Level: {character_level}"""
 
         except Exception as e:
             self._log_monster_action(f"[ERROR] Failed to apply hazard outcome: {e}")
-
-    def _on_hazard_cancelled(self):
-        self._log_monster_action("[AVOIDED] Hazard avoided, no XP gained")
-        self._cleanup_active_widgets()
 
     def _force_reload_character(self):
         """Force reload character data in all panels."""

@@ -3484,7 +3484,18 @@ class ActionPanel(QWidget):
                         self._execute_monster_attack(monster_instance, monster_stats, encounter_panel)
                     else:
                         print(f"⚔ [DEBUG] Skipping {monster_name} - missing data or not alive")
-                        
+
+            # Reset all monster action flags after initial attacks so they can act in proper turn order
+            try:
+                combat_manager = self._get_combat_manager()
+                if combat_manager and combat_manager.combat_active:
+                    for combatant in combat_manager.combatants.values():
+                        if combatant.combatant_type == 'monster':
+                            combatant.has_taken_action = False
+                    print(f"⚔ [DEBUG] Reset action flags for all monsters after initial attacks")
+            except Exception as reset_error:
+                print(f"⚔ [DEBUG] Could not reset monster action flags: {reset_error}")
+
         except Exception as e:
             print(f"⚔ [ERROR] Error executing monster turns: {e}")
             import traceback
@@ -4267,6 +4278,8 @@ class ActionPanel(QWidget):
                     # Add instance-specific data
                     monster_data['hit_points'] = monster_instance.current_hit_points
                     monster_data['max_hit_points'] = monster_instance.max_hit_points
+
+                    print(f"[COMBAT_MGR_DATA] Fetched {monster_instance.monster_name}: has_actions={('actions' in monster_data)}, actions_len={len(monster_data.get('actions', ''))}")
 
                     return monster_data
 

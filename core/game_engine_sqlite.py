@@ -682,7 +682,20 @@ class GameEngineSQLite:
                 
                 # Add starting equipment from class and background
                 self._add_starting_equipment(cursor, character_id, character_data)
-                
+
+                # Initialize character_class_levels entry
+                hit_die_map = {
+                    'barbarian': 12, 'fighter': 10, 'paladin': 10, 'ranger': 10,
+                    'cleric': 8, 'rogue': 8, 'warlock': 8, 'monk': 8, 'bard': 8, 'druid': 8,
+                    'wizard': 6, 'sorcerer': 6
+                }
+                hit_die = hit_die_map.get(character_data['class_id'].lower(), 8)
+                cursor.execute("""
+                    INSERT INTO character_class_levels (character_id, class_name, level, hit_die_type)
+                    VALUES (?, ?, ?, ?)
+                """, (character_id, character_data['class_id'], character_data.get('level', 1), hit_die))
+                print(f"[SQLite] Initialized character_class_levels: {character_data['class_id']} level {character_data.get('level', 1)}")
+
                 # Initialize class-specific features table (old system)
                 self._initialize_class_features(cursor, character_id, character_data)
                 

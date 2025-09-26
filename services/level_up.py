@@ -86,28 +86,21 @@ class LevelUpService:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         result = {}
-        
+
         try:
             cursor.execute("""
-                SELECT class_name, level 
-                FROM character_class_levels 
+                SELECT class_name, level
+                FROM character_class_levels
                 WHERE character_id = ?
             """, (character_id,))
-            
+
             result = {class_name.lower(): level for class_name, level in cursor.fetchall()}
-            
-            # If no multi-class data exists, get from main character table
-            if not result:
-                cursor.execute("SELECT class_id, level FROM characters WHERE id = ?", (character_id,))
-                row = cursor.fetchone()
-                if row:
-                    result[row[0]] = row[1]
         except Exception as e:
             print(f"Error getting character class levels: {e}")
             result = {}
         finally:
             conn.close()
-        
+
         return result
     
     def level_up_character(self, character_id: str, class_choice: str, subclass_choice: Optional[str] = None) -> bool:
@@ -152,12 +145,16 @@ class LevelUpService:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
-            level_row = cursor.fetchone()
-            if not level_row:
-                raise ValueError("Character not found")
+            cursor.execute("""
+                SELECT COALESCE(SUM(level), 0)
+                FROM character_class_levels
+                WHERE character_id = ?
+            """, (character_id,))
+            current_total_level = cursor.fetchone()[0]
 
-            current_total_level = level_row[0]
+            if current_total_level == 0:
+                raise ValueError("Character not found in character_class_levels")
+
             new_total_level = current_total_level + 1
 
             cursor.execute(
@@ -174,7 +171,7 @@ class LevelUpService:
 
             cursor.execute(
                 """
-                SELECT level FROM character_class_levels 
+                SELECT level FROM character_class_levels
                 WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
                 """,
                 (character_id, class_choice),
@@ -185,21 +182,21 @@ class LevelUpService:
                 new_class_level = existing_class_level[0] + 1
                 cursor.execute(
                     """
-                    UPDATE character_class_levels 
-                    SET level = ? 
+                    UPDATE character_class_levels
+                    SET level = ?
                     WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
                     """,
                     (new_class_level, character_id, class_choice),
                 )
             else:
+                new_class_level = 1
                 cursor.execute(
                     """
                     INSERT INTO character_class_levels (character_id, class_name, level, hit_die_type)
-                    VALUES (?, ?, 1, ?)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (character_id, class_choice, self._get_hit_die_for_class(class_choice)),
+                    (character_id, class_choice, new_class_level, self._get_hit_die_for_class(class_choice)),
                 )
-                new_class_level = 1
 
             if new_class_level >= subclass_selection_level and not existing_subclass:
                 if not subclass_choice:
@@ -219,13 +216,24 @@ class LevelUpService:
 
             cursor.execute(
                 """
-                UPDATE characters 
-                SET level = ?, 
+                UPDATE characters
+                SET level = ?,
                     updated_at = datetime('now')
                 WHERE id = ?
                 """,
                 (new_total_level, character_id),
             )
+
+            if class_normalized == 'fighter':
+                cursor.execute(
+                    """
+                    UPDATE fighter_features
+                    SET level = ?
+                    WHERE character_id = ?
+                    """,
+                    (new_class_level, character_id),
+                )
+                print(f"[LevelUp] Updated fighter_features level to {new_class_level}")
 
             self._grant_class_features(cursor, character_id, class_choice, new_class_level)
 

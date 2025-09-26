@@ -11,8 +11,7 @@ from services.hazard_service import HazardService
 
 
 class HazardWidget(QWidget):
-    hazard_completed = pyqtSignal(bool, int, int)
-    hazard_cancelled = pyqtSignal()
+    hazard_completed = pyqtSignal(bool, int, int, int, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,17 +63,13 @@ class HazardWidget(QWidget):
         buttons_frame = QFrame()
         buttons_layout = QHBoxLayout(buttons_frame)
 
-        self.cancel_button = QPushButton("Avoid Hazard")
-        self.cancel_button.clicked.connect(self.cancel_hazard)
-        self.cancel_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; font-weight: bold; }")
-
         self.attempt_button = QPushButton("Face Hazard")
         self.attempt_button.clicked.connect(self.attempt_hazard)
         self.attempt_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; font-weight: bold; padding: 10px; }")
 
-        buttons_layout.addWidget(self.cancel_button)
         buttons_layout.addStretch()
         buttons_layout.addWidget(self.attempt_button)
+        buttons_layout.addStretch()
 
         layout.addWidget(buttons_frame)
 
@@ -137,24 +132,25 @@ class HazardWidget(QWidget):
 
         character_id = self.character_data.get('id')
         cursor.execute("""
-            SELECT e.name
-            FROM character_inventory ci
-            JOIN equipment e ON ci.equipment_id = e.id
-            WHERE ci.character_id = ?
-            AND ci.equipped = 1
+            SELECT item_name, equipped
+            FROM character_inventory
+            WHERE character_id = ?
+            AND item_type IN ('gear', 'armor', 'shield', 'cloak', 'ring')
+            ORDER BY equipped DESC, item_name
         """, (character_id,))
 
-        equipped_items = cursor.fetchall()
+        items = cursor.fetchall()
         conn.close()
 
-        for item in equipped_items:
-            self.gear_list.addItem(item[0])
+        for item_name, equipped in items:
+            display_name = f"{item_name} {'(equipped)' if equipped else ''}"
+            self.gear_list.addItem(display_name.strip())
 
     def attempt_hazard(self):
         if not self.current_hazard or not self.character_data:
             return
 
-        self.selected_gear = [item.text() for item in self.gear_list.selectedItems()]
+        self.selected_gear = [item.text().replace(' (equipped)', '') for item in self.gear_list.selectedItems()]
 
         bonuses = self.hazard_service.apply_gear_bonus(self.current_hazard, self.selected_gear)
 
@@ -204,14 +200,26 @@ class HazardWidget(QWidget):
         results.append("")
 
         damage_taken = 0
+        exhaustion_gained = 0
         xp_gained = self.current_hazard.get('xp', 0)
 
         if success:
             results.append("SUCCESS!")
-            results.append(self.current_hazard.get('success_effect', 'No effect'))
+            success_effect = self.current_hazard.get('success_effect') or 'No effect'
+            results.append(success_effect)
         else:
             results.append("FAILURE!")
-            results.append(self.current_hazard.get('failure_effect', 'Unknown effect'))
+            failure_effect = self.current_hazard.get('failure_effect') or 'Unknown effect'
+            results.append(failure_effect)
+
+            if 'exhaustion' in failure_effect.lower():
+                import re
+                exhaustion_match = re.search(r'(\d+)\s+exhaustion', failure_effect.lower())
+                if exhaustion_match:
+                    exhaustion_gained = int(exhaustion_match.group(1))
+                else:
+                    exhaustion_gained = 1
+                results.append(f"Exhaustion Gained: {exhaustion_gained} level(s)")
 
             if self.current_hazard.get('damage_avg'):
                 damage = self.current_hazard['damage_avg']
@@ -231,16 +239,31 @@ class HazardWidget(QWidget):
                     results.append(f"Damage Taken: {damage_taken}")
 
         if self.selected_gear:
-            results.append(f"\nGear Used: {', '.join(self.selected_gear)}")
+            gear_names = [str(g) for g in self.selected_gear if g]
+            results.append(f"\nGear Used: {', '.join(gear_names)}")
 
         results.append(f"\nXP Gained: {xp_gained}")
 
-        self.results_text.setPlainText('\n'.join(results))
+        results_text = '\n'.join(str(r) for r in results if r is not None)
+        self.results_text.setPlainText(results_text)
 
-        self.attempt_button.setEnabled(False)
-        self.cancel_button.setText("Continue")
-        self.cancel_button.clicked.disconnect()
-        self.cancel_button.clicked.connect(lambda: self.hazard_completed.emit(success, xp_gained, damage_taken))
+        roll_details = []
+        roll_details.append(f"{'[Advantage] ' if has_advantage else ''}Rolled {roll} + {ability_mod + proficiency} = {total} vs DC {dc}")
+        if success:
+            roll_details.append("Success - No damage")
+        else:
+            effect_parts = []
+            if damage_taken > 0:
+                effect_parts.append(f"{damage_taken} damage")
+            if exhaustion_gained > 0:
+                effect_parts.append(f"{exhaustion_gained} exhaustion")
+            if effect_parts:
+                roll_details.append(f"Failed - {', '.join(effect_parts)}")
+            else:
+                roll_details.append("Failed - No immediate effect")
+        if self.selected_gear:
+            gear_names = [str(g) for g in self.selected_gear if g]
+            roll_details.append(f"Gear: {', '.join(gear_names)}")
 
-    def cancel_hazard(self):
-        self.hazard_cancelled.emit()
+        roll_summary = ' | '.join(roll_details)
+        self.hazard_completed.emit(success, xp_gained, damage_taken, exhaustion_gained, roll_summary)

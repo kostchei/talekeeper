@@ -104,7 +104,10 @@ CREATE TABLE characters (
     
     -- Combat State
     second_wind_used BOOLEAN DEFAULT FALSE,
-    
+
+    -- Exhaustion
+    exhaustion_level INTEGER DEFAULT 0,
+
     FOREIGN KEY (save_slot_id) REFERENCES save_slots(id) ON DELETE CASCADE
 );
 

@@ -359,23 +359,23 @@ class CombatManager:
         """
         if self.is_player_turn():
             return {'error': 'Not monster turn'}
-        
+
         combatant = self.combatants.get(monster_id)
         if not combatant or not combatant.is_alive:
             return {'error': 'Invalid or dead monster'}
-        
+
         if combatant.has_taken_action:
             return {'error': 'Monster already took action this turn'}
-        
+
         # Mark action as taken
         combatant.has_taken_action = True
-        
+
         results = {
             'attacks': [],
             'total_damage': 0,
             'targets_hit': []
         }
-        
+
         # Find player target (for simplicity, target first living player)
         player_target = None
         for c in self.combatants.values():
@@ -390,7 +390,10 @@ class CombatManager:
             for c in self.combatants.values():
                 self.log(f"[DEBUG]   - {c.name} (type: {c.type.value}, alive: {c.is_alive}, HP: {c.hit_points}/{c.max_hit_points})")
             return results
-        
+
+        print(f"[COMBAT_MGR] {combatant.name} executing turn - has {len(combatant.actions) if combatant.actions else 0} actions")
+        print(f"[COMBAT_MGR] multiattack_actions: {combatant.multiattack_actions}")
+
         # Use Multiattack if available, otherwise single attack
         if combatant.multiattack_actions:
             self.log(f"[COMBAT] {combatant.name} uses Multiattack")
@@ -399,7 +402,7 @@ class CombatManager:
                 if action:
                     attack_result = self._execute_monster_attack(combatant, player_target, action)
                     results['attacks'].append(attack_result)
-                    
+
                     if attack_result.get('hit'):
                         results['total_damage'] += attack_result.get('damage', 0)
                         if player_target.id not in results['targets_hit']:
@@ -408,13 +411,16 @@ class CombatManager:
             # Single attack with first available action
             if combatant.actions:
                 action = combatant.actions[0]
+                print(f"[COMBAT_MGR] Using action: {action.name}")
                 attack_result = self._execute_monster_attack(combatant, player_target, action)
                 results['attacks'].append(attack_result)
-                
+
                 if attack_result.get('hit'):
                     results['total_damage'] += attack_result.get('damage', 0)
                     results['targets_hit'].append(player_target.id)
-        
+            else:
+                print(f"[COMBAT_MGR] ERROR: {combatant.name} has no actions to execute!")
+
         return results
     
     def advance_turn(self) -> Optional[Combatant]:
@@ -543,38 +549,34 @@ class CombatManager:
             return 0  # 1 total attack
     
     def _parse_monster_actions(self, actions_json: str) -> List[CombatAction]:
-        """Parse monster actions from standardized JSON format"""
+        """Parse monster actions from 5eTools JSON format"""
         try:
-            # Use the standardized attack processor to parse the new format
-            standardized_attacks = self.attack_processor.process_monster_attacks(actions_json)
+            from services.monster_attack_parser import MonsterAttackParser
+
+            parser = MonsterAttackParser()
+            parsed_attacks = parser.parse_monster_actions(actions_json)
             actions = []
 
-            for attack in standardized_attacks:
-                # Convert standardized attack to old CombatAction format for compatibility
-                damage_dice = None
-                damage_type = None
+            print(f"[COMBAT_MGR] Parsed {len(parsed_attacks)} attacks from: {actions_json[:100]}")
 
-                if attack.primary_damage:
-                    damage_dice = attack.primary_damage.dice
-                    damage_type = attack.primary_damage.type
-
+            for attack in parsed_attacks:
                 action = CombatAction(
                     name=attack.name,
                     action_type=ActionType.ACTION,
-                    description=attack.description,
+                    description=attack.raw_text,
                     attack_bonus=attack.attack_bonus,
-                    damage_dice=damage_dice,
-                    damage_type=damage_type
+                    damage_dice=attack.damage_dice,
+                    damage_type=attack.damage_type
                 )
-
-                # Store the full standardized attack for advanced features
-                action.standardized_attack = attack
                 actions.append(action)
+                print(f"[COMBAT_MGR] Added action: {action.name} with attack_bonus={action.attack_bonus}, damage={action.damage_dice}")
 
             return actions
 
         except Exception as e:
             self.log(f"[ERROR] Failed to parse monster actions: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def _parse_multiattack(self, actions: List[CombatAction]) -> Optional[List[str]]:
