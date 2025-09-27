@@ -31,11 +31,11 @@ class WarlockService:
             # Initialize warlock features
             cursor.execute("""
                 INSERT OR REPLACE INTO warlock_features
-                (character_id, patron, pact_boon, invocations_known, mystic_arcanum_spells,
-                 last_pact_reset, pact_slots, pact_slot_level)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (character_id, patron, None, '[]', '[]',
-                  datetime.now().isoformat(), num_slots, slot_level))
+                (character_id, level, patron, pact_boon, invocations_known, mystic_arcanum_spells,
+                 last_pact_reset, pact_slots, pact_slot_level, pact_slots_current, pact_slots_max)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, level, patron, None, '[]', '[]',
+                  datetime.now().isoformat(), num_slots, slot_level, num_slots, num_slots))
 
             # Initialize spellcasting if needed
             cursor.execute("""
@@ -108,7 +108,7 @@ class WarlockService:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT patron, pact_boon, invocations_known, mystic_arcanum_spells,
-                       last_pact_reset, pact_slots, pact_slot_level
+                       last_pact_reset, pact_slots_current, pact_slots_max, pact_slot_level
                 FROM warlock_features
                 WHERE character_id = ?
             """, (character_id,))
@@ -123,8 +123,9 @@ class WarlockService:
                 'invocations': json.loads(result[2]) if result[2] else [],
                 'mystic_arcanum': json.loads(result[3]) if result[3] else [],
                 'last_pact_reset': result[4],
-                'pact_slots': result[5],
-                'pact_slot_level': result[6]
+                'pact_slots_current': result[5],
+                'pact_slots_max': result[6],
+                'pact_slot_level': result[7]
             }
 
     def level_up_warlock(self, character_id: str, new_level: int):
@@ -145,9 +146,9 @@ class WarlockService:
                 # Update pact slots
                 cursor.execute("""
                     UPDATE warlock_features
-                    SET pact_slots = ?, pact_slot_level = ?
+                    SET pact_slots_max = ?, pact_slots_current = ?, pact_slot_level = ?
                     WHERE character_id = ?
-                """, (num_slots, slot_level, character_id))
+                """, (num_slots, num_slots, slot_level, character_id))
 
                 # Update cantrips and spells known
                 cursor.execute("""
@@ -197,7 +198,7 @@ class PactMagicService:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT pact_slots, pact_slot_level
+                SELECT pact_slots_current, pact_slot_level
                 FROM warlock_features
                 WHERE character_id = ?
             """, (character_id,))
@@ -217,7 +218,7 @@ class PactMagicService:
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE warlock_features
-                SET pact_slots = pact_slots - 1
+                SET pact_slots_current = pact_slots_current - 1
                 WHERE character_id = ?
             """, (character_id,))
             conn.commit()
@@ -244,9 +245,9 @@ class PactMagicService:
             # Restore all pact slots
             cursor.execute("""
                 UPDATE warlock_features
-                SET pact_slots = ?, last_pact_reset = ?
+                SET pact_slots_current = ?, pact_slots_max = ?, last_pact_reset = ?
                 WHERE character_id = ?
-            """, (max_slots, datetime.now().isoformat(), character_id))
+            """, (max_slots, max_slots, datetime.now().isoformat(), character_id))
             conn.commit()
 
             return max_slots
@@ -270,7 +271,7 @@ class PactMagicService:
             # Restore slots
             cursor.execute("""
                 UPDATE warlock_features
-                SET pact_slots = 4, last_pact_reset = ?
+                SET pact_slots_current = 4, last_pact_reset = ?
                 WHERE character_id = ?
             """, (datetime.now().isoformat(), character_id))
             conn.commit()

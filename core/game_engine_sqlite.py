@@ -1452,16 +1452,16 @@ class GameEngineSQLite:
         # Initialize warlock features table
         cursor.execute("""
             INSERT OR REPLACE INTO warlock_features (
-                character_id, patron, pact_boon, invocations_known, mystic_arcanum_spells,
-                last_pact_reset, pact_slots, pact_slot_level
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                character_id, level, patron, pact_boon, invocations_known, mystic_arcanum_spells,
+                last_pact_reset, pact_slots_current, pact_slots_max, pact_slot_level
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            character_id, patron,
-            None,  # Pact Boon chosen at level 3
-            '[]',  # JSON array of invocations
-            '[]',  # JSON array of mystic arcanum spells
+            character_id, level, patron,
+            None,
+            '[]',
+            '[]',
             datetime.now().isoformat(),
-            pact_slots, pact_slot_level
+            pact_slots, pact_slots, pact_slot_level
         ))
 
         # Initialize spellcasting entry for Warlock

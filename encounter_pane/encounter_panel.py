@@ -1932,6 +1932,8 @@ class EncounterPanel(QWidget):
             self._setup_fighter_features()
         elif selected_class_name == "Rogue":
             self._setup_rogue_features()
+        elif selected_class_name == "Warlock":
+            self._setup_warlock_features()
         else:
             # For non-Fighter classes, show placeholder text
             info_label = QLabel(f"{selected_class_name} other class features will be implemented soon.")
@@ -2060,6 +2062,70 @@ class EncounterPanel(QWidget):
         tools_layout.addWidget(tools_note)
 
         self.class_features_layout.addWidget(tools_group)
+
+    def _setup_warlock_features(self):
+        """Setup Warlock Level 1 class features."""
+
+        invocation_group = QGroupBox("Eldritch Invocation (Level 1)")
+        invocation_layout = QVBoxLayout(invocation_group)
+
+        invocation_description = QLabel("Choose one Eldritch Invocation. This represents forbidden knowledge that grants you magical abilities.")
+        invocation_description.setWordWrap(True)
+        invocation_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
+        invocation_layout.addWidget(invocation_description)
+
+        self.invocation_combo = QComboBox()
+        self.invocation_combo.addItem("Select an Invocation...", None)
+
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id, name, description, prerequisites
+                FROM invocations
+                ORDER BY name
+            """)
+
+            invocations = cursor.fetchall()
+            conn.close()
+
+            for inv_id, name, description, prereqs_json in invocations:
+                import json
+                prereqs = json.loads(prereqs_json) if prereqs_json else {}
+
+                if not prereqs or prereqs == {}:
+                    self.invocation_combo.addItem(f"{name}", {
+                        'id': inv_id,
+                        'name': name,
+                        'description': description
+                    })
+
+        except Exception as e:
+            print(f"Error loading invocations: {e}")
+
+        self.invocation_combo.currentIndexChanged.connect(self._on_invocation_selected)
+        invocation_layout.addWidget(self.invocation_combo)
+
+        self.invocation_description = QTextEdit()
+        self.invocation_description.setReadOnly(True)
+        self.invocation_description.setMaximumHeight(80)
+        self.invocation_description.setPlaceholderText("Select an invocation to see its description...")
+        invocation_layout.addWidget(self.invocation_description)
+
+        self.class_features_layout.addWidget(invocation_group)
+
+    def _on_invocation_selected(self):
+        """Handle Eldritch Invocation selection change."""
+        invocation_data = self.invocation_combo.currentData()
+        if invocation_data:
+            self.invocation_description.setText(invocation_data.get('description', ''))
+            self.character_creation_data['warlock_invocation'] = invocation_data
+        else:
+            self.invocation_description.clear()
+            if 'warlock_invocation' in self.character_creation_data:
+                del self.character_creation_data['warlock_invocation']
 
     def _get_character_proficient_skills(self):
         """Get list of skills the character is proficient in from their selections."""
@@ -3203,7 +3269,8 @@ class EncounterPanel(QWidget):
             'saving_throw_proficiencies': saving_throw_profs,
             'selected_class_skills': self.character_creation_data.get('selected_class_skills', []),
             'selected_species_skills': self.character_creation_data.get('selected_species_skills', []),
-            'rogue_features': self.character_creation_data.get('rogue_features', {})  # Include rogue expertise
+            'rogue_features': self.character_creation_data.get('rogue_features', {}),
+            'warlock_invocation': self.character_creation_data.get('warlock_invocation')
         }
 
         # Record selected equipment options - break down combination strings
