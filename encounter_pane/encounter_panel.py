@@ -5590,8 +5590,8 @@ Character Level: {character_level}"""
                 print(f"[DEBUG] Generated items: {[item.get('name', 'Unknown') for item in generated_items]}")
             
             if generated_items:
-                item_names = [item['name'] for item in generated_items]
-                magic_text = f" and {len(generated_items)} magical item{'s' if len(generated_items) != 1 else ''}: {', '.join(item_names)}"
+                item_names_with_rarity = [f"{item['name']} ({item.get('rarity', 'Unknown')})" for item in generated_items]
+                magic_text = f" and {len(generated_items)} magical item{'s' if len(generated_items) != 1 else ''}: {', '.join(item_names_with_rarity)}"
                 
                 # Add items to character inventory
                 self._add_magic_items_to_character(generated_items)
