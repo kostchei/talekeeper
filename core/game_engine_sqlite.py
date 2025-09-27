@@ -724,7 +724,31 @@ class GameEngineSQLite:
                     
                 except Exception as e:
                     print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
-                
+
+                # Save selected spells and cantrips for spellcasting classes
+                selected_cantrips = character_data.get('selected_cantrips', [])
+                selected_spells = character_data.get('selected_spells', [])
+
+                if selected_cantrips:
+                    for cantrip_id in selected_cantrips:
+                        cursor.execute("""
+                            INSERT INTO character_spells (
+                                character_id, spell_id, spell_level, is_prepared,
+                                source, source_level, always_prepared
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (character_id, cantrip_id, 0, True, 'class', 1, True))
+                    print(f"[SQLite] Saved {len(selected_cantrips)} cantrips for character")
+
+                if selected_spells:
+                    for spell_id in selected_spells:
+                        cursor.execute("""
+                            INSERT INTO character_spells (
+                                character_id, spell_id, spell_level, is_prepared,
+                                source, source_level, always_prepared
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (character_id, spell_id, 1, True, 'class', 1, False))
+                    print(f"[SQLite] Saved {len(selected_spells)} level-1 spells for character")
+
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
             
@@ -1477,6 +1501,24 @@ class GameEngineSQLite:
             2 + ((character_data.get('charisma', 10) - 10) // 2),  # Attack bonus calculation
             cantrips_known
         ))
+
+        # Save selected invocation if provided
+        if 'warlock_invocation' in character_data and character_data['warlock_invocation']:
+            invocation_data = character_data['warlock_invocation']
+            invocation_id = invocation_data.get('id')
+            if invocation_id:
+                cursor.execute("""
+                    INSERT INTO warlock_invocations (character_id, invocation_id, learned_at_level)
+                    VALUES (?, ?, ?)
+                """, (character_id, invocation_id, level))
+
+                current_invocations = json.loads('[]')
+                current_invocations.append(invocation_id)
+                cursor.execute("""
+                    UPDATE warlock_features
+                    SET invocations_known = ?
+                    WHERE character_id = ?
+                """, (json.dumps(current_invocations), character_id))
 
         # Apply patron-specific features
         try:

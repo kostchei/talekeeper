@@ -35,6 +35,7 @@ from .town_encounter import TownEncounterPanel, ShopInterface
 from .alt_encounters import generate_trap, generate_hazard, generate_skill_challenge
 from .skill_challenge_widget import SkillChallengeWidget
 from .hazard_widget import HazardWidget
+from .spell_selection_widget import SpellSelectionWidget
 from services.skill_challenge_manager import SkillChallengeManager
 from services.skill_challenge_rewards import SkillChallengeRewards
 from services.stealth_mechanics import StealthMechanicsService
@@ -1923,10 +1924,13 @@ class EncounterPanel(QWidget):
         
         # Get class name
         selected_class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
-        
+
         # Add skill selection for all classes
         self._setup_class_skill_selection(selected_class_name.lower())
-        
+
+        # Add spell selection for spellcasting classes
+        self._setup_spell_selection(selected_class_name)
+
         # Handle class-specific features
         if selected_class_name == "Fighter":
             self._setup_fighter_features()
@@ -2365,7 +2369,25 @@ class EncounterPanel(QWidget):
             class_name = selected_class_data.get('name', '') if isinstance(selected_class_data, dict) else str(selected_class_data)
             if class_name == "Rogue":
                 self._refresh_expertise_options()
-    
+
+    def _setup_spell_selection(self, class_name: str):
+        spellcasting_classes = ['Wizard', 'Cleric', 'Warlock', 'Paladin']
+
+        if class_name not in spellcasting_classes:
+            return
+
+        spell_widget = SpellSelectionWidget()
+        spell_widget.setup_for_class(class_name)
+        spell_widget.spells_changed.connect(self._on_spells_changed)
+
+        self.spell_selection_widget = spell_widget
+        self.class_features_layout.addWidget(spell_widget)
+
+    def _on_spells_changed(self):
+        if hasattr(self, 'spell_selection_widget'):
+            self.character_creation_data['selected_cantrips'] = self.spell_selection_widget.get_selected_cantrips()
+            self.character_creation_data['selected_spells'] = self.spell_selection_widget.get_selected_spells()
+
     def _setup_species_skill_selection(self, species_id: str):
         """Setup skill selection interface for the selected species."""
         # Clear existing species skill widgets
