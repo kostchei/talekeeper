@@ -681,3 +681,105 @@ CREATE TABLE subclass_features (
 );
 CREATE INDEX idx_subclass_features_lookup ON subclass_features(subclass_id, level);
 CREATE INDEX idx_subclasses_class ON subclasses(class_id);
+
+CREATE TABLE skill_challenge_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    base_dc INTEGER NOT NULL DEFAULT 14,
+    min_level INTEGER DEFAULT 1,
+    max_level INTEGER DEFAULT 20,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE skill_challenge_template_skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id TEXT NOT NULL,
+    skill_name TEXT NOT NULL,
+    skill_order INTEGER DEFAULT 0,
+
+    FOREIGN KEY (template_id) REFERENCES skill_challenge_templates(id) ON DELETE CASCADE
+);
+
+CREATE TABLE skill_challenge_template_success (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id TEXT NOT NULL,
+    success_option TEXT NOT NULL,
+
+    FOREIGN KEY (template_id) REFERENCES skill_challenge_templates(id) ON DELETE CASCADE
+);
+
+CREATE TABLE skill_challenge_template_failure (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id TEXT NOT NULL,
+    failure_option TEXT NOT NULL,
+
+    FOREIGN KEY (template_id) REFERENCES skill_challenge_templates(id) ON DELETE CASCADE
+);
+
+CREATE TABLE skill_challenge_template_refuse (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id TEXT NOT NULL,
+    refuse_option TEXT NOT NULL,
+
+    FOREIGN KEY (template_id) REFERENCES skill_challenge_templates(id) ON DELETE CASCADE
+);
+
+CREATE TABLE skill_challenge_sessions (
+    id TEXT PRIMARY KEY,
+    character_id TEXT NOT NULL,
+    template_id TEXT NOT NULL,
+    challenge_name TEXT NOT NULL,
+    base_dc INTEGER NOT NULL,
+    current_successes INTEGER DEFAULT 0,
+    current_failures INTEGER DEFAULT 0,
+    skill_usage_json TEXT DEFAULT '{}',
+    success_revealed BOOLEAN DEFAULT TRUE,
+    failure_revealed BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    completed_at TEXT,
+    outcome TEXT,
+    selected_success TEXT,
+    selected_failure TEXT,
+    selected_refuse TEXT,
+
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    FOREIGN KEY (template_id) REFERENCES skill_challenge_templates(id)
+);
+
+CREATE TABLE skill_challenge_attempts (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    skill_name TEXT NOT NULL,
+    ability_modifier INTEGER NOT NULL,
+    proficiency_bonus INTEGER NOT NULL,
+    dc INTEGER NOT NULL,
+    roll_result INTEGER NOT NULL,
+    total_result INTEGER NOT NULL,
+    success BOOLEAN NOT NULL,
+    attempt_order INTEGER NOT NULL,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (session_id) REFERENCES skill_challenge_sessions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_skill_challenge_sessions_character_id ON skill_challenge_sessions(character_id);
+CREATE INDEX idx_skill_challenge_sessions_active ON skill_challenge_sessions(is_active);
+CREATE INDEX idx_skill_challenge_attempts_session_id ON skill_challenge_attempts(session_id);
+CREATE INDEX idx_skill_challenge_template_skills_template_id ON skill_challenge_template_skills(template_id);
+CREATE INDEX idx_skill_challenge_template_success_template_id ON skill_challenge_template_success(template_id);
+CREATE INDEX idx_skill_challenge_template_failure_template_id ON skill_challenge_template_failure(template_id);
+CREATE INDEX idx_skill_challenge_template_refuse_template_id ON skill_challenge_template_refuse(template_id);
+
+CREATE TABLE best_in_slot_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_build TEXT NOT NULL,
+    rarity TEXT NOT NULL,
+    slot_number INTEGER,
+    item_name TEXT NOT NULL,
+    notes TEXT
+);
+
+CREATE INDEX idx_bis_class_rarity ON best_in_slot_items(class_build, rarity);
+CREATE INDEX idx_bis_item_name ON best_in_slot_items(item_name);

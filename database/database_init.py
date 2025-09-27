@@ -77,13 +77,15 @@ class DatabaseInitializer:
             
             # Load seed files in order
             seed_files = [
-                '001_game_data.sql',  # Legacy data (keep for compatibility)
+                '001_game_data.sql',
                 '002_core_game_data.sql',
-                '003_backgrounds.sql', 
+                '003_backgrounds.sql',
                 '004_equipment.sql',
                 '005_monsters.sql',
+                '006_skill_challenges.sql',
                 '007_class_features.sql',
                 '008_class_proficiencies.sql',
+                '009_best_in_slot_items.sql',
                 '100_starter_character.sql',
                 '101_test_characters.sql'
             ]
