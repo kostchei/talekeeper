@@ -5320,10 +5320,10 @@ Character Level: {character_level}"""
             return sum(random.randint(1, 8) for _ in range(2)) * 1000
     
     def _roll_equipment_drops(self, monster_name: str, monster_cr) -> list:
-        """Roll for equipment drops based on monster CR and type."""
+        """Roll for equipment drops based on monster CR using BiS system."""
         import random
-        import json
-        
+        from services.loot_drop_service import LootDropService
+
         # Convert CR to numeric value
         if isinstance(monster_cr, str):
             try:
@@ -5336,52 +5336,65 @@ Character Level: {character_level}"""
                 cr_numeric = 0
         else:
             cr_numeric = float(monster_cr) if monster_cr else 0
-        
+
         # Base drop chance based on CR
-        drop_chance = min(0.3 + (cr_numeric * 0.05), 0.85)  # 30% + 5% per CR, max 85%
-        
+        drop_chance = min(0.3 + (cr_numeric * 0.05), 0.85)
+
         if random.random() > drop_chance:
             return []
-        
+
         try:
-            # Load equipment data
-            equipment_db = EquipmentDatabase()
-            equipment_data = equipment_db.get_all_equipment()
-            
-            # Filter equipment based on monster type and CR
-            possible_drops = []
-            
-            # Determine monster category from name (basic categorization)
-            monster_type = self._categorize_monster(monster_name.lower())
-            
-            for item in equipment_data:
-                item_cr = self._get_item_cr_appropriateness(item, monster_type)
-                if item_cr <= cr_numeric + 2 and item.get('rarity', 'common').lower() in ['common', 'uncommon']:
-                    # Weight items by appropriateness
-                    weight = max(1, int(4 - abs(item_cr - cr_numeric)))
-                    for _ in range(weight):
-                        possible_drops.append(item)
-            
-            if not possible_drops:
+            character_id = self._get_current_character_id()
+            if not character_id:
                 return []
-            
-            # Roll number of items to drop (usually 1, occasionally 2)
+
+            character_data = self._get_current_character_data()
+            if not character_data:
+                return []
+
+            loot_service = LootDropService('talekeeper.db')
+
+            rarity = loot_service.cr_to_rarity(cr_numeric)
+            print(f"[LOOT] BiS System: CR {cr_numeric} -> {rarity} rarity")
+
             num_items = 1 if random.random() < 0.8 else 2
-            
+
             drops = []
-            for _ in range(min(num_items, len(possible_drops))):
-                if possible_drops:
-                    item = random.choice(possible_drops)
+            dropped_item_names = set()
+
+            for _ in range(num_items):
+                item = loot_service.drop_loot(character_id, character_data, rarity)
+
+                if item and item['name'] not in dropped_item_names:
                     drops.append(item.copy())
-                    # Remove to prevent duplicates
-                    possible_drops = [i for i in possible_drops if i['name'] != item['name']]
-            
+                    dropped_item_names.add(item['name'])
+                    print(f"[LOOT] BiS dropped: {item['name']} ({rarity})")
+                elif not item:
+                    print(f"[LOOT] BiS: No valid items available for {rarity}")
+                    break
+
             return drops
-            
+
         except Exception as e:
-            print(f"Error rolling equipment drops: {e}")
+            print(f"[LOOT] Error in BiS equipment drops: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
+    def _get_current_character_id(self) -> str:
+        """Get the current character's ID."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine'):
+                    character = parent.game_engine.current_character
+                    if character:
+                        return character.get('id', '')
+                parent = parent.parent()
+        except Exception as e:
+            print(f"Error getting current character ID: {e}")
+        return ''
+
     def _categorize_monster(self, monster_name: str) -> str:
         """Categorize monster type for loot table purposes."""
         name = monster_name.lower()
@@ -5607,25 +5620,59 @@ Character Level: {character_level}"""
         
         rarity_system = TreasureRaritySystem()
         generated_items = []
-        
-        # Get character equipment for prioritization
+        generated_item_names = set()
+
         character_equipment = self._get_character_equipment()
-        
+        character_id = character_equipment.get('character_id', '')
+
         for _ in range(count):
-            # Roll for rarity based on character level equivalent
             rarity = rarity_system.get_rarity_for_level(char_level)
-            
-            # Get priority item for this rarity if available
+            item = None
+
             priority_item = self._get_priority_item(rarity, character_equipment)
-            
+
             if priority_item:
-                generated_items.append(priority_item)
-            else:
-                # Fall back to random items from remaining pool
-                fallback_item = self._get_random_item(rarity)
-                if fallback_item:
-                    generated_items.append(fallback_item)
-        
+                candidate_name = priority_item['name']
+
+                if candidate_name not in generated_item_names:
+                    if not character_id:
+                        item = priority_item
+                    else:
+                        character_has_item = self._character_has_item(candidate_name, character_id)
+                        allows_duplicates = self._item_allows_duplicates(priority_item)
+
+                        if not character_has_item or allows_duplicates:
+                            item = priority_item
+
+            if not item:
+                max_attempts = 20
+
+                for attempt in range(max_attempts):
+                    fallback_item = self._get_random_item(rarity)
+
+                    if not fallback_item:
+                        break
+
+                    candidate_name = fallback_item['name']
+
+                    if candidate_name in generated_item_names:
+                        continue
+
+                    if not character_id:
+                        item = fallback_item
+                        break
+
+                    character_has_item = self._character_has_item(candidate_name, character_id)
+                    allows_duplicates = self._item_allows_duplicates(fallback_item)
+
+                    if not character_has_item or allows_duplicates:
+                        item = fallback_item
+                        break
+
+            if item:
+                generated_items.append(item)
+                generated_item_names.add(item['name'])
+
         return generated_items
     
     def _get_character_equipment(self) -> dict:
@@ -5952,9 +5999,65 @@ Character Level: {character_level}"""
     
     def _character_has_item(self, item_name: str, character_id: str) -> bool:
         """Check if character already has this item."""
-        # TODO: Implement inventory check
-        return False
-    
+        import sqlite3
+
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM character_inventory
+                WHERE character_id = ? AND item_name = ?
+            """, (character_id, item_name))
+
+            count = cursor.fetchone()[0]
+            conn.close()
+
+            return count > 0
+
+        except Exception as e:
+            print(f"Error checking if character has item: {e}")
+            return False
+
+    def _item_allows_duplicates(self, item: dict) -> bool:
+        """Check if item can drop multiple times (potions and one-handed weapons)."""
+        import sqlite3
+        import json
+
+        item_name = item.get('name', '')
+
+        if 'potion' in item_name.lower():
+            return True
+
+        item_type = item.get('item_type', '')
+        if item_type != 'weapon':
+            return False
+
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT weapon_properties
+                FROM equipment
+                WHERE name = ?
+            """, (item_name,))
+
+            result = cursor.fetchone()
+            conn.close()
+
+            if not result or not result[0]:
+                return False
+
+            properties = json.loads(result[0])
+
+            return 'two-handed' not in properties and 'Two-Handed' not in properties
+
+        except Exception as e:
+            print(f"Error checking if item allows duplicates: {e}")
+            return False
+
     def _determine_item_type(self, item_name: str) -> str:
         """Determine the item type based on the item name."""
         name_lower = item_name.lower()

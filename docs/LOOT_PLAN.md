@@ -33,7 +33,7 @@
 
 
 ## Rare Items
-- **Armor**: +1 platemail, +1 studded leather, Elven chainmail (needs 13 str, AC 17, no prof or dex required), elven chain vest (warlock/wizard)
+- **Armor**: +1 platemail, +1 studded leather, Elven chainmail (needs 13 str, AC 16, no prof or dex required), elven chain vest (warlock/wizard)
 - **Weapons**: +2 Weapon (weapon list), Executioner's axe (with shield: battleaxe, without: greataxe), vicious weapon
 - **Protection**: +2 shield, bracers of defense (wizard/barbarian), off-hand weapon
 - Ring of protection
