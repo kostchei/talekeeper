@@ -31,6 +31,8 @@ from services.weapon_attack_service import WeaponAttackService
 from core.combat_manager import CombatManager
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
+from services.spellcasting_service import SpellcastingService
+from services.spell_registry import spell_registry
 
 from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
@@ -56,6 +58,11 @@ class ActionType(Enum):
     SECOND_WIND = "second_wind"
     ACTION_SURGE = "action_surge"
     FIGHTING_STYLE = "fighting_style"
+
+    # Spell Actions (dynamic spells use CAST_SPELL with spell_id in context)
+    SPELL_ATTACK = "spell_attack"    # For attack spells
+    SPELL_UTILITY = "spell_utility"  # For utility/buff spells
+    SPELL_REACTION = "spell_reaction" # For reaction spells
     
     # Weapon Mastery Actions
     NICK_MASTERY = "nick_mastery"
@@ -159,6 +166,7 @@ class ActionPanel(QWidget):
         self._weapon_mastery_cache: Dict[str, Optional[Dict[str, Any]]] = {}
         self._weapon_attack_service: Optional[WeaponAttackService] = None
         self._combat_manager: Optional[CombatManager] = None
+        self._spellcasting_service: Optional[SpellcastingService] = None
         
         # Lucky feat state tracking
         # Note: Lucky/Inspiration offensive flags are now defined earlier in __init__
@@ -544,10 +552,7 @@ class ActionPanel(QWidget):
                 is_spellcaster = True
 
             if is_spellcaster:
-                card = ActionCard(ActionType.CAST_SPELL, "✨", "Cast Spell", "Cast a spell from your repertoire")
-                card.action_triggered.connect(self._trigger_action)
-                card.action_hovered.connect(self._action_hovered)
-                self.action_cards[ActionType.CAST_SPELL] = card
+                self._create_spell_action_cards()
 
         # Barbarian Features
         if self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
@@ -1384,12 +1389,16 @@ class ActionPanel(QWidget):
             if ActionType.ATTACK_MAIN_HAND in self.action_cards:
                 combat_actions.append(ActionType.ATTACK_MAIN_HAND)
             
+            # Add spell actions (all spell_ prefixed cards)
+            spell_cards = [key for key in self.action_cards.keys() if isinstance(key, str) and key.startswith('spell_')]
+            combat_actions.extend(spell_cards)
+
             # Add other combat actions
-            combat_actions.extend([ActionType.CAST_SPELL, ActionType.USE_ITEM, ActionType.DODGE])
+            combat_actions.extend([ActionType.USE_ITEM, ActionType.DODGE])
             
-            for action_type in combat_actions:
-                if action_type in self.action_cards:
-                    card = self.action_cards[action_type]
+            for action_key in combat_actions:
+                if action_key in self.action_cards:
+                    card = self.action_cards[action_key]
                     self.cards_layout.addWidget(card)
                     card.show()
                     
@@ -1569,6 +1578,10 @@ class ActionPanel(QWidget):
                     self._toggle_reckless_attack()
                 elif action_type == ActionType.LAY_ON_HANDS:
                     self._use_lay_on_hands()
+
+                # Handle spell actions
+                elif action_type in [ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY, ActionType.SPELL_REACTION]:
+                    self._cast_spell(action_type, full_context)
 
                 # Handle barbarian features
                 elif action_type == ActionType.BRUTAL_STRIKE_FORCEFUL:
@@ -4218,6 +4231,277 @@ class ActionPanel(QWidget):
             manager = CombatManager(db_path)
             self._combat_manager = manager
         return manager
+
+    def _get_spellcasting_service(self) -> SpellcastingService:
+        """Lazily construct the spellcasting service with the active DB path."""
+        db_path = self._resolve_db_path()
+        service = getattr(self, '_spellcasting_service', None)
+        if service is None or getattr(service, 'db_path', None) != db_path:
+            service = SpellcastingService(db_path)
+            self._spellcasting_service = service
+        return service
+
+    def _get_character_castable_spells(self, character_id: str) -> List[Dict[str, Any]]:
+        """Get list of spells the character can currently cast."""
+        db_path = self._resolve_db_path()
+        try:
+            import sqlite3
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+
+                # Get prepared spells that can be cast (cantrips are always castable)
+                cursor.execute("""
+                    SELECT cs.spell_id, cs.spell_level, cs.is_prepared, cs.always_prepared,
+                           s.name, s.school, s.casting_time, s.range_value, s.components,
+                           s.duration, s.concentration, s.description
+                    FROM character_spells cs
+                    JOIN spells s ON cs.spell_id = s.id
+                    WHERE cs.character_id = ?
+                    AND (cs.is_prepared = 1 OR cs.spell_level = 0 OR cs.always_prepared = 1)
+                    ORDER BY cs.spell_level, s.name
+                """, (character_id,))
+
+                spells = []
+                for row in cursor.fetchall():
+                    spell_data = {
+                        'spell_id': row[0],
+                        'spell_level': row[1],
+                        'is_prepared': row[2],
+                        'always_prepared': row[3],
+                        'name': row[4],
+                        'school': row[5],
+                        'casting_time': row[6],
+                        'range_value': row[7],
+                        'components': row[8],
+                        'duration': row[9],
+                        'concentration': row[10],
+                        'description': row[11]
+                    }
+
+                    # Check if character has spell slots for this spell (except cantrips)
+                    if spell_data['spell_level'] > 0:
+                        spellcasting_service = self._get_spellcasting_service()
+                        can_cast, _ = spellcasting_service.can_cast_spell(character_id, spell_data['spell_id'])
+                        if not can_cast:
+                            continue  # Skip spells that can't be cast due to no slots
+
+                    spells.append(spell_data)
+
+                return spells
+
+        except Exception as e:
+            print(f"Error getting character spells: {e}")
+            return []
+
+    def _create_spell_action_cards(self):
+        """Create individual action cards for each spell the character can cast."""
+        if not self.character_context or not self.character_context.get('id'):
+            return
+
+        character_id = self.character_context['id']
+        spells = self._get_character_castable_spells(character_id)
+
+        for spell in spells:
+            # Determine action type based on spell properties
+            action_type = self._determine_spell_action_type(spell)
+
+            # Create spell icon based on school and level
+            icon = self._get_spell_icon(spell)
+
+            # Create spell name with level indicator
+            name = spell['name']
+            if spell['spell_level'] > 0:
+                name += f" ({spell['spell_level']})"
+
+            # Create description with key info
+            description = self._create_spell_description(spell)
+
+            # Create action card with spell ID as key
+            card_key = f"spell_{spell['spell_id']}"
+            card = ActionCard(action_type, icon, name, description)
+            card.spell_data = spell  # Store spell data for casting
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+
+            # Store with unique key for this spell
+            self.action_cards[card_key] = card
+
+    def _determine_spell_action_type(self, spell: Dict[str, Any]) -> ActionType:
+        """Determine the appropriate action type for a spell."""
+        casting_time = spell.get('casting_time', '').lower()
+
+        if 'reaction' in casting_time:
+            return ActionType.SPELL_REACTION
+        elif any(keyword in spell.get('description', '').lower()
+                for keyword in ['attack', 'damage', 'hit']):
+            return ActionType.SPELL_ATTACK
+        else:
+            return ActionType.SPELL_UTILITY
+
+    def _get_spell_icon(self, spell: Dict[str, Any]) -> str:
+        """Get an appropriate icon for the spell based on school and properties."""
+        school = spell.get('school', '').lower()
+        level = spell.get('spell_level', 0)
+
+        # Cantrips get special treatment
+        if level == 0:
+            if school == 'evocation':
+                return "🔥"  # Fire/energy
+            elif school == 'conjuration':
+                return "✨"  # Sparkles
+            elif school == 'enchantment':
+                return "💫"  # Mind effects
+            elif school == 'illusion':
+                return "🌀"  # Swirl
+            elif school == 'necromancy':
+                return "💀"  # Death
+            elif school == 'transmutation':
+                return "⚡"  # Change
+            elif school == 'divination':
+                return "👁"  # Eye
+            elif school == 'abjuration':
+                return "🛡"  # Protection
+            else:
+                return "✨"  # Default
+
+        # Higher level spells
+        if school == 'evocation':
+            return "💥"  # Explosion
+        elif school == 'conjuration':
+            return "🌟"  # Star
+        elif school == 'enchantment':
+            return "🧠"  # Brain
+        elif school == 'illusion':
+            return "👻"  # Ghost
+        elif school == 'necromancy':
+            return "⚰️"  # Coffin
+        elif school == 'transmutation':
+            return "🔮"  # Crystal ball
+        elif school == 'divination':
+            return "🔍"  # Magnifying glass
+        elif school == 'abjuration':
+            return "🛡️"  # Shield
+        else:
+            return "🔮"  # Default crystal ball
+
+    def _create_spell_description(self, spell: Dict[str, Any]) -> str:
+        """Create a concise description for the spell action card."""
+        parts = []
+
+        # Add casting time
+        casting_time = spell.get('casting_time', '')
+        if casting_time:
+            parts.append(f"Time: {casting_time}")
+
+        # Add range
+        range_value = spell.get('range_value', '')
+        if range_value:
+            parts.append(f"Range: {range_value}")
+
+        # Add concentration if applicable
+        if spell.get('concentration'):
+            parts.append("Concentration")
+
+        # Add brief effect from description (first sentence)
+        description = spell.get('description', '')
+        if description:
+            first_sentence = description.split('.')[0]
+            if len(first_sentence) > 80:
+                first_sentence = first_sentence[:77] + "..."
+            parts.append(first_sentence)
+
+        return " | ".join(parts)
+
+    def _cast_spell(self, action_type: ActionType, context: Dict[str, Any]):
+        """Handle spell casting."""
+        # The spell data should be passed in the context from the action card
+        spell_data = context.get('spell_data')
+
+        if not spell_data:
+            self._log_to_combat_panel("❌ Error: Could not find spell data")
+            return
+
+        character_id = self.character_context.get('id')
+        if not character_id:
+            self._log_to_combat_panel("❌ Error: No character selected")
+            return
+
+        spell_id = spell_data['spell_id']
+        spell_name = spell_data['name']
+        spell_level = spell_data['spell_level']
+
+        try:
+            # Cast the spell using the spellcasting service
+            spellcasting_service = self._get_spellcasting_service()
+            result = spellcasting_service.cast_spell(character_id, spell_id)
+
+            if result.success:
+                # Spell cast successfully
+                if spell_level == 0:
+                    self._log_to_combat_panel(f"✨ Cast cantrip: {spell_name}")
+                else:
+                    self._log_to_combat_panel(f"✨ Cast {spell_name} (level {spell_level})")
+
+                # Handle concentration
+                if result.concentration_started:
+                    self._log_to_combat_panel(f"🧠 Concentrating on {spell_name}")
+
+                if result.concentration_ended:
+                    self._log_to_combat_panel(f"💫 Concentration ended on previous spell")
+
+                # Handle spell effects based on type
+                if action_type == ActionType.SPELL_ATTACK:
+                    self._handle_spell_attack(spell_data, context)
+                elif action_type == ActionType.SPELL_UTILITY:
+                    self._handle_spell_utility(spell_data, context)
+                elif action_type == ActionType.SPELL_REACTION:
+                    self._handle_spell_reaction(spell_data, context)
+
+                # Refresh action cards to update spell slot availability
+                self._refresh_spell_action_cards()
+
+            else:
+                # Spell casting failed
+                self._log_to_combat_panel(f"❌ Cannot cast {spell_name}: {result.reason}")
+
+        except Exception as e:
+            self._log_to_combat_panel(f"❌ Error casting spell: {e}")
+
+    def _handle_spell_attack(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
+        """Handle attack spell effects."""
+        spell_name = spell_data['name']
+
+        # For now, just log the attack - this can be expanded with target selection and damage
+        self._log_to_combat_panel(f"⚔️ {spell_name} attack cast - implement target selection")
+
+    def _handle_spell_utility(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
+        """Handle utility/buff spell effects."""
+        spell_name = spell_data['name']
+
+        # For now, just log the effect - this can be expanded with specific spell implementations
+        self._log_to_combat_panel(f"🔮 {spell_name} effect applied")
+
+    def _handle_spell_reaction(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
+        """Handle reaction spell effects."""
+        spell_name = spell_data['name']
+
+        # For now, just log the reaction - this can be expanded with trigger conditions
+        self._log_to_combat_panel(f"⚡ {spell_name} reaction triggered")
+
+    def _refresh_spell_action_cards(self):
+        """Refresh spell action cards to reflect current spell slot availability."""
+        # Remove existing spell cards
+        cards_to_remove = [key for key in self.action_cards.keys() if isinstance(key, str) and key.startswith('spell_')]
+        for key in cards_to_remove:
+            if key in self.action_cards:
+                self.action_cards[key].deleteLater()
+                del self.action_cards[key]
+
+        # Recreate spell cards
+        self._create_spell_action_cards()
+
+        # Update the UI display
+        self._update_card_display()
 
     def _setup_combat_manager(self, encounter_panel, initiative_order):
         """Set up the combat manager with player and monster combatants."""
@@ -6888,6 +7172,11 @@ class ActionCard(QWidget):
                 "name": self.name,
                 "description": self.description
             }
+
+            # Add spell data to context if this is a spell action card
+            if hasattr(self, 'spell_data') and self.spell_data:
+                context['spell_data'] = self.spell_data
+
             # Handle both ActionType enums and legacy integer IDs
             if isinstance(self.action_type, ActionType):
                 self.action_triggered.emit(self.action_type, context)
