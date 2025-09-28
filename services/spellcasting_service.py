@@ -386,12 +386,13 @@ class SpellcastingService:
         if cast_level < spell.level:
             return False, f"Cannot cast {spell.name} at level {cast_level}"
 
-        # Check for available spell slots
-        slots = self.get_character_spell_slots(character_id)
-        available_slots = [s for s in slots if s.can_cast_spell(cast_level)]
+        # Check for available spell slots (cantrips don't need slots)
+        if cast_level > 0:
+            slots = self.get_character_spell_slots(character_id)
+            available_slots = [s for s in slots if s.can_cast_spell(cast_level)]
 
-        if not available_slots:
-            return False, f"No spell slots available for level {cast_level}"
+            if not available_slots:
+                return False, f"No spell slots available for level {cast_level}"
 
         return True, ""
 
@@ -426,30 +427,32 @@ class SpellcastingService:
 
         cast_level = spell_level if spell_level is not None else spell.level
 
-        # Find and use appropriate spell slot
-        slots = self.get_character_spell_slots(character_id)
+        # Find and use appropriate spell slot (cantrips don't need slots)
         slot_to_use = None
+        if cast_level > 0:
+            slots = self.get_character_spell_slots(character_id)
 
-        # Find the lowest level slot that can cast this spell
-        for slot in sorted(slots, key=lambda s: s.level):
-            if slot.can_cast_spell(cast_level):
-                slot_to_use = slot
-                break
+            # Find the lowest level slot that can cast this spell
+            for slot in sorted(slots, key=lambda s: s.level):
+                if slot.can_cast_spell(cast_level):
+                    slot_to_use = slot
+                    break
 
-        if not slot_to_use:
-            result.reason = f"No spell slots available for level {cast_level}"
-            return result
+            if not slot_to_use:
+                result.reason = f"No spell slots available for level {cast_level}"
+                return result
 
-        # Use the spell slot
+        # Use the spell slot (if not a cantrip)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            # Update used slots in database
-            cursor.execute("""
-                UPDATE character_spell_slots
-                SET used_slots = used_slots + 1
-                WHERE character_id = ? AND spell_level = ? AND slot_type = ?
-            """, (character_id, slot_to_use.level, slot_to_use.slot_type.value))
+            if slot_to_use:
+                # Update used slots in database
+                cursor.execute("""
+                    UPDATE character_spell_slots
+                    SET used_slots = used_slots + 1
+                    WHERE character_id = ? AND spell_level = ? AND slot_type = ?
+                """, (character_id, slot_to_use.level, slot_to_use.slot_type.value))
 
             # Handle concentration
             if spell.concentration:
@@ -482,9 +485,10 @@ class SpellcastingService:
         # Set result details
         result.success = True
         result.spell_level_cast = cast_level
-        result.slot_level_used = slot_to_use.level
-        result.slot_type_used = slot_to_use.slot_type
-        result.resource_changes[f"spell_slot_level_{slot_to_use.level}"] = -1
+        if slot_to_use:
+            result.slot_level_used = slot_to_use.level
+            result.slot_type_used = slot_to_use.slot_type
+            result.resource_changes[f"spell_slot_level_{slot_to_use.level}"] = -1
 
         # Determine action economy used
         if action_economy_type:

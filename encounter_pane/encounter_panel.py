@@ -6317,14 +6317,35 @@ Character Level: {character_level}"""
             except Exception as e:
                 print(f"Error restoring short rest resources: {e}")
             
+            # Restore pact magic spell slots (Warlock short rest benefit)
+            try:
+                from services.spellcasting_service import SpellcastingService
+                spellcasting_service = SpellcastingService()
+                restored_slots = spellcasting_service.restore_spell_slots(character['id'], 'short')
+
+                if restored_slots:
+                    slots_restored_desc = [f"Level {level}: {slots} pact slots" for level, slots in restored_slots.items()]
+                    self._log_monster_action(f"🔮 Pact magic restored: {', '.join(slots_restored_desc)}")
+
+                    # Refresh spell action cards to show available pact slots
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, '_refresh_spell_action_cards'):
+                            parent.action_panel._refresh_spell_action_cards()
+                            break
+                        parent = parent.parent()
+
+            except Exception as e:
+                print(f"Error restoring pact magic slots: {e}")
+
             # Generic ability restoration (fallback)
             if "Second Wind" in character.get('ability_uses', {}):
                 character['ability_uses']["Second Wind"] = character.get('ability_uses_max', {}).get("Second Wind", 1)
                 if 'Second Wind' not in recovered_abilities:
                     recovered_abilities.append("Second Wind")
-            
+
             if "Action Surge" in character.get('ability_uses', {}):
-                character['ability_uses']["Action Surge"] = character.get('ability_uses_max', {}).get("Action Surge", 1) 
+                character['ability_uses']["Action Surge"] = character.get('ability_uses_max', {}).get("Action Surge", 1)
                 if 'Action Surge' not in recovered_abilities:
                     recovered_abilities.append("Action Surge")
             
@@ -6610,17 +6631,26 @@ Character Level: {character_level}"""
                     f"[DICE] Hit Dice restored: {old_hit_dice} -> {new_hit_dice} (gained {restored})"
                 )
             
-            # 3. Restore all spell slots
-            if 'spell_slots_current' in character and character['spell_slots_current']:
-                spell_slots_restored = []
-                for level, current_slots in character['spell_slots_current'].items():
-                    max_slots = character.get('spell_slots_max', {}).get(level, 0)
-                    if current_slots < max_slots:
-                        character['spell_slots_current'][level] = max_slots
-                        spell_slots_restored.append(f"Level {level}: {current_slots} -> {max_slots}")
-                
-                if spell_slots_restored:
-                    self._log_monster_action(f"✨ Spell slots restored: {', '.join(spell_slots_restored)}")
+            # 3. Restore all spell slots using SpellcastingService
+            try:
+                from services.spellcasting_service import SpellcastingService
+                spellcasting_service = SpellcastingService()
+                restored_slots = spellcasting_service.restore_spell_slots(character['id'], 'long')
+
+                if restored_slots:
+                    slots_restored_desc = [f"Level {level}: {slots} slots" for level, slots in restored_slots.items()]
+                    self._log_monster_action(f"✨ Spell slots restored: {', '.join(slots_restored_desc)}")
+
+                    # Refresh spell action cards to show available slots
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, '_refresh_spell_action_cards'):
+                            parent.action_panel._refresh_spell_action_cards()
+                            break
+                        parent = parent.parent()
+
+            except Exception as e:
+                print(f"Error restoring spell slots: {e}")
             
             # 4. Restore all long rest abilities
             abilities_restored = []

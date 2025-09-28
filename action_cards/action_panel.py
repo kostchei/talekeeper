@@ -4751,10 +4751,234 @@ class ActionPanel(QWidget):
 
     def _handle_spell_attack(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
         """Handle attack spell effects."""
-        spell_name = spell_data['name']
+        import random
 
-        # For now, just log the attack - this can be expanded with target selection and damage
-        self._log_to_combat_panel(f"⚔️ {spell_name} attack cast - implement target selection")
+        spell_name = spell_data['name']
+        spell_level = spell_data.get('level', 0)
+        cast_level = context.get('cast_level', spell_level)
+
+        encounter_panel = self._get_encounter_panel()
+        if not encounter_panel:
+            self._log_to_combat_panel(f"⚠️ {spell_name} cast but no encounter active")
+            return
+
+        target_monster = encounter_panel.get_selected_monster()
+        if not target_monster:
+            self._log_to_combat_panel(f"⚠️ {spell_name} cast but no target selected")
+            return
+
+        spell_mechanics = self._get_spell_mechanics(spell_name)
+
+        if spell_mechanics == 'attack':
+            # Spell requires attack roll
+            attack_total, attack_breakdown = self._roll_spell_attack()
+            target_ac = 12  # TODO: Get actual monster AC
+            hit = attack_total >= target_ac
+
+            if hit:
+                damage_total, damage_log = self._calculate_spell_damage(spell_name, spell_level, cast_level)
+                if damage_total > 0:
+                    target_id = target_monster.id
+                    encounter_panel._apply_damage_to_monster(target_id, damage_total)
+                    self._log_to_combat_panel(f"⚔️ {spell_name} hits {target_monster.monster_name} for {damage_total} damage!")
+                    self._log_to_combat_panel(f"   Attack: {attack_breakdown['description']} = {attack_total} vs AC {target_ac}")
+                    if damage_log:
+                        self._log_to_combat_panel(f"   Damage: {damage_log}")
+            else:
+                self._log_to_combat_panel(f"⚔️ {spell_name} misses {target_monster.monster_name}")
+                self._log_to_combat_panel(f"   Attack: {attack_breakdown['description']} = {attack_total} vs AC {target_ac}")
+
+        elif spell_mechanics == 'save':
+            # Spell requires target saving throw
+            save_dc = self._calculate_spell_save_dc()
+            save_type = self._get_spell_save_type(spell_name)
+            save_roll, save_breakdown = self._roll_monster_save(target_monster, save_type)
+            save_success = save_roll >= save_dc
+
+            damage_total, damage_log = self._calculate_spell_damage(spell_name, spell_level, cast_level)
+
+            if save_success:
+                # Save succeeded - no damage or half damage depending on spell
+                self._log_to_combat_panel(f"⚔️ {target_monster.monster_name} saves against {spell_name}!")
+                self._log_to_combat_panel(f"   {save_type} Save: {save_breakdown} = {save_roll} vs DC {save_dc}")
+            else:
+                # Save failed - full damage
+                if damage_total > 0:
+                    target_id = target_monster.id
+                    encounter_panel._apply_damage_to_monster(target_id, damage_total)
+                    self._log_to_combat_panel(f"⚔️ {target_monster.monster_name} fails save against {spell_name} for {damage_total} damage!")
+                    self._log_to_combat_panel(f"   {save_type} Save: {save_breakdown} = {save_roll} vs DC {save_dc}")
+                    if damage_log:
+                        self._log_to_combat_panel(f"   Damage: {damage_log}")
+
+        else:
+            # Automatic hit spell (like Magic Missile)
+            damage_total, damage_log = self._calculate_spell_damage(spell_name, spell_level, cast_level)
+            if damage_total > 0:
+                target_id = target_monster.id
+                encounter_panel._apply_damage_to_monster(target_id, damage_total)
+                self._log_to_combat_panel(f"⚔️ {spell_name} hits {target_monster.monster_name} for {damage_total} damage!")
+                if damage_log:
+                    self._log_to_combat_panel(f"   {damage_log}")
+            else:
+                self._log_to_combat_panel(f"⚔️ {spell_name} cast at {target_monster.monster_name}")
+
+    def _calculate_spell_damage(self, spell_name: str, spell_level: int, cast_level: int) -> tuple[int, str]:
+        """Calculate spell damage based on spell and cast level. Returns (total_damage, log_string)."""
+        import random
+
+        char_level = self.character_context.get('level', 1)
+
+        spell_damage_data = {
+            'Magic Missile': {
+                'base_darts': 3,
+                'dart_damage': (1, 4, 1),
+                'scaling': 'per_level',
+            },
+            'Fire Bolt': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 10,
+                'damage_type': 'fire',
+            },
+            'Ray of Frost': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 8,
+                'damage_type': 'cold',
+            },
+            'Shocking Grasp': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 8,
+                'damage_type': 'lightning',
+            },
+            'Sacred Flame': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 8,
+                'damage_type': 'radiant',
+            },
+        }
+
+        if spell_name not in spell_damage_data:
+            return 0, f"Damage calculation not implemented for {spell_name}"
+
+        data = spell_damage_data[spell_name]
+
+        if spell_name == 'Magic Missile':
+            num_darts = data['base_darts'] + (cast_level - spell_level)
+            num_dice, die_size, modifier = data['dart_damage']
+            total_damage = 0
+            rolls = []
+
+            for _ in range(num_darts):
+                roll = random.randint(num_dice, num_dice * die_size)
+                dart_damage = roll + modifier
+                total_damage += dart_damage
+                rolls.append(f"{roll}+{modifier}")
+
+            damage_log = f"{num_darts} darts: [{', '.join(rolls)}] = {total_damage} force damage"
+            return total_damage, damage_log
+        else:
+            num_dice = data['dice']
+            die_size = data['die_size']
+            damage_type = data.get('damage_type', 'damage')
+
+            rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+            total_damage = sum(rolls)
+
+            rolls_str = '+'.join(str(r) for r in rolls)
+            damage_log = f"{num_dice}d{die_size} [{rolls_str}] = {total_damage} {damage_type} damage"
+            return total_damage, damage_log
+
+    def _get_cantrip_dice_by_level(self, char_level: int) -> int:
+        """Get number of damage dice for cantrips based on character level."""
+        if char_level >= 17:
+            return 4
+        elif char_level >= 11:
+            return 3
+        elif char_level >= 5:
+            return 2
+        else:
+            return 1
+
+    def _get_spell_mechanics(self, spell_name: str) -> str:
+        """Determine spell mechanics: 'attack', 'save', or 'auto'."""
+        attack_spells = {'Fire Bolt', 'Ray of Frost', 'Shocking Grasp', 'Eldritch Blast'}
+        save_spells = {'Sacred Flame', 'Burning Hands', 'Thunderwave'}
+
+        if spell_name in attack_spells:
+            return 'attack'
+        elif spell_name in save_spells:
+            return 'save'
+        else:
+            return 'auto'  # Magic Missile, healing spells, etc.
+
+    def _roll_spell_attack(self) -> tuple[int, dict]:
+        """Roll a spell attack (1d20 + spell attack bonus)."""
+        import random
+
+        # Calculate spell attack bonus
+        spell_attack_bonus = self._calculate_spell_attack_bonus()
+
+        # Roll d20
+        d20_roll = random.randint(1, 20)
+        total = d20_roll + spell_attack_bonus
+
+        breakdown = {
+            'd20_roll': d20_roll,
+            'spell_attack_bonus': spell_attack_bonus,
+            'description': f"d20({d20_roll}) +{spell_attack_bonus} spell attack"
+        }
+
+        return total, breakdown
+
+    def _calculate_spell_attack_bonus(self) -> int:
+        """Calculate spell attack bonus = proficiency + spellcasting ability modifier."""
+        class_id = self.character_context.get('class_id', '').lower()
+        level = self.character_context.get('level', 1)
+
+        # Calculate proficiency bonus
+        prof_bonus = 2 + ((level - 1) // 4)  # +2 at 1-4, +3 at 5-8, etc.
+
+        # Get spellcasting ability modifier
+        if class_id == 'wizard':
+            ability_mod = (self.character_context.get('intelligence', 10) - 10) // 2
+        elif class_id in ['cleric', 'druid']:
+            ability_mod = (self.character_context.get('wisdom', 10) - 10) // 2
+        elif class_id in ['paladin', 'warlock', 'sorcerer']:
+            ability_mod = (self.character_context.get('charisma', 10) - 10) // 2
+        else:
+            ability_mod = 0
+
+        return prof_bonus + ability_mod
+
+    def _calculate_spell_save_dc(self) -> int:
+        """Calculate spell save DC = 8 + proficiency + spellcasting ability modifier."""
+        return 8 + self._calculate_spell_attack_bonus()
+
+    def _get_spell_save_type(self, spell_name: str) -> str:
+        """Get the type of saving throw required for a spell."""
+        save_types = {
+            'Sacred Flame': 'DEX',
+            'Burning Hands': 'DEX',
+            'Thunderwave': 'CON',
+            'Hold Person': 'WIS',
+            'Charm Person': 'WIS',
+        }
+        return save_types.get(spell_name, 'DEX')  # Default to DEX
+
+    def _roll_monster_save(self, target_monster, save_type: str) -> tuple[int, str]:
+        """Roll a saving throw for a monster."""
+        import random
+
+        # TODO: Get actual monster save bonuses from database
+        # For now, use generic save bonuses based on CR
+        base_save_bonus = 0  # Most low-CR monsters have +0 to saves
+
+        d20_roll = random.randint(1, 20)
+        total = d20_roll + base_save_bonus
+
+        breakdown = f"d20({d20_roll}) +{base_save_bonus} {save_type}"
+
+        return total, breakdown
 
     def _handle_spell_utility(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
         """Handle utility/buff spell effects."""
@@ -4784,7 +5008,7 @@ class ActionPanel(QWidget):
         self._create_spell_action_cards()
 
         # Update the UI display
-        self._update_card_display()
+        self._update_visible_cards()
 
     def _setup_combat_manager(self, encounter_panel, initiative_order):
         """Set up the combat manager with player and monster combatants."""
