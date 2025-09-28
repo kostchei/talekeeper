@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from action_cards.action_panel import ActionPanel, ActionType
 from services.spellcasting_service import SpellcastingService
+from models.action_economy import ActionEconomyType
 
 def test_spell_action_cards_creation():
     """Test that spell action cards are created for spellcasting characters."""
@@ -171,6 +172,29 @@ def test_spell_icon_generation():
         assert result == expected_icon, f"Expected {expected_icon} for {spell_data}, got {result}"
 
     print("✅ Spell icon generation test passed")
+
+
+def test_spell_actions_consume_action_economy():
+    """Ensure spell action types integrate with action economy tracking."""
+    action_panel = ActionPanel()
+
+    # Mapping sanity checks so card routing stays correct
+    assert action_panel._map_action_to_economy_type(ActionType.SPELL_ATTACK) == ActionEconomyType.ACTION
+    assert action_panel._map_action_to_economy_type(ActionType.SPELL_UTILITY) == ActionEconomyType.ACTION
+    assert action_panel._map_action_to_economy_type(ActionType.SPELL_REACTION) == ActionEconomyType.REACTION
+
+    # Verify we consume the action through the CombatSession helper
+    action_panel.character_id = 'test-char'
+    action_panel.current_combat_session = Mock()
+    action_panel.current_combat_session.use_action.return_value = True
+
+    with patch.object(action_panel, '_refresh_action_availability') as mock_refresh:
+        action_panel._update_action_economy(ActionType.SPELL_ATTACK)
+
+    action_panel.current_combat_session.use_action.assert_called_once_with(
+        'test-char', 'action', 'spell_attack', {'source': 'action_panel'}
+    )
+    mock_refresh.assert_called_once()
 
 def main():
     """Run all tests."""

@@ -1524,6 +1524,9 @@ class ActionPanel(QWidget):
             return
 
         # Check action economy if enabled
+        if self.action_economy_enabled and not self.current_combat_session:
+            self._ensure_combat_session()
+
         if self.action_economy_enabled and self.current_combat_session:
             if not self._is_action_available_by_economy(action_type):
                 reason = self._get_economy_unavailability_reason(action_type)
@@ -1649,7 +1652,8 @@ class ActionPanel(QWidget):
 
         # Fallback list for actions that should end the turn
         turn_ending_actions = {
-            ActionType.CAST_SPELL, ActionType.USE_ITEM, ActionType.DODGE,
+            ActionType.CAST_SPELL, ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY,
+            ActionType.USE_ITEM, ActionType.DODGE,
             ActionType.DASH, ActionType.SEARCH, ActionType.HIDE,
             ActionType.USE_POTION, ActionType.SECOND_WIND  # Bonus actions that often end turn
         }
@@ -2541,10 +2545,18 @@ class ActionPanel(QWidget):
         try:
             combat_manager = self._get_combat_manager()
 
-            # Check if combat manager is active
+            # Check if combat manager is active (attempt to initialize if needed)
             if not combat_manager.combat_active:
-                print(f"ERROR: Combat manager not active - combat should be initialized before attacking")
-                return
+                encounter_panel_ref = encounter_panel or self._get_encounter_panel()
+                if encounter_panel_ref:
+                    context_for_initiative = {**(self.character_context or {}), 'action_type': None}
+                    try:
+                        self._check_and_roll_initiative(encounter_panel_ref, context_for_initiative)
+                    except Exception as e:
+                        print(f"Error auto-initializing combat manager: {e}")
+                if not combat_manager.combat_active:
+                    print(f"DEBUG: Combat manager not active - combat should be initialized before attacking")
+                    return
 
             # Debug: Check current state before advancing
             current_before = combat_manager.get_current_combatant()
@@ -2556,6 +2568,16 @@ class ActionPanel(QWidget):
                 if current_before.type.value == 'player':
                     print(f"DEBUG: Marking player action as taken")
                     current_before.has_taken_action = True
+
+                    if self.action_economy_enabled and self.current_combat_session and self.character_id:
+                        try:
+                            action_economy = getattr(self.current_combat_session, 'action_economy', None)
+                            if action_economy:
+                                state = action_economy.get_combatant_state(self.character_id)
+                                if state:
+                                    state.end_turn()
+                        except Exception as economy_error:
+                            print(f"Error ending action economy turn: {economy_error}")
             else:
                 print(f"DEBUG: Before advance - no current combatant")
 
@@ -2694,13 +2716,16 @@ class ActionPanel(QWidget):
                     self._continue_combat_turn_cycle(encounter_panel)
 
             elif next_combatant.type.value == 'player':
-                # Player's turn - log and wait for action
+                # Player's turn - log and reset turn state
                 parent = self.parent()
                 while parent:
                     if hasattr(parent, 'log_panel'):
                         parent.log_panel.log_combat("[LIGHTNING] Your turn! Choose your next action.")
                         break
                     parent = parent.parent()
+
+                # Reset action economy/turn buffs for new player turn
+                self._log_player_turn_start()
 
         except Exception as e:
             print(f"CRITICAL ERROR: Failed to advance combat turn: {e}")
@@ -2847,7 +2872,22 @@ class ActionPanel(QWidget):
             
             # Reset Savage Attacker for new turn
             self.first_attack_this_round = True
-            
+
+            # Reset action economy availability at the start of the player's turn
+            if self.action_economy_enabled and self.current_combat_session and self.character_id:
+                try:
+                    action_economy = getattr(self.current_combat_session, 'action_economy', None)
+                    if action_economy:
+                        state = action_economy.get_combatant_state(self.character_id)
+                        if state:
+                            round_number = getattr(action_economy, 'current_round', state.current_round) or 1
+                            turn_position = getattr(action_economy, 'current_turn', state.current_turn_in_initiative) or 0
+                            state.start_new_turn(round_number, turn_position)
+                            self._refresh_action_availability()
+                            self._update_action_economy_display()
+                except Exception as economy_error:
+                    print(f"Error resetting action economy for player turn: {economy_error}")
+
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -4703,6 +4743,20 @@ class ActionPanel(QWidget):
                 # Refresh action cards to update spell slot availability
                 self._refresh_spell_action_cards()
 
+                # CRITICAL: Update action economy and advance turn (like weapon attacks do)
+                self._update_action_economy(action_type)
+
+                # Emit action signal for any listeners
+                if hasattr(self, 'action_triggered'):
+                    full_context = {'spell_name': spell_name, 'spell_level': cast_level}
+                    self.action_triggered.emit(action_type, full_context)
+
+                # Advance combat turn if this is a combat action
+                if self._is_combat_action(action_type):
+                    encounter_panel = self._get_encounter_panel()
+                    if encounter_panel:
+                        self._advance_combat_turn(encounter_panel)
+
             else:
                 self._log_to_combat_panel(f"❌ Cannot cast {selected_spell['name']}: {result.reason}")
 
@@ -4733,6 +4787,20 @@ class ActionPanel(QWidget):
 
                 self._handle_spell_effects(action_type, spell_data, spell_level)
                 self._refresh_spell_action_cards()
+
+                # CRITICAL: Update action economy and advance turn (like weapon attacks do)
+                self._update_action_economy(action_type)
+
+                # Emit action signal for any listeners
+                if hasattr(self, 'action_triggered'):
+                    full_context = {'spell_name': spell_name, 'spell_level': spell_level}
+                    self.action_triggered.emit(action_type, full_context)
+
+                # Advance combat turn if this is a combat action
+                if self._is_combat_action(action_type):
+                    encounter_panel = self._get_encounter_panel()
+                    if encounter_panel:
+                        self._advance_combat_turn(encounter_panel)
 
             else:
                 self._log_to_combat_panel(f"❌ Cannot cast {spell_name}: {result.reason}")
@@ -5309,13 +5377,21 @@ class ActionPanel(QWidget):
             economy_type = self._map_action_to_economy_type(used_action)
 
             if economy_type and self.character_id:
-                # Consume the action in the combat session
-                self.current_combat_session.action_economy.use_action(self.character_id, economy_type)
+                # Consume the action through the combat session helper so availability updates stay in sync
+                success = self.current_combat_session.use_action(
+                    self.character_id,
+                    economy_type.value,
+                    used_action.value,
+                    {"source": "action_panel"}
+                )
 
-                # Update the display to reflect the new state
-                self._refresh_action_availability()
+                if success:
+                    # Update the display to reflect the new state
+                    self._refresh_action_availability()
 
-                print(f"[ACTION ECONOMY] Consumed {economy_type.value} for {used_action.value}")
+                    print(f"[ACTION ECONOMY] Consumed {economy_type.value} for {used_action.value}")
+                else:
+                    print(f"[ACTION ECONOMY] Failed to consume {economy_type.value} for {used_action.value}")
 
         except Exception as e:
             print(f"Error updating action economy: {e}")
@@ -6324,6 +6400,49 @@ class ActionPanel(QWidget):
         self.character_id = character_id
         self._update_action_availability()
     
+    def _ensure_combat_session(self):
+        """Ensure there is an action-economy combat session available."""
+        if not self.action_economy_enabled:
+            return
+        if self.current_combat_session and self.character_id:
+            return
+        character_id = (self.character_context or {}).get('id')
+        if not character_id:
+            return
+        encounter_panel = self._get_encounter_panel()
+        if encounter_panel:
+            try:
+                encounter_mode = getattr(encounter_panel, 'encounter_mode', None)
+                if encounter_mode not in ('combat', 'encounter'):
+                    # Do not auto-start combat economy outside encounter contexts
+                    return
+                existing_session = getattr(encounter_panel, 'current_combat_session', None)
+                if existing_session:
+                    self.set_combat_session(existing_session, character_id)
+                    return
+                if hasattr(encounter_panel, '_init_combat_session'):
+                    encounter_panel._init_combat_session()
+                    existing_session = getattr(encounter_panel, 'current_combat_session', None)
+                    if existing_session:
+                        self.set_combat_session(existing_session, character_id)
+                        return
+            except Exception as e:
+                print(f"Error synchronizing combat session: {e}")
+        try:
+            from encounter_pane.encounter_panel import CombatSession
+        except Exception as e:
+            print(f"Failed to import CombatSession for fallback: {e}")
+            return
+        try:
+            session = CombatSession()
+            session.start_combat_with_action_economy(character_id)
+            self.set_combat_session(session, character_id)
+            if encounter_panel is not None:
+                setattr(encounter_panel, 'current_combat_session', session)
+            print(f"[ACTION ECONOMY] Bootstrapped combat session for {character_id}")
+        except Exception as e:
+            print(f"Failed to bootstrap combat session: {e}")
+
     def end_combat_session(self):
         """Clear combat session and reset action availability."""
         self.current_combat_session = None
@@ -6469,9 +6588,11 @@ class ActionPanel(QWidget):
         from models.action_economy import ActionEconomyType
         
         # Actions that consume your main Action
+        # Treat spell actions as standard actions until per-spell casting-time metadata is exposed
         main_actions = {
             ActionType.ATTACK_MAIN_HAND,
-            ActionType.CAST_SPELL, ActionType.DASH, ActionType.DODGE,
+            ActionType.CAST_SPELL, ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY,
+            ActionType.DASH, ActionType.DODGE,
             ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM,
             ActionType.SIGNATURE_MOVE
         }
@@ -6488,7 +6609,7 @@ class ActionPanel(QWidget):
         
         # Reactions
         reactions = {
-            ActionType.OPPORTUNITY, ActionType.RETALIATION
+            ActionType.OPPORTUNITY, ActionType.RETALIATION, ActionType.SPELL_REACTION
         }
         
         if action_type in main_actions:
@@ -6502,6 +6623,7 @@ class ActionPanel(QWidget):
     
     def _get_economy_unavailability_reason(self, action_type: ActionType) -> str:
         """Get reason why an action is unavailable due to action economy."""
+        from models.action_economy import ActionEconomyType
         economy_type = self._map_action_to_economy_type(action_type)
         
         if economy_type == ActionEconomyType.ACTION:

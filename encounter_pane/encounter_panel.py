@@ -133,7 +133,12 @@ class CombatSession:
             movement_speed=30,
             has_action_surge=has_action_surge
         )
-        
+
+        try:
+            self.action_economy.start_combat([character_id])
+        except Exception as e:
+            print(f"Error starting action economy combat: {e}")
+
         self.is_active = True
     
     def can_take_action(self, combatant_id: str, action_type: str) -> bool:
