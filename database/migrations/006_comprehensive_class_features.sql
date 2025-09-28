@@ -113,7 +113,7 @@ INSERT OR REPLACE INTO class_features_progression (class_id, level, feature_name
 INSERT OR REPLACE INTO class_features_progression (class_id, level, feature_name, feature_type, description, mechanics) VALUES
 ('wizard', 1, 'Spellcasting', 'passive', 'Cast wizard spells using Intelligence', '{"spell_slots": [2, 0, 0, 0, 0, 0, 0, 0, 0], "cantrips_known": 3}'),
 ('wizard', 1, 'Arcane Recovery', 'short_rest', 'Recover spell slots on a short rest', '{"slot_levels_recovered": "wizard_level/2"}'),
-('wizard', 2, 'Arcane Tradition', 'passive', 'Choose your wizard subclass', '{"subclass_selection": true}'),
+('wizard', 3, 'Arcane Tradition', 'passive', 'Choose your wizard subclass', '{"subclass_selection": true}'),
 ('wizard', 4, 'Ability Score Improvement', 'passive', 'Increase ability scores or take a feat', '{"asi_or_feat": true}'),
 ('wizard', 8, 'Ability Score Improvement', 'passive', 'Increase ability scores or take a feat', '{"asi_or_feat": true}'),
 ('wizard', 12, 'Ability Score Improvement', 'passive', 'Increase ability scores or take a feat', '{"asi_or_feat": true}'),
@@ -125,8 +125,8 @@ INSERT OR REPLACE INTO class_features_progression (class_id, level, feature_name
 -- CLERIC
 INSERT OR REPLACE INTO class_features_progression (class_id, level, feature_name, feature_type, description, mechanics) VALUES
 ('cleric', 1, 'Spellcasting', 'passive', 'Cast cleric spells using Wisdom', '{"spell_slots": [2, 0, 0, 0, 0, 0, 0, 0, 0], "cantrips_known": 3}'),
-('cleric', 1, 'Divine Domain', 'passive', 'Choose your cleric subclass', '{"subclass_selection": true}'),
 ('cleric', 2, 'Channel Divinity', 'action', 'Channel divine energy for powerful effects', '{"uses_per_short_rest": 1}'),
+('cleric', 3, 'Divine Domain', 'passive', 'Choose your cleric subclass', '{"subclass_selection": true}'),
 ('cleric', 4, 'Ability Score Improvement', 'passive', 'Increase ability scores or take a feat', '{"asi_or_feat": true}'),
 ('cleric', 5, 'Destroy Undead', 'passive', 'Destroy undead with Turn Undead', '{"destroy_undead_cr": 0.5}'),
 ('cleric', 6, 'Channel Divinity', 'action', 'Channel divine energy for powerful effects', '{"uses_per_short_rest": 2}'),

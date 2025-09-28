@@ -749,6 +749,14 @@ class GameEngineSQLite:
                         """, (character_id, spell_id, 1, True, 'class', 1, False))
                     print(f"[SQLite] Saved {len(selected_spells)} level-1 spells for character")
 
+                # Initialize spell slots for spellcasting classes
+                class_id = character_data['class_id']
+                if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
+                    from services.spellcasting_service import SpellcastingService
+                    spellcasting_service = SpellcastingService()
+                    spellcasting_service.initialize_character_spellcasting(character_id, class_id)
+                    print(f"[SQLite] Initialized spell slots for {class_id}")
+
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
             

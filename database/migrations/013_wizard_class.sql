@@ -85,14 +85,14 @@ INSERT OR IGNORE INTO classes (
 INSERT OR IGNORE INTO subclasses (
     id, class_id, name, description, selection_level
 ) VALUES
-    ('evocation', 'wizard', 'School of Evocation', 'Masters of elemental magic focused on damage and battlefield control', 2),
-    ('abjuration', 'wizard', 'School of Abjuration', 'Specialists in protective magic and nullifying hostile spells', 2),
-    ('conjuration', 'wizard', 'School of Conjuration', 'Experts at summoning creatures and objects from other planes', 2),
-    ('divination', 'wizard', 'School of Divination', 'Seers who glimpse the future and uncover hidden knowledge', 2),
-    ('enchantment', 'wizard', 'School of Enchantment', 'Manipulators of minds and emotions through magical influence', 2),
-    ('illusion', 'wizard', 'School of Illusion', 'Masters of deception who blur the line between reality and fantasy', 2),
-    ('necromancy', 'wizard', 'School of Necromancy', 'Students of death magic who command undead and manipulate life force', 2),
-    ('transmutation', 'wizard', 'School of Transmutation', 'Changers who alter the fundamental properties of creatures and objects', 2);
+    ('evocation', 'wizard', 'School of Evocation', 'Masters of elemental magic focused on damage and battlefield control', 3),
+    ('abjuration', 'wizard', 'School of Abjuration', 'Specialists in protective magic and nullifying hostile spells', 3),
+    ('conjuration', 'wizard', 'School of Conjuration', 'Experts at summoning creatures and objects from other planes', 3),
+    ('divination', 'wizard', 'School of Divination', 'Seers who glimpse the future and uncover hidden knowledge', 3),
+    ('enchantment', 'wizard', 'School of Enchantment', 'Manipulators of minds and emotions through magical influence', 3),
+    ('illusion', 'wizard', 'School of Illusion', 'Masters of deception who blur the line between reality and fantasy', 3),
+    ('necromancy', 'wizard', 'School of Necromancy', 'Students of death magic who command undead and manipulate life force', 3),
+    ('transmutation', 'wizard', 'School of Transmutation', 'Changers who alter the fundamental properties of creatures and objects', 3);
 
 -- Add Wizard to class_features_progression table
 INSERT OR IGNORE INTO class_features_progression (
@@ -103,10 +103,10 @@ INSERT OR IGNORE INTO class_features_progression (
     ('wizard', 1, 'Arcane Recovery', 'resource', 'Once per day when you finish a short rest, you can recover spell slots'),
 
     -- Level 2
-    ('wizard', 2, 'Arcane Tradition', 'passive', 'Choose your school of magic specialization'),
+    ('wizard', 2, '2nd-level Spells', 'passive', 'You can now learn and cast 2nd-level spells'),
 
     -- Level 3
-    ('wizard', 3, '2nd-level Spells', 'passive', 'You can now learn and cast 2nd-level spells'),
+    ('wizard', 3, 'Arcane Tradition', 'passive', 'Choose your school of magic specialization'),
 
     -- Level 4
     ('wizard', 4, 'Ability Score Improvement', 'passive', 'Increase one ability score by 2, or two ability scores by 1 each'),

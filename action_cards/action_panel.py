@@ -153,6 +153,7 @@ class ActionPanel(QWidget):
         self.panel_width = self.layout_profile.character_panel_width + self.layout_profile.encounter_panel_width
         self.panel_height = self.layout_profile.action_panel_height
         self.current_category = ActionCategory.COMBAT
+        self.current_theme = "light"  # Default theme
         self.action_cards = {}  # ActionType -> ActionCard mapping
         self.action_cooldowns = {}  # ActionType -> remaining turns
         self.character_context = {}  # Current character state
@@ -4503,6 +4504,12 @@ class ActionPanel(QWidget):
         # Create action card
         card = ActionCard(action_type, icon, name, description)
 
+        # Apply current theme to match other cards
+        if hasattr(self, 'current_theme'):
+            card.update_theme_styles(self.current_theme)
+        else:
+            card.update_theme_styles("light")
+
         # Store spell slot data for casting
         card.spell_slot_data = {
             'spell_level': spell_level,
@@ -5133,6 +5140,7 @@ class ActionPanel(QWidget):
     
     def update_theme(self, theme_name: str):
         """Update all action cards to use the specified theme."""
+        self.current_theme = theme_name
         self._apply_styles_for_theme(theme_name)
         for card in self.action_cards.values():
             card.update_theme_styles(theme_name)
@@ -7344,8 +7352,8 @@ class ActionCard(QWidget):
             card_border = "#a45f38"    # button color from light theme
             card_border_hover = "#3f7663"  # accent_tertiary from light theme
             icon_bg = "#f8ecdf"        # background highlight
-            name_color = "#2b211c"     # Primary text color
-            desc_color = "#4c3d35"     # Secondary text color
+            name_color = "#000000"     # Black text for maximum readability
+            desc_color = "#000000"     # Black text for maximum readability
             button_bg = "#a45f38"      # button color from light theme
             button_hover = "#bb7346"   # button_hover from light theme
             button_pressed = "#7c4f32" # accent_primary from light theme
