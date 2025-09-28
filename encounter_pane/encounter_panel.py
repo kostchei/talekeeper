@@ -3276,7 +3276,9 @@ class EncounterPanel(QWidget):
             'selected_class_skills': self.character_creation_data.get('selected_class_skills', []),
             'selected_species_skills': self.character_creation_data.get('selected_species_skills', []),
             'rogue_features': self.character_creation_data.get('rogue_features', {}),
-            'warlock_invocation': self.character_creation_data.get('warlock_invocation')
+            'warlock_invocation': self.character_creation_data.get('warlock_invocation'),
+            'selected_cantrips': self.character_creation_data.get('selected_cantrips', []),
+            'selected_spells': self.character_creation_data.get('selected_spells', [])
         }
 
         # Record selected equipment options - break down combination strings

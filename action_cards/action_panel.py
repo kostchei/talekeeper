@@ -442,14 +442,18 @@ class ActionPanel(QWidget):
     
     def _create_feature_cards(self):
         """Create action cards for character features like Second Wind."""
-        if not getattr(self, 'character_features', None):
-            return
+        print(f"[DEBUG] _create_feature_cards() called!")
+        has_features = getattr(self, 'character_features', None)
+        print(f"[DEBUG] has_features = {bool(has_features)}")
 
-        # Clear any existing feature cards
-        self._clear_feature_cards()
+        if has_features:
+            # Clear any existing feature cards
+            self._clear_feature_cards()
 
-        display_names = list(self.character_features.keys()) if isinstance(self.character_features, dict) else []
-        print(f"DEBUG: Character features for feature checks: {display_names}")
+            display_names = list(self.character_features.keys()) if isinstance(self.character_features, dict) else []
+            print(f"DEBUG: Character features for feature checks: {display_names}")
+        else:
+            print(f"DEBUG: No character features, but will still check for spellcasting")
 
         second_wind_feature = self._get_feature_data('Second Wind')
         if second_wind_feature:
@@ -535,6 +539,8 @@ class ActionPanel(QWidget):
             subclass_id = self.character_context.get('subclass_id', '').lower()
             level = self.character_context.get('level', 1)
 
+            print(f"[DEBUG] Checking spellcasting for class_id={class_id}, level={level}")
+
             # Check if character can cast spells
             is_spellcaster = False
 
@@ -550,6 +556,8 @@ class ActionPanel(QWidget):
             elif ((class_id == 'rogue' and subclass_id == 'arcane_trickster') or
                   (class_id == 'fighter' and subclass_id == 'eldritch_knight')) and level >= 3:
                 is_spellcaster = True
+
+            print(f"[DEBUG] is_spellcaster={is_spellcaster}")
 
             if is_spellcaster:
                 self._create_spell_action_cards()
@@ -4251,14 +4259,14 @@ class ActionPanel(QWidget):
 
                 # Get prepared spells that can be cast (cantrips are always castable)
                 cursor.execute("""
-                    SELECT cs.spell_id, cs.spell_level, cs.is_prepared, cs.always_prepared,
+                    SELECT cs.spell_id, s.level as spell_level, cs.is_prepared, cs.always_prepared,
                            s.name, s.school, s.casting_time, s.range_value, s.components,
                            s.duration, s.concentration, s.description
                     FROM character_spells cs
                     JOIN spells s ON cs.spell_id = s.id
                     WHERE cs.character_id = ?
-                    AND (cs.is_prepared = 1 OR cs.spell_level = 0 OR cs.always_prepared = 1)
-                    ORDER BY cs.spell_level, s.name
+                    AND (cs.is_prepared = 1 OR s.level = 0 OR cs.always_prepared = 1)
+                    ORDER BY s.level, s.name
                 """, (character_id,))
 
                 spells = []
@@ -4301,6 +4309,10 @@ class ActionPanel(QWidget):
         character_id = self.character_context['id']
         spells = self._get_character_castable_spells(character_id)
         spell_slots = self._get_character_spell_slots(character_id)
+
+        print(f"[DEBUG] _create_spell_action_cards called for character {character_id}")
+        print(f"[DEBUG] Found {len(spells)} castable spells: {[s['name'] for s in spells]}")
+        print(f"[DEBUG] Spell slots: {spell_slots}")
 
         # Group spells by level and action type
         spell_groups = {}

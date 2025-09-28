@@ -67,7 +67,7 @@ class SpellDefinition:
     def from_dict(cls, data: Dict[str, Any]) -> 'SpellDefinition':
         """Create from dictionary."""
         data = data.copy()
-        data['school'] = SpellSchool(data['school'])
+        data['school'] = SpellSchool(data['school'].lower())
         if 'classes' in data and isinstance(data['classes'], str):
             data['classes'] = json.loads(data['classes'])
         return cls(**data)
