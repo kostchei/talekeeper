@@ -1570,25 +1570,24 @@ class EncounterPanel(QWidget):
         """Create the class features selection step."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(1)
+
         # Title
         title = QLabel("Class Features")
         title.setObjectName("creationStepTitle")
         layout.addWidget(title)
-        
-        # Info text
-        info_label = QLabel("Configure your class-specific features.")
-        info_label.setObjectName("stepDescription")
-        layout.addWidget(info_label)
-        
+
         # Class features container (will be populated based on selected class)
         self.class_features_container = QWidget()
         self.class_features_layout = QVBoxLayout(self.class_features_container)
+        self.class_features_layout.setContentsMargins(0, 0, 0, 0)
+        self.class_features_layout.setSpacing(1)
         layout.addWidget(self.class_features_container)
-        
+
         # Spacer
         layout.addStretch()
-        
+
         return widget
     
     def _create_background_species_step(self) -> QWidget:
@@ -1938,23 +1937,15 @@ class EncounterPanel(QWidget):
             self._setup_rogue_features()
         elif selected_class_name == "Warlock":
             self._setup_warlock_features()
-        else:
-            # For non-Fighter classes, show placeholder text
-            info_label = QLabel(f"{selected_class_name} other class features will be implemented soon.")
-            info_label.setStyleSheet("color: #888;")
-            self.class_features_layout.addWidget(info_label)
     
     def _setup_fighter_features(self):
         """Setup Fighter Level 1 class features."""
         # Fighting Style selection
-        fighting_style_group = QGroupBox("Fighting Style (Level 1)")
+        fighting_style_group = QGroupBox("Fighting Style")
         fs_layout = QVBoxLayout(fighting_style_group)
-        
-        fs_description = QLabel("Choose a Fighting Style feat. This represents your martial training specialty.")
-        fs_description.setWordWrap(True)
-        fs_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
-        fs_layout.addWidget(fs_description)
-        
+        fs_layout.setContentsMargins(5, 5, 5, 5)
+        fs_layout.setSpacing(1)
+
         self.fighting_style_combo = QComboBox()
         self.fighting_style_combo.addItem("Select a Fighting Style...", None)
         
@@ -2008,13 +1999,10 @@ class EncounterPanel(QWidget):
         """Setup Rogue Level 1 class features."""
 
         # Expertise selection
-        expertise_group = QGroupBox("Expertise (Level 1)")
+        expertise_group = QGroupBox("Expertise - Choose 2")
         expertise_layout = QVBoxLayout(expertise_group)
-
-        expertise_description = QLabel("Choose 2 skills from your proficiencies to gain Expertise (double proficiency bonus).")
-        expertise_description.setWordWrap(True)
-        expertise_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
-        expertise_layout.addWidget(expertise_description)
+        expertise_layout.setContentsMargins(5, 5, 5, 5)
+        expertise_layout.setSpacing(1)
 
         # Get skills the character is proficient in
         proficient_skills = self._get_character_proficient_skills()
@@ -2057,12 +2045,13 @@ class EncounterPanel(QWidget):
         self.class_features_layout.addWidget(expertise_group)
 
         # Thieves' Tools note
-        tools_group = QGroupBox("Starting Proficiencies")
+        tools_group = QGroupBox("Proficiencies")
         tools_layout = QVBoxLayout(tools_group)
+        tools_layout.setContentsMargins(5, 5, 5, 5)
+        tools_layout.setSpacing(1)
 
-        tools_note = QLabel("You automatically gain proficiency with Thieves' Tools and starting equipment includes Thieves' Tools.")
-        tools_note.setWordWrap(True)
-        tools_note.setStyleSheet("color: #4a9eff; font-style: italic;")
+        tools_note = QLabel("Proficiency: Thieves' Tools (auto-granted)")
+        tools_note.setStyleSheet("color: #4a9eff;")
         tools_layout.addWidget(tools_note)
 
         self.class_features_layout.addWidget(tools_group)
@@ -2070,13 +2059,10 @@ class EncounterPanel(QWidget):
     def _setup_warlock_features(self):
         """Setup Warlock Level 1 class features."""
 
-        invocation_group = QGroupBox("Eldritch Invocation (Level 1)")
+        invocation_group = QGroupBox("Eldritch Invocation")
         invocation_layout = QVBoxLayout(invocation_group)
-
-        invocation_description = QLabel("Choose one Eldritch Invocation. This represents forbidden knowledge that grants you magical abilities.")
-        invocation_description.setWordWrap(True)
-        invocation_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
-        invocation_layout.addWidget(invocation_description)
+        invocation_layout.setContentsMargins(5, 5, 5, 5)
+        invocation_layout.setSpacing(1)
 
         self.invocation_combo = QComboBox()
         self.invocation_combo.addItem("Select an Invocation...", None)
@@ -2303,15 +2289,13 @@ class EncounterPanel(QWidget):
         # Create skill selection group
         skill_group = QGroupBox(f"Class Skills - Choose {skill_count}")
         skill_layout = QVBoxLayout(skill_group)
-        
-        skill_description = QLabel(f"Choose {skill_count} skill{'s' if skill_count != 1 else ''} from your class list:")
-        skill_description.setWordWrap(True)
-        skill_description.setStyleSheet("color: #666; font-style: italic; margin-bottom: 10px;")
-        skill_layout.addWidget(skill_description)
-        
+        skill_layout.setContentsMargins(5, 5, 5, 5)
+        skill_layout.setSpacing(1)
+
         # Create checkboxes for available skills
         self.class_skill_checkboxes = {}
         skill_grid_layout = QGridLayout()
+        skill_grid_layout.setSpacing(1)
         
         for i, skill in enumerate(available_skills):
             checkbox = QCheckBox(skill)

@@ -137,7 +137,7 @@ class SpellcastingService:
                 SELECT spellcasting_ability, spell_attack_bonus, spell_save_dc,
                        ritual_casting, spellcasting_focus
                 FROM character_spellcasting
-                WHERE character_id = ?
+                WHERE character_id = ? LIMIT 1
             """, (character_id,))
 
             row = cursor.fetchone()
@@ -161,7 +161,7 @@ class SpellcastingService:
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT level, intelligence, wisdom, charisma, proficiency_bonus
+                SELECT level, intelligence, wisdom, charisma
                 FROM characters
                 WHERE id = ?
             """, (character_id,))
@@ -174,7 +174,9 @@ class SpellcastingService:
             intelligence = char_row['intelligence'] or 10
             wisdom = char_row['wisdom'] or 10
             charisma = char_row['charisma'] or 10
-            prof_bonus = char_row['proficiency_bonus'] or 2
+
+            # Calculate proficiency bonus based on level
+            prof_bonus = 2 + ((level - 1) // 4)
 
             # Determine spellcasting ability by class
             ability_map = {
@@ -208,11 +210,11 @@ class SpellcastingService:
             # Insert/update spellcasting info
             cursor.execute("""
                 INSERT OR REPLACE INTO character_spellcasting
-                (character_id, spellcasting_ability, spell_attack_bonus, spell_save_dc,
-                 ritual_casting, spellcasting_focus, spells_known, spells_prepared)
-                VALUES (?, ?, ?, ?, ?, ?, 0, 0)
+                (character_id, spellcasting_class, spellcasting_ability, spell_attack_bonus, spell_save_dc,
+                 ritual_casting, spellcasting_focus, prepared_spells, known_spells, cantrips_known)
+                VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', 0)
             """, (
-                character_id, spellcasting_ability.value, spell_attack_bonus,
+                character_id, class_name, spellcasting_ability.value, spell_attack_bonus,
                 spell_save_dc, ritual_casting, 'component_pouch'
             ))
 

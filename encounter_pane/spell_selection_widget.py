@@ -50,13 +50,18 @@ class SpellSelectionWidget(QWidget):
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(1)
 
         self.cantrip_container = QWidget()
         self.cantrip_layout = QVBoxLayout(self.cantrip_container)
+        self.cantrip_layout.setContentsMargins(0, 0, 0, 0)
+        self.cantrip_layout.setSpacing(1)
         layout.addWidget(self.cantrip_container)
 
         self.spell_container = QWidget()
         self.spell_layout = QVBoxLayout(self.spell_container)
+        self.spell_layout.setContentsMargins(0, 0, 0, 0)
+        self.spell_layout.setSpacing(1)
         layout.addWidget(self.spell_container)
 
         self.spell_description = QTextEdit()
@@ -105,11 +110,14 @@ class SpellSelectionWidget(QWidget):
     def _setup_cantrip_selection(self, class_id: str, count: int):
         group = QGroupBox(f"Cantrips - Choose {count}")
         layout = QVBoxLayout(group)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(1)
 
         cantrips = self._load_spells_for_class(class_id, level=0)
 
         for i in range(count):
             combo_layout = QHBoxLayout()
+            combo_layout.setSpacing(5)
 
             label = QLabel(f"Cantrip {i+1}:")
             combo_layout.addWidget(label)
@@ -132,12 +140,17 @@ class SpellSelectionWidget(QWidget):
 
     def _setup_spell_selection(self, class_id: str, count: int):
         group = QGroupBox(f"Level 1 Spells - Choose {count}")
+        group_layout = QVBoxLayout(group)
+        group_layout.setContentsMargins(5, 5, 5, 5)
+        group_layout.setSpacing(1)
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setMaximumHeight(200)
 
         content = QWidget()
         grid = QGridLayout(content)
+        grid.setSpacing(1)
 
         spells = self._load_spells_for_class(class_id, level=1)
 
@@ -161,9 +174,7 @@ class SpellSelectionWidget(QWidget):
                 row += 1
 
         scroll.setWidget(content)
-        layout = QVBoxLayout()
-        layout.addWidget(scroll)
-        group.setLayout(layout)
+        group_layout.addWidget(scroll)
 
         self.spell_layout.addWidget(group)
 

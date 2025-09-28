@@ -4294,36 +4294,59 @@ class ActionPanel(QWidget):
             return []
 
     def _create_spell_action_cards(self):
-        """Create individual action cards for each spell the character can cast."""
+        """Create swappable spell slot cards grouped by level and action type."""
         if not self.character_context or not self.character_context.get('id'):
             return
 
         character_id = self.character_context['id']
         spells = self._get_character_castable_spells(character_id)
+        spell_slots = self._get_character_spell_slots(character_id)
 
+        # Group spells by level and action type
+        spell_groups = {}
         for spell in spells:
-            # Determine action type based on spell properties
+            spell_level = spell['spell_level']
             action_type = self._determine_spell_action_type(spell)
 
-            # Create spell icon based on school and level
-            icon = self._get_spell_icon(spell)
+            key = (spell_level, action_type)
+            if key not in spell_groups:
+                spell_groups[key] = []
+            spell_groups[key].append(spell)
 
-            # Create spell name with level indicator
-            name = spell['name']
-            if spell['spell_level'] > 0:
-                name += f" ({spell['spell_level']})"
+        # Create one slot card per (spell_level, action_type) combination
+        for (spell_level, action_type), available_spells in spell_groups.items():
+            if not available_spells:
+                continue
 
-            # Create description with key info
-            description = self._create_spell_description(spell)
+            # Get spell slot info for this level
+            slot_info = next((slot for slot in spell_slots if slot.level == spell_level), None)
 
-            # Create action card with spell ID as key
-            card_key = f"spell_{spell['spell_id']}"
-            card = ActionCard(action_type, icon, name, description)
-            card.spell_data = spell  # Store spell data for casting
-            card.action_triggered.connect(self._trigger_action)
-            card.action_hovered.connect(self._action_hovered)
+            # For cantrips (level 0), always available
+            if spell_level == 0:
+                available_slots = float('inf')
+                max_slots = float('inf')
+            elif slot_info:
+                available_slots = slot_info.available_slots
+                max_slots = slot_info.max_slots
+            else:
+                available_slots = 0
+                max_slots = 0
 
-            # Store with unique key for this spell
+            # Skip if no slots available (except cantrips)
+            if spell_level > 0 and available_slots == 0:
+                continue
+
+            # Choose default spell (first alphabetically) for the card display
+            default_spell = sorted(available_spells, key=lambda s: s['name'])[0]
+
+            # Create slot card
+            card = self._create_spell_slot_card(
+                spell_level, action_type, default_spell,
+                available_spells, available_slots, max_slots
+            )
+
+            # Store with unique key for this slot
+            card_key = f"spell_slot_{spell_level}_{action_type.value}"
             self.action_cards[card_key] = card
 
     def _determine_spell_action_type(self, spell: Dict[str, Any]) -> ActionType:
@@ -4412,35 +4435,241 @@ class ActionPanel(QWidget):
 
         return " | ".join(parts)
 
+    def _get_character_spell_slots(self, character_id: str):
+        """Get character's spell slots using the spellcasting service."""
+        try:
+            spellcasting_service = self._get_spellcasting_service()
+            return spellcasting_service.get_character_spell_slots(character_id)
+        except Exception as e:
+            print(f"Error getting character spell slots: {e}")
+            return []
+
+    def _create_spell_slot_card(self, spell_level: int, action_type: ActionType,
+                               default_spell: Dict[str, Any], available_spells: List[Dict[str, Any]],
+                               available_slots: int, max_slots: int) -> "ActionCard":
+        """Create a swappable spell slot card."""
+        # Create icon based on spell level
+        if spell_level == 0:
+            icon = "✨"  # Cantrip
+        else:
+            icon = f"{spell_level}⭐"  # Level number with star
+
+        # Create card name showing level and current spell
+        if spell_level == 0:
+            name = f"Cantrip: {default_spell['name']}"
+        else:
+            name = f"Level {spell_level}: {default_spell['name']}"
+
+        # Create description with slot availability and spell info
+        description_parts = []
+
+        # Add slot availability
+        if spell_level == 0:
+            description_parts.append("Cantrip (unlimited)")
+        else:
+            slots_display = self._create_slots_display(available_slots, max_slots)
+            description_parts.append(f"Slots: {slots_display}")
+
+        # Add spell info
+        casting_time = default_spell.get('casting_time', '')
+        if casting_time:
+            description_parts.append(f"Time: {casting_time}")
+
+        range_value = default_spell.get('range_value', '')
+        if range_value:
+            description_parts.append(f"Range: {range_value}")
+
+        if default_spell.get('concentration'):
+            description_parts.append("Concentration")
+
+        # Add spell count if multiple available
+        if len(available_spells) > 1:
+            description_parts.append(f"({len(available_spells)} spells available)")
+
+        description = " | ".join(description_parts)
+
+        # Create action card
+        card = ActionCard(action_type, icon, name, description)
+
+        # Store spell slot data for casting
+        card.spell_slot_data = {
+            'spell_level': spell_level,
+            'action_type': action_type,
+            'default_spell': default_spell,
+            'available_spells': available_spells,
+            'available_slots': available_slots,
+            'max_slots': max_slots
+        }
+
+        card.action_triggered.connect(self._trigger_action)
+        card.action_hovered.connect(self._action_hovered)
+
+        return card
+
+    def _create_slots_display(self, available: int, maximum: int) -> str:
+        """Create visual display of spell slots like ●●●○○ (3/5)."""
+        if maximum == 0:
+            return "0/0"
+
+        used = maximum - available
+        display = "●" * available + "○" * used
+        return f"{display} ({available}/{maximum})"
+
+    def _show_spell_selection_dialog(self, available_spells: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Show dialog to select which spell to cast from available options."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QButtonGroup
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select Spell")
+        dialog.setModal(True)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Choose spell to cast:"))
+
+        button_group = QButtonGroup()
+        selected_spell = None
+
+        def on_spell_selected(spell):
+            nonlocal selected_spell
+            selected_spell = spell
+            dialog.accept()
+
+        for spell in sorted(available_spells, key=lambda s: s['name']):
+            btn = QPushButton(f"{spell['name']}")
+            btn.setToolTip(spell.get('description', ''))
+            btn.clicked.connect(lambda checked, s=spell: on_spell_selected(s))
+            layout.addWidget(btn)
+            button_group.addButton(btn)
+
+        # Cancel button
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        layout.addWidget(cancel_btn)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            return selected_spell
+        return None
+
+    def _show_spell_level_selection_dialog(self, spell: Dict[str, Any], character_id: str) -> Optional[int]:
+        """Show dialog to select which spell level to cast at."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QButtonGroup
+
+        # Get available spell slots
+        spell_slots = self._get_character_spell_slots(character_id)
+        spell_level = spell['spell_level']
+
+        # Find slots that can cast this spell
+        available_levels = []
+        for slot in spell_slots:
+            if slot.level >= spell_level and slot.available_slots > 0:
+                available_levels.append((slot.level, slot.available_slots, slot.max_slots))
+
+        # If only one level available, use it
+        if len(available_levels) == 1:
+            return available_levels[0][0]
+
+        # If no levels available, return None
+        if not available_levels:
+            return None
+
+        # Show selection dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Cast {spell['name']}")
+        dialog.setModal(True)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel(f"Select spell slot level for {spell['name']}:"))
+
+        selected_level = None
+
+        def on_level_selected(level):
+            nonlocal selected_level
+            selected_level = level
+            dialog.accept()
+
+        for level, available, maximum in sorted(available_levels):
+            slots_display = self._create_slots_display(available, maximum)
+            btn_text = f"Level {level} - {slots_display}"
+
+            # Add scaling info if available
+            if level > spell_level:
+                btn_text += f" (upcast from {spell_level})"
+
+            btn = QPushButton(btn_text)
+            btn.clicked.connect(lambda checked, l=level: on_level_selected(l))
+            layout.addWidget(btn)
+
+        # Cancel button
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        layout.addWidget(cancel_btn)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            return selected_level
+        return None
+
     def _cast_spell(self, action_type: ActionType, context: Dict[str, Any]):
-        """Handle spell casting."""
-        # The spell data should be passed in the context from the action card
-        spell_data = context.get('spell_data')
-
-        if not spell_data:
-            self._log_to_combat_panel("❌ Error: Could not find spell data")
-            return
-
+        """Handle spell casting from slot cards."""
         character_id = self.character_context.get('id')
         if not character_id:
             self._log_to_combat_panel("❌ Error: No character selected")
             return
 
-        spell_id = spell_data['spell_id']
-        spell_name = spell_data['name']
-        spell_level = spell_data['spell_level']
+        # Check if this is a spell slot card or old-style spell card
+        spell_slot_data = context.get('spell_slot_data')
+        spell_data = context.get('spell_data')
 
+        if spell_slot_data:
+            # New spell slot card system
+            self._cast_spell_from_slot(spell_slot_data, character_id)
+        elif spell_data:
+            # Old system compatibility
+            self._cast_spell_legacy(action_type, spell_data, character_id)
+        else:
+            self._log_to_combat_panel("❌ Error: Could not find spell data")
+
+    def _cast_spell_from_slot(self, slot_data: Dict[str, Any], character_id: str):
+        """Cast spell from new slot card system."""
+        available_spells = slot_data['available_spells']
+        spell_level = slot_data['spell_level']
+
+        # Step 1: Select spell if multiple available
+        selected_spell = None
+        if len(available_spells) == 1:
+            selected_spell = available_spells[0]
+        else:
+            # Show spell selection dialog
+            selected_spell = self._show_spell_selection_dialog(available_spells)
+            if not selected_spell:
+                return  # User cancelled
+
+        # Step 2: Select spell level for casting (for level 1+ spells)
+        cast_level = spell_level
+        if spell_level > 0:
+            cast_level = self._show_spell_level_selection_dialog(selected_spell, character_id)
+            if cast_level is None:
+                return  # User cancelled
+
+        # Step 3: Cast the spell
         try:
-            # Cast the spell using the spellcasting service
             spellcasting_service = self._get_spellcasting_service()
-            result = spellcasting_service.cast_spell(character_id, spell_id)
+            result = spellcasting_service.cast_spell(
+                character_id, selected_spell['spell_id'], cast_level
+            )
 
             if result.success:
-                # Spell cast successfully
-                if spell_level == 0:
+                spell_name = selected_spell['name']
+                action_type = slot_data['action_type']
+
+                # Log success
+                if cast_level == 0:
                     self._log_to_combat_panel(f"✨ Cast cantrip: {spell_name}")
                 else:
-                    self._log_to_combat_panel(f"✨ Cast {spell_name} (level {spell_level})")
+                    self._log_to_combat_panel(f"✨ Cast {spell_name} (level {cast_level})")
 
                 # Handle concentration
                 if result.concentration_started:
@@ -4449,23 +4678,57 @@ class ActionPanel(QWidget):
                 if result.concentration_ended:
                     self._log_to_combat_panel(f"💫 Concentration ended on previous spell")
 
-                # Handle spell effects based on type
-                if action_type == ActionType.SPELL_ATTACK:
-                    self._handle_spell_attack(spell_data, context)
-                elif action_type == ActionType.SPELL_UTILITY:
-                    self._handle_spell_utility(spell_data, context)
-                elif action_type == ActionType.SPELL_REACTION:
-                    self._handle_spell_reaction(spell_data, context)
+                # Handle spell effects
+                self._handle_spell_effects(action_type, selected_spell, cast_level)
 
                 # Refresh action cards to update spell slot availability
                 self._refresh_spell_action_cards()
 
             else:
-                # Spell casting failed
+                self._log_to_combat_panel(f"❌ Cannot cast {selected_spell['name']}: {result.reason}")
+
+        except Exception as e:
+            self._log_to_combat_panel(f"❌ Error casting spell: {e}")
+
+    def _cast_spell_legacy(self, action_type: ActionType, spell_data: Dict[str, Any], character_id: str):
+        """Legacy spell casting for old system compatibility."""
+        spell_id = spell_data['spell_id']
+        spell_name = spell_data['name']
+        spell_level = spell_data['spell_level']
+
+        try:
+            spellcasting_service = self._get_spellcasting_service()
+            result = spellcasting_service.cast_spell(character_id, spell_id)
+
+            if result.success:
+                if spell_level == 0:
+                    self._log_to_combat_panel(f"✨ Cast cantrip: {spell_name}")
+                else:
+                    self._log_to_combat_panel(f"✨ Cast {spell_name} (level {spell_level})")
+
+                if result.concentration_started:
+                    self._log_to_combat_panel(f"🧠 Concentrating on {spell_name}")
+
+                if result.concentration_ended:
+                    self._log_to_combat_panel(f"💫 Concentration ended on previous spell")
+
+                self._handle_spell_effects(action_type, spell_data, spell_level)
+                self._refresh_spell_action_cards()
+
+            else:
                 self._log_to_combat_panel(f"❌ Cannot cast {spell_name}: {result.reason}")
 
         except Exception as e:
             self._log_to_combat_panel(f"❌ Error casting spell: {e}")
+
+    def _handle_spell_effects(self, action_type: ActionType, spell_data: Dict[str, Any], cast_level: int):
+        """Handle spell effects based on action type."""
+        if action_type == ActionType.SPELL_ATTACK:
+            self._handle_spell_attack(spell_data, {'cast_level': cast_level})
+        elif action_type == ActionType.SPELL_UTILITY:
+            self._handle_spell_utility(spell_data, {'cast_level': cast_level})
+        elif action_type == ActionType.SPELL_REACTION:
+            self._handle_spell_reaction(spell_data, {'cast_level': cast_level})
 
     def _handle_spell_attack(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
         """Handle attack spell effects."""
@@ -4490,14 +4753,15 @@ class ActionPanel(QWidget):
 
     def _refresh_spell_action_cards(self):
         """Refresh spell action cards to reflect current spell slot availability."""
-        # Remove existing spell cards
-        cards_to_remove = [key for key in self.action_cards.keys() if isinstance(key, str) and key.startswith('spell_')]
+        # Remove existing spell cards (both old individual and new slot cards)
+        cards_to_remove = [key for key in self.action_cards.keys()
+                          if isinstance(key, str) and (key.startswith('spell_') or key.startswith('spell_slot_'))]
         for key in cards_to_remove:
             if key in self.action_cards:
                 self.action_cards[key].deleteLater()
                 del self.action_cards[key]
 
-        # Recreate spell cards
+        # Recreate spell cards using new slot system
         self._create_spell_action_cards()
 
         # Update the UI display
@@ -7176,6 +7440,10 @@ class ActionCard(QWidget):
             # Add spell data to context if this is a spell action card
             if hasattr(self, 'spell_data') and self.spell_data:
                 context['spell_data'] = self.spell_data
+
+            # Add spell slot data to context if this is a spell slot card
+            if hasattr(self, 'spell_slot_data') and self.spell_slot_data:
+                context['spell_slot_data'] = self.spell_slot_data
 
             # Handle both ActionType enums and legacy integer IDs
             if isinstance(self.action_type, ActionType):
