@@ -199,8 +199,7 @@ class EnhancedSubclassManager:
         self._ensure_tables()
 
         # Use the registry for subclass definitions instead of local storage
-        from services.subclass_registry import subclass_registry
-        self.registry = subclass_registry
+        self._registry = None  # Lazy load to avoid circular imports
 
     def _ensure_tables(self):
         """Create enhanced subclass tables if needed."""
@@ -239,7 +238,10 @@ class EnhancedSubclassManager:
 
     def get_subclass_definition(self, class_name: str, subclass_name: str) -> Optional[SubclassDefinition]:
         """Get a subclass definition using the registry."""
-        return self.registry.get_subclass(class_name, subclass_name)
+        if self._registry is None:
+            from services.subclass_registry import subclass_registry
+            self._registry = subclass_registry
+        return self._registry.get_subclass(class_name, subclass_name)
 
     def get_character_subclass_features(self, character_id: str, level: int) -> List[SubclassFeature]:
         """Get all subclass features available to a character at their level."""

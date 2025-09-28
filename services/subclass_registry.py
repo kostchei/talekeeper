@@ -164,13 +164,32 @@ class SubclassRegistry:
                     # Fallback to formatted subclass name
                     available[sub] = sub.replace('_', ' ').title()
 
+        # Apply release subclass filtering if enabled
+        from core.config import config
+        if config.features.release_subclass_filter and config.features.release_subclasses:
+            if class_lower in config.features.release_subclasses:
+                allowed_subclasses = config.features.release_subclasses[class_lower]
+                # Filter to only include allowed subclasses
+                available = {k: v for k, v in available.items() if k in allowed_subclasses}
+
         self._available_cache[class_lower] = available
         return available
 
     def is_subclass_available(self, class_name: str, subclass_name: str) -> bool:
         """Check if a specific subclass is available."""
         key = (class_name.lower(), subclass_name.lower())
-        return key in self.SUBCLASS_MODULES
+        if key not in self.SUBCLASS_MODULES:
+            return False
+
+        # Apply release subclass filtering if enabled
+        from core.config import config
+        if config.features.release_subclass_filter and config.features.release_subclasses:
+            class_lower = class_name.lower()
+            if class_lower in config.features.release_subclasses:
+                allowed_subclasses = config.features.release_subclasses[class_lower]
+                return subclass_name.lower() in allowed_subclasses
+
+        return True
 
     def get_all_classes_with_subclasses(self) -> Dict[str, int]:
         """

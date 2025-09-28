@@ -75,7 +75,8 @@
       "Bash(awk:*)",
       "Bash(findstr:*)",
       "WebSearch",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(tasklist)"
     ],
     "deny": []
   },

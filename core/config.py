@@ -45,6 +45,22 @@ class FeatureConfig:
     use_action_economy_enforcer: bool = True
     enable_scalable_subclass_architecture: bool = True
 
+    # Release subclass filtering - only show these subclasses for initial release
+    release_subclass_filter: bool = True
+    release_subclasses: dict = None
+
+    def __post_init__(self):
+        """Initialize default release subclasses if not set"""
+        if self.release_subclasses is None:
+            self.release_subclasses = {
+                "cleric": ["life", "war"],
+                "fighter": ["champion", "gladiator"],
+                "wizard": ["evocation", "abjuration"],
+                "barbarian": ["berserker"],  # slayer not implemented yet
+                "paladin": [],  # devotion and glory not implemented yet
+                "warlock": []   # fiend and templar not implemented yet
+            }
+
 
 @dataclass
 class UIConfig:

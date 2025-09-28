@@ -133,14 +133,14 @@ class SubclassManager:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            
+
             cursor.execute("""
                 SELECT id, name, description, flavor_text, selection_level
                 FROM subclasses
                 WHERE LOWER(class_id) = LOWER(?)
                 ORDER BY name
             """, (class_id,))
-            
+
             subclasses = []
             for row in cursor:
                 subclasses.append({
@@ -150,7 +150,16 @@ class SubclassManager:
                     'flavor_text': row['flavor_text'],
                     'selection_level': row['selection_level']
                 })
-            
+
+            # Apply release subclass filtering if enabled
+            from core.config import config
+            if config.features.release_subclass_filter and config.features.release_subclasses:
+                class_lower = class_id.lower()
+                if class_lower in config.features.release_subclasses:
+                    allowed_subclasses = config.features.release_subclasses[class_lower]
+                    # Filter to only include allowed subclasses
+                    subclasses = [sc for sc in subclasses if sc['id'] in allowed_subclasses]
+
             return subclasses
 
 
