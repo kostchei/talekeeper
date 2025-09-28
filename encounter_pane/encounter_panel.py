@@ -923,7 +923,7 @@ class EncounterPanel(QWidget):
         }
         
         QLabel#finalScore {
-            color: #ffffff;
+            color: #2b211c;
             font-weight: bold;
             font-size: 14px;
         }
@@ -950,7 +950,7 @@ class EncounterPanel(QWidget):
         }
         
         QLabel#abilityAbbrev {
-            color: #ffffff;
+            color: #2b211c;
             font-weight: bold;
             font-size: 14px;
             padding: 2px;
