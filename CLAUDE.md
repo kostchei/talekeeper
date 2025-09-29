@@ -17,18 +17,16 @@ python main.py
 
 ### Running Tests
 ```bash
-# Run Fighter tests (RECOMMENDED - These work!)
-cd test
-python -m pytest services/test_fighter_champion.py services/test_weapon_attack_service.py -v --tb=short
+# REGRESSION TESTS - Run after EVERY code change
+python tests/run_regression_tests.py --quick      # 30 seconds - Always run
+python tests/run_regression_tests.py --full       # 2-3 minutes - Before commits
+run_tests.bat quick                                # Windows shortcut
+./run_tests.sh quick                               # Unix/Linux shortcut
 
-# Quick validation check
-cd test && python test_simple_validation.py
-
-# Test results summary
-cd test && python test_results_summary.py
-
-# Old test suite (may have issues)
-python testing/run_tests.py
+# Legacy tests (for reference)
+cd test && python test_simple_validation.py       # Core validation
+cd test && python test_results_summary.py         # Test summary
+python testing/run_tests.py                       # Old Qt6 test suite
 ```
 
 ### Linting & Type Checking

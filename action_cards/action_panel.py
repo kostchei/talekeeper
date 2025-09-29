@@ -30,9 +30,11 @@ from services.equipment_database import EquipmentDatabase
 from services.weapon_attack_service import WeaponAttackService
 from core.combat_manager import CombatManager
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
+from action_cards.divine_smite_dialog import DivineSmiteDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 from services.spellcasting_service import SpellcastingService
 from services.spell_registry import spell_registry
+from services.paladin_abilities import PaladinAbilitiesService
 
 from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
@@ -2125,8 +2127,46 @@ class ActionPanel(QWidget):
                     except (ValueError, AttributeError):
                         pass
 
+            # Calculate base damage (before smite)
+            base_damage = dice_total + sum(value for _, value in damage_components) + sneak_attack_damage
+
+            # === CHECK FOR DIVINE SMITE (PALADIN) ===
+            # Only offer smite if:
+            # 1. Character is a Paladin
+            # 2. Monster would survive the base damage
+            # 3. Paladin has spell slots available
+            smite_damage_dice = 0
+            smite_slot_used = 0
+            if self.character_context:
+                class_id = self.character_context.get('class_id', '').lower()
+                if class_id == 'paladin':
+                    # Get monster's current HP
+                    monster_current_hp = 0
+                    if target_monster and isinstance(target_monster, dict):
+                        monster_current_hp = target_monster.get('current_hp', 0)
+
+                    # Only check for smite if monster would survive base damage
+                    if monster_current_hp > base_damage:
+                        smite_damage_dice, smite_slot_used = self._check_divine_smite(
+                            is_critical, target_monster, context, base_damage
+                        )
+
+            # === DIVINE SMITE DAMAGE ===
+            smite_damage = 0
+            smite_dice_rolls = []
+            if smite_damage_dice > 0:
+                # Roll smite damage (d8s)
+                smite_dice_rolls = [random.randint(1, 8) for _ in range(smite_damage_dice)]
+
+                # Double dice on critical hit
+                if is_critical:
+                    crit_smite_rolls = [random.randint(1, 8) for _ in range(smite_damage_dice)]
+                    smite_dice_rolls.extend(crit_smite_rolls)
+
+                smite_damage = sum(smite_dice_rolls)
+
             # Calculate total damage
-            total_damage = dice_total + sum(value for _, value in damage_components) + sneak_attack_damage
+            total_damage = base_damage + smite_damage
 
             # Check for Death Strike (Assassin level 17 - D&D 2024)
             death_strike_damage = 0
@@ -2173,6 +2213,9 @@ class ActionPanel(QWidget):
             if sneak_attack_damage > 0:
                 sneak_rolls_str = f"[{', '.join(map(str, sneak_attack_dice))}]"
                 damage_formula_parts.append(f"+sneak {sneak_rolls_str} = {sneak_attack_damage}")
+            if smite_damage > 0:
+                smite_rolls_str = f"[{', '.join(map(str, smite_dice_rolls))}]"
+                damage_formula_parts.append(f"+smite {smite_rolls_str} = {smite_damage} radiant")
             if death_strike_damage > 0:
                 damage_formula_parts.append(f" x2 Death Strike = {total_damage}")
             damage_formula_text = ' '.join(damage_formula_parts)
@@ -6737,6 +6780,106 @@ class ActionPanel(QWidget):
         character_features = self.character_features or {}
         return feature_name in character_features
     
+    def _check_divine_smite(self, is_critical: bool, target_monster: Any, context: Dict[str, Any], base_damage: int = 0) -> Tuple[int, int]:
+        """
+        Check if Paladin wants to use Divine Smite after hitting.
+
+        Args:
+            is_critical: Whether the attack was a critical hit
+            target_monster: The target monster
+            context: Attack context
+            base_damage: The base damage that will be dealt without smite
+
+        Returns:
+            Tuple of (smite_damage_dice_count, spell_slot_level_used)
+        """
+        import random
+
+        # Get available spell slots
+        character_id = self.character_context.get('id')
+        if not character_id:
+            return 0, 0
+
+        # Get spell slots from spellcasting service
+        try:
+            from services.spellcasting_service import get_spellcasting_service
+            spellcasting_service = get_spellcasting_service()
+
+            # Get all available spell slots
+            all_slots = spellcasting_service.get_character_spell_slots(character_id)
+            available_slots = {}
+            for slot in all_slots:
+                if slot.available_slots > 0 and slot.level <= 5:  # Paladins can use up to 5th level for smite
+                    available_slots[slot.level] = slot.available_slots
+
+            if not available_slots:
+                return 0, 0  # No spell slots available
+
+            # Prepare target info
+            target_info = {
+                'name': target_monster.get('name', 'Monster') if target_monster else 'Monster',
+                'type': target_monster.get('type', 'Unknown') if target_monster else 'Unknown',
+                'current_hp': target_monster.get('current_hp', 0) if target_monster else 0,
+                'base_damage': base_damage,  # Show the damage that will be dealt without smite
+            }
+
+            # Show the Divine Smite dialog
+            from PyQt6.QtCore import QEventLoop
+            dialog = DivineSmiteDialog(
+                parent=self,
+                is_critical=is_critical,
+                available_spell_slots=available_slots,
+                target_info=target_info
+            )
+
+            smite_dice = 0
+            slot_level_used = 0
+
+            # Connect signals to capture the result
+            def on_smite_chosen(spell_slot_level: int, is_undead_or_fiend: bool):
+                nonlocal smite_dice, slot_level_used
+
+                # Calculate smite damage dice
+                # Base: 2d8 + 1d8 per spell level above 1st
+                smite_dice = 2 + (spell_slot_level - 1)
+
+                # +1d8 vs undead/fiends
+                if is_undead_or_fiend:
+                    smite_dice += 1
+
+                # Cap at 5d8
+                smite_dice = min(smite_dice, 5)
+
+                # Double dice on critical (for display purposes - actual doubling happens in damage roll)
+                # We'll handle the critical doubling in the damage rolling section
+
+                slot_level_used = spell_slot_level
+
+                # Consume the spell slot by updating the database directly
+                import sqlite3
+                with sqlite3.connect('talekeeper.db') as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        UPDATE character_spell_slots
+                        SET used_slots = used_slots + 1
+                        WHERE character_id = ? AND spell_level = ? AND used_slots < max_slots
+                    """, (character_id, spell_slot_level))
+                    conn.commit()
+
+                # Log the smite
+                self._log_to_parent(f"[DIVINE SMITE] Using level {spell_slot_level} spell slot for {smite_dice}d8 radiant damage!")
+
+            dialog.smite_chosen.connect(on_smite_chosen)
+
+            # Show dialog and wait for result
+            dialog.exec()
+
+            return smite_dice, slot_level_used
+
+        except Exception as e:
+            print(f"Error checking Divine Smite: {e}")
+            return 0, 0
+
     def _get_sneak_attack_damage(self) -> str:
         """Get sneak attack damage based on rogue level."""
         if not self._has_class_feature('Sneak Attack'):

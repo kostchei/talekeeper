@@ -76,7 +76,8 @@
       "Bash(findstr:*)",
       "WebSearch",
       "Bash(taskkill:*)",
-      "Bash(tasklist)"
+      "Bash(tasklist)",
+      "Bash(run_tests.bat quick)"
     ],
     "deny": []
   },
