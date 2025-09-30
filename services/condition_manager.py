@@ -481,7 +481,18 @@ class ConditionManager:
                 LIMIT 1
             """, (character_id, condition_type.value))
 
-            return cursor.fetchone() is not None
+            if cursor.fetchone() is not None:
+                return True
+
+        try:
+            from services.aura_manager import get_aura_manager
+            aura_manager = get_aura_manager(self.db_path)
+            if aura_manager.has_condition_immunity(character_id, condition_type.value):
+                return True
+        except Exception:
+            pass
+
+        return False
 
     def process_turn_start(self, character_id: str, current_round: int) -> List[str]:
         """Process condition effects at start of turn."""

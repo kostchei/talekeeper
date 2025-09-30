@@ -18,13 +18,14 @@ from typing import Optional, Dict, Any, List, Tuple
 class DivineSmiteDialog(QDialog):
     """Dialog for choosing Divine Smite options after a successful hit."""
 
-    # Signal emitted when choice is made: (spell_slot_level, is_undead_or_fiend)
-    smite_chosen = pyqtSignal(int, bool)
+    # Signal emitted when choice is made: (spell_slot_level, is_undead_or_fiend, use_free_smite)
+    smite_chosen = pyqtSignal(int, bool, bool)
     smite_declined = pyqtSignal()
 
     def __init__(self, parent=None, is_critical: bool = False,
                  available_spell_slots: Dict[int, int] = None,
-                 target_info: Dict[str, Any] = None):
+                 target_info: Dict[str, Any] = None,
+                 has_free_smite: bool = False):
         """
         Initialize Divine Smite dialog.
 
@@ -33,11 +34,13 @@ class DivineSmiteDialog(QDialog):
             is_critical: Whether the attack was a critical hit
             available_spell_slots: Dict of spell slot level -> available count
             target_info: Information about the target (name, type, current_hp if known)
+            has_free_smite: Whether the paladin has their free Paladin's Smite available
         """
         super().__init__(parent)
         self.is_critical = is_critical
         self.available_spell_slots = available_spell_slots or {}
         self.target_info = target_info or {}
+        self.has_free_smite = has_free_smite
         self.selected_slot_level = 0
 
         self.setWindowTitle("Divine Smite")
@@ -131,6 +134,26 @@ class DivineSmiteDialog(QDialog):
 
         self.slot_buttons = QButtonGroup()
         self.slot_buttons.setExclusive(True)
+
+        # Add free Paladin's Smite option if available (level 1 slot equivalent)
+        if self.has_free_smite:
+            damage_dice = self._calculate_damage_dice(
+                1,
+                self.target_info.get('type', '').lower() in ['undead', 'fiend']
+            )
+            display_dice = damage_dice
+            if self.is_critical:
+                display_dice *= 2
+
+            free_smite_text = f"Paladin's Smite (FREE, 1/long rest) - {display_dice}d8 radiant"
+            if self.is_critical and damage_dice != display_dice:
+                free_smite_text += f" (crit doubled from {damage_dice}d8)"
+
+            free_radio = QRadioButton(free_smite_text)
+            free_radio.setProperty('slot_level', -1)  # Use -1 to indicate free smite
+            free_radio.setStyleSheet("color: #FFD700; font-weight: bold;")
+            self.slot_buttons.addButton(free_radio)
+            slots_layout.addWidget(free_radio)
 
         # Sort spell slots by level
         sorted_slots = sorted(self.available_spell_slots.items())
@@ -233,9 +256,11 @@ class DivineSmiteDialog(QDialog):
         checked_button = self.slot_buttons.checkedButton()
         if checked_button:
             slot_level = checked_button.property('slot_level')
-            if slot_level and slot_level > 0:
+            if slot_level and slot_level != 0:
                 is_undead_or_fiend = self.target_info.get('type', '').lower() in ['undead', 'fiend']
-                self.smite_chosen.emit(slot_level, is_undead_or_fiend)
+                use_free_smite = (slot_level == -1)
+                actual_slot_level = 1 if use_free_smite else slot_level
+                self.smite_chosen.emit(actual_slot_level, is_undead_or_fiend, use_free_smite)
             else:
                 self.smite_declined.emit()
         else:

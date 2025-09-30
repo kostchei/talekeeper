@@ -101,6 +101,25 @@ class DevotionDefinition:
                     tooltip_extended="Permanent protection from aberrations, celestials, elementals, fey, fiends, and undead"
                 ),
 
+                # Level 15: Smite of Protection
+                SubclassFeature(
+                    name="Smite of Protection",
+                    description="When you use your Divine Smite, you or an ally you can see within 30 feet of you gains half cover (+2 AC, +2 Dex saves) until the start of your next turn.",
+                    level=15,
+                    feature_type=FeatureType.TRIGGERED,
+                    action_cost=ActionCost.NONE,
+                    mechanics={
+                        "trigger": "divine_smite_used",
+                        "range": 30,
+                        "target": "self_or_ally",
+                        "effect": "half_cover",
+                        "ac_bonus": 2,
+                        "dex_save_bonus": 2,
+                        "duration": "until_start_of_your_next_turn"
+                    },
+                    tooltip_extended="Grant half cover when using Divine Smite"
+                ),
+
                 # Level 20: Holy Nimbus
                 SubclassFeature(
                     name="Holy Nimbus",
@@ -153,7 +172,7 @@ class DevotionDefinition:
         if level >= 7:
             features.append("Aura of Devotion")
         if level >= 15:
-            features.append("Purity of Spirit")
+            features.extend(["Purity of Spirit", "Smite of Protection"])
         if level >= 20:
             features.append("Holy Nimbus")
 

@@ -881,14 +881,20 @@ class CombatManager:
 
     def _get_saving_throw_modifier(self, combatant: Combatant, ability: str) -> int:
         """Get saving throw modifier for a given ability"""
-        # For now, return a basic modifier based on type
-        # In a full implementation, this would look up actual ability scores
+        base_modifier = 0
+
         if combatant.type == CombatantType.PLAYER:
-            # Players get decent saves
-            return 2  # Basic proficiency bonus
-        else:
-            # Monsters get minimal saves
-            return 0
+            base_modifier = 2
+
+            try:
+                from services.aura_manager import get_aura_manager
+                aura_manager = get_aura_manager(self.db_path)
+                aura_bonus = aura_manager.calculate_save_bonus(combatant.id, ability)
+                return base_modifier + aura_bonus
+            except Exception:
+                pass
+
+        return base_modifier
 
     def _find_monster_action(self, monster: Combatant, action_name: str) -> Optional[CombatAction]:
         """Find monster action by name"""

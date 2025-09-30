@@ -342,35 +342,68 @@ class PaladinAbilitiesService:
 
         return result
 
-    def divine_smite(self, character_id: str, spell_slot_level: int, target_is_undead_or_fiend: bool = False) -> Dict[str, Any]:
+    def divine_smite(self, character_id: str, spell_slot_level: int, target_is_undead_or_fiend: bool = False,
+                     use_free_smite: bool = False) -> Dict[str, Any]:
         """
         Calculate Divine Smite damage.
 
         Args:
             character_id: Character using Divine Smite
-            spell_slot_level: Level of spell slot to expend
+            spell_slot_level: Level of spell slot to expend (or free smite level)
             target_is_undead_or_fiend: Whether target is undead or fiend
+            use_free_smite: Whether to use the free Paladin's Smite (1/long rest)
 
         Returns:
-            Dict with smite damage information
+            Dict with smite damage information and resource consumption
         """
-        result = {"success": False, "damage_dice": 0, "damage_type": "radiant"}
+        result = {"success": False, "damage_dice": 0, "damage_type": "radiant", "used_free_smite": False}
 
         try:
-            # Base damage: 2d8 + 1d8 per spell slot level above 1st
-            damage_dice = 2 + (spell_slot_level - 1)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
 
-            # +1d8 against undead and fiends
-            if target_is_undead_or_fiend:
-                damage_dice += 1
+                # Check if using free smite
+                if use_free_smite:
+                    cursor.execute("""
+                        SELECT free_divine_smite_used, level
+                        FROM paladin_features
+                        WHERE character_id = ?
+                    """, (character_id,))
+                    paladin_row = cursor.fetchone()
 
-            # Maximum 5d8 total
-            damage_dice = min(damage_dice, 5)
+                    if not paladin_row or paladin_row['level'] < 2:
+                        result["reason"] = "Paladin's Smite requires level 2+"
+                        return result
 
-            result["success"] = True
-            result["damage_dice"] = damage_dice
-            result["spell_slot_consumed"] = spell_slot_level
-            result["extra_vs_undead_fiend"] = target_is_undead_or_fiend
+                    if paladin_row['free_divine_smite_used']:
+                        result["reason"] = "Free Divine Smite already used this long rest"
+                        return result
+
+                    # Mark free smite as used
+                    cursor.execute("""
+                        UPDATE paladin_features
+                        SET free_divine_smite_used = TRUE,
+                            free_divine_smite_last_reset = datetime('now')
+                        WHERE character_id = ?
+                    """, (character_id,))
+                    conn.commit()
+                    result["used_free_smite"] = True
+
+                # Base damage: 2d8 + 1d8 per spell slot level above 1st
+                damage_dice = 2 + (spell_slot_level - 1)
+
+                # +1d8 against undead and fiends
+                if target_is_undead_or_fiend:
+                    damage_dice += 1
+
+                # Maximum 5d8 total
+                damage_dice = min(damage_dice, 5)
+
+                result["success"] = True
+                result["damage_dice"] = damage_dice
+                result["spell_slot_consumed"] = spell_slot_level if not use_free_smite else 0
+                result["extra_vs_undead_fiend"] = target_is_undead_or_fiend
 
         except Exception as e:
             result["reason"] = f"Divine Smite calculation failed: {str(e)}"
@@ -435,12 +468,14 @@ class PaladinAbilitiesService:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Reset Lay on Hands pool
+                # Reset Lay on Hands pool, Channel Divinity, and free Divine Smite
                 cursor.execute("""
                     UPDATE paladin_features
                     SET lay_on_hands_pool_current = lay_on_hands_pool_max,
                         channel_divinity_uses_current = 0,
-                        channel_divinity_last_reset = datetime('now')
+                        channel_divinity_last_reset = datetime('now'),
+                        free_divine_smite_used = FALSE,
+                        free_divine_smite_last_reset = datetime('now')
                     WHERE character_id = ?
                 """, (character_id,))
 
@@ -456,12 +491,33 @@ class PaladinAbilitiesService:
                 result["success"] = True
                 result["lay_on_hands_reset"] = True
                 result["channel_divinity_reset"] = True
+                result["free_divine_smite_reset"] = True
                 result["spell_recovery"] = spell_recovery
 
         except Exception as e:
             result["reason"] = f"Recovery failed: {str(e)}"
 
         return result
+
+    def has_free_divine_smite(self, character_id: str) -> bool:
+        """Check if the paladin has their free Divine Smite available."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT free_divine_smite_used, level
+                    FROM paladin_features
+                    WHERE character_id = ?
+                """, (character_id,))
+                row = cursor.fetchone()
+
+                if row and row['level'] >= 2:
+                    return not row['free_divine_smite_used']
+                return False
+        except Exception:
+            return False
 
     def get_paladin_info(self, character_id: str) -> Dict[str, Any]:
         """Get comprehensive paladin information."""

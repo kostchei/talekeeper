@@ -81,6 +81,7 @@ class ActionType(Enum):
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
     CHANNEL_DIVINITY = "channel_divinity"
+    HOLY_NIMBUS = "holy_nimbus"
 
     # Rogue Features
     CUNNING_DASH = "cunning_dash"
@@ -520,6 +521,17 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.CHANNEL_DIVINITY] = card
+
+        # Holy Nimbus for Devotion paladins level 20
+        if (self.character_context and self.character_context.get('class_id', '').lower() == 'paladin'
+            and 'devotion' in self.character_context.get('subclass_id', '').lower()
+            and self.character_context.get('level', 1) >= 20):
+            holy_nimbus_feature = self._get_feature_data('Holy Nimbus')
+            if holy_nimbus_feature or True:  # Create even if feature not in DB
+                card = ActionCard(ActionType.HOLY_NIMBUS, "☀", "Holy Nimbus", "Emanate divine light (1/long rest)")
+                card.action_triggered.connect(self._trigger_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[ActionType.HOLY_NIMBUS] = card
 
         # Thief Features
         if (self.character_context and self.character_context.get('class_id', '').lower() == 'rogue'
@@ -1417,7 +1429,7 @@ class ActionPanel(QWidget):
             combat_actions.extend(spell_cards)
 
             # Add other combat actions
-            combat_actions.extend([ActionType.USE_ITEM, ActionType.DODGE])
+            combat_actions.extend([ActionType.USE_ITEM, ActionType.DODGE, ActionType.LAY_ON_HANDS, ActionType.CHANNEL_DIVINITY, ActionType.HOLY_NIMBUS])
             
             for action_key in combat_actions:
                 if action_key in self.action_cards:
@@ -1606,6 +1618,8 @@ class ActionPanel(QWidget):
                     self._use_lay_on_hands()
                 elif action_type == ActionType.CHANNEL_DIVINITY:
                     self._use_channel_divinity()
+                elif action_type == ActionType.HOLY_NIMBUS:
+                    self._use_holy_nimbus()
 
                 # Handle spell actions
                 elif action_type in [ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY, ActionType.SPELL_REACTION]:
@@ -2202,6 +2216,13 @@ class ActionPanel(QWidget):
                     smite_dice_rolls.extend(crit_smite_rolls)
 
                 smite_damage = sum(smite_dice_rolls)
+
+                # Trigger Smite of Protection (Devotion level 15)
+                if self.character_context:
+                    subclass = self.character_context.get('subclass_id', '').lower()
+                    level = self.character_context.get('level', 1)
+                    if 'devotion' in subclass and level >= 15:
+                        self._apply_smite_of_protection()
 
             # Calculate total damage
             total_damage = base_damage + smite_damage
@@ -5779,35 +5800,63 @@ class ActionPanel(QWidget):
             return 3
         return 2
 
+    def _get_radiant_strikes_bonus(self, context: Dict[str, Any]) -> int:
+        """Get Radiant Strikes bonus for Paladins at level 11+."""
+        if not isinstance(self.character_context, dict):
+            return 0
+
+        class_id = self.character_context.get('class_id', '').lower()
+        if class_id != 'paladin':
+            return 0
+
+        level = self.character_context.get('level', 1)
+        if level < 11:
+            return 0
+
+        weapon_props = self._get_context_weapon_properties(context)
+        weapon_props_lower = [prop.lower() for prop in weapon_props] if weapon_props else []
+        is_ranged = 'ranged' in weapon_props_lower
+
+        if is_ranged:
+            return 0
+
+        import random
+        return random.randint(1, 8)
+
     def _get_all_damage_bonuses(self, context: Dict[str, Any]) -> dict:
         """Get all feature-based damage bonuses and their values."""
         bonuses = {}
-        
+
         # Dueling Fighting Style
         dueling_bonus = self._get_dueling_bonus(context)
         if dueling_bonus > 0:
             bonuses['Dueling'] = dueling_bonus
-        
+
         # Barbarian Rage
         rage_bonus = self._get_rage_damage_bonus(context)
         if rage_bonus > 0:
             bonuses['Rage'] = rage_bonus
-        
+
         # Two-Weapon Fighting Style (for off-hand attacks)
         twf_bonus = self._get_two_weapon_fighting_damage_bonus(context)
         if twf_bonus > 0:
             bonuses['Two-Weapon Fighting'] = twf_bonus
-        
+
+        # Paladin Radiant Strikes (level 11+)
+        radiant_strikes_bonus = self._get_radiant_strikes_bonus(context)
+        if radiant_strikes_bonus > 0:
+            bonuses['Radiant Strikes'] = radiant_strikes_bonus
+
         # Great Weapon Master (if implemented later)
         # gwm_bonus = self._get_great_weapon_master_bonus(context)
         # if gwm_bonus > 0:
         #     bonuses['Great Weapon Master'] = gwm_bonus
-        
+
         # Sharpshooter (if implemented later)
-        # sharpshooter_bonus = self._get_sharpshooter_bonus(context) 
+        # sharpshooter_bonus = self._get_sharpshooter_bonus(context)
         # if sharpshooter_bonus > 0:
         #     bonuses['Sharpshooter'] = sharpshooter_bonus
-        
+
         return bonuses
     
     def _use_healing_potion(self, context: Dict[str, Any]):
@@ -6676,7 +6725,7 @@ class ActionPanel(QWidget):
             ActionType.CAST_SPELL, ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY,
             ActionType.DASH, ActionType.DODGE,
             ActionType.HIDE, ActionType.SEARCH, ActionType.USE_ITEM,
-            ActionType.SIGNATURE_MOVE
+            ActionType.SIGNATURE_MOVE, ActionType.LAY_ON_HANDS, ActionType.CHANNEL_DIVINITY
         }
         
         # Bonus Actions
@@ -6891,21 +6940,27 @@ class ActionPanel(QWidget):
                     'base_damage': base_damage,
                 }
 
+            # Check if paladin has free Divine Smite available
+            paladin_service = PaladinAbilitiesService()
+            has_free_smite = paladin_service.has_free_divine_smite(character_id)
+
             # Show the Divine Smite dialog
             from PyQt6.QtCore import QEventLoop
             dialog = DivineSmiteDialog(
                 parent=self,
                 is_critical=is_critical,
                 available_spell_slots=available_slots,
-                target_info=target_info
+                target_info=target_info,
+                has_free_smite=has_free_smite
             )
 
             smite_dice = 0
             slot_level_used = 0
+            used_free_smite = False
 
             # Connect signals to capture the result
-            def on_smite_chosen(spell_slot_level: int, is_undead_or_fiend: bool):
-                nonlocal smite_dice, slot_level_used
+            def on_smite_chosen(spell_slot_level: int, is_undead_or_fiend: bool, use_free_smite: bool):
+                nonlocal smite_dice, slot_level_used, used_free_smite
 
                 # Calculate smite damage dice
                 # Base: 2d8 + 1d8 per spell level above 1st
@@ -6918,24 +6973,32 @@ class ActionPanel(QWidget):
                 # Cap at 5d8
                 smite_dice = min(smite_dice, 5)
 
-                # Double dice on critical (for display purposes - actual doubling happens in damage roll)
-                # We'll handle the critical doubling in the damage rolling section
-
                 slot_level_used = spell_slot_level
+                used_free_smite = use_free_smite
 
-                # Consume the spell slot by updating the database directly
-                import sqlite3
-                with sqlite3.connect('talekeeper.db') as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        UPDATE character_spell_slots
-                        SET used_slots = used_slots + 1
-                        WHERE character_id = ? AND spell_level = ? AND used_slots < max_slots
-                    """, (character_id, spell_slot_level))
-                    conn.commit()
+                # Use paladin service to handle resource consumption
+                smite_result = paladin_service.divine_smite(
+                    character_id,
+                    spell_slot_level,
+                    is_undead_or_fiend,
+                    use_free_smite
+                )
+
+                # If not using free smite, consume spell slot
+                if not use_free_smite:
+                    import sqlite3
+                    with sqlite3.connect('talekeeper.db') as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            UPDATE character_spell_slots
+                            SET used_slots = used_slots + 1
+                            WHERE character_id = ? AND spell_level = ? AND used_slots < max_slots
+                        """, (character_id, spell_slot_level))
+                        conn.commit()
 
                 # Log the smite
-                self._log_to_parent(f"[DIVINE SMITE] Using level {spell_slot_level} spell slot for {smite_dice}d8 radiant damage!")
+                smite_type = "Paladin's Smite (FREE)" if use_free_smite else f"level {spell_slot_level} spell slot"
+                self._log_to_parent(f"[DIVINE SMITE] Using {smite_type} for {smite_dice}d8 radiant damage!")
 
             dialog.smite_chosen.connect(on_smite_chosen)
 
@@ -7347,7 +7410,7 @@ class ActionPanel(QWidget):
             # Fallback to simple healing
             self._apply_healing_to_player(5)
 
-    def _apply_lay_on_hands_healing(self, healing_points: int, cure_poison: bool, target_id: str):
+    def _apply_lay_on_hands_healing(self, healing_points: int, cure_conditions: dict, target_id: str):
         """Apply Lay on Hands healing and update resources."""
         try:
             # Use paladin service to track resource usage
@@ -7358,11 +7421,33 @@ class ActionPanel(QWidget):
             result = paladin_service.use_lay_on_hands(character_id, healing_points)
 
             if result.get('success'):
-                # Apply healing to character
-                if cure_poison:
-                    # Handle poison curing (for now, just log it)
+                # Check if curing any conditions
+                any_condition = any(cure_conditions.values())
+
+                if any_condition:
+                    # Handle condition curing
+                    from services.condition_manager import ConditionManager, ConditionType
+                    condition_mgr = ConditionManager()
+
+                    cured_conditions = []
+                    if cure_conditions.get('poison'):
+                        if condition_mgr.remove_condition(character_id, ConditionType.POISONED):
+                            cured_conditions.append("Poisoned")
+                    if cure_conditions.get('blinded'):
+                        if condition_mgr.remove_condition(character_id, ConditionType.BLINDED):
+                            cured_conditions.append("Blinded")
+                    if cure_conditions.get('deafened'):
+                        if condition_mgr.remove_condition(character_id, ConditionType.DEAFENED):
+                            cured_conditions.append("Deafened")
+                    if cure_conditions.get('paralyzed'):
+                        if condition_mgr.remove_condition(character_id, ConditionType.PARALYZED):
+                            cured_conditions.append("Paralyzed")
+
                     healing_done = 0
-                    message = f"✋ Lay on Hands: Cured poison ({healing_points} points used)"
+                    if cured_conditions:
+                        message = f"✋ Restoring Touch: Cured {', '.join(cured_conditions)} ({healing_points} points used)"
+                    else:
+                        message = f"✋ Lay on Hands: No conditions to cure ({healing_points} points used)"
                 else:
                     # Apply actual healing
                     old_hp = self.character_context.get('hit_points_current', 0)
@@ -7489,6 +7574,46 @@ class ActionPanel(QWidget):
         except Exception as e:
             print(f"Error applying Channel Divinity: {e}")
 
+    def _apply_smite_of_protection(self):
+        """Apply Smite of Protection buff (Devotion level 15)."""
+        try:
+            character_id = self.character_context.get('id', '')
+
+            # Apply temporary AC/Dex save bonus until start of next turn
+            # For now, log the effect - full implementation would require buff tracking system
+            self._log_to_parent("[SMITE OF PROTECTION] You gain half cover (+2 AC, +2 Dex saves) until start of your next turn!")
+
+            # Store the buff for tracking (if combat manager supports it)
+            if hasattr(self, 'active_buffs'):
+                self.active_buffs['smite_of_protection'] = {
+                    'ac_bonus': 2,
+                    'dex_save_bonus': 2,
+                    'duration': 'until_next_turn'
+                }
+        except Exception as e:
+            print(f"Error applying Smite of Protection: {e}")
+
+    def _use_holy_nimbus(self):
+        """Activate Holy Nimbus transformation (Devotion level 20)."""
+        try:
+            character_id = self.character_context.get('id', '')
+
+            # Check if already active
+            if hasattr(self, 'holy_nimbus_active') and self.holy_nimbus_active:
+                self._log_to_parent("[HOLY NIMBUS] Already active!")
+                return
+
+            # Check uses (1 per long rest)
+            # For now, just activate - full implementation would track uses
+            self.holy_nimbus_active = True
+            self.holy_nimbus_turns_remaining = 10  # 1 minute = 10 turns
+
+            self._log_to_parent("[HOLY NIMBUS] Divine light emanates from you! Enemies within 30 feet take 10 radiant damage at start of their turn.")
+            self._log_to_parent("[HOLY NIMBUS] You have advantage on saves vs fiend/undead spells for 1 minute.")
+
+        except Exception as e:
+            print(f"Error using Holy Nimbus: {e}")
+
     def _execute_channel_divinity_effect(self, option_name: str, option_data: Dict[str, Any]):
         """Execute the specific Channel Divinity effect."""
         try:
@@ -7507,6 +7632,9 @@ class ActionPanel(QWidget):
             elif option_name == "Abjure Foes":
                 # For now, just log the effect - full implementation would affect multiple enemies
                 print(f"Abjure Foes activated - multiple enemies may be frightened")
+
+            elif option_name == "Holy Nimbus":
+                self._use_holy_nimbus()
 
             else:
                 # Generic effect for other oath abilities

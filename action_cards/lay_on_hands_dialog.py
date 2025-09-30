@@ -18,8 +18,9 @@ from typing import Optional, Dict, Any
 class LayOnHandsDialog(QDialog):
     """Dialog for using Lay on Hands healing ability."""
 
-    # Signal emitted when healing is applied: (healing_points, cure_poison, target_id)
-    healing_applied = pyqtSignal(int, bool, str)
+    # Signal emitted when healing is applied: (healing_points, cure_conditions, target_id)
+    # cure_conditions is a dict: {'poison': bool, 'blinded': bool, 'deafened': bool, 'paralyzed': bool}
+    healing_applied = pyqtSignal(int, dict, str)
     healing_cancelled = pyqtSignal()
 
     def __init__(self, parent=None, character_data: Dict[str, Any] = None,
@@ -43,6 +44,9 @@ class LayOnHandsDialog(QDialog):
         self.selected_target = None
         self.healing_points = 1
         self.cure_poison = False
+        self.cure_blinded = False
+        self.cure_deafened = False
+        self.cure_paralyzed = False
 
         self.setWindowTitle("Lay on Hands")
         self.setModal(True)
@@ -133,6 +137,21 @@ class LayOnHandsDialog(QDialog):
         self.poison_checkbox.stateChanged.connect(self.update_poison_option)
         options_layout.addWidget(self.poison_checkbox)
 
+        # Restoring Touch options (level 14+)
+        character_level = self.character_data.get('level', 1)
+        if character_level >= 14:
+            self.blinded_checkbox = QCheckBox("Cure Blinded (5 points, no healing)")
+            self.blinded_checkbox.stateChanged.connect(self.update_condition_option)
+            options_layout.addWidget(self.blinded_checkbox)
+
+            self.deafened_checkbox = QCheckBox("Cure Deafened (5 points, no healing)")
+            self.deafened_checkbox.stateChanged.connect(self.update_condition_option)
+            options_layout.addWidget(self.deafened_checkbox)
+
+            self.paralyzed_checkbox = QCheckBox("Cure Paralyzed (5 points, no healing)")
+            self.paralyzed_checkbox.stateChanged.connect(self.update_condition_option)
+            options_layout.addWidget(self.paralyzed_checkbox)
+
         # Effect description
         self.effect_label = QLabel("Restores 1 Hit Point")
         self.effect_label.setStyleSheet("font-weight: bold; color: #2e7d32;")
@@ -177,11 +196,38 @@ class LayOnHandsDialog(QDialog):
     def update_poison_option(self, state: int):
         """Update poison curing option."""
         self.cure_poison = state == Qt.CheckState.Checked.value
+        self._update_condition_ui()
 
-        if self.cure_poison:
+    def update_condition_option(self, state: int):
+        """Update condition curing options."""
+        sender = self.sender()
+        if hasattr(self, 'blinded_checkbox') and sender == self.blinded_checkbox:
+            self.cure_blinded = state == Qt.CheckState.Checked.value
+        elif hasattr(self, 'deafened_checkbox') and sender == self.deafened_checkbox:
+            self.cure_deafened = state == Qt.CheckState.Checked.value
+        elif hasattr(self, 'paralyzed_checkbox') and sender == self.paralyzed_checkbox:
+            self.cure_paralyzed = state == Qt.CheckState.Checked.value
+        self._update_condition_ui()
+
+    def _update_condition_ui(self):
+        """Update UI based on selected conditions."""
+        any_condition = self.cure_poison or self.cure_blinded or self.cure_deafened or self.cure_paralyzed
+
+        if any_condition:
             self.points_spin.setValue(5)
             self.points_spin.setEnabled(False)
-            self.effect_label.setText("Removes Poisoned condition (no HP restored)")
+
+            conditions = []
+            if self.cure_poison:
+                conditions.append("Poisoned")
+            if self.cure_blinded:
+                conditions.append("Blinded")
+            if self.cure_deafened:
+                conditions.append("Deafened")
+            if self.cure_paralyzed:
+                conditions.append("Paralyzed")
+
+            self.effect_label.setText(f"Removes {', '.join(conditions)} (no HP restored)")
             self.effect_label.setStyleSheet("font-weight: bold; color: #1976d2;")
         else:
             self.points_spin.setEnabled(True)
@@ -193,7 +239,8 @@ class LayOnHandsDialog(QDialog):
 
     def update_apply_button(self):
         """Update apply button availability."""
-        points_needed = 5 if self.cure_poison else self.healing_points
+        any_condition = self.cure_poison or self.cure_blinded or self.cure_deafened or self.cure_paralyzed
+        points_needed = 5 if any_condition else self.healing_points
         can_apply = (
             self.current_pool >= points_needed and
             (self.selected_target is not None or len(self.target_options) <= 1)
@@ -219,13 +266,19 @@ class LayOnHandsDialog(QDialog):
         if not self.selected_target and self.target_options:
             self.selected_target = self.target_options[0][0]
 
-        points_to_use = 5 if self.cure_poison else self.healing_points
+        any_condition = self.cure_poison or self.cure_blinded or self.cure_deafened or self.cure_paralyzed
+        points_to_use = 5 if any_condition else self.healing_points
 
         if self.current_pool >= points_to_use:
-            self.healing_applied.emit(points_to_use, self.cure_poison, self.selected_target or "")
+            cure_conditions = {
+                'poison': self.cure_poison,
+                'blinded': self.cure_blinded,
+                'deafened': self.cure_deafened,
+                'paralyzed': self.cure_paralyzed
+            }
+            self.healing_applied.emit(points_to_use, cure_conditions, self.selected_target or "")
             self.accept()
         else:
-            # This shouldn't happen due to button state, but safety check
             self.update_apply_button()
 
     def reject(self):
@@ -235,9 +288,15 @@ class LayOnHandsDialog(QDialog):
 
     def get_healing_info(self) -> Dict[str, Any]:
         """Get the current healing configuration."""
+        any_condition = self.cure_poison or self.cure_blinded or self.cure_deafened or self.cure_paralyzed
         return {
             "target_id": self.selected_target,
             "healing_points": self.healing_points,
-            "cure_poison": self.cure_poison,
-            "points_cost": 5 if self.cure_poison else self.healing_points
+            "cure_conditions": {
+                'poison': self.cure_poison,
+                'blinded': self.cure_blinded,
+                'deafened': self.cure_deafened,
+                'paralyzed': self.cure_paralyzed
+            },
+            "points_cost": 5 if any_condition else self.healing_points
         }
