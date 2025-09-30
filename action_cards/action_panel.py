@@ -4163,12 +4163,17 @@ class ActionPanel(QWidget):
         # Check cooldowns (original system)
         if action_type in self.action_cooldowns and self.action_cooldowns[action_type] > 0:
             return False
-        
+
+        # Special check for REST action - cannot rest during combat
+        if action_type == ActionType.REST:
+            if self._monsters_present() or self._hazards_present():
+                return False
+
         # Check action economy (simplified)
         action_costs = {
             ActionType.ATTACK_MAIN_HAND: "action",
             ActionType.ATTACK_OFF_HAND: "bonus_action",
-            ActionType.CAST_SPELL: "action", 
+            ActionType.CAST_SPELL: "action",
             ActionType.USE_ITEM: "action",
             ActionType.MOVE: "movement",
             ActionType.DASH: "action",
@@ -4188,9 +4193,9 @@ class ActionPanel(QWidget):
             ActionType.LUCK_POINT_ADVANTAGE: "free",
             ActionType.LUCK_POINT_DISADVANTAGE: "reaction"
         }
-        
+
         cost_type = action_costs.get(action_type, "free")
-        
+
         # In a real implementation, track available actions per turn
         # For now, assume all actions are available
         return True
@@ -4198,7 +4203,14 @@ class ActionPanel(QWidget):
     def _get_unavailability_reasons(self, action_type: ActionType) -> List[str]:
         """Get reasons why an action is unavailable."""
         reasons = []
-        
+
+        # Check REST action restrictions
+        if action_type == ActionType.REST:
+            if self._monsters_present():
+                reasons.append("Cannot rest while monsters are present")
+            if self._hazards_present():
+                reasons.append("Cannot rest while hazards are active")
+
         # Check ability uses for rest-based abilities
         if action_type == ActionType.SECOND_WIND:
             uses = self._get_ability_uses_remaining("Second Wind")
@@ -4208,13 +4220,13 @@ class ActionPanel(QWidget):
             uses = self._get_ability_uses_remaining("Action Surge")
             if uses <= 0:
                 reasons.append("No uses remaining (requires Short Rest)")
-        
+
         # Check feat resource uses
         elif action_type in [ActionType.LUCK_POINT_ADVANTAGE, ActionType.LUCK_POINT_DISADVANTAGE]:
             uses = self._get_feat_resource_remaining("Lucky", "luck_points")
             if uses <= 0:
                 reasons.append("No Luck Points remaining (requires Long Rest)")
-        
+
         return reasons
     
     def _get_ability_uses_remaining(self, ability_name: str) -> int:
@@ -7654,22 +7666,32 @@ class ActionPanel(QWidget):
             while parent:
                 if hasattr(parent, 'encounter_panel'):
                     encounter_panel = parent.encounter_panel
-                    # Check if there are alive monsters in the encounter panel
-                    if hasattr(encounter_panel, 'monsters') and encounter_panel.monsters:
-                        # Check if any monster is alive (HP > 0)
-                        for monster in encounter_panel.monsters:
-                            if hasattr(monster, 'current_hit_points') and monster.current_hit_points > 0:
+                    # Check if there are alive monsters in encounter_instances dict
+                    if hasattr(encounter_panel, 'encounter_instances') and encounter_panel.encounter_instances:
+                        # Check if any monster instance is alive (HP > 0)
+                        for instance_id, instance in encounter_panel.encounter_instances.items():
+                            if hasattr(instance, 'is_alive') and instance.is_alive:
+                                print(f"[DEBUG] Found alive monster: {instance.monster_name} ({instance.current_hit_points} HP)")
                                 return True
+                            elif hasattr(instance, 'current_hit_points') and instance.current_hit_points > 0:
+                                print(f"[DEBUG] Found alive monster: {instance.monster_name} ({instance.current_hit_points} HP)")
+                                return True
+                        print(f"[DEBUG] No alive monsters found in {len(encounter_panel.encounter_instances)} instances")
                         return False
                     # Check if encounter is active in other ways
                     if hasattr(encounter_panel, 'current_encounter') and encounter_panel.current_encounter:
+                        print(f"[DEBUG] Active encounter found: {encounter_panel.current_encounter}")
                         return True
+                    print(f"[DEBUG] No encounter_instances or current_encounter found")
                     return False
                 parent = parent.parent()
+            print(f"[DEBUG] No encounter_panel found")
             return False
         except Exception as e:
             print(f"Error checking monsters present: {e}")
-            return False  # Default to allowing rest if check fails
+            import traceback
+            traceback.print_exc()
+            return True  # Default to preventing rest if check fails (safer)
 
     def _hazards_present(self) -> bool:
         """Check if any hazards are currently active."""
@@ -7883,10 +7905,10 @@ class ActionPanel(QWidget):
 
             # Save XP to database
             self._save_character_xp()
-            
+
             # Restore all abilities
             self._restore_all_abilities()
-            
+
             # Full healing
             self._long_rest_healing()
 

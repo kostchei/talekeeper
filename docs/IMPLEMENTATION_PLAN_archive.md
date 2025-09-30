@@ -36,17 +36,24 @@ This document outlines the implementation plan for new features marked with ** i
 - Service: Create shop_service.py for inventory generation
 - UI: Create shop interface panel
 
-## 3. Skill Encounter Rewards
+## 3. Skill Encounter Rewards ✅ COMPLETED
 
 ### Feature: Skill Encounters Grant Items
 **Description**: Skill encounters should give out items that appear in inventory - potions, common items, rations.
 
-**Implementation Points**:
-- Location: TBD (researching)
-- Approach: Add loot table to skill challenge rewards
-- Items: Healing potions, rations, common adventuring gear
+**Implementation Status**: COMPLETE
+- Location: [services/skill_challenge_rewards.py](services/skill_challenge_rewards.py)
+- Approach: Comprehensive reward system with item database integration
+- Items: Healing potions, rations, consumables, common adventuring gear
+- Testing: [test/test_skill_rewards.py](test/test_skill_rewards.py) - All tests passing
 
-## 4. Encounter Parlay System
+**Implementation Details**:
+- Reward types: rations, healing potion, consumable, item, coin, rest, inspiration
+- Items automatically added to character inventory with stacking
+- Level-appropriate item selection
+- Integration with equipment database
+
+## 4. Encounter Parlay System ✅ COMPLETED
 
 ### Feature: Diplomatic Resolution for Non-Evil Monsters
 **Description**: 75% of non-evil monsters can be parlayed with. Offer "Do you wish to attempt to Parlay" prompt.
@@ -54,21 +61,39 @@ This document outlines the implementation plan for new features marked with ** i
 **Skill Challenge**: Pick up to 3 CHA skills + 1 random INT or WIS skill
 **Reward**: 1/2 XP from most powerful monster, no combat
 
-**Implementation Points**:
-- Location: TBD (researching)
-- Database: Add can_parlay flag to monsters (75% of non-evil)
-- UI: Pre-combat dialog prompt
-- Service: Parlay skill challenge system
+**Implementation Status**: COMPLETE
+- Location: [services/parlay_system.py](services/parlay_system.py)
+- Database: Alignment-based parlay eligibility (evil = no parlay)
+- Service: Complete parlay skill challenge system
+- Testing: [test/test_parlay_system.py](test/test_parlay_system.py) - All tests passing
 
-## 5. Stealth-Based Encounter Avoidance
+**Implementation Details**:
+- Evil monsters cannot be parlayed with (alignment check)
+- 75% chance for non-evil monsters to accept parlay
+- Skill selection: 3 CHA skills + 1 random INT/WIS skill
+- XP reward: 1/2 of most powerful monster's XP
+- Integration with skill challenge manager
+- Dynamic DC based on character level
+
+## 5. Stealth-Based Encounter Avoidance ✅ COMPLETED
 
 ### Feature: Avoid Encounters with Stealth
 **Description**: Use Stealth skill to avoid encounters entirely.
 
-**Implementation Points**:
-- Location: TBD (researching)
+**Implementation Status**: COMPLETE
+- Location: [services/encounter_avoidance.py](services/encounter_avoidance.py)
 - Approach: Stealth check vs monster Perception
-- Reward: Partial XP, no combat
+- Reward: 1/3 XP for successful avoidance
+- Testing: [test/test_encounter_avoidance.py](test/test_encounter_avoidance.py) - All tests passing
+
+**Implementation Details**:
+- Requires Stealth proficiency
+- Uses existing stealth mechanics service
+- Stealth roll vs each monster's Perception check
+- Success grants 1/3 of total encounter XP
+- Encounter difficulty assessment system
+- Equipment modifiers (armor disadvantage, cloaks, etc.)
+- Integration with advantage system
 
 ## 6. Pickpocket System
 
@@ -105,10 +130,10 @@ This document outlines the implementation plan for new features marked with ** i
    - Shop encounters
    - Inventory generation
 
-3. **Phase 3 - Social Interactions** (New systems)
-   - Skill encounter rewards
-   - Parlay system
-   - Stealth avoidance
+3. **Phase 3 - Social Interactions** ✅ COMPLETED (New systems)
+   - ✅ Skill encounter rewards
+   - ✅ Parlay system
+   - ✅ Stealth avoidance
 
 4. **Phase 4 - Advanced Features** (Complex)
    - Pickpocket system

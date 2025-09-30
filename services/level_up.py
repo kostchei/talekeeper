@@ -287,6 +287,23 @@ class LevelUpService:
         except Exception as e:
             print(f"[LevelUp] Warning: Failed to update resources: {e}")
 
+        if assigned_subclass_id and class_normalized == 'paladin':
+            try:
+                from services.subclass_feature_manager import SubclassFeatureManager
+                subclass_feature_mgr = SubclassFeatureManager(self.db_path)
+
+                features = subclass_feature_mgr.get_subclass_features_for_level(assigned_subclass_id, new_class_level)
+                for feature in features:
+                    subclass_feature_mgr.grant_subclass_feature(character_id, feature['id'], new_class_level)
+
+                new_spells = subclass_feature_mgr.grant_oath_spells_for_level(character_id, assigned_subclass_id, new_class_level)
+                if new_spells:
+                    print(f"[LevelUp] Granted oath spells: {', '.join(new_spells)}")
+
+                print(f"[LevelUp] Granted {len(features)} subclass features for {assigned_subclass_id}")
+            except Exception as e:
+                print(f"[LevelUp] Warning: Failed to grant subclass features: {e}")
+
         return True
     def _get_hit_die_for_class(self, class_name: str) -> int:
         """Get hit die size for class."""

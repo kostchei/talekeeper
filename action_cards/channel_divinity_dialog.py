@@ -295,6 +295,28 @@ def create_channel_divinity_options(character_level: int, sacred_oath: str) -> L
                 }
             ])
 
+        elif sacred_oath.lower() in ['oath_of_the_unbroken', 'the_unbroken', 'unbroken']:
+            options.extend([
+                {
+                    'name': 'Mind\'s Razor',
+                    'description': 'When you hit with a weapon attack, use Channel Divinity to bypass physical defenses. The damage ignores the target\'s resistances and immunities.',
+                    'action_cost': 'reaction',
+                    'range': 'Self',
+                    'duration': 'Instant',
+                    'effect_type': 'enhancement',
+                    'source': 'oath_unbroken'
+                },
+                {
+                    'name': 'Unbroken Resolve',
+                    'description': 'Touch a creature (including yourself) to steel their will. Target gains 1d10 + your Paladin level temporary HP and advantage on Wisdom saving throws for 1 minute.',
+                    'action_cost': 'bonus action',
+                    'range': 'Touch',
+                    'duration': '1 minute',
+                    'effect_type': 'support',
+                    'source': 'oath_unbroken'
+                }
+            ])
+
     # Level 9: Abjure Foes (all paladins)
     if character_level >= 9:
         options.append({
