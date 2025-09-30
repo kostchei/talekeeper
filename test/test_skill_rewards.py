@@ -112,30 +112,29 @@ class SkillRewardTest:
         print("\n[TEST 4] Random Item Reward")
         character_data = {'id': self.test_character_id, 'level': 1}
 
-        conn = sqlite3.connect('talekeeper.db')
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT COUNT(*) FROM character_inventory WHERE character_id = ?
-        """, (self.test_character_id,))
-        initial_count = cursor.fetchone()[0]
-        conn.close()
-
         updated_char, messages = self.rewards.apply_reward(character_data, 'item')
-        print(f"  Message: {messages[0]}")
+        message = messages[0]
+        print(f"  Message: {message}")
 
-        conn = sqlite3.connect('talekeeper.db')
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT COUNT(*) FROM character_inventory WHERE character_id = ?
-        """, (self.test_character_id,))
-        final_count = cursor.fetchone()[0]
-        conn.close()
+        if "Received:" not in message:
+            print(f"  [FAIL] No item reward message")
+            return False
 
-        if final_count > initial_count:
+        import re
+        match = re.search(r'Received: (.+)', message)
+        if not match:
+            print(f"  [FAIL] Could not parse item name from message")
+            return False
+
+        item_name = match.group(1)
+        count = self.get_inventory_count(item_name)
+
+        if count > 0:
+            print(f"  Found {count}x {item_name} in inventory")
             print(f"  [PASS] Item added to inventory")
             return True
         else:
-            print(f"  [FAIL] Item not added")
+            print(f"  [FAIL] Item {item_name} not found in inventory")
             return False
 
     def run_all_tests(self):

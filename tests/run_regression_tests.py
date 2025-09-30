@@ -116,6 +116,10 @@ class RegressionTestRunner:
             # Shop system validation
             ([sys.executable, "test/test_shop_system.py"],
              "Shop system (3-tier inventory generation)"),
+
+            # Skill reward system validation
+            ([sys.executable, "test/test_skill_rewards.py"],
+             "Skill challenge rewards (item, potion, ration rewards)"),
         ]
 
         for cmd, desc in tests:
