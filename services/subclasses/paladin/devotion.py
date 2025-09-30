@@ -120,20 +120,9 @@ class DevotionDefinition:
                         "save_advantage_vs": "fiend_and_undead_spells",
                         "transformation": True
                     },
-                    tooltip_extended="Transform into a beacon of divine light dealing damage to enemies",
-                    requires_choice=False
+                    tooltip_extended="Transform into a beacon of divine light dealing damage to enemies"
                 ),
-            ],
-            spell_list_modifications={
-                # Oath spells are always prepared and don't count against prepared spell limit
-                "oath_spells": {
-                    3: ["protection_from_evil_and_good", "sanctuary"],
-                    5: ["lesser_restoration", "zone_of_truth"],
-                    9: ["beacon_of_hope", "dispel_magic"],
-                    13: ["freedom_of_movement", "guardian_of_faith"],
-                    17: ["commune", "flame_strike"]
-                }
-            }
+            ]
         )
 
     @staticmethod

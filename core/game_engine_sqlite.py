@@ -625,16 +625,14 @@ class GameEngineSQLite:
                 # Initialize proficiencies using the proficiency system (pass the connection)
                 selected_class_skills = character_data.get('selected_class_skills', [])
                 selected_species_skills = character_data.get('selected_species_skills', [])
-                
-                # Combine all selected skills
-                all_selected_skills = selected_class_skills + selected_species_skills
-                
+
                 self.proficiency_system.initialize_character_proficiencies(
-                    character_id, 
+                    character_id,
                     character_data['class_id'],
                     character_data.get('background_id'),
                     character_data.get('race_id'),
-                    selected_skills=all_selected_skills,
+                    selected_class_skills=selected_class_skills,
+                    selected_species_skills=selected_species_skills,
                     conn=conn
                 )
                 
@@ -753,7 +751,7 @@ class GameEngineSQLite:
                 class_id = character_data['class_id']
                 if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
                     from services.spellcasting_service import SpellcastingService
-                    spellcasting_service = SpellcastingService()
+                    spellcasting_service = SpellcastingService(self.db_path)
                     spellcasting_service.initialize_character_spellcasting(character_id, class_id)
                     print(f"[SQLite] Initialized spell slots for {class_id}")
 

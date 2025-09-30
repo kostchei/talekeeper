@@ -40,7 +40,7 @@ class SpellSelectionWidget(QWidget):
             },
             'paladin': {
                 'cantrips': 0,
-                'known_spells': 0,
+                'known_spells': 2,  # Level 1 paladins prepare 2 spells at creation
                 'prepare_spells': True,
             }
         }

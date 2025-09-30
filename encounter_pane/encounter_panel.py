@@ -1707,15 +1707,24 @@ class EncounterPanel(QWidget):
         """Create ability score assignment step."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
+
         title = QLabel("Assign Ability Scores")
         title.setObjectName("creationStepTitle")
         layout.addWidget(title)
-        
+
+        # Hero Mode checkbox
+        hero_mode_layout = QHBoxLayout()
+        self.hero_mode_checkbox = QCheckBox("Hero Mode")
+        self.hero_mode_checkbox.setToolTip("Use 75 points + 3 background points for 1-to-1 stat purchase\nMinimums: Dump stat = 3, Other stats = 6, Primary stats = 9")
+        self.hero_mode_checkbox.stateChanged.connect(self._on_hero_mode_toggled)
+        hero_mode_layout.addWidget(self.hero_mode_checkbox)
+        hero_mode_layout.addStretch()
+        layout.addLayout(hero_mode_layout)
+
         # Instructions
-        info_label = QLabel("Point buy system with class-based starting values")
-        layout.addWidget(info_label)
-        
+        self.abilities_info_label = QLabel("Point buy system with class-based starting values")
+        layout.addWidget(self.abilities_info_label)
+
         # Class info label
         self.class_stats_info = QLabel("Select a class first to see starting ability scores")
         self.class_stats_info.setObjectName("classStatsInfo")
@@ -2835,6 +2844,7 @@ class EncounterPanel(QWidget):
             self.character_creation_data['background'] = bg_data
             self._update_bg_species_description()
             self._auto_select_background_feat(bg_data)
+            self._check_skill_conflicts()
     
     def _on_species_selected(self, current, previous):
         """Handle species selection change."""
@@ -2986,17 +2996,58 @@ class EncounterPanel(QWidget):
             "Scribe": "Skilled",
             "Entertainer": "Musician"
         }
-        
+
         bg_name = bg_data.get('name', '')
         default_feat = default_feats.get(bg_name)
-        
+
         if default_feat:
             # Find and select the default feat in the combo box
             for i in range(self.background_feat_combo.count()):
                 if self.background_feat_combo.itemText(i) == default_feat:
                     self.background_feat_combo.setCurrentIndex(i)
                     break
-    
+
+    def _check_skill_conflicts(self):
+        """Check if background skills conflict with selected class skills and allow re-selection."""
+        bg_data = self.character_creation_data.get('background')
+        if not bg_data:
+            return
+
+        selected_class_skills = self.character_creation_data.get('selected_class_skills', [])
+        if not selected_class_skills:
+            return
+
+        import sqlite3
+        conn = sqlite3.connect("talekeeper.db")
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT proficiency_name
+            FROM background_proficiencies
+            WHERE background_id = ? AND proficiency_type = 'skill'
+        """, (bg_data['name'].lower(),))
+        bg_skills = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        conflicts = [skill for skill in selected_class_skills if skill in bg_skills]
+
+        if conflicts and hasattr(self, 'class_skill_checkboxes'):
+            from PyQt6.QtWidgets import QMessageBox
+            conflict_list = ', '.join(conflicts)
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle("Skill Conflict Detected")
+            msg.setText(f"Your background provides the following skills that you already selected from your class:\n\n{conflict_list}\n\nPer D&D 2024 rules, you can re-select these class skills to avoid duplication.")
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg.exec()
+
+            for conflict_skill in conflicts:
+                if conflict_skill in self.class_skill_checkboxes:
+                    self.class_skill_checkboxes[conflict_skill].setChecked(False)
+                    selected_class_skills.remove(conflict_skill)
+
+            self.character_creation_data['selected_class_skills'] = selected_class_skills
+            self._on_class_skill_toggled(conflicts[0] if conflicts else '', 0, 0)
+
     def _update_background_bonuses(self):
         """D&D 2024: Background provides up to 3 points distributed as +1/+1/+1 or +2/+1."""
         # Calculate total points used
@@ -3025,38 +3076,50 @@ class EncounterPanel(QWidget):
     
     def _update_point_buy(self):
         """Update point buy calculations."""
-        total_points = 0
-        # Extended point costs to handle low values
-        point_costs = {
-            8: 0,   # Standard starting point
-            9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
-            16: 12, 17: 15, 18: 17  # Handle high rolled values
-        }
-        
-        # Special handling for dump stat (3) - it costs 0 points
-        # This ensures 27 points total regardless of dump stat
-        
-        for ability, spinbox in self.ability_spinboxes.items():
-            value = spinbox.value()
-            if value == 3:  # Dump stat
-                cost = 0  # Dump stat costs nothing
+        hero_mode = hasattr(self, 'hero_mode_checkbox') and self.hero_mode_checkbox.isChecked()
+
+        if hero_mode:
+            # Hero mode: 1-to-1 cost
+            total_points = 0
+            for ability, spinbox in self.ability_spinboxes.items():
+                total_points += spinbox.value()
+
+            base_points = 75
+            remaining = base_points - total_points
+
+            if remaining >= 0:
+                self.points_remaining_label.setText(f"Hero Mode Points remaining: {remaining} / {base_points} (1-to-1 cost)")
             else:
-                cost = point_costs.get(value, 0)
-            total_points += cost
-        
-        # Standard D&D 5e point buy: 27 points
-        base_points = 27
-        remaining = base_points - total_points
-        
-        if remaining >= 0:
-            self.points_remaining_label.setText(f"Points remaining: {remaining}")
+                self.points_remaining_label.setText(f"Hero Mode Points over budget: {abs(remaining)} (reduce some stats)")
         else:
-            self.points_remaining_label.setText(f"Points over budget: {abs(remaining)} (reduce some stats)")
-        
+            # Standard point buy
+            total_points = 0
+            point_costs = {
+                8: 0,
+                9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
+                16: 12, 17: 15, 18: 17
+            }
+
+            for ability, spinbox in self.ability_spinboxes.items():
+                value = spinbox.value()
+                if value == 3:
+                    cost = 0
+                else:
+                    cost = point_costs.get(value, 0)
+                total_points += cost
+
+            base_points = 27
+            remaining = base_points - total_points
+
+            if remaining >= 0:
+                self.points_remaining_label.setText(f"Points remaining: {remaining}")
+            else:
+                self.points_remaining_label.setText(f"Points over budget: {abs(remaining)} (reduce some stats)")
+
         # Enable/disable next button based on valid point allocation
         if hasattr(self, 'creation_next_btn'):
             self.creation_next_btn.setEnabled(remaining >= 0)
-        
+
         # Update final scores with current racial bonuses
         self._update_final_scores()
     
@@ -3376,10 +3439,56 @@ class EncounterPanel(QWidget):
             # Update display
             self._update_point_buy()
     
+    def _on_hero_mode_toggled(self, state):
+        """Handle Hero Mode checkbox toggle."""
+        hero_mode = state == 2
+
+        if hero_mode:
+            self.abilities_info_label.setText("Hero Mode: 75 points + 3 background (1-to-1 cost). Minimums: Dump=3, Other=6, Primary=9. Max=18")
+
+            # Set maximum to 18 for hero mode
+            for spinbox in self.ability_spinboxes.values():
+                spinbox.setMaximum(18)
+
+            # Reset all scores to meet minimums
+            class_data = self.character_creation_data.get('class')
+            if class_data:
+                class_name = class_data.get('name', '').lower() if isinstance(class_data, dict) else str(class_data).lower()
+                dump_stats = self._get_class_dump_stats(class_name)
+                dump_stat = dump_stats.get('dump_stat', '').lower()
+                primary_stats = dump_stats.get('primary_stats', [])
+
+                for ability, spinbox in self.ability_spinboxes.items():
+                    if ability == dump_stat:
+                        spinbox.setMinimum(3)
+                        if spinbox.value() < 3:
+                            spinbox.setValue(3)
+                    elif ability in primary_stats:
+                        spinbox.setMinimum(9)
+                        if spinbox.value() < 9:
+                            spinbox.setValue(9)
+                    else:
+                        spinbox.setMinimum(6)
+                        if spinbox.value() < 6:
+                            spinbox.setValue(6)
+
+            self.roll_4d6_btn.setEnabled(False)
+        else:
+            self.abilities_info_label.setText("Point buy system with class-based starting values")
+
+            # Reset maximums to 15 for standard mode
+            for spinbox in self.ability_spinboxes.values():
+                spinbox.setMaximum(15)
+                spinbox.setMinimum(3)
+
+            self.roll_4d6_btn.setEnabled(not self.has_rolled_4d6)
+
+        self._update_point_buy()
+
     def _on_ability_value_changed(self, value):
         """Handle ability score changes with budget enforcement."""
         sender = self.sender()
-        
+
         # Check if this change would exceed budget
         if self._would_exceed_budget(sender, value):
             # Find the maximum value we can afford
@@ -3387,31 +3496,43 @@ class EncounterPanel(QWidget):
             sender.blockSignals(True)  # Prevent recursion
             sender.setValue(max_affordable)
             sender.blockSignals(False)
-        
+
         self._update_point_buy()
-    
+
     def _would_exceed_budget(self, changed_spinbox, new_value) -> bool:
-        """Check if changing a spinbox to new_value would exceed 27 points."""
-        point_costs = {
-            8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
-        }
-        
-        total_points = 0
-        for ability, spinbox in self.ability_spinboxes.items():
-            if spinbox == changed_spinbox:
-                # Use the proposed new value
-                value = new_value
-            else:
-                # Use current value
-                value = spinbox.value()
-            
-            if value == 3:  # Dump stat
-                cost = 0
-            else:
-                cost = point_costs.get(value, 0)
-            total_points += cost
-        
-        return total_points > 27
+        """Check if changing a spinbox to new_value would exceed point budget."""
+        hero_mode = hasattr(self, 'hero_mode_checkbox') and self.hero_mode_checkbox.isChecked()
+
+        if hero_mode:
+            # Hero mode: 1-to-1 cost, 75 points total
+            total_points = 0
+            for ability, spinbox in self.ability_spinboxes.items():
+                if spinbox == changed_spinbox:
+                    value = new_value
+                else:
+                    value = spinbox.value()
+                total_points += value
+            return total_points > 75
+        else:
+            # Standard point buy
+            point_costs = {
+                8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
+            }
+
+            total_points = 0
+            for ability, spinbox in self.ability_spinboxes.items():
+                if spinbox == changed_spinbox:
+                    value = new_value
+                else:
+                    value = spinbox.value()
+
+                if value == 3:
+                    cost = 0
+                else:
+                    cost = point_costs.get(value, 0)
+                total_points += cost
+
+            return total_points > 27
     
     def _get_max_affordable_value(self, changed_spinbox) -> int:
         """Find the highest value we can set without exceeding budget."""

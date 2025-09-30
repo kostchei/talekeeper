@@ -20,8 +20,14 @@ python main.py
 # REGRESSION TESTS - Run after EVERY code change
 python tests/run_regression_tests.py --quick      # 30 seconds - Always run
 python tests/run_regression_tests.py --full       # 2-3 minutes - Before commits
+python tests/run_regression_tests.py --detailed   # 4-5 minutes - Feature validation
 run_tests.bat quick                                # Windows shortcut
 ./run_tests.sh quick                               # Unix/Linux shortcut
+
+# Test Suite Breakdown:
+# --quick: Core systems (6 tests) - character, combat, database, action economy
+# --full: Quick + comprehensive (11 tests) - adds subclass, progression, conditions
+# --detailed: Full + feature tests (12+ tests) - adds Hero Mode, future features
 
 # Legacy tests (for reference)
 cd test && python test_simple_validation.py       # Core validation

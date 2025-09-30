@@ -31,6 +31,8 @@ from services.weapon_attack_service import WeaponAttackService
 from core.combat_manager import CombatManager
 from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from action_cards.divine_smite_dialog import DivineSmiteDialog
+from action_cards.lay_on_hands_dialog import LayOnHandsDialog
+from action_cards.channel_divinity_dialog import ChannelDivinityDialog, create_channel_divinity_options
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 from services.spellcasting_service import SpellcastingService
 from services.spell_registry import spell_registry
@@ -78,6 +80,7 @@ class ActionType(Enum):
     RECKLESS_ATTACK = "reckless_attack"
     SNEAK_ATTACK = "sneak_attack"  # Passive, handled automatically
     LAY_ON_HANDS = "lay_on_hands"
+    CHANNEL_DIVINITY = "channel_divinity"
 
     # Rogue Features
     CUNNING_DASH = "cunning_dash"
@@ -508,6 +511,15 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
+
+        # Channel Divinity for paladins
+        channel_divinity_feature = self._get_feature_data('Channel Divinity')
+        if channel_divinity_feature:
+            card = ActionCard(ActionType.CHANNEL_DIVINITY, "⚡", "Channel Divinity", "Channel divine energy for various effects")
+            card.feature_data = channel_divinity_feature
+            card.action_triggered.connect(self._trigger_action)
+            card.action_hovered.connect(self._action_hovered)
+            self.action_cards[ActionType.CHANNEL_DIVINITY] = card
 
         # Thief Features
         if (self.character_context and self.character_context.get('class_id', '').lower() == 'rogue'
@@ -1592,6 +1604,8 @@ class ActionPanel(QWidget):
                     self._toggle_reckless_attack()
                 elif action_type == ActionType.LAY_ON_HANDS:
                     self._use_lay_on_hands()
+                elif action_type == ActionType.CHANNEL_DIVINITY:
+                    self._use_channel_divinity()
 
                 # Handle spell actions
                 elif action_type in [ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY, ActionType.SPELL_REACTION]:
@@ -2139,17 +2153,41 @@ class ActionPanel(QWidget):
             smite_slot_used = 0
             if self.character_context:
                 class_id = self.character_context.get('class_id', '').lower()
+                print(f"[DEBUG] Attack class check: class_id='{class_id}', is_paladin={class_id == 'paladin'}")
                 if class_id == 'paladin':
                     # Get monster's current HP
                     monster_current_hp = 0
-                    if target_monster and isinstance(target_monster, dict):
-                        monster_current_hp = target_monster.get('current_hp', 0)
+                    if target_monster:
+                        # Handle EncounterInstance object (has attributes) or dict
+                        if hasattr(target_monster, 'current_hit_points'):
+                            monster_current_hp = target_monster.current_hit_points
+                        elif isinstance(target_monster, dict):
+                            monster_current_hp = (
+                                target_monster.get('current_hp') or
+                                target_monster.get('hp') or
+                                target_monster.get('hit_points') or
+                                target_monster.get('current_hit_points') or
+                                0
+                            )
+                        print(f"[DEBUG] Monster HP: {monster_current_hp}, type: {type(target_monster).__name__}")
 
-                    # Only check for smite if monster would survive base damage
-                    if monster_current_hp > base_damage:
+                    # Check for Divine Smite if:
+                    # 1. It's a critical hit (always offer smite on crits)
+                    # 2. Monster would survive base damage (prevent obvious overkill)
+                    # 3. Monster has substantial HP (let player decide on strong enemies)
+                    should_offer_smite = (
+                        is_critical or
+                        monster_current_hp > base_damage or
+                        monster_current_hp >= 10  # Always offer on enemies with 10+ HP
+                    )
+
+                    print(f"[DEBUG] Paladin Divine Smite Check: crit={is_critical}, hp={monster_current_hp}, damage={base_damage}, should_offer={should_offer_smite}")
+
+                    if should_offer_smite:
                         smite_damage_dice, smite_slot_used = self._check_divine_smite(
                             is_critical, target_monster, context, base_damage
                         )
+                        print(f"[DEBUG] Divine Smite result: dice={smite_damage_dice}, slot={smite_slot_used}")
 
             # === DIVINE SMITE DAMAGE ===
             smite_damage = 0
@@ -4204,6 +4242,7 @@ class ActionPanel(QWidget):
             'Action Surge': ActionType.ACTION_SURGE,
             'Reckless Attack': ActionType.RECKLESS_ATTACK,
             'Lay on Hands': ActionType.LAY_ON_HANDS,
+            'Channel Divinity': ActionType.CHANNEL_DIVINITY,
             'Intimidating Presence': ActionType.INTIMIDATING_PRESENCE,
             'Retaliation': ActionType.RETALIATION,
             'Fast Hands': ActionType.FAST_HANDS_THIEVES_TOOLS,  # Main thief feature
@@ -6798,12 +6837,15 @@ class ActionPanel(QWidget):
         # Get available spell slots
         character_id = self.character_context.get('id')
         if not character_id:
+            print("[DEBUG] Divine Smite: No character ID in context")
             return 0, 0
+
+        print(f"[DEBUG] Divine Smite: Checking for character {character_id}")
 
         # Get spell slots from spellcasting service
         try:
             from services.spellcasting_service import get_spellcasting_service
-            spellcasting_service = get_spellcasting_service()
+            spellcasting_service = get_spellcasting_service("talekeeper.db")
 
             # Get all available spell slots
             all_slots = spellcasting_service.get_character_spell_slots(character_id)
@@ -6813,15 +6855,41 @@ class ActionPanel(QWidget):
                     available_slots[slot.level] = slot.available_slots
 
             if not available_slots:
+                print(f"[DEBUG] Divine Smite: No available spell slots. All slots: {[(s.level, s.max_slots, s.used_slots, s.available_slots) for s in all_slots]}")
                 return 0, 0  # No spell slots available
 
+            print(f"[DEBUG] Divine Smite: Available slots: {available_slots}")
+
             # Prepare target info
-            target_info = {
-                'name': target_monster.get('name', 'Monster') if target_monster else 'Monster',
-                'type': target_monster.get('type', 'Unknown') if target_monster else 'Unknown',
-                'current_hp': target_monster.get('current_hp', 0) if target_monster else 0,
-                'base_damage': base_damage,  # Show the damage that will be dealt without smite
-            }
+            if target_monster:
+                if hasattr(target_monster, 'monster_name'):  # EncounterInstance object
+                    target_info = {
+                        'name': target_monster.monster_name,
+                        'type': target_monster.monster_type,
+                        'current_hp': target_monster.current_hit_points,
+                        'base_damage': base_damage,
+                    }
+                elif isinstance(target_monster, dict):
+                    target_info = {
+                        'name': target_monster.get('name', 'Monster'),
+                        'type': target_monster.get('type', 'Unknown'),
+                        'current_hp': target_monster.get('current_hp', 0),
+                        'base_damage': base_damage,
+                    }
+                else:
+                    target_info = {
+                        'name': 'Monster',
+                        'type': 'Unknown',
+                        'current_hp': 0,
+                        'base_damage': base_damage,
+                    }
+            else:
+                target_info = {
+                    'name': 'Monster',
+                    'type': 'Unknown',
+                    'current_hp': 0,
+                    'base_damage': base_damage,
+                }
 
             # Show the Divine Smite dialog
             from PyQt6.QtCore import QEventLoop
@@ -7215,30 +7283,241 @@ class ActionPanel(QWidget):
         """Check if paladin has Lay on Hands uses remaining."""
         if not self._has_class_feature('Lay on Hands'):
             return False
-        
-        # Simple check - assume paladin has healing pool
-        return True
-    
-    def _use_lay_on_hands(self, healing_amount: int = 5):
-        """Use paladin Lay on Hands healing."""
+
+        # Check actual healing pool from paladin service
+        try:
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            paladin_info = paladin_service.get_paladin_info(character_id)
+
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_pool = paladin_info['paladin_features'].get('lay_on_hands_pool_current', 0)
+                return current_pool > 0
+
+            # Fallback - assume paladin has pool if they have the feature
+            return True
+        except Exception:
+            return self._has_class_feature('Lay on Hands')
+
+    def _use_lay_on_hands(self):
+        """Use paladin Lay on Hands healing with proper dialog."""
         if not self._has_lay_on_hands_uses():
             return
-        
-        # Apply healing (reuse existing healing logic)
-        old_hp = self.character_context.get('hit_points_current', 0)
-        new_hp = self._apply_healing_to_player(healing_amount)
-        
-        if new_hp > old_hp:
-            try:
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"✋ Lay on Hands: Healed {new_hp - old_hp} HP")
-                        break
-                    parent = parent.parent()
-            except Exception as e:
-                print(f"Error logging lay on hands: {e}")
-    
+
+        try:
+            # Get paladin service and character info
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            character_level = self.character_context.get('level', 1)
+            character_name = self.character_context.get('name', 'Character')
+            current_hp = self.character_context.get('hit_points_current', 0)
+            max_hp = self.character_context.get('hit_points_max', 0)
+
+            # Get healing pool info
+            paladin_info = paladin_service.get_paladin_info(character_id)
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_pool = paladin_info['paladin_features'].get('lay_on_hands_pool_current', character_level * 5)
+                max_pool = paladin_info['paladin_features'].get('lay_on_hands_pool_max', character_level * 5)
+            else:
+                # Fallback calculation
+                current_pool = character_level * 5
+                max_pool = character_level * 5
+
+            # Create target options (for now, just self-healing)
+            target_options = [(character_id, character_name, current_hp, max_hp)]
+
+            # Show Lay on Hands dialog
+            dialog = LayOnHandsDialog(
+                parent=self,
+                character_data=self.character_context,
+                current_pool=current_pool,
+                max_pool=max_pool,
+                target_options=target_options
+            )
+
+            # Connect dialog signals
+            dialog.healing_applied.connect(self._apply_lay_on_hands_healing)
+            dialog.healing_cancelled.connect(lambda: print("Lay on Hands cancelled"))
+
+            # Show dialog
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Error using Lay on Hands: {e}")
+            # Fallback to simple healing
+            self._apply_healing_to_player(5)
+
+    def _apply_lay_on_hands_healing(self, healing_points: int, cure_poison: bool, target_id: str):
+        """Apply Lay on Hands healing and update resources."""
+        try:
+            # Use paladin service to track resource usage
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+
+            # Use the healing
+            result = paladin_service.use_lay_on_hands(character_id, healing_points)
+
+            if result.get('success'):
+                # Apply healing to character
+                if cure_poison:
+                    # Handle poison curing (for now, just log it)
+                    healing_done = 0
+                    message = f"✋ Lay on Hands: Cured poison ({healing_points} points used)"
+                else:
+                    # Apply actual healing
+                    old_hp = self.character_context.get('hit_points_current', 0)
+                    healing_done = self._apply_healing_to_player(healing_points)
+                    actual_healing = min(healing_done, healing_points)
+                    message = f"✋ Lay on Hands: Healed {actual_healing} HP ({healing_points} points used)"
+
+                # Update character context with new pool values
+                if hasattr(self, 'character_context'):
+                    # This would need to be updated by the main window, but log for now
+                    remaining_pool = result.get('pool_remaining', 0)
+                    print(f"Lay on Hands pool remaining: {remaining_pool}")
+
+                # Log the healing
+                try:
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(message)
+                            break
+                        parent = parent.parent()
+                except Exception as e:
+                    print(f"Error logging lay on hands: {e}")
+
+            else:
+                print(f"Lay on Hands failed: {result.get('reason', 'Unknown error')}")
+
+        except Exception as e:
+            print(f"Error applying Lay on Hands healing: {e}")
+
+    def _use_channel_divinity(self):
+        """Use Channel Divinity with proper dialog."""
+        if not self._has_channel_divinity_uses():
+            return
+
+        try:
+            # Get paladin service and character info
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            character_level = self.character_context.get('level', 1)
+            sacred_oath = self.character_context.get('subclass_id', 'devotion')
+
+            # Get Channel Divinity uses info
+            paladin_info = paladin_service.get_paladin_info(character_id)
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_uses = paladin_info['paladin_features'].get('channel_divinity_uses_current', 0)
+                max_uses = paladin_info['paladin_features'].get('channel_divinity_uses_max', 2)
+            else:
+                # Fallback calculation
+                current_uses = 0
+                max_uses = 3 if character_level >= 11 else 2
+
+            # Get available options
+            available_options = create_channel_divinity_options(character_level, sacred_oath)
+
+            # Show Channel Divinity dialog
+            dialog = ChannelDivinityDialog(
+                parent=self,
+                character_data=self.character_context,
+                current_uses=current_uses,
+                max_uses=max_uses,
+                available_options=available_options
+            )
+
+            # Connect dialog signals
+            dialog.channel_divinity_used.connect(self._apply_channel_divinity_effect)
+            dialog.channel_divinity_cancelled.connect(lambda: print("Channel Divinity cancelled"))
+
+            # Show dialog
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Error using Channel Divinity: {e}")
+
+    def _has_channel_divinity_uses(self) -> bool:
+        """Check if paladin has Channel Divinity uses remaining."""
+        if not self._has_class_feature('Channel Divinity'):
+            return False
+
+        # Check actual uses from paladin service
+        try:
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            paladin_info = paladin_service.get_paladin_info(character_id)
+
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_uses = paladin_info['paladin_features'].get('channel_divinity_uses_current', 0)
+                max_uses = paladin_info['paladin_features'].get('channel_divinity_uses_max', 2)
+                return current_uses < max_uses
+
+            # Fallback - assume paladin has uses if they have the feature
+            return True
+        except Exception:
+            return self._has_class_feature('Channel Divinity')
+
+    def _apply_channel_divinity_effect(self, option_name: str, option_data: Dict[str, Any]):
+        """Apply Channel Divinity effect and update resources."""
+        try:
+            # Use paladin service to track resource usage
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+
+            # Use Channel Divinity
+            result = paladin_service.use_channel_divinity(character_id, option_name)
+
+            if result.get('success'):
+                # Apply the specific effect based on option
+                self._execute_channel_divinity_effect(option_name, option_data)
+
+                # Log the usage
+                try:
+                    parent = self.parent()
+                    while parent:
+                        if hasattr(parent, 'log_panel'):
+                            parent.log_panel.log_combat(f"⚡ Channel Divinity: {option_name}")
+                            break
+                        parent = parent.parent()
+                except Exception as e:
+                    print(f"Error logging Channel Divinity: {e}")
+
+            else:
+                print(f"Channel Divinity failed: {result.get('reason', 'Unknown error')}")
+
+        except Exception as e:
+            print(f"Error applying Channel Divinity: {e}")
+
+    def _execute_channel_divinity_effect(self, option_name: str, option_data: Dict[str, Any]):
+        """Execute the specific Channel Divinity effect."""
+        try:
+            if option_name == "Divine Sense":
+                # For now, just log the effect - full implementation would track detection
+                print(f"Divine Sense activated - detecting celestials, fiends, and undead for 10 minutes")
+
+            elif option_name == "Sacred Weapon":
+                # For now, just log the effect - full implementation would apply weapon bonus
+                print(f"Sacred Weapon activated - weapon gains Charisma bonus and light for 10 minutes")
+
+            elif option_name == "Turn the Unholy":
+                # For now, just log the effect - full implementation would affect nearby enemies
+                print(f"Turn the Unholy activated - fiends and undead within 30 feet must save or be turned")
+
+            elif option_name == "Abjure Foes":
+                # For now, just log the effect - full implementation would affect multiple enemies
+                print(f"Abjure Foes activated - multiple enemies may be frightened")
+
+            else:
+                # Generic effect for other oath abilities
+                print(f"Channel Divinity effect: {option_name}")
+
+            # For now, most effects are placeholder logging
+            # Full implementation would require combat state management and enemy targeting
+
+        except Exception as e:
+            print(f"Error executing Channel Divinity effect: {e}")
+
     def _monsters_present(self) -> bool:
         """Check if any monsters are currently present/alive."""
         try:

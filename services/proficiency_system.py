@@ -31,10 +31,12 @@ class ProficiencySystem:
     def _get_connection(self):
         return sqlite3.connect(self.db_path)
     
-    def initialize_character_proficiencies(self, character_id: str, class_id: str, 
+    def initialize_character_proficiencies(self, character_id: str, class_id: str,
                                           background: Optional[str] = None,
                                           race_id: Optional[str] = None,
                                           selected_skills: List[str] = None,
+                                          selected_class_skills: List[str] = None,
+                                          selected_species_skills: List[str] = None,
                                           conn=None) -> bool:
         try:
             # Use provided connection or create new one
@@ -42,53 +44,64 @@ class ProficiencySystem:
             if conn is None:
                 conn = self._get_connection()
                 should_close = True
-            
+
             cursor = conn.cursor()
-            
+
             cursor.execute("DELETE FROM character_proficiencies WHERE character_id = ?", (character_id,))
-            
+
             cursor.execute("""
                 SELECT weapon_type FROM class_weapon_proficiencies WHERE class_id = ?
             """, (class_id,))
             weapon_profs = cursor.fetchall()
             for prof in weapon_profs:
                 cursor.execute("""
-                    INSERT INTO character_proficiencies 
+                    INSERT INTO character_proficiencies
                     (character_id, proficiency_type, proficiency_name, source)
                     VALUES (?, 'weapon', ?, 'class')
                 """, (character_id, prof[0]))
-            
+
             cursor.execute("""
                 SELECT armor_type FROM class_armor_proficiencies WHERE class_id = ?
             """, (class_id,))
             armor_profs = cursor.fetchall()
             for prof in armor_profs:
                 cursor.execute("""
-                    INSERT INTO character_proficiencies 
+                    INSERT INTO character_proficiencies
                     (character_id, proficiency_type, proficiency_name, source)
                     VALUES (?, 'armor', ?, 'class')
                 """, (character_id, prof[0]))
-            
+
             # Handle class skill selections (chosen by player, not auto-assigned)
-            if selected_skills:
-                for skill in selected_skills:
+            # Support both legacy selected_skills and new separate parameters
+            class_skills_to_add = selected_class_skills if selected_class_skills is not None else selected_skills
+            if class_skills_to_add:
+                for skill in class_skills_to_add:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_proficiencies 
+                        INSERT OR IGNORE INTO character_proficiencies
                         (character_id, proficiency_type, proficiency_name, source)
                         VALUES (?, 'skill', ?, 'class')
                     """, (character_id, skill))
-            
+
+            # Handle species skill selections (player choices from species options)
+            if selected_species_skills:
+                for skill in selected_species_skills:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, 'skill', ?, 'species')
+                    """, (character_id, skill))
+
             # Add background proficiencies (fixed, not chosen)
             if background:
                 cursor.execute("""
-                    SELECT proficiency_type, proficiency_name 
-                    FROM background_proficiencies 
+                    SELECT proficiency_type, proficiency_name
+                    FROM background_proficiencies
                     WHERE background_id = ? AND proficiency_name NOT LIKE 'choice_%'
                 """, (background,))
                 bg_profs = cursor.fetchall()
                 for prof_type, prof_name in bg_profs:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_proficiencies 
+                        INSERT OR IGNORE INTO character_proficiencies
                         (character_id, proficiency_type, proficiency_name, source)
                         VALUES (?, ?, ?, 'background')
                     """, (character_id, prof_type, prof_name))

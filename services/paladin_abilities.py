@@ -22,7 +22,12 @@ class PaladinAbilitiesService:
 
     def __init__(self, db_path: str = "talekeeper.db"):
         self.db_path = db_path
-        self.spellcasting_service = get_spellcasting_service(db_path)
+        self.spellcasting_service = None
+        try:
+            self.spellcasting_service = get_spellcasting_service(db_path)
+        except Exception:
+            # Spellcasting service not available - paladin will work without it
+            pass
 
     def initialize_paladin_character(self, character_id: str, oath: str = "devotion") -> Dict[str, Any]:
         """
@@ -54,13 +59,17 @@ class PaladinAbilitiesService:
                 cha_modifier = (charisma_score - 10) // 2
 
                 # Initialize spellcasting if level 2+
-                if level >= 2:
-                    spellcasting_init = self.spellcasting_service.initialize_character_spellcasting(
-                        character_id, 'paladin'
-                    )
-                    if not spellcasting_init:
-                        result["reason"] = "Failed to initialize spellcasting"
-                        return result
+                if level >= 2 and self.spellcasting_service:
+                    try:
+                        spellcasting_init = self.spellcasting_service.initialize_character_spellcasting(
+                            character_id, 'paladin'
+                        )
+                        if not spellcasting_init:
+                            result["reason"] = "Failed to initialize spellcasting"
+                            return result
+                    except Exception:
+                        # Continue without spellcasting
+                        pass
 
                 # Calculate max prepared spells (Cha modifier + half paladin level, minimum 1)
                 max_prepared = max(1, cha_modifier + (level // 2)) if level >= 2 else 0
@@ -436,7 +445,12 @@ class PaladinAbilitiesService:
                 """, (character_id,))
 
                 # Let spellcasting service handle spell slot recovery
-                spell_recovery = self.spellcasting_service.long_rest_recovery(character_id)
+                spell_recovery = {}
+                if self.spellcasting_service:
+                    try:
+                        spell_recovery = self.spellcasting_service.long_rest_recovery(character_id)
+                    except Exception:
+                        pass
 
                 conn.commit()
                 result["success"] = True

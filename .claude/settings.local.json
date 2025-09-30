@@ -77,7 +77,8 @@
       "WebSearch",
       "Bash(taskkill:*)",
       "Bash(tasklist)",
-      "Bash(run_tests.bat quick)"
+      "Bash(run_tests.bat quick)",
+      "Bash(cat:*)"
     ],
     "deny": []
   },

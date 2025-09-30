@@ -85,17 +85,29 @@ class RegressionTestRunner:
         self.log("=== QUICK REGRESSION TESTS ===", force=True)
 
         tests = [
-            # Core validation (our new test)
+            # Core regression (Fighter/Champion comprehensive)
+            ([sys.executable, "-m", "pytest", "tests/core_regression.py", "-v", "--tb=short"],
+             "Core regression (Fighter/Champion)"),
+
+            # Core validation
             ([sys.executable, "tests/core/test_core_validation.py"],
              "Core system validation"),
 
-            # Database validation (existing)
+            # Database validation
             ([sys.executable, "test/test_simple_validation.py"],
              "Database and core validation"),
 
             # Action economy validation
             ([sys.executable, "test/test_action_economy_enforcement.py"],
              "Action economy system"),
+
+            # Skill allocation validation
+            ([sys.executable, "tests/core/test_skill_allocation.py"],
+             "Skill allocation during character generation"),
+
+            # Encounter systems validation
+            ([sys.executable, "tests/core/test_encounter_systems.py"],
+             "Encounter systems (monsters, hazards, skill challenges)"),
         ]
 
         for cmd, desc in tests:
@@ -143,6 +155,29 @@ class RegressionTestRunner:
         self.log(f"Full tests: {passed}/{total} passed", force=True)
         return passed == total
 
+    def run_detailed_tests(self):
+        """Run detailed tests for additional features and edge cases."""
+        self.log("=== DETAILED REGRESSION TESTS ===", force=True)
+
+        tests = [
+            # Hero mode character creation
+            ([sys.executable, "tests/detailed/test_hero_mode_stats.py"],
+             "Hero Mode stat allocation"),
+
+            # Additional feature tests will be added here as features are developed
+        ]
+
+        passed = 0
+        total = len(tests)
+
+        for cmd, desc in tests:
+            success, _ = self.run_command(cmd, description=desc)
+            if success:
+                passed += 1
+
+        self.log(f"Detailed tests: {passed}/{total} passed", force=True)
+        return passed == total
+
     def run_tests(self, mode="quick"):
         """Run regression tests based on mode."""
         start_time = time.time()
@@ -153,8 +188,12 @@ class RegressionTestRunner:
 
         if mode == "full" and quick_success:
             full_success = self.run_full_tests()
+        elif mode == "detailed" and quick_success:
+            full_success = self.run_full_tests()
+            detailed_success = self.run_detailed_tests() if full_success else False
         else:
-            full_success = True  # Only ran quick tests
+            full_success = True
+            detailed_success = True
 
         duration = time.time() - start_time
 
@@ -162,7 +201,10 @@ class RegressionTestRunner:
         self.print_summary(duration, mode)
 
         # Return overall success
-        success = quick_success and full_success
+        if mode == "detailed":
+            success = quick_success and full_success and detailed_success
+        else:
+            success = quick_success and full_success
         return success
 
     def print_summary(self, total_duration, mode):
@@ -202,17 +244,20 @@ def main():
     parser = argparse.ArgumentParser(description="TaleKeeper Regression Test Suite")
     parser.add_argument("--quick", action="store_true", help="Run only quick tests")
     parser.add_argument("--full", action="store_true", help="Run full test suite")
+    parser.add_argument("--detailed", action="store_true", help="Run detailed test suite (includes all tests)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 
     # Determine mode
-    if args.full:
+    if args.detailed:
+        mode = "detailed"
+    elif args.full:
         mode = "full"
     elif args.quick:
         mode = "quick"
     else:
-        mode = "quick"  # Default to quick
+        mode = "quick"
 
     runner = RegressionTestRunner(verbose=args.verbose)
     success = runner.run_tests(mode)

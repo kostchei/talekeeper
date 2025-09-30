@@ -428,7 +428,8 @@ class WeaponAttackService:
                                     target: Optional[Dict[str, Any]],
                                     hit: bool,
                                     damage_total: int = 0,
-                                    attack_total: int = 0) -> Dict[str, Any]:
+                                    attack_total: int = 0,
+                                    chosen_mastery: Optional[str] = None) -> Dict[str, Any]:
         """
         Apply weapon mastery effects based on the weapon's mastery property.
 
@@ -439,6 +440,7 @@ class WeaponAttackService:
             hit: Whether the attack hit
             damage_total: Total damage dealt
             attack_total: Total attack roll
+            chosen_mastery: Override mastery (for Tactical Master)
 
         Returns:
             Dict describing mastery effects applied
@@ -469,21 +471,21 @@ class WeaponAttackService:
         if not mastery_type:
             raise ValueError(f"Weapon '{weapon.get('name', 'Unknown')}' missing mastery_property")
 
-        # Check for Tactical Master override (Fighter level 9+)
-        if character.get('class_id', '').lower() == 'fighter' and character.get('level', 0) >= 9:
-            # Can substitute Push, Sap, or Slow
-            # This would need UI interaction to choose, so we'll note it
-            if mastery_type in ['Push', 'Sap', 'Slow']:
-                effects['tactical_master'] = {
-                    'available': True,
-                    'original': mastery_type,
-                    'options': ['Push', 'Sap', 'Slow']
-                }
+        # Apply Tactical Master override if provided
+        if chosen_mastery and chosen_mastery != 'original':
+            effects['tactical_master_used'] = {
+                'original': mastery_type,
+                'chosen': chosen_mastery.capitalize()
+            }
+            mastery_type = chosen_mastery.capitalize()
 
         weapon_name = weapon.get('name')
         if not weapon_name:
             raise ValueError("Weapon name is required but missing")
-        return self._apply_specific_mastery(mastery_type, weapon_name, hit, damage_total, character)
+
+        mastery_effects = self._apply_specific_mastery(mastery_type, weapon_name, hit, damage_total, character)
+        effects.update(mastery_effects)
+        return effects
 
     def _apply_specific_mastery(self,
                                mastery_type: str,
@@ -725,6 +727,20 @@ class WeaponAttackService:
 
             # Check by class or by count
             return class_id in self.UNLIMITED_MASTERY_CLASSES or mastery_count == -1
+
+    def can_use_tactical_master(self, character_id: str) -> bool:
+        """Check if character can use Tactical Master (Fighter level 9+)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT class_id, level FROM characters WHERE id = ?
+            """, (character_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return False
+
+            return result['class_id'].lower() == 'fighter' and result['level'] >= 9
 
     def _apply_sneak_attack_if_eligible(self,
                                        character: Dict[str, Any],

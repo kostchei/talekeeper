@@ -61,6 +61,12 @@ class UnifiedLevelUpService:
                     "options": available_subclasses
                 })
 
+            if new_level == 19 and not self._has_epic_boon(cursor, character_id):
+                results["choices_required"].append({
+                    "type": "epic_boon",
+                    "level": 19
+                })
+
             conn.commit()
             return results
 
@@ -254,4 +260,52 @@ class UnifiedLevelUpService:
             return {
                 "success": True,
                 "choice_applied": choice
+            }
+
+    def _has_epic_boon(self, cursor, character_id: str) -> bool:
+        """Check if character already has an Epic Boon feat"""
+        cursor.execute("""
+            SELECT COUNT(*) FROM character_feats
+            WHERE character_id = ? AND feat_name LIKE 'Boon of%'
+        """, (character_id,))
+        return cursor.fetchone()[0] > 0
+
+    def get_available_epic_boons(self) -> List[Dict[str, Any]]:
+        """Get all available Epic Boon feats"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT name, description, prerequisites
+                FROM feats
+                WHERE name LIKE 'Boon of%'
+                ORDER BY name
+            """)
+
+            boons = []
+            for row in cursor.fetchall():
+                boons.append({
+                    "name": row[0],
+                    "description": row[1],
+                    "prerequisites": row[2]
+                })
+            return boons
+
+    def apply_epic_boon(self, character_id: str, boon_name: str) -> Dict[str, Any]:
+        """Apply an Epic Boon feat to the character"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            if self._has_epic_boon(cursor, character_id):
+                return {"success": False, "error": "Character already has an Epic Boon"}
+
+            cursor.execute("""
+                INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
+                VALUES (?, ?, 'level_19_epic_boon', 19)
+            """, (character_id, boon_name))
+
+            conn.commit()
+
+            return {
+                "success": True,
+                "boon_granted": boon_name
             }
