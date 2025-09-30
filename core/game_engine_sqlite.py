@@ -612,6 +612,7 @@ class GameEngineSQLite:
                         INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
                         VALUES (?, ?, ?, ?)
                     """, (character_id, feat_name, 'character_creation', character_data.get('level', 1)))
+                    print(f"[SQLite] Added feat '{feat_name}' during character creation")
 
                     # Initialize feat resources if needed
                     if feat_name == 'Lucky':
@@ -2019,22 +2020,28 @@ class GameEngineSQLite:
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                
-                # Check if feat already exists
-                cursor.execute("""
-                    SELECT COUNT(*) FROM character_feats 
-                    WHERE character_id = ? AND feat_name = ?
-                """, (character_id, feat_name))
-                
-                if cursor.fetchone()[0] > 0:
-                    print(f"[SQLite] Character already has feat: {feat_name}")
-                    return False
-                
+
+                # Check if feat is repeatable
+                cursor.execute("SELECT repeatable FROM feats WHERE name = ?", (feat_name,))
+                feat_row = cursor.fetchone()
+                is_repeatable = feat_row and feat_row[0] == 1 if feat_row else False
+
+                # If not repeatable, check if feat already exists
+                if not is_repeatable:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM character_feats
+                        WHERE character_id = ? AND feat_name = ?
+                    """, (character_id, feat_name))
+
+                    if cursor.fetchone()[0] > 0:
+                        print(f"[SQLite] Character already has feat: {feat_name}")
+                        return False
+
                 # Get character level for feat acquisition
                 cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
                 char_row = cursor.fetchone()
                 level = char_row['level'] if char_row else 1
-                
+
                 # Add the feat
                 cursor.execute("""
                     INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
