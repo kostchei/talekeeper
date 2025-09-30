@@ -4400,7 +4400,12 @@ class EncounterPanel(QWidget):
         self.encounter_details_text.setPlainText("A travelling vendor offers goods.")
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
-        self.vendor_widget = ShopInterface(character_data, self)
+
+        from services.shop_service import ShopSize
+        import random
+        vendor_size = random.choice([ShopSize.SMALL, ShopSize.MEDIUM, ShopSize.LARGE])
+
+        self.vendor_widget = ShopInterface(character_data, vendor_size, self)
         self.encounters_layout.addWidget(self.vendor_widget)
 
     def _generate_monster_encounter(self):
