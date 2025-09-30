@@ -1211,7 +1211,6 @@ class GameEngineSQLite:
             equipment_items = [
                 ('Potion of Healing', 'consumable', 1, 0.5, 'This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.', 50),
                 ('Backpack', 'gear', 1, 5.0, 'A leather backpack that can hold up to 30 pounds of gear.', 2),
-                ('Rations (1 day)', 'consumable', 5, 2.0, 'These are required to gain the benefits of a long rest. Each day\'s ration provides enough sustenance for one creature for 24 hours.', 1),
             ]
             
             for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
@@ -1320,8 +1319,8 @@ class GameEngineSQLite:
         
         # Universal starting equipment (everyone gets these)
         universal_equipment = [
-            ('Rations (1 day)', 'gear', 2, 2.0, 'One day worth of travel rations', 2),
-            ('Waterskin', 'gear', 1, 5.0, 'Holds 4 pints of liquid', 2),
+            ('Rations', 'gear', 10, 2.0, 'One day worth of travel rations', 0.5),
+            ('Waterskin', 'gear', 1, 5.0, 'Holds 4 pints of liquid', 0.2),
         ]
         
         for item_name, item_type, quantity, weight_lb, description, value_gp in universal_equipment:
