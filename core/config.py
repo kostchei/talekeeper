@@ -56,9 +56,9 @@ class FeatureConfig:
                 "cleric": ["life", "war"],
                 "fighter": ["champion", "gladiator"],
                 "wizard": ["evocation", "abjuration"],
-                "barbarian": ["berserker"],  # slayer not implemented yet
-                "paladin": [],  # devotion and glory not implemented yet
-                "warlock": []   # fiend and templar not implemented yet
+                "barbarian": ["berserker"],
+                "paladin": ["oath_of_devotion", "oath_of_glory", "oath_of_the_unbroken"],
+                "warlock": []
             }
 
 

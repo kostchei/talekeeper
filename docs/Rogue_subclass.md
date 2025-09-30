@@ -231,21 +231,23 @@ You know how to concoct basic poisons using mundane ingredients (bugs, bile, pla
 
 You gain expert use of disguise, dialect, and tradecraft.
 
-You may cast Disguise Self once per long rest, but only to impersonate a real person or archetype (vizier, guard, slave, gladiator, etc.).
+You gain Expertise in Deception. If you already have Expertise in Deception, you gain Expertise in one other skill of your choice from the Rogue list.
 
-Gain advantage on checks to impersonate someone or blend into a role (Performance, Deception, or Persuasion).
+You become a master of mundane disguise. With access to appropriate materials (clothing, makeup, props), you can create a convincing disguise of a specific person or role over the course of 10 minutes. The disguise holds up to casual inspection and grants advantage on Deception and Performance checks to maintain the role.
+
+When attempting to avoid combat through Deception (such as talking your way out of a fight, bluffing your identity, or creating a diversion), you have advantage on the Deception check.
 
 You may change disguise or role over the course of a short rest if you have access to materials.
 
-Additionally, you may add your proficiency bonus to any Charisma check when adopting a role (e.g., performing as a juggler, posing as a caravan master).
-
 **Implementation Notes**:
-- Grant Disguise Self spell (1/long rest)
-- Advantage on impersonation checks (Performance, Deception, Persuasion)
+- Grant Expertise in Deception (or alternative skill if already have Expertise)
+- Mundane disguise system (10 minutes to create)
+- Disguise grants advantage on Deception and Performance checks
+- Advantage on Deception checks when avoiding combat
 - Short rest to change disguise
-- Add proficiency bonus to Charisma checks while in role
-- Needs spell integration system
-- Needs advantage tracking for specific contexts
+- Needs advantage tracking for combat avoidance context
+- Integration with encounter avoidance system (services/encounter_avoidance.py)
+- No spellcasting required
 
 ### Level 13: Toxic Arsenal
 
@@ -271,18 +273,20 @@ You've perfected your use of poisons, even the rare ones found in the wastes.
 
 You move between roles, lives, and faces as easily as others change clothes.
 
-**False Identity**: You can create a false identity during a long rest. Once done, you can assume it perfectly gaining advantage on all Charisma checks related to that identity.
+**False Identity**: You can create a false identity during a long rest, complete with backstory, mannerisms, and believable history. Once created, you can assume it perfectly, gaining advantage on all Charisma checks related to that identity. You can maintain up to 3 false identities at a time.
 
-**Perfect Disguise**: You may change your voice, gait, posture, and even apparent age or health.
+**Perfect Disguise**: Your disguises are flawless. You can change your voice, gait, posture, and even apparent age or health. Investigation checks to see through your disguise are made with disadvantage.
 
 **Instant Poison Mix**: You may craft and apply one poison as part of the same bonus action, once per turn.
 
 **Implementation Notes**:
-- False identity creation system
+- False identity creation system (during long rest)
 - Advantage on all Charisma checks for identity
-- Multiple identity tracking
+- Track up to 3 false identities
+- Investigation checks against disguise have disadvantage
 - Instant poison craft + apply in single bonus action
 - UI integration for identity management
+- No spellcasting required
 
 ---
 
@@ -305,11 +309,12 @@ You move between roles, lives, and faces as easily as others change clothes.
 8. DC calculation (DEX or INT choice)
 
 ### Phase 3: Living Guise (Level 9)
-1. Grant Disguise Self spell (1/long rest)
-2. Implement advantage on impersonation checks
-3. Add role/identity tracking system
-4. Short rest disguise change mechanic
-5. Proficiency bonus to Charisma while in role
+1. Grant Expertise in Deception (or alternative skill)
+2. Implement mundane disguise system (10 minutes to create)
+3. Advantage on Deception and Performance while in disguise
+4. Advantage on Deception checks when avoiding combat
+5. Short rest disguise change mechanic
+6. Integration with encounter avoidance system
 
 ### Phase 4: Toxic Arsenal (Level 13)
 1. Add poison immunity
