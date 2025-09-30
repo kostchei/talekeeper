@@ -7671,6 +7671,24 @@ class ActionPanel(QWidget):
             print(f"Error checking monsters present: {e}")
             return False  # Default to allowing rest if check fails
 
+    def _hazards_present(self) -> bool:
+        """Check if any hazards are currently active."""
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'encounter_panel'):
+                    encounter_panel = parent.encounter_panel
+                    # Check if hazard widget exists and has an active hazard
+                    if hasattr(encounter_panel, 'hazard_widget') and encounter_panel.hazard_widget:
+                        if hasattr(encounter_panel.hazard_widget, 'current_hazard') and encounter_panel.hazard_widget.current_hazard:
+                            return True
+                    return False
+                parent = parent.parent()
+            return False
+        except Exception as e:
+            print(f"Error checking hazards present: {e}")
+            return False
+
     def _handle_rest_action(self, context: Dict[str, Any]):
         """Handle rest action - prompt for short or long rest."""
         try:
@@ -7680,6 +7698,16 @@ class ActionPanel(QWidget):
                 while parent:
                     if hasattr(parent, 'log_panel'):
                         parent.log_panel.log_combat("❌ Cannot rest while monsters are present!")
+                        break
+                    parent = parent.parent()
+                return
+
+            # Check if hazards are active - cannot rest with active hazards
+            if self._hazards_present():
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("❌ Cannot rest while hazards are active!")
                         break
                     parent = parent.parent()
                 return
@@ -7807,16 +7835,52 @@ class ActionPanel(QWidget):
     def _take_long_rest(self, dialog):
         """Execute long rest."""
         try:
+            # Check if character has a ration before accepting the dialog
+            character_id = self._resolve_character_id()
+            if not character_id:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("❌ Cannot find character for rest!")
+                        break
+                    parent = parent.parent()
+                dialog.reject()
+                return
+
+            # Check for rations in inventory
+            has_ration = self._has_rations(character_id)
+            if not has_ration:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("❌ You need a ration to take a long rest!")
+                        break
+                    parent = parent.parent()
+                dialog.reject()
+                return
+
+            # Consume the ration
+            ration_consumed = self._consume_ration(character_id)
+            if not ration_consumed:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        parent.log_panel.log_combat("❌ Failed to consume ration!")
+                        break
+                    parent = parent.parent()
+                dialog.reject()
+                return
+
             dialog.accept()
-            
+
             # Log start of rest
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
-                    parent.log_panel.log_combat("😴 Taking a Long Rest (8 hours)...")
+                    parent.log_panel.log_combat("😴 Taking a Long Rest (8 hours)... 🍖 Consuming 1 ration.")
                     break
                 parent = parent.parent()
-            
+
             # Save XP to database
             self._save_character_xp()
             
@@ -7841,6 +7905,55 @@ class ActionPanel(QWidget):
         except Exception as e:
             print(f"Error during long rest: {e}")
     
+
+    def _has_rations(self, character_id: str) -> bool:
+        """Check if character has at least one ration in inventory."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect('talekeeper.db')
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT quantity FROM character_inventory
+                WHERE character_id = ? AND item_name = 'Rations' AND quantity > 0
+            """, (character_id,))
+
+            result = cursor.fetchone()
+            conn.close()
+
+            return result is not None and result[0] > 0
+        except Exception as e:
+            print(f"Error checking for rations: {e}")
+            return False
+
+    def _consume_ration(self, character_id: str) -> bool:
+        """Consume one ration from character inventory."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect('talekeeper.db')
+            cursor = conn.cursor()
+
+            # Reduce ration quantity by 1
+            cursor.execute("""
+                UPDATE character_inventory
+                SET quantity = quantity - 1
+                WHERE character_id = ? AND item_name = 'Rations' AND quantity > 0
+            """, (character_id,))
+
+            # Delete if quantity reaches 0
+            cursor.execute("""
+                DELETE FROM character_inventory
+                WHERE character_id = ? AND item_name = 'Rations' AND quantity <= 0
+            """, (character_id,))
+
+            conn.commit()
+            affected_rows = cursor.rowcount
+            conn.close()
+
+            return affected_rows > 0
+        except Exception as e:
+            print(f"Error consuming ration: {e}")
+            return False
 
     def _save_character_xp(self):
         """Save character XP to database."""

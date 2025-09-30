@@ -108,6 +108,10 @@ class RegressionTestRunner:
             # Encounter systems validation
             ([sys.executable, "tests/core/test_encounter_systems.py"],
              "Encounter systems (monsters, hazards, skill challenges)"),
+
+            # Rest system validation
+            ([sys.executable, "test/test_rest_system.py"],
+             "Rest system (ration consumption, hazard check)"),
         ]
 
         for cmd, desc in tests:
