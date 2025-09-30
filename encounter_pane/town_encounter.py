@@ -21,6 +21,7 @@ import json
 from services.level_up import LevelUpService
 from services.equipment_database import EquipmentDatabase
 from services.subclass_manager import SubclassManager
+from services.shop_service import ShopService, ShopSize
 from encounter_pane.skill_selection_dialog import SkillSelectionDialog
 
 
@@ -955,35 +956,27 @@ Training includes food and lodging (counts as a long rest)."""
 class ShopInterface(QWidget):
     """Shop interface for buying equipment and items"""
     shopping_completed = pyqtSignal()
-    
-    def __init__(self, character_data: Dict[str, Any], parent=None):
+
+    def __init__(self, character_data: Dict[str, Any], shop_size: ShopSize = ShopSize.MEDIUM, parent=None):
         super().__init__(parent)
         self.character_data = character_data
+        self.shop_size = shop_size
+        self.shop_service = ShopService()
         self.shop_inventory = []
         self.character_inventory = []
         self.character_gold = 0
         self.shop_mode = "buy"  # "buy" or "sell"
-        
+
         self._load_shop_inventory()
         self._load_character_inventory()
         self._setup_ui()
         self._update_character_gold()
     
     def _load_shop_inventory(self):
-        """Load shop inventory from equipment data"""
+        """Load shop inventory based on shop size"""
         try:
-            equipment_db = EquipmentDatabase()
-            equipment_data = equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
-                
-            # Filter items that would be available in a general store
-            for item in equipment_data:
-                # Add markup for shop prices (25% increase)
-                shop_price = int(item.get('cost_gp', 0) * 1.25)
-                if shop_price > 0:  # Only items with a cost
-                    shop_item = item.copy()
-                    shop_item['shop_price'] = shop_price
-                    self.shop_inventory.append(shop_item)
-                        
+            self.shop_inventory = self.shop_service.generate_shop_inventory(self.shop_size)
+            print(f"[Shop] Generated {len(self.shop_inventory)} items for {self.shop_size.size_name} shop (limit: {self.shop_size.gold_limit}gp)")
         except Exception as e:
             print(f"Error loading shop inventory: {e}")
             self.shop_inventory = []
@@ -1031,15 +1024,27 @@ class ShopInterface(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         
-        # Title
-        title_label = QLabel("🏪 GENERAL STORE")
+        # Title with shop size
+        shop_size_names = {
+            ShopSize.SMALL: "Small Shop",
+            ShopSize.MEDIUM: "General Store",
+            ShopSize.LARGE: "Grand Emporium"
+        }
+        title_text = f"🏪 {shop_size_names.get(self.shop_size, 'SHOP')}"
+        title_label = QLabel(title_text)
         title_label.setObjectName("shopTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
-        
+
+        # Shop info label
+        info_label = QLabel(f"Max item price: {self.shop_size.gold_limit} GP | {len(self.shop_inventory)} items in stock")
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_label.setStyleSheet("color: #888; font-size: 11px;")
+        layout.addWidget(info_label)
+
         # Gold display
         self.gold_label = QLabel()
-        self.gold_label.setObjectName("goldDisplay") 
+        self.gold_label.setObjectName("goldDisplay")
         self.gold_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.gold_label)
         
@@ -1654,17 +1659,64 @@ class TownEncounterPanel(QWidget):
         layout.addWidget(training_widget)
     
     def _show_shop(self):
-        """Show the shop interface"""
-        shop_widget = ShopInterface(self.character_data, self)
+        """Show shop size selection dialog, then shop interface"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QRadioButton, QButtonGroup
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Choose Shop")
+        dialog.setModal(True)
+        dialog.resize(400, 250)
+
+        layout = QVBoxLayout(dialog)
+
+        title = QLabel("Select shop size:")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(title)
+
+        button_group = QButtonGroup(dialog)
+        selected_size = [ShopSize.MEDIUM]
+
+        small_radio = QRadioButton("Small Shop (max 20 GP items)")
+        small_radio.setToolTip("10 + 1d10 common items under 20 GP")
+        small_radio.toggled.connect(lambda checked: selected_size.__setitem__(0, ShopSize.SMALL) if checked else None)
+        button_group.addButton(small_radio)
+        layout.addWidget(small_radio)
+
+        medium_radio = QRadioButton("General Store (max 200 GP items)")
+        medium_radio.setToolTip("10 + 2d10 items under 200 GP")
+        medium_radio.setChecked(True)
+        medium_radio.toggled.connect(lambda checked: selected_size.__setitem__(0, ShopSize.MEDIUM) if checked else None)
+        button_group.addButton(medium_radio)
+        layout.addWidget(medium_radio)
+
+        large_radio = QRadioButton("Grand Emporium (max 2000 GP items)")
+        large_radio.setToolTip("10 + 3d10 items under 2000 GP")
+        large_radio.toggled.connect(lambda checked: selected_size.__setitem__(0, ShopSize.LARGE) if checked else None)
+        button_group.addButton(large_radio)
+        layout.addWidget(large_radio)
+
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("Enter Shop")
+        ok_button.clicked.connect(dialog.accept)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        shop_widget = ShopInterface(self.character_data, selected_size[0], self)
         shop_widget.shopping_completed.connect(self._shopping_completed)
-        
+
         # Replace current widget content with shop interface
         layout = self.layout()
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().setParent(None)
-        
+
         layout.addWidget(shop_widget)
     
     def _shopping_completed(self):

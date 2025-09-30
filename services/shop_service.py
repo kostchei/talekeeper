@@ -1,0 +1,61 @@
+import random
+from enum import Enum
+from typing import List, Dict, Any
+from services.equipment_database import EquipmentDatabase
+
+
+class ShopSize(Enum):
+    SMALL = ("small", 20, 10, 1)
+    MEDIUM = ("medium", 200, 10, 2)
+    LARGE = ("large", 2000, 10, 3)
+
+    def __init__(self, size_name: str, gold_limit: int, base_items: int, dice_count: int):
+        self.size_name = size_name
+        self.gold_limit = gold_limit
+        self.base_items = base_items
+        self.dice_count = dice_count
+
+
+class ShopService:
+    def __init__(self):
+        self.equipment_db = EquipmentDatabase()
+
+    def generate_shop_inventory(self, shop_size: ShopSize, markup_percent: float = 25.0) -> List[Dict[str, Any]]:
+        all_equipment = self.equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
+
+        eligible_items = []
+        for item in all_equipment:
+            base_cost = item.get('cost_gp', 0)
+            if 0 < base_cost <= shop_size.gold_limit:
+                eligible_items.append(item)
+
+        if not eligible_items:
+            return []
+
+        num_additional_items = sum(random.randint(1, 10) for _ in range(shop_size.dice_count))
+        total_items = min(shop_size.base_items + num_additional_items, len(eligible_items))
+
+        selected_items = random.sample(eligible_items, total_items)
+
+        shop_inventory = []
+        for item in selected_items:
+            shop_item = item.copy()
+            base_cost = item.get('cost_gp', 0)
+            shop_item['shop_price'] = int(base_cost * (1 + markup_percent / 100))
+            shop_item['base_cost'] = base_cost
+            shop_inventory.append(shop_item)
+
+        shop_inventory.sort(key=lambda x: x['shop_price'])
+
+        return shop_inventory
+
+    def get_shop_size_by_name(self, size_name: str) -> ShopSize:
+        size_map = {
+            'small': ShopSize.SMALL,
+            'medium': ShopSize.MEDIUM,
+            'large': ShopSize.LARGE
+        }
+        return size_map.get(size_name.lower(), ShopSize.MEDIUM)
+
+    def calculate_sell_price(self, item_cost: int) -> int:
+        return max(1, int(item_cost * 0.5))

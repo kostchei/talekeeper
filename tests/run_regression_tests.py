@@ -112,6 +112,10 @@ class RegressionTestRunner:
             # Rest system validation
             ([sys.executable, "test/test_rest_system.py"],
              "Rest system (ration consumption, hazard check)"),
+
+            # Shop system validation
+            ([sys.executable, "test/test_shop_system.py"],
+             "Shop system (3-tier inventory generation)"),
         ]
 
         for cmd, desc in tests:
