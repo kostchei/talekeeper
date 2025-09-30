@@ -1000,18 +1000,17 @@ class ShopInterface(QWidget):
             inventory_items = cursor.fetchall()
             conn.close()
             
-            # Load equipment data to get item details and prices
             equipment_db = EquipmentDatabase()
             equipment_lookup = equipment_db.get_equipment_lookup()
-            
+
             self.character_inventory = []
             for item_name, item_type, quantity in inventory_items:
                 if item_name in equipment_lookup:
                     item_data = equipment_lookup[item_name].copy()
                     item_data['quantity'] = quantity
-                    # Calculate sell price (50% of original cost)
-                    sell_price = int(item_data.get('cost_gp', 0) * 0.5)
-                    item_data['sell_price'] = max(sell_price, 1)  # Minimum 1 GP
+                    sell_price_gp, sell_price_display = self.shop_service.calculate_sell_price(item_data.get('cost_gp', 0))
+                    item_data['sell_price_gp'] = sell_price_gp
+                    item_data['sell_price_display'] = sell_price_display
                     self.character_inventory.append(item_data)
                     
         except Exception as e:
@@ -1220,14 +1219,14 @@ class ShopInterface(QWidget):
     def _populate_items_list(self, category_filter="All Items"):
         """Populate items list based on mode and category filter"""
         self.items_list.clear()
-        
+
         if self.shop_mode == "buy":
             items_to_show = self.shop_inventory
-            price_key = 'shop_price'
+            price_key = 'shop_price_display'
         else:
             items_to_show = self.character_inventory
-            price_key = 'sell_price'
-        
+            price_key = 'sell_price_display'
+
         for item in items_to_show:
             # Apply category filter (only in buy mode)
             if self.shop_mode == "buy" and category_filter != "All Items":
@@ -1238,17 +1237,17 @@ class ShopInterface(QWidget):
                     continue
                 elif category_filter == "Adventuring Gear" and item_type not in ["gear", "tool", "adventuring_gear"]:
                     continue
-            
+
             # Create list item
             name = item['name']
             price = item[price_key]
-            
+
             if self.shop_mode == "sell":
                 quantity = item.get('quantity', 1)
-                item_widget = QListWidgetItem(f"{name} (x{quantity}) - {price} GP each")
+                item_widget = QListWidgetItem(f"{name} (x{quantity}) - {price} each")
             else:
-                item_widget = QListWidgetItem(f"{name} - {price} GP")
-            
+                item_widget = QListWidgetItem(f"{name} - {price}")
+
             item_widget.setData(Qt.ItemDataRole.UserRole, item)
             self.items_list.addItem(item_widget)
     
@@ -1288,19 +1287,19 @@ class ShopInterface(QWidget):
         description = item.get('description', 'No description available')
         weight = item.get('weight_lb', 0)
         rarity = item.get('rarity', 'common').title()
-        
+
         details_text = f"**{name}**\n\n"
         details_text += f"{description}\n\n"
-        
+
         if self.shop_mode == "buy":
-            price = item['shop_price']
-            details_text += f"Price: {price} GP\n"
+            price_display = item.get('shop_price_display', '? gp')
+            details_text += f"Price: {price_display}\n"
         else:
-            price = item['sell_price']
+            price_display = item.get('sell_price_display', '? gp')
             quantity = item.get('quantity', 1)
-            details_text += f"Sell Price: {price} GP each\n"
+            details_text += f"Sell Price: {price_display} each\n"
             details_text += f"You have: {quantity}\n"
-        
+
         details_text += f"Weight: {weight} lb\n"
         details_text += f"Rarity: {rarity}\n"
         
@@ -1327,87 +1326,90 @@ class ShopInterface(QWidget):
     
     def _update_total_cost(self):
         """Update total cost display"""
+        from services.shop_service import format_currency
         current_item = self.items_list.currentItem()
         if current_item:
             item_data = current_item.data(Qt.ItemDataRole.UserRole)
             quantity = self.quantity_spin.value()
-            
+
             if self.shop_mode == "buy":
-                price = item_data['shop_price']
-                total = price * quantity
-                self.total_cost_label.setText(f"Total Cost: {total} GP")
-                
+                price_gp = item_data['shop_price_gp']
+                total_gp = price_gp * quantity
+                total_display, _ = format_currency(total_gp)
+                self.total_cost_label.setText(f"Total Cost: {total_display}")
+
                 # Check if player can afford it
-                if total > self.character_gold:
-                    self.total_cost_label.setText(f"Total Cost: {total} GP (Insufficient funds!)")
+                if total_gp > self.character_gold:
+                    self.total_cost_label.setText(f"Total Cost: {total_display} (Insufficient funds!)")
                     self.purchase_button.setEnabled(False)
                 else:
                     self.purchase_button.setEnabled(True)
-            else:  # sell mode
-                price = item_data['sell_price']
-                total = price * quantity
-                self.total_cost_label.setText(f"Total Value: {total} GP")
+            else:
+                price_gp = item_data['sell_price_gp']
+                total_gp = price_gp * quantity
+                total_display, _ = format_currency(total_gp)
+                self.total_cost_label.setText(f"Total Value: {total_display}")
                 self.purchase_button.setEnabled(True)
     
     def _handle_transaction(self):
         """Handle buying or selling transaction"""
+        from services.shop_service import format_currency
         current_item = self.items_list.currentItem()
         if not current_item:
             return
-            
+
         item_data = current_item.data(Qt.ItemDataRole.UserRole)
         quantity = self.quantity_spin.value()
         item_name = item_data['name']
-        
+
         if self.shop_mode == "buy":
-            total_cost = item_data['shop_price'] * quantity
-            
-            if total_cost > self.character_gold:
-                QMessageBox.warning(self, "Insufficient Funds", 
-                                  f"You need {total_cost} GP but only have {self.character_gold} GP.")
+            total_cost_gp = item_data['shop_price_gp'] * quantity
+            total_cost_display, _ = format_currency(total_cost_gp)
+
+            if total_cost_gp > self.character_gold:
+                QMessageBox.warning(self, "Insufficient Funds",
+                                  f"You need {total_cost_display} but only have {self.character_gold} GP.")
                 return
-            
-            # Confirm purchase
+
             reply = QMessageBox.question(self, "Confirm Purchase",
-                                       f"Purchase {quantity}x {item_name} for {total_cost} GP?",
+                                       f"Purchase {quantity}x {item_name} for {total_cost_display}?",
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            
+
             if reply == QMessageBox.StandardButton.Yes:
                 success = self._add_item_to_inventory(item_data, quantity)
                 if success:
-                    self._deduct_gold(total_cost)
+                    self._deduct_gold(total_cost_gp)
                     self._update_character_gold()
                     self._update_total_cost()
-                    QMessageBox.information(self, "Purchase Complete", 
+                    QMessageBox.information(self, "Purchase Complete",
                                           f"Successfully purchased {quantity}x {item_name}!")
                 else:
-                    QMessageBox.critical(self, "Purchase Failed", 
+                    QMessageBox.critical(self, "Purchase Failed",
                                        "Failed to add item to inventory. Please try again.")
-        else:  # sell mode
-            total_value = item_data['sell_price'] * quantity
-            
-            # Confirm sale
+        else:
+            total_value_gp = item_data['sell_price_gp'] * quantity
+            total_value_display, _ = format_currency(total_value_gp)
+
             reply = QMessageBox.question(self, "Confirm Sale",
-                                       f"Sell {quantity}x {item_name} for {total_value} GP?",
+                                       f"Sell {quantity}x {item_name} for {total_value_display}?",
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            
+
             if reply == QMessageBox.StandardButton.Yes:
                 success = self._remove_item_from_inventory(item_data, quantity)
                 if success:
-                    self._add_gold(total_value)
-                    self._load_character_inventory()  # Refresh inventory
+                    self._add_gold(total_value_gp)
+                    self._load_character_inventory()
                     self._update_character_gold()
-                    self._populate_items_list()  # Refresh item list
-                    QMessageBox.information(self, "Sale Complete", 
-                                          f"Successfully sold {quantity}x {item_name} for {total_value} GP!")
-                    
-                    # Clear selection if item is no longer available
+                    self._populate_items_list()
+                    QMessageBox.information(self, "Sale Complete",
+                                          f"Successfully sold {quantity}x {item_name} for {total_value_display}!")
+
                     if quantity >= item_data.get('quantity', 1):
                         self.items_list.clearSelection()
                         self.item_details.setText("Select an item to see details")
                         self.purchase_button.setEnabled(False)
                 else:
-                    QMessageBox.critical(self, "Sale Failed", 
+                    QMessageBox.critical(self, "Sale Failed",
                                        "Failed to remove item from inventory. Please try again.")
     
     def _add_item_to_inventory(self, item_data: Dict[str, Any], quantity: int) -> bool:
@@ -1452,7 +1454,7 @@ class ShopInterface(QWidget):
             print(f"Error adding item to inventory: {e}")
             return False
     
-    def _deduct_gold(self, amount: int):
+    def _deduct_gold(self, amount: float):
         """Deduct gold from character inventory"""
         try:
             character_id = self.character_data.get('id', '')
@@ -1471,7 +1473,7 @@ class ShopInterface(QWidget):
         except Exception as e:
             print(f"Error deducting gold: {e}")
     
-    def _add_gold(self, amount: int):
+    def _add_gold(self, amount: float):
         """Add gold to character inventory"""
         try:
             character_id = self.character_data.get('id', '')
