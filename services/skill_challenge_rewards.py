@@ -158,9 +158,11 @@ class SkillChallengeRewards:
 
     def _apply_rations_gain(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply ration gain (food/water supplies)."""
-        amount = random.randint(2, 6)  # 2-6 days worth
-        # For now, just log it since we don't track rations in character data
-        return character_data, [f"Gained {amount} days worth of rations"]
+        amount = random.randint(2, 6)
+        character_id = character_data.get('id')
+        if character_id:
+            self._add_item_to_inventory(character_id, 'Rations', 'gear', amount, 2.0, 'One day worth of travel rations', 0.5)
+        return character_data, [f"Gained {amount} Rations"]
 
     def _apply_rations_loss(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply ration loss."""
@@ -208,18 +210,33 @@ class SkillChallengeRewards:
         return character_data, [f"Lost {loss_amount} {coin_type}"]
 
     def _apply_item_reward(self, character_data: Dict) -> Tuple[Dict, List[str]]:
-        """Apply random item reward."""
+        """Apply random item reward from equipment database."""
+        from services.equipment_database import EquipmentDatabase
         level = character_data.get('level', 1)
+        character_id = character_data.get('id')
+
+        if not character_id:
+            return character_data, ["Received: Common item"]
+
+        equipment_db = EquipmentDatabase()
 
         if level <= 4:
-            items = ["Common magic item", "Superior equipment", "Useful tool"]
+            items = equipment_db.get_equipment_by_rarity(['common'])
+            items = [item for item in items if item.get('item_type') in ['gear', 'tool'] and item.get('cost_gp', 0) <= 10]
         elif level <= 10:
-            items = ["Uncommon magic item", "Rare equipment", "Magical consumable"]
+            items = equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
+            items = [item for item in items if item.get('cost_gp', 0) <= 100]
         else:
-            items = ["Rare magic item", "Legendary equipment", "Powerful consumable"]
+            items = equipment_db.get_equipment_by_rarity(['uncommon'])
+            items = [item for item in items if item.get('cost_gp', 0) <= 500]
+
+        if not items:
+            return character_data, ["Received: Common item (not found in database)"]
 
         item = random.choice(items)
-        return character_data, [f"Received: {item}"]
+        self._add_item_to_inventory(character_id, item['name'], item['item_type'], 1,
+                                    item.get('weight_lb', 1.0), item.get('description', ''), item.get('cost_gp', 1))
+        return character_data, [f"Received: {item['name']}"]
 
     def _apply_inspiration(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply inspiration reward."""
@@ -229,18 +246,23 @@ class SkillChallengeRewards:
     def _apply_consumable_reward(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply consumable item reward."""
         consumables = [
-            "Potion of Healing",
-            "Potion of Climbing",
-            "Oil of Slipperiness",
-            "Scroll of Utility Spell",
-            "Antitoxin",
-            "Holy Water"
+            ("Potion of Healing", 'consumable', 0.5, 'Heals 2d4+2 HP as a Bonus Action', 50),
+            ("Potion of Climbing", 'consumable', 0.5, 'Grants climbing speed for 1 hour', 50),
+            ("Oil of Slipperiness", 'consumable', 0.5, 'Coats surface or creature in slippery oil', 50),
+            ("Antitoxin", 'consumable', 0.5, 'Grants advantage on saves vs poison for 1 hour', 50),
+            ("Holy Water", 'consumable', 1.0, 'Deals 2d6 radiant damage to fiends and undead', 25),
         ]
-        item = random.choice(consumables)
-        return character_data, [f"Received: {item}"]
+        item_name, item_type, weight, desc, cost = random.choice(consumables)
+        character_id = character_data.get('id')
+        if character_id:
+            self._add_item_to_inventory(character_id, item_name, item_type, 1, weight, desc, cost)
+        return character_data, [f"Received: {item_name}"]
 
     def _apply_healing_potion(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply healing potion to inventory."""
+        character_id = character_data.get('id')
+        if character_id:
+            self._add_item_to_inventory(character_id, 'Potion of Healing', 'consumable', 1, 0.5, 'Heals 2d4+2 HP as a Bonus Action', 50)
         return character_data, ["Received: Potion of Healing (2d4+2 HP)"]
 
     def _apply_healers_kit(self, character_data: Dict) -> Tuple[Dict, List[str]]:
@@ -378,6 +400,38 @@ class SkillChallengeRewards:
     def _apply_forced_encounter(self, character_data: Dict, encounter_desc: str) -> Tuple[Dict, List[str]]:
         """Apply forced encounter effect."""
         return character_data, [f"Triggered encounter: {encounter_desc}"]
+
+    def _add_item_to_inventory(self, character_id: str, item_name: str, item_type: str,
+                              quantity: int, weight_lb: float, description: str, value_gp: float):
+        """Add an item to character inventory, stacking if it already exists."""
+        import uuid
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id, quantity FROM character_inventory
+                WHERE character_id = ? AND item_name = ? AND item_type = ?
+            """, (character_id, item_name, item_type))
+
+            existing = cursor.fetchone()
+
+            if existing:
+                cursor.execute("""
+                    UPDATE character_inventory
+                    SET quantity = quantity + ?
+                    WHERE id = ?
+                """, (quantity, existing[0]))
+            else:
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Error adding item to inventory: {e}")
 
     def save_character_data(self, character_data: Dict):
         """Save updated character data to database."""
