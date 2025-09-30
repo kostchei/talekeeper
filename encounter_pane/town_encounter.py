@@ -10,7 +10,7 @@ Provides town-based encounters including:
 Integrates with the encounter panel tab system.
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QScrollArea, QGridLayout,
                             QComboBox, QRadioButton, QButtonGroup, QMessageBox,
                             QListWidget, QListWidgetItem, QSpinBox, QSplitter)
@@ -21,6 +21,7 @@ import json
 from services.level_up import LevelUpService
 from services.equipment_database import EquipmentDatabase
 from services.subclass_manager import SubclassManager
+from encounter_pane.skill_selection_dialog import SkillSelectionDialog
 
 
 class TownEncounterCard(QFrame):
@@ -753,20 +754,32 @@ Training includes food and lodging (counts as a long rest)."""
         # Initialize ASI tracking
         self.asi_allocation = {}
         self.selected_feat = None
+        self.skilled_feat_skills = []
     
     def _on_feat_selection_changed(self, text):
         """Handle feat/ASI selection changes"""
         data = self.feat_combo.currentData()
-        
+
         if data == "ASI":
-            # Show ASI info, set selected_feat to None for ASI
             self.selected_feat = None
             self.asi_section.show()
-            self._update_points_remaining()  # Check if points are allocated
+            self._update_points_remaining()
         else:
-            # Hide ASI info, set selected feat
             self.selected_feat = {"name": data} if data else None
             self.asi_section.hide()
+
+            if self.selected_feat and self.selected_feat['name'] == 'Skilled':
+                character_id = self.character_data.get('id', '')
+                if character_id:
+                    dialog = SkillSelectionDialog(character_id, num_skills=3, parent=self)
+                    if dialog.exec() == dialog.DialogCode.Accepted:
+                        self.skilled_feat_skills = dialog.get_selected_skills()
+                        print(f"[Skilled Feat] Selected skills: {self.skilled_feat_skills}")
+                    else:
+                        self.feat_combo.setCurrentIndex(0)
+                        self.selected_feat = None
+                        self.skilled_feat_skills = []
+
             self._update_train_button_state()
     
     def _update_points_remaining(self):
@@ -875,54 +888,66 @@ Training includes food and lodging (counts as a long rest)."""
         try:
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
-            # Add feat to character_feats table
-            cursor.execute("""
-                INSERT OR REPLACE INTO character_feats (character_id, feat_name, feat_id)
-                VALUES (?, ?, ?)
-            """, (character_id, self.selected_feat['name'], self.selected_feat['id']))
-            
-            # Check if feat has ability score bonuses and apply them
+
+            if self.selected_feat['name'] == 'Skilled':
+                cursor.execute("""
+                    INSERT INTO character_feats (character_id, feat_name, feat_id, feat_source, level_acquired)
+                    VALUES (?, ?, ?, 'level_up', ?)
+                """, (character_id, self.selected_feat['name'], self.selected_feat['id'], self.character_data.get('level', 1) + 1))
+            else:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_feats (character_id, feat_name, feat_id)
+                    VALUES (?, ?, ?)
+                """, (character_id, self.selected_feat['name'], self.selected_feat['id']))
+
+            if self.selected_feat['name'] == 'Skilled' and self.skilled_feat_skills:
+                for skill in self.skilled_feat_skills:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_proficiencies
+                        (character_id, proficiency_type, proficiency_name, source)
+                        VALUES (?, 'skill', ?, 'feat')
+                    """, (character_id, skill))
+                    print(f"[Skilled Feat] Added skill proficiency: {skill}")
+
             cursor.execute("""
                 SELECT ability_score_increases FROM feats WHERE id = ?
             """, (self.selected_feat['id'],))
-            
+
             result = cursor.fetchone()
             if result and result[0] and result[0] != '{}':
                 try:
                     import json
                     bonuses = json.loads(result[0])
-                    
-                    # Apply any ability score bonuses from the feat
+
                     for ability, bonus in bonuses.items():
                         if bonus > 0:
                             ability_columns = {
                                 'str': 'strength', 'strength': 'strength',
                                 'dex': 'dexterity', 'dexterity': 'dexterity',
-                                'con': 'constitution', 'constitution': 'constitution', 
+                                'con': 'constitution', 'constitution': 'constitution',
                                 'int': 'intelligence', 'intelligence': 'intelligence',
                                 'wis': 'wisdom', 'wisdom': 'wisdom',
                                 'cha': 'charisma', 'charisma': 'charisma'
                             }
-                            
+
                             column_name = ability_columns.get(ability.lower())
                             if column_name:
                                 cursor.execute(f"""
-                                    UPDATE characters 
-                                    SET {column_name} = {column_name} + ? 
+                                    UPDATE characters
+                                    SET {column_name} = {column_name} + ?
                                     WHERE id = ?
                                 """, (bonus, character_id))
-                                
+
                                 print(f"[Feat] {self.selected_feat['name']} increased {column_name} by {bonus}")
-                        
+
                 except json.JSONDecodeError:
                     print(f"Could not parse ability score increases for feat: {self.selected_feat['name']}")
-            
+
             conn.commit()
             conn.close()
-            
+
             print(f"[Feat] Applied feat: {self.selected_feat['name']}")
-            
+
         except Exception as e:
             print(f"Error applying feat selection: {e}")
 

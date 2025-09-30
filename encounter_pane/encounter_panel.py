@@ -36,6 +36,7 @@ from .alt_encounters import generate_trap, generate_hazard, generate_skill_chall
 from .skill_challenge_widget import SkillChallengeWidget
 from .hazard_widget import HazardWidget
 from .spell_selection_widget import SpellSelectionWidget
+from .skill_selection_dialog import SkillSelectionDialog
 from services.skill_challenge_manager import SkillChallengeManager
 from services.skill_challenge_rewards import SkillChallengeRewards
 from services.stealth_mechanics import StealthMechanicsService
@@ -2775,26 +2776,52 @@ class EncounterPanel(QWidget):
         sender = self.sender()
         if not sender:
             return
-            
+
         feat_data = sender.currentData()
         if not feat_data:
             self.feat_description.clear()
             return
-        
-        # Format feat description
+
         feat_name = feat_data.get('name', 'Unknown Feat')
         feat_source = feat_data.get('source', 'Unknown')
         feat_category = feat_data.get('category', '')
         feat_entries = feat_data.get('entries', [])
-        
+
+        if feat_name == 'Skilled':
+            existing_skills = self._get_creation_skill_proficiencies()
+
+            dialog = SkillSelectionDialog(character_id=None, num_skills=3, parent=self)
+            dialog.skill_list.clear()
+
+            all_skills = [
+                'Acrobatics', 'Animal Handling', 'Arcana', 'Athletics', 'Deception',
+                'History', 'Insight', 'Intimidation', 'Investigation', 'Medicine',
+                'Nature', 'Perception', 'Performance', 'Persuasion', 'Religion',
+                'Sleight of Hand', 'Stealth', 'Survival'
+            ]
+
+            for skill in all_skills:
+                if skill not in existing_skills:
+                    dialog.skill_list.addItem(skill)
+
+            if dialog.exec() == dialog.DialogCode.Accepted:
+                selected_skills = dialog.get_selected_skills()
+
+                feat_source_key = 'background_feat' if sender == self.background_feat_combo else 'species_feat'
+                if 'skilled_feat_skills' not in self.character_creation_data:
+                    self.character_creation_data['skilled_feat_skills'] = {}
+                self.character_creation_data['skilled_feat_skills'][feat_source_key] = selected_skills
+                print(f"[Skilled Feat] Selected skills for {feat_source_key}: {selected_skills}")
+            else:
+                sender.setCurrentIndex(0)
+                return
+
         description = f"<h3>{feat_name}</h3>"
-        
-        # Add feat description from database
+
         feat_description = feat_data.get('description', '')
         if feat_description:
             description += f"<p>{feat_description}</p>"
-        
-        # Add feat description
+
         for entry in feat_entries:
             if isinstance(entry, str):
                 description += f"<p>{entry}</p>"
@@ -2805,9 +2832,27 @@ class EncounterPanel(QWidget):
                     for item in items:
                         description += f"<li>{item}</li>"
                     description += "</ul>"
-        
+
         self.feat_description.setHtml(description)
-    
+
+    def _get_creation_skill_proficiencies(self):
+        """Get skill proficiencies already selected during character creation."""
+        skills = set()
+
+        class_skills = self.character_creation_data.get('selected_class_skills', [])
+        skills.update(class_skills)
+
+        species_skills = self.character_creation_data.get('selected_species_skills', [])
+        skills.update(species_skills)
+
+        bg_data = self.character_creation_data.get('background')
+        if bg_data:
+            bg_skill_profs = bg_data.get('skill_proficiencies', [])
+            if isinstance(bg_skill_profs, list):
+                skills.update(bg_skill_profs)
+
+        return skills
+
     def _on_class_selected(self, current, previous):
         """Handle class selection change."""
         if current:
@@ -3346,7 +3391,8 @@ class EncounterPanel(QWidget):
             'rogue_features': self.character_creation_data.get('rogue_features', {}),
             'warlock_invocation': self.character_creation_data.get('warlock_invocation'),
             'selected_cantrips': self.character_creation_data.get('selected_cantrips', []),
-            'selected_spells': self.character_creation_data.get('selected_spells', [])
+            'selected_spells': self.character_creation_data.get('selected_spells', []),
+            'skilled_feat_skills': self.character_creation_data.get('skilled_feat_skills', {})
         }
 
         # Record selected equipment options - break down combination strings

@@ -609,6 +609,25 @@ class MainWindow(QMainWindow):
             weapon_service = WeaponAttackService('talekeeper.db')
             weapon_service.update_character_mastery_resources(saved_character['id'])
 
+            # Apply Skilled feat skill selections if present
+            skilled_feat_skills = character_data.get('skilled_feat_skills', {})
+            if skilled_feat_skills and 'Skilled' in selected_feats:
+                import sqlite3
+                conn = sqlite3.connect('talekeeper.db')
+                cursor = conn.cursor()
+
+                for feat_source, skills in skilled_feat_skills.items():
+                    for skill in skills:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO character_proficiencies
+                            (character_id, proficiency_type, proficiency_name, source)
+                            VALUES (?, 'skill', ?, 'feat')
+                        """, (saved_character['id'], skill))
+                        self.log_panel.log_info(f"Skilled feat: +{skill} proficiency")
+
+                conn.commit()
+                conn.close()
+
             # Store the last used slot for auto-loading
             self.game_engine.settings['last_character_slot'] = save_slot
             self.game_engine.save_settings()

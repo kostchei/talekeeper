@@ -76,12 +76,13 @@ CREATE TABLE character_feats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     character_id TEXT NOT NULL,
     feat_name TEXT NOT NULL,
+    feat_id TEXT,
     feat_source TEXT NOT NULL DEFAULT 'unknown', -- 'background', 'species', 'class', 'level_up'
     level_acquired INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    
+
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
-    UNIQUE(character_id, feat_name)
+    UNIQUE(character_id, feat_name, level_acquired)
 );
 CREATE TABLE character_proficiencies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
