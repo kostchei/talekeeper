@@ -78,7 +78,8 @@
       "Bash(taskkill:*)",
       "Bash(tasklist)",
       "Bash(run_tests.bat quick)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": []
   },
