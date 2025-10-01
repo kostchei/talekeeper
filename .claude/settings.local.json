@@ -79,7 +79,8 @@
       "Bash(tasklist)",
       "Bash(run_tests.bat quick)",
       "Bash(cat:*)",
-      "Bash(echo \"Exit code: $?\")"
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(if exist nul del nul)"
     ],
     "deny": []
   },

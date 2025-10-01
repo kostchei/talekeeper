@@ -36,7 +36,7 @@ class LayoutProfile:
     def character_panel_max_width(self) -> int:
         """Expanded width for animated character sheet."""
 
-        return self.character_panel_width * 2
+        return int(self.character_panel_width * 2.6)
 
     @property
     def encounter_panel_height(self) -> int:

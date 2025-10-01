@@ -214,30 +214,12 @@ class CharacterPanel(QWidget):
     
     def _setup_detail_panel(self):
         """Setup the detailed character panel (shown when expanded)."""
-        # === DETAILED HEADER ===
-        self.detail_header = QFrame()
-        self.detail_header.setObjectName("detailHeader")
-        self.detail_header.setFixedHeight(80)
-        
-        detail_header_layout = QHBoxLayout(self.detail_header)
-        detail_header_layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.detail_title = QLabel("Character Details")
-        self.detail_title.setObjectName("charTitle")
-        detail_header_layout.addWidget(self.detail_title)
-        detail_header_layout.addStretch()
-        
         # === EXPERIENCE & PROGRESSION SECTION === Compact design
         self.xp_frame = QFrame()
         self.xp_frame.setObjectName("xpFrame")
         xp_layout = QVBoxLayout(self.xp_frame)
         xp_layout.setContentsMargins(8, 4, 8, 4)
         xp_layout.setSpacing(3)
-        
-        # Title
-        xp_label = QLabel("Experience & Progression")
-        xp_label.setObjectName("sectionTitle")
-        xp_layout.addWidget(xp_label)
         
         # Current XP - single line
         current_xp_layout = QHBoxLayout()
@@ -301,38 +283,31 @@ class CharacterPanel(QWidget):
         features_layout = QVBoxLayout(self.features_frame)
         features_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Create subclass features widget if available
+        # Always create text display for features and feats
+        self.features_text = QTextEdit()
+        self.features_text.setObjectName("featuresText")
+        self.features_text.setReadOnly(True)
+        self.features_text.setPlainText("Class features, feats, and traits will appear here...")
+        self.features_text.setFrameShape(QFrame.Shape.NoFrame)
+        features_layout.addWidget(self.features_text, 2)
+
+        # Create subclass features widget if available (for interactive features)
         if SubclassFeaturesWidget:
             self.subclass_features_widget = SubclassFeaturesWidget(self)
             self.subclass_features_widget.feature_activated.connect(self._on_subclass_feature_activated)
-            features_layout.addWidget(self.subclass_features_widget, 1)
-        else:
-            # Fallback to simple text display
-            features_label = QLabel("Features & Traits")
-            features_label.setObjectName("sectionTitle")
-            features_layout.addWidget(features_label)
-
-            self.features_text = QTextEdit()
-            self.features_text.setObjectName("featuresText")
-            self.features_text.setReadOnly(True)
-            self.features_text.setPlainText("Racial traits, class features, and special abilities will appear here...")
-            features_layout.addWidget(self.features_text, 1)
+            features_layout.addWidget(self.subclass_features_widget, 4)
         
         # === PROFICIENCIES SECTION ===
         self.proficiencies_frame = QFrame()
         self.proficiencies_frame.setObjectName("proficienciesFrame")
         prof_layout = QVBoxLayout(self.proficiencies_frame)
         prof_layout.setContentsMargins(5, 5, 5, 5)
-        
-        prof_header = QLabel("Proficiencies")
-        prof_header.setObjectName("sectionHeader")
-        prof_layout.addWidget(prof_header)
-        
+
         self.proficiencies_text = QTextEdit()
         self.proficiencies_text.setObjectName("proficienciesText")
         self.proficiencies_text.setReadOnly(True)
         self.proficiencies_text.setPlainText("Loading proficiencies...")
-        self.proficiencies_text.setMaximumHeight(80)
+        self.proficiencies_text.setFrameShape(QFrame.Shape.NoFrame)
         prof_layout.addWidget(self.proficiencies_text)
         
         # === SPELLS SECTION (if applicable) ===
@@ -340,10 +315,6 @@ class CharacterPanel(QWidget):
         self.spells_frame.setObjectName("spellsFrame")
         spells_layout = QVBoxLayout(self.spells_frame)
         spells_layout.setContentsMargins(5, 5, 5, 5)
-        
-        spells_label = QLabel("Spells & Abilities")
-        spells_label.setObjectName("sectionTitle")
-        spells_layout.addWidget(spells_label)
         
         # Spell slots display
         self.spell_slots_widget = QWidget()
@@ -363,21 +334,19 @@ class CharacterPanel(QWidget):
         spell_slots_layout.addWidget(self.pact_magic_widget)
         
         spells_layout.addWidget(self.spell_slots_widget)
-        
+
         # Spell description area
         self.spells_text = QTextEdit()
         self.spells_text.setObjectName("spellsText")
         self.spells_text.setReadOnly(True)
         self.spells_text.setPlainText("Known spells and cantrips will appear here...")
-        self.spells_text.setMaximumHeight(100)
         spells_layout.addWidget(self.spells_text)
-        
+
         # Add all sections to detail panel
-        self.detail_layout.addWidget(self.detail_header)
-        self.detail_layout.addWidget(self.xp_frame, 1)  # Replaced skills with XP section
+        self.detail_layout.addWidget(self.xp_frame, 1)
         self.detail_layout.addWidget(self.proficiencies_frame, 1)
-        self.detail_layout.addWidget(self.features_frame, 1)
-        self.detail_layout.addWidget(self.spells_frame, 1)
+        self.detail_layout.addWidget(self.features_frame, 6)
+        self.detail_layout.addWidget(self.spells_frame, 2)
     
     def _create_ability_widget(self, short_name: str, full_name: str) -> QWidget:
         """Create an ability score widget like in D&D character sheet."""
@@ -771,18 +740,25 @@ class CharacterPanel(QWidget):
         """Update spell slot display based on character class and level."""
         if not character_data:
             return
-            
+
         class_name = character_data.get('class_name', '')
         level = character_data.get('level', 1)
-        
+
         # Hide all spell slot displays first
         for level_widget in self.spell_slot_displays.values():
             level_widget.setVisible(False)
         self.pact_magic_widget.setVisible(False)
-        
+
         # D&D 2024 spell slot progressions
         spell_slots = self._get_spell_slots_for_class_level(class_name, level)
-        
+
+        # Hide entire spells frame if no spellcasting
+        if not spell_slots and class_name != 'Warlock':
+            self.spells_frame.setVisible(False)
+            return
+        else:
+            self.spells_frame.setVisible(True)
+
         if class_name == 'Warlock':
             # Warlock Pact Magic
             self._update_warlock_pact_slots(level, character_data)
@@ -1270,11 +1246,12 @@ class CharacterPanel(QWidget):
         """Toggle the panel expansion - simple and reliable approach."""
         # Toggle expansion state
         self.expanded = not self.expanded
-        
+
         if self.expanded:
             # EXPAND: Show detail panel and resize main widget
-            self.detail_panel.setMinimumWidth(self.base_width)
-            self.detail_panel.setMaximumWidth(self.base_width)
+            detail_width = self.expanded_width - self.base_width
+            self.detail_panel.setMinimumWidth(detail_width)
+            self.detail_panel.setMaximumWidth(detail_width)
             self.setMinimumSize(self.expanded_width, self.panel_height)
             self.setMaximumSize(self.expanded_width, self.panel_height)
             self.expand_btn.setText("▲ Collapse")
@@ -1286,11 +1263,11 @@ class CharacterPanel(QWidget):
             self.setMinimumSize(self.base_width, self.panel_height)
             self.setMaximumSize(self.expanded_width, self.panel_height)  # Allow future expansion
             self.expand_btn.setText("▼ Expand")
-        
+
         # Force immediate layout update
         self.updateGeometry()
         self.adjustSize()
-        
+
         # Emit signal for parent to handle layout changes
         self.expansion_changed.emit(self.expanded)
     
@@ -1350,7 +1327,6 @@ class CharacterPanel(QWidget):
                 print(f"[CharacterPanel] Could not load subclass name: {subclass_error}")
 
         self.char_name_title.setText(f"{name} - Level {level} {race} {subclass_display}")
-        self.detail_title.setText(f"Character Details - {name}")
         
         # Update XP displays
         self._update_xp_displays()
@@ -1591,150 +1567,147 @@ class CharacterPanel(QWidget):
         
         # Build features text from actual database data
         features_text = ""
-        
-        # === CLASS FEATURES ===
-        features_text += "=== CLASS FEATURES ===\n"
-        
+
         # Get class features from database
         if char_id:
             try:
                 conn = sqlite3.connect("talekeeper.db")
                 cursor = conn.cursor()
-                
-                # Get all class features for this character from both tables
+
+                # Get all class features, using a dict to deduplicate
+                base_features = []
+                subclass_features = []
+
+                # Try character_features table first
                 cursor.execute("""
-                    SELECT feature_name, description, usage_type 
-                    FROM character_features 
-                    WHERE character_id = ? 
+                    SELECT feature_name, description, usage_type, level_gained, feature_type
+                    FROM character_features
+                    WHERE character_id = ?
                     ORDER BY level_gained, feature_name
                 """, (char_id,))
-                
-                class_features = cursor.fetchall()
-                
-                # Also check the newer feature_states table
-                if not class_features:
-                    cursor.execute("""
-                        SELECT feature_name, feature_type, '' as description
-                        FROM feature_states 
-                        WHERE character_id = ? 
-                        ORDER BY feature_name
-                    """, (char_id,))
-                    
-                    feature_states = cursor.fetchall()
-                    if feature_states:
-                        class_features = [(name, self._get_feature_description(name, class_name.lower()), ftype) 
-                                        for name, ftype, _ in feature_states]
-                
-                if class_features:
-                    for feature_name, description, usage_type in class_features:
-                        features_text += f"• {feature_name}"
-                        if usage_type and usage_type != 'permanent':
-                            features_text += f" ({usage_type})"
-                        features_text += "\n"
-                        if description:
-                            features_text += f"  {description[:100]}...\n" if len(description) > 100 else f"  {description}\n"
-                
+                char_features = cursor.fetchall()
+
+                # Known subclass-specific features (Thief, Champion, etc.)
+                known_subclass_features = {
+                    'Fast Hands', 'Second-Story Work', 'Supreme Sneak', 'Use Magic Device', "Thief's Reflexes",
+                    'Remarkable Athlete', 'Additional Fighting Style', 'Improved Critical', 'Superior Critical', 'Survivor',
+                    'Intimidating Presence', 'Retaliation', 'Brutal Critical', 'Persistent Rage', 'Mindless Rage'
+                }
+
+                features_seen = set()
+                for name, desc, usage, level, ftype in char_features:
+                    # Skip generic level entries and duplicates
+                    if name.lower().startswith(class_name.lower() + ' level') or name in features_seen:
+                        continue
+                    features_seen.add(name)
+
+                    # Skip Ability Score Improvement - it's tracked as a feat
+                    if name == 'Ability Score Improvement':
+                        print(f"[CharacterPanel] Skipping ASI from features")
+                        continue
+
+                    # Skip placeholder subclass entries
+                    if name.endswith(' Subclass') or name == 'Rogue Subclass' or name == 'Fighter Subclass':
+                        print(f"[CharacterPanel] Skipping placeholder: {name}")
+                        continue
+
+                    # Determine if subclass feature by name or feature_type
+                    if ftype == 'subclass' or name in known_subclass_features:
+                        print(f"[CharacterPanel] Adding to subclass: {name} (type={ftype})")
+                        subclass_features.append(name)
+                    else:
+                        print(f"[CharacterPanel] Adding to base: {name} (type={ftype})")
+                        base_features.append(name)
+
+                # Also check feature_states table
+                cursor.execute("""
+                    SELECT feature_name, feature_type
+                    FROM feature_states
+                    WHERE character_id = ?
+                    ORDER BY feature_name
+                """, (char_id,))
+                feature_states = cursor.fetchall()
+
+                for name, ftype in feature_states:
+                    if name.lower().startswith(class_name.lower() + ' level') or name in features_seen:
+                        continue
+                    # Skip Ability Score Improvement here too
+                    if name == 'Ability Score Improvement':
+                        print(f"[CharacterPanel] Skipping ASI from feature_states")
+                        continue
+                    # Skip placeholder subclass entries
+                    if name.endswith(' Subclass') or name == 'Rogue Subclass' or name == 'Fighter Subclass':
+                        print(f"[CharacterPanel] Skipping placeholder from feature_states: {name}")
+                        continue
+                    features_seen.add(name)
+                    print(f"[CharacterPanel] Adding from feature_states: {name} (type={ftype})")
+                    # Check if this should be a subclass feature by name or type
+                    if ftype == 'subclass' or name in known_subclass_features:
+                        subclass_features.append(name)
+                    else:
+                        base_features.append(name)
+
+                # Display features in compact format
+                print(f"[CharacterPanel] Base features: {base_features}")
+                print(f"[CharacterPanel] Subclass features: {subclass_features}")
+                if base_features or subclass_features:
+                    if base_features:
+                        features_text += f"{class_name} Features: {', '.join(sorted(base_features))}\n"
+                    if subclass_features:
+                        # Get subclass name
+                        cursor.execute("SELECT subclass_id FROM characters WHERE id = ?", (char_id,))
+                        subclass_row = cursor.fetchone()
+                        if subclass_row and subclass_row[0]:
+                            cursor.execute("SELECT name FROM subclasses WHERE id = ?", (subclass_row[0],))
+                            subclass_name_row = cursor.fetchone()
+                            if subclass_name_row:
+                                subclass_name = subclass_name_row[0]
+                                features_text += f"\n{subclass_name} Features: {', '.join(sorted(subclass_features))}\n"
+
+                print(f"[CharacterPanel] Features text being displayed:\n{features_text}")
                 conn.close()
             except Exception as e:
                 print(f"Error loading class features: {e}")
-        
-        features_text += "\n"
-        
-        # === WEAPON MASTERY ===
-        if char_id and class_name.lower() == 'fighter':
-            try:
-                conn = sqlite3.connect("talekeeper.db")
-                cursor = conn.cursor()
-                
-                cursor.execute("""
-                    SELECT weapon_name, mastery_type 
-                    FROM character_weapon_masteries 
-                    WHERE character_id = ?
-                """, (char_id,))
-                
-                masteries = cursor.fetchall()
-                if masteries:
-                    features_text += "=== WEAPON MASTERY ===\n"
-                    for weapon_name, mastery_type in masteries:
-                        features_text += f"• {weapon_name}: {mastery_type}\n"
-                    features_text += "\n"
-                
-                conn.close()
-            except Exception as e:
-                print(f"Error loading weapon masteries: {e}")
-        
+
         # === FEATS ===
         character_feats = self.character_data.get('feats', [])
-        
+
         # Always try to get feat details from database if we have char_id
         if char_id:
             try:
                 conn = sqlite3.connect("talekeeper.db")
                 cursor = conn.cursor()
-                
+
                 cursor.execute("""
-                    SELECT cf.feat_name, cf.feat_source, f.category
+                    SELECT cf.feat_name, cf.feat_source, cf.level_acquired, f.category
                     FROM character_feats cf
                     LEFT JOIN feats f ON cf.feat_name = f.name
-                    WHERE cf.character_id = ? 
-                    ORDER BY cf.feat_source, cf.feat_name
+                    WHERE cf.character_id = ?
+                    ORDER BY cf.level_acquired, cf.feat_name
                 """, (char_id,))
-                
+
                 feat_data = cursor.fetchall()
-                
+
                 if feat_data:
-                    features_text += "=== FEATS ===\n"
-                    
-                    # Group feats by source
-                    background_feats = []
-                    species_feats = []
-                    class_feats = []
-                    fighting_styles = []
-                    other_feats = []
-                    
-                    for feat_name, feat_source, feat_category in feat_data:
-                        # Check if it's a fighting style by category
-                        if feat_category == 'fighting_style':
-                            fighting_styles.append(feat_name)
-                        elif feat_source == 'background':
-                            background_feats.append(feat_name)
+                    feat_list = []
+                    for feat_name, feat_source, level_acquired, feat_category in feat_data:
+                        if feat_source == 'background':
+                            feat_list.append(f"{feat_name} (background)")
                         elif feat_source == 'species':
-                            species_feats.append(feat_name)
-                        elif feat_source in ['class', 'fighting_style']:
-                            class_feats.append(feat_name)
+                            feat_list.append(f"{feat_name} (origin)")
+                        elif level_acquired and level_acquired > 1:
+                            feat_list.append(f"{feat_name} (lv{level_acquired})")
                         else:
-                            other_feats.append(feat_name)
-                    
-                    if background_feats:
-                        features_text += f"• Background Origin Feat: {', '.join(background_feats)}\n"
-                    if fighting_styles:
-                        for style in fighting_styles:
-                            features_text += f"• Fighting Style: {style}\n"
-                    if class_feats:
-                        for feat in class_feats:
-                            features_text += f"• {feat}\n"
-                    if species_feats:
-                        features_text += f"• Species Feat: {', '.join(species_feats)}\n"
-                    if other_feats:
-                        for feat in other_feats:
-                            features_text += f"• {feat}\n"
-                    
-                    features_text += "\n"
-                
+                            feat_list.append(feat_name)
+
+                    if feat_list:
+                        features_text += f"\nFeats: {', '.join(feat_list)}\n"
+
                 conn.close()
             except Exception as e:
                 print(f"Error loading feat details: {e}")
-                if character_feats:
-                    features_text += "=== FEATS ===\n"
-                    for feat_name in character_feats:
-                        features_text += f"• {feat_name}\n"
-                    features_text += "\n"
         elif character_feats:
-            # Fallback if no char_id but we have feats in memory
-            features_text += "=== FEATS ===\n"
-            for feat_name in character_feats:
-                features_text += f"• {feat_name}\n"
-            features_text += "\n"
+            features_text += f"Feats: {', '.join(sorted(set(character_feats)))}\n"
         
         # === PROFICIENCIES ===
         if char_id:
@@ -1787,19 +1760,18 @@ class CharacterPanel(QWidget):
                 print(f"Error loading proficiencies: {e}")
                 self.proficiencies_text.setPlainText("Error loading proficiencies")
         
-        
-        # Update features display (use new subclass widget or fallback to text)
+
+        # Update features text display (always show this)
+        if hasattr(self, 'features_text'):
+            self.features_text.setPlainText(features_text)
+
+        # Update subclass features widget (if available)
         if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
-            # The subclass features widget handles its own display
-            # Just refresh it in case features have changed
             if hasattr(self, 'character_data') and self.character_data:
                 char_id = self.character_data.get('id')
                 level = self.character_data.get('level', 1)
                 if char_id:
                     self.subclass_features_widget.set_character(char_id, level)
-        elif hasattr(self, 'features_text'):
-            # Fallback to text display if subclass widget not available
-            self.features_text.setPlainText(features_text)
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
         

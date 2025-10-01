@@ -285,7 +285,7 @@ class SubclassFeatureWidget(QFrame):
             tooltip_text = f"<b>{self.feature.name}</b><br/><br/>{self.feature.description}"
             if self.feature.tooltip_extended:
                 tooltip_text += f"<br/><br/><i>{self.feature.tooltip_extended}</i>"
-            QToolTip.showText(event.globalPos(), tooltip_text, self)
+            QToolTip.showText(event.globalPosition().toPoint(), tooltip_text, self)
         elif event.type() == event.Type.Leave:
             QToolTip.hideText()
 

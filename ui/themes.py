@@ -559,13 +559,13 @@ def build_stylesheet(palette: dict[str, str]) -> str:
         padding: 1px;
     }}
     
-    QTextEdit#featuresText, QTextEdit#spellsText {{
+    QTextEdit#featuresText, QTextEdit#proficienciesText, QTextEdit#spellsText {{
         background-color: {palette['surface']};
         color: {palette['text']};
         border: 1px solid {palette['border']};
         border-radius: 0px;
         padding: 1px;
-        font-size: 11px;
+        font-size: 12pt;
     }}
     
     QLabel#charTitle {{
