@@ -50,6 +50,14 @@ def create_level5_rogue():
 
         print("[OK] Character created")
 
+        # Add character_class_levels entry (required for level-up system)
+        cursor.execute("""
+            INSERT INTO character_class_levels (character_id, class_name, level)
+            VALUES (?, ?, ?)
+        """, (character_id, 'rogue', 5))
+
+        print("[OK] Character class levels created")
+
         # Create rogue_features entry
         cursor.execute("""
             INSERT INTO rogue_features (

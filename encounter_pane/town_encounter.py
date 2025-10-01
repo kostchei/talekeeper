@@ -915,6 +915,18 @@ Training includes food and lodging (counts as a long rest)."""
             """, (character_id,))
             existing_expertise = [row['proficiency_name'] for row in cursor.fetchall()]
 
+            cursor.execute("""
+                SELECT expertise_skills FROM rogue_features WHERE character_id = ?
+            """, (character_id,))
+            rogue_row = cursor.fetchone()
+            if rogue_row and rogue_row['expertise_skills']:
+                try:
+                    rogue_expertise = json.loads(rogue_row['expertise_skills'])
+                    if isinstance(rogue_expertise, list):
+                        existing_expertise.extend(rogue_expertise)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
             conn.close()
 
             available_skills = [skill for skill in proficient_skills if skill not in existing_expertise]
@@ -1047,6 +1059,11 @@ Training includes food and lodging (counts as a long rest)."""
             cursor = conn.cursor()
 
             for skill in self.selected_expertise_skills:
+                cursor.execute("""
+                    DELETE FROM character_proficiencies
+                    WHERE character_id = ? AND proficiency_name = ?
+                """, (character_id, skill))
+
                 cursor.execute("""
                     INSERT INTO character_proficiencies
                     (character_id, proficiency_type, proficiency_name, source)
