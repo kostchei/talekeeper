@@ -33,10 +33,12 @@ from action_cards.weapon_mastery_dialog import WeaponMasteryDialog
 from action_cards.divine_smite_dialog import DivineSmiteDialog
 from action_cards.lay_on_hands_dialog import LayOnHandsDialog
 from action_cards.channel_divinity_dialog import ChannelDivinityDialog, create_channel_divinity_options
+from action_cards.cunning_strike_selector import CunningStrikeSelectorDialog
 from ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 from services.spellcasting_service import SpellcastingService
 from services.spell_registry import spell_registry
 from services.paladin_abilities import PaladinAbilitiesService
+from services.cunning_strike_manager import CunningStrikeManager
 
 from ui.layout_profiles import BASELINE_PROFILE, LayoutProfile
 
@@ -1203,24 +1205,9 @@ class ActionPanel(QWidget):
                 else:
                     self._log_to_parent(f"❌ {result['message']}")
 
-            # Handle Cunning Strike variants (these modify next Sneak Attack)
+            # Handle Cunning Strike variants - show selection dialog
             elif action_type.value.startswith('cunning_strike_'):
-                effect_name = action_type.value.replace('cunning_strike_', '')
-                self.character_context[f'cunning_strike_{effect_name}_active'] = True
-
-                # Get cost information
-                costs = {
-                    'poison': '1d6', 'trip': '1d6', 'withdraw': '1d6',
-                    'daze': '2d6', 'knock_out': '6d6', 'obscure': '3d6'
-                }
-                cost = costs.get(effect_name, '1d6')
-
-                parent = self.parent()
-                while parent:
-                    if hasattr(parent, 'log_panel'):
-                        parent.log_panel.log_combat(f"⚔️ {effect_name.title()} Strike prepared - will apply on next Sneak Attack (Cost: {cost})")
-                        break
-                    parent = parent.parent()
+                self._show_cunning_strike_dialog()
 
             # Handle Stroke of Luck
             elif action_type == ActionType.STROKE_OF_LUCK:
@@ -1236,6 +1223,81 @@ class ActionPanel(QWidget):
 
         except Exception as e:
             self._log_to_parent(f"❌ Error using rogue ability: {e}")
+
+    def _show_cunning_strike_dialog(self):
+        """Show Cunning Strike selection dialog"""
+        character_id = self.character_context.get('character_id', '')
+        if not character_id:
+            return
+
+        try:
+            from services.cunning_strike_manager import CunningStrikeManager
+            manager = CunningStrikeManager(self._resolve_db_path())
+
+            combat_context = {
+                'has_advantage': self.character_context.get('steady_aim_active', False),
+                'has_disadvantage': False,
+                'allies_within_5ft': [],
+                'weapon': self.character_context.get('main_hand_weapon', {})
+            }
+
+            sneak_eligible = manager.check_sneak_attack_eligibility(
+                character_id, combat_context
+            )
+
+            dialog = CunningStrikeSelectorDialog(
+                character_id,
+                self._resolve_db_path(),
+                sneak_eligible['eligible'],
+                self
+            )
+
+            if dialog.exec():
+                selected_effects = dialog.get_selected_effects()
+                if selected_effects:
+                    self._store_cunning_strike_selection(character_id, selected_effects)
+
+                    preview = manager.get_cunning_strike_preview(character_id, selected_effects)
+
+                    log_msg = f"⚔️ Cunning Strike prepared:\n"
+                    for eff in preview['effects']:
+                        log_msg += f"  • {eff['name']} ({eff['cost']})\n"
+                    log_msg += f"  Remaining damage: {preview['remaining_damage']}"
+
+                    self._log_to_parent(log_msg)
+
+        except Exception as e:
+            self._log_to_parent(f"❌ Error with Cunning Strike: {e}")
+
+    def _store_cunning_strike_selection(self, character_id: str, effects: List):
+        """Store Cunning Strike selection in character_combat_state"""
+        try:
+            import json
+            import sqlite3
+
+            effect_ids = [effect.value for effect in effects]
+
+            with sqlite3.connect(self._resolve_db_path()) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS character_combat_state (
+                        character_id TEXT PRIMARY KEY,
+                        cunning_strike_selection TEXT,
+                        last_updated TEXT DEFAULT (datetime('now'))
+                    )
+                """)
+
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_combat_state
+                    (character_id, cunning_strike_selection, last_updated)
+                    VALUES (?, ?, datetime('now'))
+                """, (character_id, json.dumps(effect_ids)))
+
+                conn.commit()
+
+        except Exception as e:
+            print(f"Error storing cunning strike selection: {e}")
 
     def _has_stroke_of_luck_uses(self) -> bool:
         """Check if character has Stroke of Luck uses remaining."""

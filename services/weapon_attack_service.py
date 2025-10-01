@@ -199,11 +199,17 @@ class WeaponAttackService:
         )
 
         sneak_attack_damage = 0
+        cunning_strike_effects = []
         if sneak_attack_data['eligible']:
             sneak_attack_rolls = sneak_attack_data['damage_rolls']
             sneak_attack_damage = sum(sneak_attack_rolls)
             damage_total += sneak_attack_damage
             modifiers_applied.append(f"Sneak Attack {sneak_attack_data['damage_dice']} ({sneak_attack_data['source']})")
+
+            cunning_strike_effects = sneak_attack_data.get('cunning_strike_effects', [])
+            if cunning_strike_effects:
+                effect_names = [eff['effect_name'] for eff in cunning_strike_effects]
+                modifiers_applied.append(f"Cunning Strike: {', '.join(effect_names)}")
 
         # Build damage breakdown string
         if is_critical:
@@ -221,6 +227,7 @@ class WeaponAttackService:
             'damage_rolls': damage_rolls,
             'sneak_attack_rolls': sneak_attack_data.get('damage_rolls', []),
             'sneak_attack_damage': sneak_attack_damage,
+            'cunning_strike_effects': cunning_strike_effects,
             'damage_total': max(0, damage_total),  # Damage can't be negative
             'damage_breakdown': damage_breakdown,
             'modifiers_applied': modifiers_applied
@@ -940,86 +947,145 @@ class WeaponAttackService:
 
     def _get_active_cunning_strike_effects(self, character_id: str) -> List[Dict[str, Any]]:
         """Get list of active Cunning Strike effects from character context."""
-        # This would check the character's context for prepared Cunning Strike effects
-        # For now, return empty list - full implementation would check action panel state
-        return []
+        try:
+            from services.cunning_strike_manager import CunningStrikeManager
+            manager = CunningStrikeManager(self.db_path)
+
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT cunning_strike_selection
+                    FROM character_combat_state
+                    WHERE character_id = ?
+                """, (character_id,))
+                result = cursor.fetchone()
+
+                if not result or not result['cunning_strike_selection']:
+                    return []
+
+                import json
+                effect_ids = json.loads(result['cunning_strike_selection'])
+
+                effects = []
+                for effect_id in effect_ids:
+                    from services.cunning_strike_manager import CunningStrikeEffect
+                    effect_enum = CunningStrikeEffect(effect_id)
+                    option = manager.CUNNING_STRIKE_OPTIONS[effect_enum]
+                    effects.append({
+                        'effect': effect_enum,
+                        'name': option.name,
+                        'cost': option.dice_cost,
+                        'save_type': option.save_type,
+                        'condition': option.condition,
+                        'duration': option.duration
+                    })
+
+                return effects
+
+        except Exception as e:
+            print(f"[WeaponAttackService] Error getting cunning strike effects: {e}")
+            return []
 
     def _apply_cunning_strike_effects(self, character_id: str, effects: List[Dict[str, Any]], target: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Apply Cunning Strike effects to the target."""
+        """Apply Cunning Strike effects to the target with saves and conditions."""
+        if not target or not effects:
+            return []
+
         results = []
+        target_id = target.get('id')
+        if not target_id:
+            return []
 
-        for effect in effects:
-            effect_name = effect['name']
-            effect_cost = effect['cost']
+        try:
+            from services.condition_manager import ConditionManager, ConditionType, ActiveCondition
+            condition_manager = ConditionManager(self.db_path)
+        except Exception as e:
+            print(f"[WeaponAttackService] Error importing condition manager: {e}")
+            return []
 
-            # Calculate save DC (8 + DEX mod + proficiency bonus)
-            save_dc = self._calculate_cunning_strike_save_dc(character_id)
+        save_dc = self._calculate_cunning_strike_save_dc(character_id)
 
-            if effect_name == 'poison':
-                results.append({
-                    'name': 'Poison',
-                    'description': f'Target must make Constitution save (DC {save_dc}) or be Poisoned for 1 minute',
-                    'save_type': 'constitution',
-                    'save_dc': save_dc,
-                    'condition': 'poisoned',
-                    'duration': '1 minute',
-                    'dice_cost': effect_cost
-                })
+        for effect_data in effects:
+            effect_name = effect_data['name']
+            effect_cost = effect_data['cost']
+            save_type = effect_data['save_type']
+            condition_type = effect_data.get('condition')
+            duration = effect_data.get('duration', 'instant')
 
-            elif effect_name == 'trip':
-                results.append({
-                    'name': 'Trip',
-                    'description': f'Target must make Dexterity save (DC {save_dc}) or be knocked Prone',
-                    'save_type': 'dexterity',
-                    'save_dc': save_dc,
-                    'condition': 'prone',
-                    'dice_cost': effect_cost
-                })
+            effect_result = {
+                'effect_name': effect_name,
+                'dice_cost': effect_cost,
+                'save_dc': save_dc
+            }
 
-            elif effect_name == 'withdraw':
-                results.append({
-                    'name': 'Withdraw',
-                    'description': 'Move up to half speed without provoking opportunity attacks',
-                    'effect': 'movement',
-                    'movement_distance': 'half_speed',
-                    'no_opportunity_attacks': True,
-                    'dice_cost': effect_cost
-                })
+            if save_type != 'none' and condition_type:
+                save_roll = self._roll_saving_throw(target, save_type, save_dc)
+                effect_result['save_type'] = save_type
+                effect_result['save_roll'] = save_roll['roll']
+                effect_result['save_result'] = save_roll['success']
 
-            elif effect_name == 'daze':
-                results.append({
-                    'name': 'Daze',
-                    'description': f'Target must make Constitution save (DC {save_dc}) or have limited actions next turn',
-                    'save_type': 'constitution',
-                    'save_dc': save_dc,
-                    'effect': 'limited_actions',
-                    'duration': 'next_turn',
-                    'dice_cost': effect_cost
-                })
+                if not save_roll['success']:
+                    try:
+                        condition = ActiveCondition(
+                            condition_type=ConditionType(condition_type),
+                            source=f"Cunning Strike: {effect_name}",
+                            duration_type='rounds' if 'minute' in duration else 'turns',
+                            duration_remaining=10 if 'minute' in duration else 1,
+                            save_dc=save_dc,
+                            save_ability=save_type,
+                            save_frequency='end_of_turn' if 'minute' in duration else 'none'
+                        )
 
-            elif effect_name == 'knock_out':
-                results.append({
-                    'name': 'Knock Out',
-                    'description': f'Target must make Constitution save (DC {save_dc}) or be Unconscious for 1 minute',
-                    'save_type': 'constitution',
-                    'save_dc': save_dc,
-                    'condition': 'unconscious',
-                    'duration': '1 minute',
-                    'dice_cost': effect_cost
-                })
+                        applied = condition_manager.add_condition(target_id, condition)
+                        effect_result['condition_applied'] = applied
+                        effect_result['condition'] = condition_type
+                        effect_result['message'] = f"{effect_name}: Save failed, {condition_type} applied!"
+                    except Exception as e:
+                        print(f"[WeaponAttackService] Error applying condition: {e}")
+                        effect_result['condition_applied'] = False
+                        effect_result['message'] = f"{effect_name}: Save failed (condition not applied due to error)"
+                else:
+                    effect_result['condition_applied'] = False
+                    effect_result['message'] = f"{effect_name}: Save successful, no effect"
+            else:
+                effect_result['message'] = f"{effect_name}: Applied (no save)"
+                effect_result['condition_applied'] = True
 
-            elif effect_name == 'obscure':
-                results.append({
-                    'name': 'Obscure',
-                    'description': f'Target must make Dexterity save (DC {save_dc}) or be Blinded until end of next turn',
-                    'save_type': 'dexterity',
-                    'save_dc': save_dc,
-                    'condition': 'blinded',
-                    'duration': 'end_of_next_turn',
-                    'dice_cost': effect_cost
-                })
+            results.append(effect_result)
 
+        self._clear_cunning_strike_selection(character_id)
         return results
+
+    def _roll_saving_throw(self, target: Dict[str, Any], ability: str, dc: int) -> Dict[str, Any]:
+        """Roll a saving throw for a target."""
+        import random
+        ability_score = target.get(ability, 10)
+        ability_mod = (ability_score - 10) // 2
+
+        roll = random.randint(1, 20)
+        total = roll + ability_mod
+
+        return {
+            'roll': roll,
+            'modifier': ability_mod,
+            'total': total,
+            'success': total >= dc,
+            'dc': dc
+        }
+
+    def _clear_cunning_strike_selection(self, character_id: str):
+        """Clear Cunning Strike selection after use."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE character_combat_state
+                    SET cunning_strike_selection = NULL
+                    WHERE character_id = ?
+                """, (character_id,))
+                conn.commit()
+        except Exception as e:
+            print(f"[WeaponAttackService] Error clearing cunning strike selection: {e}")
 
     def _calculate_cunning_strike_save_dc(self, character_id: str) -> int:
         """Calculate save DC for Cunning Strike effects: 8 + DEX mod + proficiency bonus."""

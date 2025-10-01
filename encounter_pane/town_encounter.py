@@ -13,7 +13,7 @@ Integrates with the encounter panel tab system.
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QScrollArea, QGridLayout,
                             QComboBox, QRadioButton, QButtonGroup, QMessageBox,
-                            QListWidget, QListWidgetItem, QSpinBox, QSplitter)
+                            QListWidget, QListWidgetItem, QSpinBox, QSplitter, QCheckBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import sqlite3
