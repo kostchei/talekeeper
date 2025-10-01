@@ -147,6 +147,15 @@ See `action_cards/action_panel.py` methods `_apply_damage_to_player()` and Secon
 
 ## 📈 Version History
 
+### v0.02 (Current - October 2025)
+- **Rogue Class Enhancements**:
+  - Full Expertise system implementation (level 1 and level 6)
+  - Level-up UI for selecting 2 additional expertise skills at level 6
+  - Expertise skills excluded from duplicate selection
+  - Validation and advancement summary integration
+- Character progression system improvements
+- Improved subclass and feat selection UI
+
 ### v0.01 (Initial Release)
 - Complete D&D 2024 character creation system
 - Turn-based combat with initiative and actions
@@ -171,22 +180,13 @@ Record the issues….
 
 - level progression ( fighter, barbarian, rogue to 20 )
 - fighter, check each level for champion, make sure it all works..
-- towns for selling stuff
 - items on monsters for use
 - images characters, monsters and items
 - a way of parsing combat to a story
-** rests- don't let them happen while there are monsters or hazards active. And a long rest uses (eats) a ration. 
-** encounters- towns/shops - lets make them in 3 sizes 20gp, 200gp, 2000gp limit, and a few less items, maybe 10 items under 20gp and then 1d10 more items in small, 2d10 in medium and 3d10 in large 
-** skill encounters- these need to give out stuff that appears in the inventory- potions, common items, rations
-- traps
-- hazards
 - quest givers
 - ollama connectivity to local storytelling version
 - barbarian (berserker, slayer), rogue ( theif,  trader), fighter (champion, gladiator) - extra subclasses per campaign frame
 stealth
-** encounter parlay- non-evil monsters -75% of them can be not fought- so give the choice for that 75% "Do you wish to attempt to Parlay"- and then pick up to 3 cha and up to 1 random int or wis skill and do a skill challenge. Success means 1/2 xp from the most powerful monster, but no combat.
-** encounter avoidance via stealth
-** pickpockets- for encoutners you have avoided or in shops, skill challenge with stealth, sleight of hand and 1 other random skill- if succeed, get medium xp for that level and treasure roll
 ** multiclassing
 city adventure
 dungeon adventure

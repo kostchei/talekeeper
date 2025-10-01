@@ -136,6 +136,8 @@ class TrainingHallInterface(QWidget):
         self.available_asi_points = 0
         self.is_subclass_level = False
         self.selected_subclass = None
+        self.is_expertise_level = False
+        self.selected_expertise_skills = []
         
         self._setup_ui()
         self._update_training_info()
@@ -238,7 +240,14 @@ class TrainingHallInterface(QWidget):
         self.asi_feat_frame.hide()  # Hidden by default
         self._setup_asi_feat_selection()
         layout.addWidget(self.asi_feat_frame)
-        
+
+        # Expertise selection frame (initially hidden, for Rogue level 6)
+        self.expertise_frame = QFrame()
+        self.expertise_frame.setObjectName("expertiseFrame")
+        self.expertise_frame.hide()  # Hidden by default
+        self._setup_expertise_selection()
+        layout.addWidget(self.expertise_frame)
+
         # Training button
         self.train_button = QPushButton("Begin Training")
         self.train_button.setObjectName("trainButton")
@@ -272,6 +281,10 @@ class TrainingHallInterface(QWidget):
             print(f"[Training] Calling _check_asi_level for class {class_name}")
             self._check_asi_level()
             print(f"[Training] Completed ASI check, is_asi_level: {self.is_asi_level}")
+            # Check for expertise eligibility (Rogue level 6)
+            print(f"[Training] Calling _check_expertise_level for class {class_name}")
+            self._check_expertise_level()
+            print(f"[Training] Completed expertise check, is_expertise_level: {self.is_expertise_level}")
     def _check_asi_level(self):
         """Check if this is an ASI level and show/hide ASI selection"""
         if not self.selected_class:
@@ -294,7 +307,28 @@ class TrainingHallInterface(QWidget):
         
         # Update train button state after checking ASI
         self._update_train_button_state()
-    
+
+    def _check_expertise_level(self):
+        """Check if this is Rogue level 6 (expertise upgrade) and show/hide expertise selection"""
+        if not self.selected_class:
+            return
+
+        current_level = self.character_data.get('level', 1)
+        next_level = current_level + 1
+
+        self.is_expertise_level = (self.selected_class.lower() == 'rogue' and current_level == 5 and next_level == 6)
+        print(f"[Training] Is expertise level: {self.is_expertise_level} (Rogue {current_level} -> {next_level})")
+
+        if self.is_expertise_level:
+            self.expertise_frame.show()
+            self._populate_expertise_options()
+            print(f"[Training] Showing expertise selection UI")
+        else:
+            self.expertise_frame.hide()
+            print(f"[Training] No expertise selection at this level")
+
+        self._update_train_button_state()
+
     def _update_train_button_state(self):
         """Update train button state based on all conditions"""
         can_train = True
@@ -332,7 +366,13 @@ class TrainingHallInterface(QWidget):
             elif not self.selected_feat:
                 can_train = False
                 reason = "Must select feat or ASI"
-        
+
+        # Check if expertise selection is needed and made
+        if self.is_expertise_level:
+            if len(self.selected_expertise_skills) != 2:
+                can_train = False
+                reason = "Must select 2 expertise skills"
+
         print(f"[Training] Train button state: {can_train} (reason: {reason})")
         self.train_button.setEnabled(can_train)
     
@@ -530,7 +570,13 @@ Training includes food and lodging (counts as a long rest)."""
             QMessageBox.warning(self, "No Subclass Selected",
                               "Please select a subclass before beginning training.")
             return
-        
+
+        # Check if expertise selection is required but not completed
+        if self.is_expertise_level and len(self.selected_expertise_skills) != 2:
+            QMessageBox.warning(self, "Expertise Selection Incomplete",
+                              "Please select exactly 2 skills for Expertise before beginning training.")
+            return
+
         current_level = self.character_data.get('level', 1)
         cost_info = self._get_training_cost(current_level + 1)
         
@@ -566,7 +612,12 @@ Training includes food and lodging (counts as a long rest)."""
                     advancement_summary += f"Ability Score Improvements: {', '.join(asi_changes)}\n"
             elif self.selected_feat:
                 advancement_summary += f"Feat: {self.selected_feat['name']}\n"
-        
+
+        # Add Expertise information if applicable
+        if self.is_expertise_level:
+            if self.selected_expertise_skills:
+                advancement_summary += f"Additional Expertise: {', '.join(self.selected_expertise_skills)}\n"
+
         # Confirm training
         reply = QMessageBox.question(self, "Confirm Training", advancement_summary,
                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
@@ -586,7 +637,11 @@ Training includes food and lodging (counts as a long rest)."""
                     self._apply_asi_increases(character_id)
                 elif self.selected_feat:
                     self._apply_feat_selection(character_id)
-            
+
+            # Apply Expertise selections if this is an expertise level
+            if success and self.is_expertise_level:
+                self._apply_expertise_selections(character_id)
+
             if success:
                 # Deduct gold
                 self._deduct_gold(character_id, cost)
@@ -805,12 +860,112 @@ Training includes food and lodging (counts as a long rest)."""
             print(f"Error loading feats: {e}")
     
     
+    def _setup_expertise_selection(self):
+        """Setup expertise selection interface for Rogue level 6"""
+        layout = QVBoxLayout(self.expertise_frame)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
+
+        title = QLabel("Expertise Selection")
+        title.setObjectName("expertiseTitle")
+        title.setStyleSheet("font-weight: bold; font-size: 14px; color: #d4af37;")
+        layout.addWidget(title)
+
+        desc = QLabel("Choose 2 additional skills to gain Expertise (double proficiency bonus):")
+        desc.setWordWrap(True)
+        desc.setStyleSheet("color: #ccc; margin-bottom: 5px;")
+        layout.addWidget(desc)
+
+        self.expertise_checkboxes = {}
+        self.expertise_skills_widget = QWidget()
+        self.expertise_skills_layout = QGridLayout(self.expertise_skills_widget)
+        layout.addWidget(self.expertise_skills_widget)
+
+        self.expertise_count_label = QLabel("Selected: 0 / 2")
+        self.expertise_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+        layout.addWidget(self.expertise_count_label)
+
+    def _populate_expertise_options(self):
+        """Populate expertise skill options for Rogue level 6"""
+        for checkbox in self.expertise_checkboxes.values():
+            checkbox.deleteLater()
+        self.expertise_checkboxes.clear()
+
+        character_id = self.character_data.get('id', '')
+        if not character_id:
+            return
+
+        try:
+            import sqlite3
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT proficiency_name
+                FROM character_proficiencies
+                WHERE character_id = ? AND proficiency_type = 'skill'
+            """, (character_id,))
+            proficient_skills = [row['proficiency_name'] for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT proficiency_name
+                FROM character_proficiencies
+                WHERE character_id = ? AND proficiency_type = 'skill_expertise'
+            """, (character_id,))
+            existing_expertise = [row['proficiency_name'] for row in cursor.fetchall()]
+
+            conn.close()
+
+            available_skills = [skill for skill in proficient_skills if skill not in existing_expertise]
+            available_skills.sort()
+
+            row, col = 0, 0
+            for skill in available_skills:
+                checkbox = QCheckBox(skill)
+                checkbox.toggled.connect(lambda state, s=skill: self._on_expertise_skill_toggled(s, state))
+                self.expertise_checkboxes[skill] = checkbox
+                self.expertise_skills_layout.addWidget(checkbox, row, col)
+
+                col += 1
+                if col > 2:
+                    col = 0
+                    row += 1
+
+        except Exception as e:
+            print(f"[Expertise] Error loading skills: {e}")
+
+    def _on_expertise_skill_toggled(self, skill_name: str, checked: bool):
+        """Handle expertise skill checkbox toggle with selection limit"""
+        selected_count = sum(1 for cb in self.expertise_checkboxes.values() if cb.isChecked())
+
+        if hasattr(self, 'expertise_count_label'):
+            self.expertise_count_label.setText(f"Selected: {selected_count} / 2")
+
+            if selected_count == 2:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #28a745;")
+            elif selected_count > 2:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #dc3545;")
+            else:
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #4a9eff;")
+
+        if selected_count > 2 and checked:
+            checkbox = self.expertise_checkboxes[skill_name]
+            checkbox.setChecked(False)
+            selected_count = 2
+            if hasattr(self, 'expertise_count_label'):
+                self.expertise_count_label.setText(f"Selected: {selected_count} / 2")
+                self.expertise_count_label.setStyleSheet("font-weight: bold; color: #28a745;")
+
+        self.selected_expertise_skills = [skill for skill, cb in self.expertise_checkboxes.items() if cb.isChecked()]
+        self._update_train_button_state()
+
     def _on_asi_allocation_changed(self):
         """Handle ASI point allocation changes"""
         # Calculate total points allocated
         total_allocated = sum(spinbox.value() for spinbox in self.asi_spinboxes.values())
         points_remaining = 2 - total_allocated
-        
+
         # If over-allocated, adjust the sender spinbox
         if total_allocated > 2:
             sender = self.sender()
@@ -884,6 +1039,27 @@ Training includes food and lodging (counts as a long rest)."""
         except Exception as e:
             print(f"Error applying ASI increases: {e}")
     
+    def _apply_expertise_selections(self, character_id: str):
+        """Apply expertise skill selections to character"""
+        try:
+            print(f"[Expertise] Applying expertise selections: {self.selected_expertise_skills}")
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            for skill in self.selected_expertise_skills:
+                cursor.execute("""
+                    INSERT INTO character_proficiencies
+                    (character_id, proficiency_type, proficiency_name, source)
+                    VALUES (?, 'skill_expertise', ?, 'feature')
+                """, (character_id, skill))
+                print(f"[Expertise] Added expertise: {skill}")
+
+            conn.commit()
+            conn.close()
+            print(f"[Expertise] Successfully applied {len(self.selected_expertise_skills)} expertise selections")
+        except Exception as e:
+            print(f"[Expertise] Error applying expertise selections: {e}")
+
     def _apply_feat_selection(self, character_id: str):
         """Apply selected feat to character"""
         try:
