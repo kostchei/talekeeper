@@ -7,6 +7,9 @@ PyQt6>=6.5.0
 # Logging
 loguru>=0.7.0
 
+# Networking / API access
+requests>=2.31.0
+
 # Development/Optional
 pytest>=7.0.0
 black>=23.0.0

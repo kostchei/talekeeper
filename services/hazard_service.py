@@ -31,6 +31,8 @@ class HazardService:
         for row in rows:
             hazard = dict(row)
             hazard['xp'] = XP_BY_LEVEL_LOW.get(character_level, 50)
+            if not hazard.get('description') and hazard.get('effect'):
+                hazard['description'] = hazard['effect']
             hazards.append(hazard)
 
         return hazards
@@ -51,7 +53,10 @@ class HazardService:
         conn.close()
 
         if row:
-            return dict(row)
+            hazard = dict(row)
+            if not hazard.get('description') and hazard.get('effect'):
+                hazard['description'] = hazard['effect']
+            return hazard
         return None
 
     def apply_gear_bonus(self, hazard: Dict[str, Any], gear_items: List[str]) -> Dict[str, int]:

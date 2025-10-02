@@ -30,5 +30,8 @@
     "Wizard"
   ],
   "guaranteed_hoards": true,
-  "description": "A campaign where magical items are more common and encounters often yield treasure hoards containing magical equipment."
-}
+  "description": "A campaign where magical items are more common and encounters often yield treasure hoards containing magical equipment.",
+  "llm_model": "mistral:7b-instruct",
+  "lora_adapter": "golden-age-lora",
+  "narrative_prompt": "You are the LoRA-tuned narrator for the $campaign_name campaign, a $campaign_style tale of radiant heroics. Using the details below, craft 2-3 sentences that describe the $entity_type named $entity_name as it appears within this realm. Emphasise optimism, legendary artefacts, and the promise of destiny. Keep the description under 70 words, avoid explicit mechanics, and draw inspiration from:\n$entity_json"
+ }
