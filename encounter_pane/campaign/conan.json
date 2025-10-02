@@ -27,5 +27,9 @@
     "Cleric",
     "Warlock",
     "Wizard"
-  ]
-}
+  ],
+  "description": "A gritty sword-and-sorcery saga of survival, cruel sorcery, and desperate alliances.",
+  "llm_model": "mistral:7b-instruct",
+  "lora_adapter": "conan-hyborian-lora",
+  "narrative_prompt": "You are the LoRA-honed chronicler for the $campaign_name campaign, steeped in $campaign_style brutality. Based on the structured data below, deliver 2-3 sentences portraying the $entity_type named $entity_name with pulpy intensity. Highlight danger, scarcity, and hard-won steel. Remain under 70 words, keep mechanics minimal, and draw on:\n$entity_json"
+ }

@@ -39,6 +39,7 @@ from .spell_selection_widget import SpellSelectionWidget
 from .skill_selection_dialog import SkillSelectionDialog
 from services.skill_challenge_manager import SkillChallengeManager
 from services.skill_challenge_rewards import SkillChallengeRewards
+from services.campaign_description_service import CampaignDescriptionService
 from services.stealth_mechanics import StealthMechanicsService
 # Monster models no longer needed - using direct SQL queries and local dataclasses
 from dataclasses import dataclass, field
@@ -515,6 +516,7 @@ class EncounterPanel(QWidget):
         # Initialize encounter generator and campaign frame
         self.encounter_generator = None
         self.campaign_frame = None
+        self.description_service = CampaignDescriptionService()
         self._load_campaign_frame()
         
         # Track current encounter instances
@@ -3680,7 +3682,7 @@ class EncounterPanel(QWidget):
             self.campaign_frame = campaign_frame
 
             print(f"[DEBUG] Creating EncounterGenerator...")
-            self.encounter_generator = EncounterGenerator(campaign_frame)
+            self.encounter_generator = EncounterGenerator(campaign_frame, description_service=self.description_service)
             print(f"[DEBUG] EncounterGenerator created successfully")
 
             print(f"[DEBUG] Loaded campaign: {getattr(campaign_frame, 'name', 'Unknown')}")
@@ -3704,7 +3706,7 @@ class EncounterPanel(QWidget):
             }
             campaign_frame = CampaignFrame(default_frame_data)
             self.campaign_frame = campaign_frame
-            self.encounter_generator = EncounterGenerator(campaign_frame)
+            self.encounter_generator = EncounterGenerator(campaign_frame, description_service=self.description_service)
     
     def _generate_selected_encounter(self):
         """Generate encounter based on selected type."""
@@ -3747,6 +3749,21 @@ class EncounterPanel(QWidget):
         """Generate a trap encounter with automated resolution."""
         level = self._get_character_level() or 1
         trap = generate_trap(level)
+
+        if self.description_service and self.campaign_frame and trap:
+            trap_context = {
+                "name": f"{trap.get('type', 'Trap')} Trap",
+                "type": trap.get('type'),
+                "effects": trap.get('effects'),
+                "damage": trap.get('damage'),
+                "dc": trap.get('dc'),
+                "to_hit": trap.get('toHit'),
+                "xp": trap.get('xp'),
+                "level": level,
+            }
+            narrative = self.description_service.generate_description("trap", trap_context, self.campaign_frame)
+            if narrative:
+                trap['narrative_description'] = narrative
 
         self._active_trap_state = {
             'type': trap['type'],
@@ -3830,14 +3847,22 @@ class EncounterPanel(QWidget):
 
 
     def _format_trap_summary(self, trap: dict, extra: Optional[str] = None) -> str:
-        lines = [
-            f"Trap Type: {trap['type']}",
-            f"Description: {trap['description']}",
+        lines = [f"Trap Type: {trap['type']}"]
+
+        narrative = trap.get('narrative_description')
+        if narrative:
+            lines.append(f"Narrative: {narrative}")
+
+        base_description = trap.get('description', '')
+        if base_description:
+            lines.append(f"Description: {base_description}")
+
+        lines.extend([
             f"DC {trap['dc']} / Attack Bonus +{trap['toHit']}",
             f"Damage: {trap['damage']}",
             f"Effects: {trap['effects']}",
             f"XP: {trap['xp']}",
-        ]
+        ])
         if extra:
             lines.append('')
             lines.append(extra)
@@ -3868,7 +3893,9 @@ class EncounterPanel(QWidget):
         title.setStyleSheet("font-weight: bold; color: #ffcc66;")
         layout.addWidget(title)
 
-        description = QLabel("This setback springs without warning if unnoticed.")
+        narrative = trap.get('narrative_description')
+        description_text = narrative or "This setback springs without warning if unnoticed."
+        description = QLabel(description_text)
         description.setWordWrap(True)
         layout.addWidget(description)
 
@@ -3946,7 +3973,9 @@ class EncounterPanel(QWidget):
         title.setStyleSheet("font-weight: bold; color: #ff9955;")
         layout.addWidget(title)
 
-        warning = QLabel("You see a dangerous area - surely treasure is nearby.")
+        narrative = trap.get('narrative_description')
+        warning_text = narrative or "You see a dangerous area - surely treasure is nearby."
+        warning = QLabel(warning_text)
         warning.setWordWrap(True)
         layout.addWidget(warning)
 
@@ -4341,6 +4370,20 @@ class EncounterPanel(QWidget):
             self.encounter_details_text.setPlainText("No hazards available for this level.")
             return
 
+        if self.description_service and self.campaign_frame:
+            hazard_context = {
+                "name": hazard.get('name'),
+                "dc": hazard.get('dc'),
+                "effect": hazard.get('effect') or hazard.get('failure_effect'),
+                "damage": hazard.get('damage_dice'),
+                "damage_type": hazard.get('damage_type'),
+                "level": character_level,
+                "base_description": hazard.get('description'),
+            }
+            narrative = self.description_service.generate_description("hazard", hazard_context, self.campaign_frame)
+            if narrative:
+                hazard['narrative_description'] = narrative
+
         self.hazard_widget = HazardWidget()
         self.hazard_widget.set_character_data(character_data)
 
@@ -4397,7 +4440,7 @@ class EncounterPanel(QWidget):
         if not character_data:
             self.encounter_details_text.setPlainText("No active character found.")
             return
-        self.encounter_details_text.setPlainText("A travelling vendor offers goods.")
+        description_text = "A travelling vendor offers goods."
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
 
@@ -4407,6 +4450,21 @@ class EncounterPanel(QWidget):
 
         self.vendor_widget = ShopInterface(character_data, vendor_size, self)
         self.encounters_layout.addWidget(self.vendor_widget)
+
+        if self.description_service and self.campaign_frame:
+            inventory = getattr(self.vendor_widget, 'shop_inventory', [])
+            vendor_context = {
+                "name": "Travelling Vendor",
+                "shop_size": vendor_size.size_name,
+                "inventory_count": len(inventory),
+                "rarities": sorted({item.get('rarity', 'common') for item in inventory if isinstance(item, dict)}),
+                "character_level": character_data.get('level'),
+            }
+            narrative = self.description_service.generate_description("vendor", vendor_context, self.campaign_frame)
+            if narrative:
+                description_text = narrative
+
+        self.encounter_details_text.setPlainText(description_text)
 
     def _generate_monster_encounter(self):
         """Generate a random monster encounter based on active character level."""
@@ -4505,7 +4563,13 @@ class EncounterPanel(QWidget):
                 else:
                     cr_display = str(cr)
                     
-                monster_details.append(f"{monster['name']} (CR {cr_display}, {monster_xp} XP)")
+                detail = f"{monster['name']} (CR {cr_display}, {monster_xp} XP)"
+                narrative = monster.get('narrative_description')
+                if narrative:
+                    narrative_lines = [line.strip() for line in narrative.splitlines() if line.strip()]
+                    if narrative_lines:
+                        detail += "\n    " + "\n    ".join(narrative_lines)
+                monster_details.append(detail)
             
             # Create detailed encounter description
             if len(monster_details) == 1:

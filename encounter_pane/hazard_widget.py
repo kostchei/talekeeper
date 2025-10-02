@@ -96,7 +96,7 @@ class HazardWidget(QWidget):
 
         self.title_label.setText(hazard.get('name', 'Unknown Hazard'))
 
-        description = hazard.get('description', 'A dangerous environmental hazard.')
+        description = hazard.get('narrative_description') or hazard.get('description', 'A dangerous environmental hazard.')
         self.description_text.setPlainText(description)
 
         mechanics_lines = []
