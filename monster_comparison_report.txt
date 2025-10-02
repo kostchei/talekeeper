@@ -1,0 +1,146 @@
+================================================================================
+MONSTER DATA COMPARISON REPORT
+================================================================================
+
+SUMMARY STATISTICS
+--------------------------------------------------------------------------------
+Total monsters in JSON:      330
+Total monsters in Database:  451
+Monsters in both sources:    290
+Only in JSON:                40
+Only in Database:            161
+
+DATA COMPLETENESS
+--------------------------------------------------------------------------------
+JSON monsters with AC/HP/CR: 285/290 (98.3%)
+DB monsters with AC/HP/CR:   290/290 (100.0%)
+
+TOP 10 MONSTERS WITH DISCREPANCIES
+--------------------------------------------------------------------------------
+
+1. Stone Giant (9 differences)
+   - ac: JSON: None, DB: 17
+   - hp: JSON: None, DB: 126
+   - cr: JSON: None, DB: 7
+   - str: JSON: None, DB: 23
+   - dex: JSON: None, DB: 15
+   - con: JSON: None, DB: 20
+   - int: JSON: None, DB: 10
+   - wis: JSON: None, DB: 12
+   - cha: JSON: None, DB: 9
+
+2. Knight (6 differences)
+   - str: JSON: None, DB: 16
+   - dex: JSON: None, DB: 11
+   - con: JSON: None, DB: 14
+   - int: JSON: None, DB: 11
+   - wis: JSON: None, DB: 11
+   - cha: JSON: None, DB: 15
+
+3. Camel (5 differences)
+   - ac: JSON: 10, DB: 9
+   - hp: JSON: 17, DB: 15
+   - str: JSON: 15, DB: 16
+   - con: JSON: 17, DB: 14
+   - wis: JSON: 11, DB: 8
+
+4. Raven (5 differences)
+   - hp: JSON: 2, DB: 1
+   - con: JSON: 10, DB: 8
+   - int: JSON: None, DB: 2
+   - wis: JSON: None, DB: 12
+   - cha: JSON: None, DB: 6
+
+5. Swarm of Ravens (5 differences)
+   - hp: JSON: 11, DB: 24
+   - con: JSON: 12, DB: 8
+   - int: JSON: None, DB: 3
+   - wis: JSON: None, DB: 12
+   - cha: JSON: None, DB: 6
+
+6. Assassin (4 differences)
+   - ac: JSON: 16, DB: 15
+   - hp: JSON: 97, DB: 78
+   - dex: JSON: 18, DB: 16
+   - int: JSON: 16, DB: 13
+
+7. Badger (4 differences)
+   - ac: JSON: 11, DB: 10
+   - hp: JSON: 5, DB: 3
+   - str: JSON: 10, DB: 4
+   - con: JSON: 16, DB: 12
+
+8. Brown Bear (4 differences)
+   - hp: JSON: 22, DB: 34
+   - str: JSON: 17, DB: 19
+   - dex: JSON: 12, DB: 10
+   - con: JSON: 15, DB: 16
+
+9. Lich (4 differences)
+   - ac: JSON: 20, DB: 17
+   - hp: JSON: 315, DB: 135
+   - cr: JSON: 21, DB: {'cr': '21', 'lair': '22'}
+   - int: JSON: 21, DB: 20
+
+10. Panther (4 differences)
+   - ac: JSON: 13, DB: 12
+   - str: JSON: None, DB: 14
+   - dex: JSON: None, DB: 15
+   - con: JSON: None, DB: 10
+
+... and 168 more monsters with discrepancies
+
+MONSTERS ONLY IN JSON (First 20)
+--------------------------------------------------------------------------------
+  - Animated Flying Sword
+  - Animated Rug of Smothering
+  - Archelon
+  - Azer Sentinel
+  - Bugbear Stalker
+  - Bugbear Warrior
+  - Centaur Trooper
+  - Cultist Fanatic
+  - Giant Seahorse
+  - Giant Venomous Snake
+  - Gnoll Warrior
+  - Goblin Minion
+  - Goblin Warrior
+  - Guard Captain
+  - Half-Dragon
+  - Hippopotamus
+  - Hobgoblin Warrior
+  - Kobold Warrior
+  - Merfolk Skirmisher
+  - Piranha
+  ... and 20 more
+
+MONSTERS ONLY IN DATABASE (First 20)
+--------------------------------------------------------------------------------
+  - Aarakocra
+  - Abominable Yeti
+  - Acolyte
+  - Adult Blue Dracolich
+  - Androsphinx
+  - Arcanaloth
+  - Azer
+  - Banshee
+  - Barlgura
+  - Beholder
+  - Beholder Zombie
+  - Blue Slaad
+  - Bone Naga (Guardian)
+  - Bone Naga (Spirit)
+  - Bugbear
+  - Bugbear Chief
+  - Bullywug
+  - Cambion
+  - Carrion Crawler
+  - Cave Bear
+  ... and 141 more
+
+RECOMMENDATION
+--------------------------------------------------------------------------------
+RECOMMENDATION: Update Database from JSON
+REASON: JSON has complete stats with significant differences from DB
+
+================================================================================
