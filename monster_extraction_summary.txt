@@ -1,0 +1,411 @@
+=== D&D 2024 SRD MONSTER EXTRACTION SUMMARY ===
+
+Total Monsters Extracted: 331
+
+Challenge Rating Distribution:
+  CR 0: 29 monsters
+  CR 1/8: 19 monsters
+  CR 1/4: 32 monsters
+  CR 1/2: 27 monsters
+  CR 1: 27 monsters
+  CR 2: 40 monsters
+  CR 3: 24 monsters
+  CR 4: 16 monsters
+  CR 5: 25 monsters
+  CR 6: 10 monsters
+  CR 7: 6 monsters
+  CR 8: 10 monsters
+  CR 9: 8 monsters
+  CR 10: 6 monsters
+  CR 11: 7 monsters
+  CR 12: 2 monsters
+  CR 13: 6 monsters
+  CR 14: 3 monsters
+  CR 15: 4 monsters
+  CR 16: 5 monsters
+  CR 17: 4 monsters
+  CR 19: 1 monsters
+  CR 20: 3 monsters
+  CR 21: 4 monsters
+  CR 22: 2 monsters
+  CR 23: 3 monsters
+  CR 24: 2 monsters
+  CR 30: 1 monsters
+  CR N/A: 5 monsters
+
+Creature Type Distribution:
+  Beast: 77 monsters
+  Monstrosity: 30 monsters
+  or Small Humanoid: 21 monsters
+  Dragon (Chromatic): 20 monsters
+  Dragon (Metallic): 20 monsters
+  Elemental: 15 monsters
+  Undead: 12 monsters
+  Fiend: 11 monsters
+  Celestial: 10 monsters
+  Construct: 10 monsters
+  Fiend (Devil): 10 monsters
+  Giant: 10 monsters
+  Aberration: 9 monsters
+  Fiend (Demon): 8 monsters
+  Beast (Dinosaur): 7 monsters
+  Fey: 7 monsters
+  Fey (Goblinoid): 7 monsters
+  Plant: 6 monsters
+  Swarm of Tiny Beasts: 6 monsters
+  Dragon: 5 monsters
+  or Small Monstrosity (Lycanthrope): 5 monsters
+  Ooze: 4 monsters
+  or Small Undead: 4 monsters
+  Celestial (Angel): 3 monsters
+  Elemental (Genie): 2 monsters
+  Monstrosity (Titan): 2 monsters
+  or Small Humanoid (Cleric): 2 monsters
+  or Small Humanoid (Wizard): 2 monsters
+  Fey : 1 monsters
+  Swarm of Tiny Undead: 1 monsters
+  Undead (Wizard): 1 monsters
+  or Small Humanoid (Druid): 1 monsters
+  or Small Undead (Cleric): 1 monsters
+  or smaller creature: 1 monsters
+
+Size Distribution:
+  Tiny: 25 monsters
+  Small: 23 monsters
+  Medium: 126 monsters
+  Large: 108 monsters
+  Huge: 34 monsters
+  Gargantuan: 15 monsters
+
+=== COMPLETE MONSTER LIST (alphabetical) ===
+1. Aboleth - Large Aberration, CR 10
+2. Adult Black Dragon - Huge Dragon (Chromatic), CR 14
+3. Adult Blue Dragon - Huge Dragon (Chromatic), CR 16
+4. Adult Brass Dragon - Huge Dragon (Metallic), CR 13
+5. Adult Bronze Dragon - Huge Dragon (Metallic), CR 15
+6. Adult Copper Dragon - Huge Dragon (Metallic), CR 14
+7. Adult Gold Dragon - Huge Dragon (Metallic), CR 17
+8. Adult Green Dragon - Huge Dragon (Chromatic), CR 15
+9. Adult Red Dragon - Huge Dragon (Chromatic), CR 17
+10. Adult Silver Dragon - Huge Dragon (Metallic), CR 16
+11. Adult White Dragon - Huge Dragon (Chromatic), CR 13
+12. Air Elemental - Large Elemental, CR 5
+13. Allosaurus - Large Beast (Dinosaur), CR 2
+14. Ancient Black Dragon - Gargantuan Dragon (Chromatic), CR 21
+15. Ancient Blue Dragon - Gargantuan Dragon (Chromatic), CR 23
+16. Ancient Brass Dragon - Gargantuan Dragon (Metallic), CR 20
+17. Ancient Bronze Dragon - Gargantuan Dragon (Metallic), CR 22
+18. Ancient Copper Dragon - Gargantuan Dragon (Metallic), CR 21
+19. Ancient Gold Dragon - Gargantuan Dragon (Metallic), CR 24
+20. Ancient Green Dragon - Gargantuan Dragon (Chromatic), CR 22
+21. Ancient Red Dragon - Gargantuan Dragon (Chromatic), CR 24
+22. Ancient Silver Dragon - Gargantuan Dragon (Metallic), CR 23
+23. Ancient White Dragon - Gargantuan Dragon (Chromatic), CR 20
+24. Animated Armor - Medium Construct, CR 1
+25. Animated Flying Sword - Small Construct, CR 1/4
+26. Animated Rug of Smothering - Large Construct, CR 2
+27. Ankheg - Large Monstrosity, CR 2
+28. Ankylosaurus - Huge Beast (Dinosaur), CR 3
+29. Ape - Medium Beast, CR 1/2
+30. Archelon - Huge Beast (Dinosaur), CR 4
+31. Archmage - Medium or Small Humanoid (Wizard), CR 12
+32. Assassin - Medium or Small Humanoid, CR 8
+33. Awakened Shrub - Small Plant, CR 0
+34. Awakened Tree - Huge Plant, CR 2
+35. Axe Beak - Large Monstrosity, CR 1/4
+36. Azer Sentinel - Medium Elemental, CR 2
+37. Baboon - Small Beast, CR 0
+38. Badger - Tiny Beast, CR 0
+39. Balor - Huge Fiend (Demon), CR 19
+40. Bandit - Medium or Small Humanoid, CR 1/8
+41. Bandit Captain - Medium or Small Humanoid, CR 2
+42. Barbed Devil - Medium Fiend (Devil), CR 5
+43. Basilisk - Medium Monstrosity, CR 3
+44. Bat - Tiny Beast, CR 0
+45. Bearded Devil - Medium Fiend (Devil), CR 3
+46. Behir - Huge Monstrosity, CR 11
+47. Berserker - Medium or Small Humanoid, CR 2
+48. Black Bear - Medium Beast, CR 1/2
+49. Black Dragon Wyrmling - Medium Dragon (Chromatic), CR 2
+50. Black Pudding - Large Ooze, CR 4
+51. Blink Dog - Medium Fey, CR 1/4
+52. Blood Hawk - Small Beast, CR 1/8
+53. Blue Dragon Wyrmling - Medium Dragon (Chromatic), CR 3
+54. Boar - Medium Beast, CR 1/4
+55. Bone Devil - Large Fiend (Devil), CR 9
+56. Brass Dragon Wyrmling - Medium Dragon (Metallic), CR 1
+57. Bronze Dragon Wyrmling - Medium Dragon (Metallic), CR 2
+58. Brown Bear - Large Beast, CR 1
+59. Bugbear Stalker - Medium Fey (Goblinoid), CR 3
+60. Bugbear Warrior - Medium Fey (Goblinoid), CR 1
+61. Bulette - Large Monstrosity, CR 5
+62. Camel - Large Beast, CR 1/8
+63. Cat - Tiny Beast, CR 0
+64. Centaur Trooper - Large Fey, CR 2
+65. Chain Devil - Medium Fiend (Devil), CR 8
+66. Chimera - Large Monstrosity, CR 6
+67. Chuul - Large Aberration, CR 4
+68. Clay Golem - Large Construct, CR 9
+69. Cloaker - Large Aberration, CR 8
+70. Cloud Giant - Huge Giant, CR 9
+71. Cockatrice - Small Monstrosity, CR 1/2
+72. Commoner - Medium or Small Humanoid, CR 0
+73. Constrictor Snake - Large Beast, CR 1/4
+74. Copper Dragon Wyrmling - Medium Dragon (Metallic), CR 1
+75. Couatl - Medium Celestial, CR 4
+76. Crab - Tiny Beast, CR 0
+77. Crocodile - Large Beast, CR 1/2
+78. Cultist - Medium or Small Humanoid, CR 1/8
+79. Cultist Fanatic - Medium or Small Humanoid, CR 2
+80. Darkmantle - Small Aberration, CR 1/2
+81. Death Dog - Medium Monstrosity, CR 1
+82. Deer - Medium Beast, CR 0
+83. Deva - Medium Celestial (Angel), CR 10
+84. Dire Wolf - Large Beast, CR 1
+85. Djinni - Large Elemental (Genie), CR 11
+86. Doppelganger - Medium Monstrosity, CR 3
+87. Draft Horse - Large Beast, CR 1/4
+88. Dragon Turtle - Gargantuan Dragon, CR 17
+89. Dretch - Small Fiend (Demon), CR 1/4
+90. Drider - Large Monstrosity, CR 6
+91. Druid - Medium or Small Humanoid (Druid), CR 2
+92. Dryad - Medium Fey, CR 1
+93. Dust Mephit - Small Elemental, CR 1/2
+94. Eagle - Small Beast, CR 0
+95. Earth Elemental - Large Elemental, CR 5
+96. Efreeti - Large Elemental (Genie), CR 11
+97. Elephant - Huge Beast, CR 4
+98. Elk - Large Beast, CR 1/4
+99. Erinyes - Medium Fiend (Devil), CR 12
+100. Ettercap - Medium Monstrosity, CR 2
+101. Ettin - Large Giant, CR 4
+102. Fire Elemental - Large Elemental, CR 5
+103. Fire Giant - Huge Giant, CR 9
+104. Flesh Golem - Medium Construct, CR 5
+105. Flying Snake - Tiny Monstrosity, CR 1/8
+106. Frog - Tiny Beast, CR 0
+107. Frost Giant - Huge Giant, CR 8
+108. Gargoyle - Medium Elemental, CR 2
+109. Gelatinous Cube - Large Ooze, CR 2
+110. Ghast - Medium Undead, CR 2
+111. Ghost - Medium Undead, CR 4
+112. Ghoul - Medium Undead, CR 1
+113. Giant Ape - Huge Beast, CR 7
+114. Giant Badger - Medium Beast, CR 1/4
+115. Giant Bat - Large Beast, CR 1/4
+116. Giant Boar - Large Beast, CR 2
+117. Giant Centipede - Small Beast, CR 1/4
+118. Giant Constrictor Snake - Huge Beast, CR 2
+119. Giant Crab - Medium Beast, CR 1/8
+120. Giant Crocodile - Huge Beast, CR 5
+121. Giant Eagle - Large Celestial, CR 1
+122. Giant Elk - Huge Celestial, CR 2
+123. Giant Fire Beetle - Small Beast, CR 0
+124. Giant Frog - Medium Beast, CR 1/4
+125. Giant Goat - Large Beast, CR 1/2
+126. Giant Hyena - Large Beast, CR 1
+127. Giant Lizard - Large Beast, CR 1/4
+128. Giant Octopus - Large Beast, CR 1
+129. Giant Owl - Large Celestial, CR 1/4
+130. Giant Rat - Small Beast, CR 1/8
+131. Giant Scorpion - Large Beast, CR 3
+132. Giant Seahorse - Large Beast, CR 1/2
+133. Giant Shark - Huge Beast, CR 5
+134. Giant Spider - Large Beast, CR 1
+135. Giant Toad - Large Beast, CR 1
+136. Giant Venomous Snake - Medium Beast, CR 1/4
+137. Giant Vulture - Large Monstrosity, CR 1
+138. Giant Wasp - Medium Beast, CR 1/2
+139. Giant Weasel - Medium Beast, CR 1/8
+140. Giant Wolf Spider - Medium Beast, CR 1/4
+141. Gibbering Mouther - Medium Aberration, CR 2
+142. Glabrezu - Large Fiend (Demon), CR 9
+143. Gladiator - Medium or Small Humanoid, CR 5
+144. Gnoll Warrior - Medium Fiend, CR 1/2
+145. Goat - Medium Beast, CR 0
+146. Goblin Boss - Small Fey (Goblinoid), CR 1
+147. Goblin Minion - Small Fey (Goblinoid), CR 1/8
+148. Goblin Warrior - Small Fey (Goblinoid), CR 1/4
+149. Gold Dragon Wyrmling - Medium Dragon (Metallic), CR N/A
+150. Gorgon - Large Construct, CR 5
+151. Gray Ooze - Medium Ooze, CR 1/2
+152. Green Dragon Wyrmling - Medium Dragon (Chromatic), CR 2
+153. Green Hag - Medium Fey, CR 3
+154. Grick - Medium Aberration, CR 2
+155. Griffon - Large Monstrosity, CR 2
+156. Grimlock - Medium Aberration, CR 1/4
+157. Guard - Medium or Small Humanoid, CR 1/8
+158. Guard Captain - Medium or Small Humanoid, CR 4
+159. Guardian Naga - Large Celestial, CR 10
+160. Half-Dragon - Medium Dragon, CR 5
+161. Harpy - Medium Monstrosity, CR 1
+162. Hawk - Tiny Beast, CR 0
+163. Hell Hound - Medium Fiend, CR 3
+164. Hezrou - Large Fiend (Demon), CR 8
+165. Hill Giant - Huge Giant, CR 5
+166. Hippogriff - Large Monstrosity, CR 1
+167. Hippopotamus - Large Beast, CR 4
+168. Hobgoblin Captain - Medium Fey (Goblinoid), CR 3
+169. Hobgoblin Warrior - Medium Fey (Goblinoid), CR 1/2
+170. Homunculus - Tiny Construct, CR 0
+171. Horned Devil - Large Fiend (Devil), CR 11
+172. Hunter Shark - Large Beast, CR 2
+173. Hydra - Huge Monstrosity, CR 8
+174. Hyena - Medium Beast, CR 0
+175. Ice Devil - Large Fiend (Devil), CR 14
+176. Ice Mephit - Small Elemental, CR 1/2
+177. Imp - Tiny Fiend (Devil), CR 1
+178. Incubus - Medium Fiend, CR 4
+179. Invisible Stalker - Large Elemental, CR 6
+180. Iron Golem - Large Construct, CR 16
+181. Jackal - Small Beast, CR 0
+182. Killer Whale - Huge Beast, CR 3
+183. Knight - Medium or Small Humanoid, CR 3
+184. Kobold Warrior - Small Dragon, CR 1/8
+185. Kraken - Gargantuan Monstrosity (Titan), CR 23
+186. Lamia - Large Fiend, CR 4
+187. Lemure - Medium Fiend (Devil), CR 0
+188. Lich - Medium Undead (Wizard), CR 21
+189. Lion - Large Beast, CR 1
+190. Lizard - Tiny Beast, CR 0
+191. Mage - Medium or Small Humanoid (Wizard), CR 6
+192. Magma Mephit - Small Elemental, CR 1/2
+193. Magmin - Small Elemental, CR 1/2
+194. Mammoth - Huge Beast, CR 6
+195. Manticore - Large Monstrosity, CR 3
+196. Marilith - Large Fiend (Demon), CR 16
+197. Mastiff - Medium Beast, CR 1/8
+198. Medusa - Medium Monstrosity, CR 6
+199. Merfolk Skirmisher - Medium Elemental, CR 1/8
+200. Merrow - Large Monstrosity, CR 2
+201. Mimic - Medium Monstrosity, CR 2
+202. Minotaur Skeleton - Large Undead, CR 2
+203. Minotaur of Baphomet - Large Monstrosity, CR 3
+204. Mule - Medium Beast, CR 1/8
+205. Mummy - Medium or Small Undead, CR 3
+206. Mummy Lord - Medium or Small Undead (Cleric), CR 15
+207. Nalfeshnee - Large Fiend (Demon), CR 13
+208. Night Hag - Medium Fiend, CR 5
+209. Nightmare - Large Fiend, CR 3
+210. Noble - Medium or Small Humanoid, CR 1/8
+211. Ochre Jelly - Large Ooze, CR 2
+212. Octopus - Small Beast, CR 0
+213. Ogre - Large Giant, CR 2
+214. Ogre Zombie - Large Undead, CR 2
+215. Oni - Large Fiend, CR 7
+216. Otyugh - Large Aberration, CR 5
+217. Owl - Tiny Beast, CR 0
+218. Owlbear - Large Monstrosity, CR 3
+219. Panther - Medium Beast, CR 1/4
+220. Pegasus - Large Celestial, CR 2
+221. Phase Spider - Large Monstrosity, CR 3
+222. Piranha - Tiny Beast, CR 0
+223. Pirate - Medium or Small Humanoid, CR 1
+224. Pirate Captain - Medium or Small Humanoid, CR 6
+225. Pit Fiend - Large Fiend (Devil), CR 20
+226. Planetar - Large Celestial (Angel), CR 16
+227. Plesiosaurus - Large Beast (Dinosaur), CR 2
+228. Polar Bear - Large Beast, CR 2
+229. Pony - Medium Beast, CR 1/8
+230. Priest - Medium or Small Humanoid (Cleric), CR 2
+231. Priest Acolyte - Medium or Small Humanoid (Cleric), CR 1/4
+232. Pseudodragon - Tiny Dragon, CR 1/4
+233. Pteranodon - Medium Beast (Dinosaur), CR 1/4
+234. Purple Worm - Gargantuan Monstrosity, CR 15
+235. Quasit - Tiny Fiend (Demon), CR 1
+236. Rakshasa - Medium Fiend, CR 13
+237. Rat - Tiny Beast, CR 0
+238. Raven - Tiny Beast, CR 0
+239. Red Dragon Wyrmling - Medium Dragon (Chromatic), CR 4
+240. Reef Shark - Medium Beast, CR 1/2
+241. Remorhaz - Huge Monstrosity, CR 11
+242. Rhinoceros - Large Beast, CR 2
+243. Riding Horse - Large Beast, CR 1/4
+244. Roc - Gargantuan Monstrosity, CR 11
+245. Roper - Large Aberration, CR 5
+246. Rust Monster - Medium Monstrosity, CR 1/2
+247. Saber-Toothed Tiger - Large Beast, CR 2
+248. Sahuagin Warrior - Medium Fiend, CR 1/2
+249. Salamander - Large Elemental, CR 5
+250. Satyr - Medium Fey, CR 1/2
+251. Scorpion - Tiny Beast, CR 0
+252. Scout - Medium or Small Humanoid, CR 1/2
+253. Sea Hag - Medium Fey, CR 2
+254. Seahorse - Tiny Beast, CR 0
+255. Shadow - Medium Undead, CR 1/2
+256. Shambling Mound - Large Plant, CR 5
+257. Shield Guardian - Large Construct, CR 7
+258. Shrieker Fungus - Medium Plant, CR 0
+259. Silver Dragon Wyrmling - Medium Dragon (Metallic), CR N/A
+260. Skeleton - Medium Undead, CR 1/4
+261. Solar - Large Celestial (Angel), CR 21
+262. Specter - Medium Undead, CR 1
+263. Sphinx of Lore - Large Celestial, CR 11
+264. Sphinx of Valor - Large Celestial, CR 17
+265. Sphinx of Wonder - Tiny Celestial, CR 1
+266. Spider - Tiny Beast, CR 0
+267. Spirit Naga - Large Fiend, CR 8
+268. Sprite - Tiny Fey , CR 1/4
+269. Spy - Medium or Small Humanoid, CR 1
+270. Steam Mephit - Small Elemental, CR 1/4
+271. Stirge - Tiny Monstrosity, CR 1/8
+272. Stone Giant - Huge Giant, CR 7
+273. Stone Giant - Large or smaller creature, CR N/A
+274. Stone Golem - Large Construct, CR 10
+275. Storm Giant - Huge Giant, CR 13
+276. Succubus - Medium Fiend, CR 4
+277. Swarm of Bats - Large Swarm of Tiny Beasts, CR 1/4
+278. Swarm of Crawling Claws - Medium Swarm of Tiny Undead, CR 3
+279. Swarm of Insects - Medium Swarm of Tiny Beasts, CR 1/2
+280. Swarm of Piranhas - Medium Swarm of Tiny Beasts, CR 1
+281. Swarm of Rats - Medium Swarm of Tiny Beasts, CR 1/4
+282. Swarm of Ravens - Medium Swarm of Tiny Beasts, CR 1/4
+283. Swarm of Venomous Snakes - Medium Swarm of Tiny Beasts, CR 2
+284. Tarrasque - Gargantuan Monstrosity (Titan), CR 30
+285. Tiger - Large Beast, CR 1
+286. Tough - Medium or Small Humanoid, CR 1/2
+287. Tough Boss - Medium or Small Humanoid, CR 4
+288. Treant - Huge Plant, CR 9
+289. Triceratops - Huge Beast (Dinosaur), CR 5
+290. Troll - Large Giant, CR 5
+291. Troll Limb - Small Giant, CR 1/2
+292. Tyrannosaurus Rex - Huge Beast (Dinosaur), CR 8
+293. Unicorn - Large Celestial, CR 5
+294. Vampire - Medium or Small Undead, CR 13
+295. Vampire Familiar - Medium or Small Humanoid, CR 3
+296. Vampire Spawn - Medium or Small Undead, CR 5
+297. Venomous Snake - Tiny Beast, CR 1/8
+298. Violet Fungus - Medium Plant, CR 1/4
+299. Vrock - Large Fiend (Demon), CR 6
+300. Vulture - Medium Beast, CR 0
+301. Warhorse - Large Beast, CR 1/2
+302. Warhorse Skeleton - Large Undead, CR 1/2
+303. Warrior Infantry - Medium or Small Humanoid, CR 1/8
+304. Warrior Veteran - Medium or Small Humanoid, CR 3
+305. Water Elemental - Large Elemental, CR 5
+306. Weasel - Tiny Beast, CR 0
+307. Werebear - Medium or Small Monstrosity (Lycanthrope), CR 5
+308. Wereboar - Medium or Small Monstrosity (Lycanthrope), CR 4
+309. Wererat - Medium or Small Monstrosity (Lycanthrope), CR 2
+310. Weretiger - Medium or Small Monstrosity (Lycanthrope), CR 4
+311. Werewolf - Medium or Small Monstrosity (Lycanthrope), CR 3
+312. White Dragon Wyrmling - Medium Dragon (Chromatic), CR N/A
+313. Wight - Medium Undead, CR 3
+314. Will-o’-Wisp - Tiny Undead, CR 2
+315. Winter Wolf - Large Monstrosity, CR 3
+316. Wolf - Medium Beast, CR 1/4
+317. Worg - Large Fey, CR 1/2
+318. Wraith - Medium or Small Undead, CR 5
+319. Wyvern - Large Dragon, CR 6
+320. Xorn - Medium Elemental, CR 5
+321. Young Black Dragon - Large Dragon (Chromatic), CR 7
+322. Young Blue Dragon - Large Dragon (Chromatic), CR 9
+323. Young Brass Dragon - Large Dragon (Metallic), CR 6
+324. Young Bronze Dragon - Large Dragon (Metallic), CR 8
+325. Young Copper Dragon - Large Dragon (Metallic), CR 7
+326. Young Gold Dragon - Large Dragon (Metallic), CR 10
+327. Young Green Dragon - Large Dragon (Chromatic), CR 8
+328. Young Red Dragon - Large Dragon (Chromatic), CR 10
+329. Young Silver Dragon - Large Dragon (Metallic), CR 9
+330. Young White Dragon - Large Dragon (Chromatic), CR N/A
+331. Zombie - Medium Undead, CR 1/4
