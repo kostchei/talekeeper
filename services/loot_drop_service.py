@@ -74,6 +74,22 @@ class LootDropService:
             """, (character_id,))
 
             items = set(row[0] for row in cursor.fetchall())
+
+            cursor.execute("""
+                SELECT equipment_main_hand, equipment_off_hand, equipment_armor,
+                       equipment_shield, equipment_helmet, equipment_gloves,
+                       equipment_boots, equipment_cloak, equipment_ring_1,
+                       equipment_ring_2, equipment_amulet, equipment_belt
+                FROM characters
+                WHERE id = ?
+            """, (character_id,))
+
+            row = cursor.fetchone()
+            if row:
+                for equipped_item in row:
+                    if equipped_item:
+                        items.add(equipped_item)
+
             conn.close()
 
             return items

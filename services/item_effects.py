@@ -27,6 +27,7 @@ class ItemEffectsService:
                         int_bonus INTEGER DEFAULT 0,
                         wis_bonus INTEGER DEFAULT 0,
                         cha_bonus INTEGER DEFAULT 0,
+                        skill_bonuses TEXT DEFAULT '{}',
                         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
                     )
@@ -62,7 +63,8 @@ class ItemEffectsService:
             'int_bonus': 0,
             'wis_bonus': 0,
             'cha_bonus': 0,
-            'ability_check_bonus': 0
+            'ability_check_bonus': 0,
+            'skill_bonuses': {}
         }
 
         try:
@@ -91,7 +93,10 @@ class ItemEffectsService:
                 item_bonuses = self._get_item_bonuses(item, can_attune and requires_attunement)
 
                 for bonus_type, bonus_value in item_bonuses.items():
-                    if bonus_type in bonuses:
+                    if bonus_type == 'skill_bonuses' and isinstance(bonus_value, dict):
+                        for skill, skill_bonus in bonus_value.items():
+                            bonuses['skill_bonuses'][skill] = bonuses['skill_bonuses'].get(skill, 0) + skill_bonus
+                    elif bonus_type in bonuses:
                         bonuses[bonus_type] += bonus_value
 
             # Save calculated bonuses to database
@@ -153,13 +158,18 @@ class ItemEffectsService:
             'int_bonus': 0,
             'wis_bonus': 0,
             'cha_bonus': 0,
-            'ability_check_bonus': 0
+            'ability_check_bonus': 0,
+            'skill_bonuses': {}
         }
 
         try:
             item_name = item.get('name', item.get('item_name', ''))
             description = item.get('description', '')
             item_type = item.get('item_type', item.get('type', ''))
+
+            # Gloves of Thievery (no attunement required)
+            if 'gloves of thievery' in item_name.lower():
+                bonuses['skill_bonuses']['sleight_of_hand'] = 5
 
             # Specific magical items (require attunement in 2024 SRD)
             if is_attuned:
@@ -236,11 +246,13 @@ class ItemEffectsService:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
 
+                skill_bonuses_json = json.dumps(bonuses.get('skill_bonuses', {}))
+
                 cursor.execute("""
                     INSERT OR REPLACE INTO character_magical_bonuses (
                         character_id, ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus, skill_bonuses
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id,
                     bonuses['ac_bonus'],
@@ -253,7 +265,8 @@ class ItemEffectsService:
                     bonuses['int_bonus'],
                     bonuses['wis_bonus'],
                     bonuses['cha_bonus'],
-                    bonuses['ability_check_bonus']
+                    bonuses['ability_check_bonus'],
+                    skill_bonuses_json
                 ))
 
                 print(f"[ITEM_EFFECTS] Saved bonuses for {character_id}: {bonuses}")
@@ -290,13 +303,19 @@ class ItemEffectsService:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT ac_bonus, save_bonus, attack_bonus, damage_bonus,
-                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus
+                           str_bonus, dex_bonus, con_bonus, int_bonus, wis_bonus, cha_bonus, ability_check_bonus, skill_bonuses
                     FROM character_magical_bonuses
                     WHERE character_id = ?
                 """, (character_id,))
 
                 row = cursor.fetchone()
                 if row:
+                    skill_bonuses_str = row[11] or '{}'
+                    try:
+                        skill_bonuses = json.loads(skill_bonuses_str)
+                    except:
+                        skill_bonuses = {}
+
                     return {
                         'ac_bonus': row[0] or 0,
                         'save_bonus': row[1] or 0,
@@ -308,13 +327,14 @@ class ItemEffectsService:
                         'int_bonus': row[7] or 0,
                         'wis_bonus': row[8] or 0,
                         'cha_bonus': row[9] or 0,
-                        'ability_check_bonus': row[10] or 0
+                        'ability_check_bonus': row[10] or 0,
+                        'skill_bonuses': skill_bonuses
                     }
                 else:
                     return {
                         'ac_bonus': 0, 'save_bonus': 0, 'attack_bonus': 0, 'damage_bonus': 0,
                         'str_bonus': 0, 'dex_bonus': 0, 'con_bonus': 0, 'int_bonus': 0,
-                        'wis_bonus': 0, 'cha_bonus': 0, 'ability_check_bonus': 0
+                        'wis_bonus': 0, 'cha_bonus': 0, 'ability_check_bonus': 0, 'skill_bonuses': {}
                     }
 
         except Exception as e:

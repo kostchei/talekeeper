@@ -487,24 +487,28 @@ class GameEngineSQLite:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped
-                    FROM character_inventory
-                    WHERE character_id = ?
-                    ORDER BY item_type, item_name
+                    SELECT ci.id, ci.item_name, ci.item_type, ci.quantity, ci.weight_lb,
+                           ci.description, ci.value_gp, ci.equipped, e.slot, e.description as equipment_description
+                    FROM character_inventory ci
+                    LEFT JOIN equipment e ON ci.item_name = e.name
+                    WHERE ci.character_id = ?
+                    ORDER BY ci.item_type, ci.item_name
                 """, (character_id,))
 
                 inventory = []
                 for row in cursor.fetchall():
+                    description = row['equipment_description'] if row['equipment_description'] else row['description']
                     inventory.append({
                         'id': row['id'],
                         'name': row['item_name'],
                         'item_type': row['item_type'],
                         'quantity': row['quantity'],
                         'weight_lb': row['weight_lb'],
-                        'description': row['description'],
+                        'description': description,
                         'value_gp': row['value_gp'],
                         'equipped': bool(row['equipped']),
-                        'container': 'backpack'  # Default container for now
+                        'slot': row['slot'],
+                        'container': 'backpack'
                     })
 
                 return inventory

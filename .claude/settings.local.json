@@ -80,7 +80,9 @@
       "Bash(run_tests.bat quick)",
       "Bash(cat:*)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash(if exist nul del nul)"
+      "Bash(if exist nul del nul)",
+      "Bash(winget install:*)",
+      "Bash(ollama:*)"
     ],
     "deny": []
   },

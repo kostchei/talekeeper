@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional
 
 class CampaignFrame:
-    def __init__(self, data=None, name: str = None, monster_type_weights: Optional[Dict[str, float]] = None, difficulty_distribution: Dict[str, float] = None, rest_rules: Dict[str, float] = None, style: str = "", available_classes: Optional[List[str]] = None, monster_alignment_rules: Optional[Dict[str, any]] = None, guaranteed_hoards: bool = False):
+    def __init__(self, data=None, name: str = None, monster_type_weights: Optional[Dict[str, float]] = None, difficulty_distribution: Dict[str, float] = None, rest_rules: Dict[str, float] = None, style: str = "", available_classes: Optional[List[str]] = None, monster_alignment_rules: Optional[Dict[str, any]] = None, guaranteed_hoards: bool = False, description: str = "", llm_model: Optional[str] = None, lora_adapter: Optional[str] = None, narrative_prompt: Optional[str] = None):
         if isinstance(data, dict):
             # Initialize from dict (JSON loading)
             self.name = data.get('name', '')
@@ -14,6 +14,10 @@ class CampaignFrame:
             self.available_classes = data.get('available_classes', [])
             self.monster_alignment_rules = data.get('monster_alignment_rules', {})
             self.guaranteed_hoards = data.get('guaranteed_hoards', False)
+            self.description = data.get('description', '')
+            self.llm_model = data.get('llm_model')
+            self.lora_adapter = data.get('lora_adapter')
+            self.narrative_prompt = data.get('narrative_prompt')
         else:
             # Initialize from individual parameters
             self.name = name or data or ''
@@ -24,6 +28,10 @@ class CampaignFrame:
             self.available_classes = available_classes or []
             self.monster_alignment_rules = monster_alignment_rules or {}
             self.guaranteed_hoards = guaranteed_hoards
+            self.description = description
+            self.llm_model = llm_model
+            self.lora_adapter = lora_adapter
+            self.narrative_prompt = narrative_prompt
 
     def to_dict(self):
         return {
@@ -34,7 +42,11 @@ class CampaignFrame:
             "style": self.style,
             "available_classes": self.available_classes,
             "monster_alignment_rules": self.monster_alignment_rules,
-            "guaranteed_hoards": self.guaranteed_hoards
+            "guaranteed_hoards": self.guaranteed_hoards,
+            "description": self.description,
+            "llm_model": self.llm_model,
+            "lora_adapter": self.lora_adapter,
+            "narrative_prompt": self.narrative_prompt,
         }
 
     def save_to_file(self, path: str):

@@ -590,75 +590,85 @@ class EquipmentPanel(QWidget):
                 slot = item_data['slot']
                 self._unequip_item(slot)
             else:
-                # Check if this is equipment that can be equipped
                 item = item_data['item']
                 item_type = item.get('item_type', item.get('type', ''))
-                
-                if item_type == 'weapon':
-                    # Try to equip weapon to main hand first, then off hand if occupied
+                db_slot = item.get('slot', '')
+
+                target_slot = None
+
+                if db_slot:
+                    slot_map = {
+                        'main_hand': EquipmentSlot.MAIN_HAND,
+                        'off_hand': EquipmentSlot.OFF_HAND,
+                        'armor': EquipmentSlot.ARMOR,
+                        'helmet': EquipmentSlot.HELMET,
+                        'gloves': EquipmentSlot.GLOVES,
+                        'boots': EquipmentSlot.BOOTS,
+                        'cloak': EquipmentSlot.CLOAK,
+                        'ring': EquipmentSlot.RING_1,
+                        'amulet': EquipmentSlot.AMULET,
+                        'belt': EquipmentSlot.BELT,
+                        'shield': EquipmentSlot.OFF_HAND,
+                    }
+                    target_slot = slot_map.get(db_slot)
+
+                    if db_slot == 'ring':
+                        if self.equipped_items.get(EquipmentSlot.RING_1):
+                            target_slot = EquipmentSlot.RING_2
+
+                elif item_type == 'weapon':
                     target_slot = EquipmentSlot.MAIN_HAND
                     if self.equipped_items.get(target_slot):
                         target_slot = EquipmentSlot.OFF_HAND
-                    
-                    if not self.equipped_items.get(target_slot):
-                        self._equip_item(item, target_slot)
-                    else:
-                        # Both weapon slots occupied, treat as consumable
-                        self.item_used.emit(item)
-                        
+
                 elif item_type == 'armor':
-                    # Equip to armor slot
                     target_slot = EquipmentSlot.ARMOR
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type == 'shield':
-                    # Equip to off hand
                     target_slot = EquipmentSlot.OFF_HAND
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type in ['helmet', 'hat']:
                     target_slot = EquipmentSlot.HELMET
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type in ['gloves', 'gauntlets']:
                     target_slot = EquipmentSlot.GLOVES
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type in ['boots', 'shoes']:
                     target_slot = EquipmentSlot.BOOTS
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type in ['cloak', 'cape'] or 'cloak of protection' in item.get('name', '').lower():
                     target_slot = EquipmentSlot.CLOAK
-                    self._equip_item(item, target_slot)
-                    
+
                 elif item_type == 'ring' or 'ring of protection' in item.get('name', '').lower():
-                    # Try ring slot 1 first, then ring slot 2
                     target_slot = EquipmentSlot.RING_1
                     if self.equipped_items.get(target_slot):
                         target_slot = EquipmentSlot.RING_2
 
-                    if not self.equipped_items.get(target_slot):
-                        self._equip_item(item, target_slot)
-                    else:
-                        # Both ring slots occupied, treat as consumable
-                        self.item_used.emit(item)
-                        
                 elif item_type in ['amulet', 'necklace']:
                     target_slot = EquipmentSlot.AMULET
-                    self._equip_item(item, target_slot)
 
                 elif item_type == 'belt':
                     target_slot = EquipmentSlot.BELT
-                    self._equip_item(item, target_slot)
 
                 elif item_type == 'tool' and 'thieves tools' in item.get('name', '').lower():
-                    # Thieves Tools can be equipped to belt slot
                     target_slot = EquipmentSlot.BELT
-                    self._equip_item(item, target_slot)
 
+                if target_slot:
+                    if target_slot in [EquipmentSlot.RING_1, EquipmentSlot.RING_2]:
+                        if not self.equipped_items.get(target_slot):
+                            self._equip_item(item, target_slot)
+                        else:
+                            self.item_used.emit(item)
+                    elif target_slot == EquipmentSlot.MAIN_HAND:
+                        if not self.equipped_items.get(target_slot):
+                            self._equip_item(item, target_slot)
+                        elif not self.equipped_items.get(EquipmentSlot.OFF_HAND):
+                            self._equip_item(item, EquipmentSlot.OFF_HAND)
+                        else:
+                            self.item_used.emit(item)
+                    else:
+                        self._equip_item(item, target_slot)
                 else:
-                    # Not equipment, treat as consumable
                     self.item_used.emit(item)
     
     def _use_selected_item(self):
@@ -704,13 +714,18 @@ class EquipmentPanel(QWidget):
             item_name = item.get('name', 'Unknown Item')
             item_type = item.get('item_type', '')
             slot_name = slot.value.replace('_', ' ').title()
-            
+
             display_text = f"{item_name} [Equipped - {slot_name}]"
             if item_type:
                 display_text += f" ({item_type})"
-            
+
             list_item = QListWidgetItem(display_text)
             list_item.setData(Qt.ItemDataRole.UserRole, {'item': item, 'equipped': True, 'slot': slot})
+
+            description = item.get('description', '')
+            if description:
+                list_item.setToolTip(description)
+
             self.inventory_list.addItem(list_item)
         
         # Add unequipped inventory items
@@ -718,15 +733,20 @@ class EquipmentPanel(QWidget):
             item_name = item.get('name', 'Unknown Item')
             item_type = item.get('item_type', '')
             quantity = item.get('quantity', 1)
-            
+
             display_text = f"{item_name}"
             if quantity > 1:
                 display_text += f" ({quantity})"
             if item_type:
                 display_text += f" [{item_type}]"
-            
+
             list_item = QListWidgetItem(display_text)
             list_item.setData(Qt.ItemDataRole.UserRole, {'item': item, 'equipped': False, 'slot': None})
+
+            description = item.get('description', '')
+            if description:
+                list_item.setToolTip(description)
+
             self.inventory_list.addItem(list_item)
         
         # Update weight - include both equipped and unequipped items
