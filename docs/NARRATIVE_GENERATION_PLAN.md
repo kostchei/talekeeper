@@ -494,12 +494,57 @@ self.narrative_toggle.setChecked(config.narrative.enable_combat_narratives)
 - [x] Create campaign-specific narrative prompt variations
   - Conan: Brutal, visceral, savage violence
   - Golden Age: Heroic, epic, legendary deeds
-- [ ] Test each campaign frame for narrative quality (pending live integration)
+- [x] Test each campaign frame for narrative quality
 - [ ] Document prompt engineering guidelines
 
+### Phase 4.5: Tarot Card Integration & Unified Encounter Descriptions ✅ COMPLETED (2025-10-03)
+- [x] Create tarot card system with 16 cards (upright/reversed)
+- [x] Draw inspiration from pleb repository tarot implementation
+- [x] Add `generate_encounter_description()` method to CampaignDescriptionService
+- [x] Generate unified encounter descriptions (one description for place/situation)
+- [x] Include individual monster descriptions within the unified narrative
+- [x] Integrate tarot card drawing to inspire encounter atmosphere
+- [x] Update EncounterGenerator to use encounter-level descriptions
+- [x] Test narrative generation with tarot inspiration
+- [x] Verify all monsters share the same encounter description
+
+**Files Created:**
+- `services/tarot_cards.py` - Tarot card system with draw_tarot_card() and get_tarot_inspiration()
+- `test_tarot_encounter.py` - Verification test for encounter descriptions
+
 **Files Modified:**
-- `encounter_pane/campaign/conan.json` - Added combat narrative prompts
-- `encounter_pane/campaign/golden.json` - Added combat narrative prompts
+- `services/campaign_description_service.py` - Added generate_encounter_description() method
+- `encounter_pane/encounter_generator.py` - Changed from individual to unified descriptions
+
+**Key Changes:**
+- Monsters in an encounter now receive a shared `encounter_description` instead of individual `narrative_description`
+- Each encounter draws a tarot card (e.g., "UNDEAD upright: A restless spirit bound to this world")
+- LLM generates 3-4 sentences for the place/situation + 1 sentence per monster
+- Tarot inspiration adds atmospheric depth and variety to encounters
+
+**Example Output:**
+```
+Encounter: 2 Goblins + 1 Hobgoblin
+Tarot: BEAST (reversed) - "Bestial rage without purpose or control"
+
+Generated Description:
+In a world twisted by sorcery, a desolate canyon echoes with the whispers
+of ancient magic. At the heart of this forsaken land, a cave's entrance
+yaws ominously, illuminated by flickering torchlight from within.
+
+- Goblin: Malicious green-skinned imps scurry about, their yellow eyes
+  gleaming with twisted delight
+- Goblin: Another goblin, larger and more menacing, seems to lead the
+  smaller ones in a sinister dance of malice
+- Hobgoblin: A hulking figure steps forward, his battle-scarred visage
+  twisted into a sneer as he revels in the sight of impending conquest
+```
+
+**How Tarot Works:**
+- Each encounter draws ONE random card (e.g., "BEAST reversed")
+- Randomly selects one aspect: place, situation, or creature
+- That detail (e.g., "Bestial rage without purpose or control") goes to the LLM
+- LLM begins description with tarot inspiration, then describes place/situation/monsters
 
 ### Phase 5: Polish & Optimization (Not Started)
 - [ ] Add UI toggle for narratives

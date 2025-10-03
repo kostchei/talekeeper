@@ -191,28 +191,27 @@ class EncounterGenerator:
         self.description_service = description_service
 
     def _attach_monster_narrative(self, monsters: List[Dict[str, Any]], level: int, difficulty: str) -> List[Dict[str, Any]]:
-        """Return copies of ``monsters`` with optional narrative descriptions."""
+        """Return copies of ``monsters`` with a unified encounter description."""
 
         decorated: List[Dict[str, Any]] = []
         for monster in monsters:
-            monster_copy = monster.copy()
+            decorated.append(monster.copy())
 
-            if self.description_service:
-                context = {
-                    "name": monster_copy.get("name"),
-                    "type": monster_copy.get("type"),
-                    "alignment": monster_copy.get("alignment"),
-                    "challenge_rating": monster_copy.get("cr_str", monster_copy.get("cr")),
-                    "xp": monster_copy.get("xp"),
-                    "average_hp": monster_copy.get("average_hp"),
-                    "encounter_level": level,
-                    "encounter_difficulty": difficulty,
-                }
-                description = self.description_service.generate_description("monster", context, self.frame)
-                if description:
-                    monster_copy["narrative_description"] = description
+        if self.description_service and decorated:
+            encounter_data = self.description_service.generate_encounter_description(
+                decorated,
+                self.frame,
+                level,
+                difficulty
+            )
 
-            decorated.append(monster_copy)
+            if encounter_data:
+                for monster in decorated:
+                    monster["encounter_description"] = encounter_data.get("description")
+                    monster["tarot_card"] = encounter_data.get("tarot_card")
+                    monster["tarot_orientation"] = encounter_data.get("tarot_orientation")
+                    monster["tarot_aspect"] = encounter_data.get("tarot_aspect")
+                    monster["tarot_detail"] = encounter_data.get("tarot_detail")
 
         return decorated
 
