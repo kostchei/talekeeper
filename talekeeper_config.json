@@ -1,0 +1,69 @@
+{
+  "performance": {
+    "enable_action_card_caching": true,
+    "condition_cache_size": 100,
+    "database_connection_pool_size": 5,
+    "ui_update_throttle_ms": 16,
+    "lazy_load_subclass_features": true,
+    "cache_monster_data": true,
+    "parallel_combat_processing": false
+  },
+  "debug": {
+    "log_database_queries": false,
+    "show_performance_metrics": false,
+    "trace_condition_applications": false,
+    "validate_action_economy": true,
+    "enable_test_commands": true,
+    "verbose_combat_logging": false,
+    "log_file_path": null
+  },
+  "features": {
+    "use_enhanced_subclass_manager": true,
+    "enable_condition_immunity_optimization": true,
+    "use_cached_monster_data": true,
+    "enable_enhanced_monster_logging": true,
+    "use_action_economy_enforcer": true,
+    "enable_scalable_subclass_architecture": true,
+    "release_subclass_filter": true,
+    "release_subclasses": {
+      "cleric": [
+        "life",
+        "war"
+      ],
+      "fighter": [
+        "champion",
+        "gladiator"
+      ],
+      "wizard": [
+        "evocation",
+        "abjuration"
+      ],
+      "barbarian": [
+        "berserker"
+      ],
+      "paladin": [
+        "oath_of_devotion",
+        "oath_of_glory",
+        "oath_of_the_unbroken"
+      ],
+      "warlock": []
+    }
+  },
+  "ui": {
+    "theme": "dark",
+    "enable_animations": true,
+    "show_advanced_tooltips": true,
+    "auto_refresh_character_sheet": true,
+    "combat_log_max_entries": 1000,
+    "action_card_auto_sort": true
+  },
+  "narrative": {
+    "enable_combat_narratives": false,
+    "enable_round_summaries": false,
+    "enable_victory_narratives": false,
+    "show_only_narratives": false,
+    "narrative_display_delay": 0.5,
+    "max_narrative_cache": 50,
+    "fallback_to_mechanical": true
+  }
+}

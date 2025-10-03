@@ -197,7 +197,10 @@ class EncounterGenerator:
         for monster in monsters:
             decorated.append(monster.copy())
 
-        if self.description_service and decorated:
+        from core.config import get_config
+        config = get_config()
+
+        if self.description_service and decorated and config.narrative.enable_combat_narratives:
             encounter_data = self.description_service.generate_encounter_description(
                 decorated,
                 self.frame,
