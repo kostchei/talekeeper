@@ -73,6 +73,18 @@ class UIConfig:
     action_card_auto_sort: bool = True
 
 
+@dataclass
+class NarrativeConfig:
+    """Narrative generation settings"""
+    enable_combat_narratives: bool = True
+    enable_round_summaries: bool = True
+    enable_victory_narratives: bool = True
+    show_only_narratives: bool = False
+    narrative_display_delay: float = 0.5
+    max_narrative_cache: int = 50
+    fallback_to_mechanical: bool = True
+
+
 class ConfigManager:
     """Manages application configuration"""
 
@@ -82,6 +94,7 @@ class ConfigManager:
         self.debug = DebugConfig()
         self.features = FeatureConfig()
         self.ui = UIConfig()
+        self.narrative = NarrativeConfig()
 
         # Load from file if it exists
         self.load_config()
@@ -102,6 +115,8 @@ class ConfigManager:
                     self.features = FeatureConfig(**config_data['features'])
                 if 'ui' in config_data:
                     self.ui = UIConfig(**config_data['ui'])
+                if 'narrative' in config_data:
+                    self.narrative = NarrativeConfig(**config_data['narrative'])
 
                 print(f"[CONFIG] Loaded configuration from {self.config_file}")
             except Exception as e:
@@ -114,7 +129,8 @@ class ConfigManager:
                 'performance': asdict(self.performance),
                 'debug': asdict(self.debug),
                 'features': asdict(self.features),
-                'ui': asdict(self.ui)
+                'ui': asdict(self.ui),
+                'narrative': asdict(self.narrative)
             }
 
             with open(self.config_file, 'w') as f:
@@ -181,6 +197,7 @@ class ConfigManager:
         self.debug = DebugConfig()
         self.features = FeatureConfig()
         self.ui = UIConfig()
+        self.narrative = NarrativeConfig()
         self.save_config()
 
     def enable_developer_mode(self):
