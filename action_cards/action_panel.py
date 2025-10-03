@@ -116,7 +116,7 @@ class ActionType(Enum):
     SIGNATURE_MOVE = "signature_move"  # Gladiator level 10
     FAST_HANDS = "fast_hands"  # Thief level 3 (modifies bonus actions)
     FAST_HANDS_THIEVES_TOOLS = "fast_hands_thieves_tools"  # Thief level 3 - Use thieves tools as bonus action
-    FAST_HANDS_USE_OBJECT = "fast_hands_use_object"  # Thief level 3 - Use Object as bonus action
+    FAST_HANDS_UTILISE = "fast_hands_utilise"  # Thief level 3 - Utilise action as bonus action
     FAST_HANDS_SLEIGHT_OF_HAND = "fast_hands_sleight_of_hand"  # Thief level 3 - Sleight of Hand as bonus action
     MASTERFUL_MIMICRY = "masterful_mimicry"  # Assassin level 9 - Mimic speech/handwriting
     
@@ -550,11 +550,11 @@ class ActionPanel(QWidget):
                     card.action_hovered.connect(self._action_hovered)
                     self.action_cards[ActionType.FAST_HANDS_THIEVES_TOOLS] = card
 
-                    card = ActionCard(ActionType.FAST_HANDS_USE_OBJECT, "[OBJECT]", "Use Object", "Use Object action as bonus action")
+                    card = ActionCard(ActionType.FAST_HANDS_UTILISE, "[OBJECT]", "Utilise", "Utilise action as bonus action")
                     card.feature_data = fast_hands_feature
                     card.action_triggered.connect(self._trigger_action)
                     card.action_hovered.connect(self._action_hovered)
-                    self.action_cards[ActionType.FAST_HANDS_USE_OBJECT] = card
+                    self.action_cards[ActionType.FAST_HANDS_UTILISE] = card
 
                     card = ActionCard(ActionType.FAST_HANDS_SLEIGHT_OF_HAND, "[SLEIGHT]", "Sleight of Hand", "Sleight of Hand check as bonus action")
                     card.feature_data = fast_hands_feature
@@ -844,8 +844,8 @@ class ActionPanel(QWidget):
         # Handle Thief Fast Hands features
         elif action_type == ActionType.FAST_HANDS_THIEVES_TOOLS:
             self._use_fast_hands_thieves_tools()
-        elif action_type == ActionType.FAST_HANDS_USE_OBJECT:
-            self._use_fast_hands_use_object()
+        elif action_type == ActionType.FAST_HANDS_UTILISE:
+            self._use_fast_hands_utilise()
         elif action_type == ActionType.FAST_HANDS_SLEIGHT_OF_HAND:
             self._use_fast_hands_sleight_of_hand()
         # Handle Assassin features
@@ -8996,8 +8996,8 @@ class ActionCard(QWidget):
                 break
             parent = parent.parent()
 
-    def _use_fast_hands_use_object(self):
-        """Use an object as a bonus action with Fast Hands."""
+    def _use_fast_hands_utilise(self):
+        """Use Utilise action as a bonus action with Fast Hands."""
         character_id = self._resolve_character_id()
         if not character_id:
             return
@@ -9007,7 +9007,7 @@ class ActionCard(QWidget):
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat("[THIEF] Fast Hands - Using object as bonus action")
+                parent.log_panel.log_combat("[THIEF] Fast Hands - Utilise action as bonus action")
                 break
             parent = parent.parent()
 

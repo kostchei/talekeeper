@@ -410,23 +410,41 @@ class ProficiencySystem:
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                
+
                 cursor.execute("""
                     SELECT level FROM characters WHERE id = ?
                 """, (character_id,))
                 level_row = cursor.fetchone()
-                
+
                 if not level_row:
                     return ability_mod
-                
+
                 level = level_row[0]
                 prof_bonus = get_proficiency_bonus(level)
-                
+
+                base_bonus = ability_mod
                 if self.is_proficient_in_skill(character_id, skill_name):
-                    return ability_mod + prof_bonus
-                else:
-                    return ability_mod
-                    
+                    base_bonus += prof_bonus
+
+                skill_normalized = skill_name.lower().replace(' ', '_')
+
+                cursor.execute("""
+                    SELECT skill_bonuses FROM character_magical_bonuses
+                    WHERE character_id = ?
+                """, (character_id,))
+                bonuses_row = cursor.fetchone()
+
+                item_bonus = 0
+                if bonuses_row and bonuses_row[0]:
+                    try:
+                        import json
+                        skill_bonuses = json.loads(bonuses_row[0])
+                        item_bonus = skill_bonuses.get(skill_normalized, 0)
+                    except:
+                        pass
+
+                return base_bonus + item_bonus
+
         except Exception as e:
             print(f"[Proficiency] Error calculating skill bonus: {e}")
             return ability_mod

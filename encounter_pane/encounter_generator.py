@@ -2,7 +2,10 @@ import random
 import json
 import os
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.campaign_description_service import CampaignDescriptionService
 
 # XP budgets per encounter level/difficulty
 XP_BUDGETS = [
@@ -182,9 +185,36 @@ class RandomBag:
 
 
 class EncounterGenerator:
-    def __init__(self, frame: CampaignFrame):
+    def __init__(self, frame: CampaignFrame, description_service: Optional["CampaignDescriptionService"] = None):
         self.frame = frame
         self.bags: Dict[int, RandomBag] = {}
+        self.description_service = description_service
+
+    def _attach_monster_narrative(self, monsters: List[Dict[str, Any]], level: int, difficulty: str) -> List[Dict[str, Any]]:
+        """Return copies of ``monsters`` with optional narrative descriptions."""
+
+        decorated: List[Dict[str, Any]] = []
+        for monster in monsters:
+            monster_copy = monster.copy()
+
+            if self.description_service:
+                context = {
+                    "name": monster_copy.get("name"),
+                    "type": monster_copy.get("type"),
+                    "alignment": monster_copy.get("alignment"),
+                    "challenge_rating": monster_copy.get("cr_str", monster_copy.get("cr")),
+                    "xp": monster_copy.get("xp"),
+                    "average_hp": monster_copy.get("average_hp"),
+                    "encounter_level": level,
+                    "encounter_difficulty": difficulty,
+                }
+                description = self.description_service.generate_description("monster", context, self.frame)
+                if description:
+                    monster_copy["narrative_description"] = description
+
+            decorated.append(monster_copy)
+
+        return decorated
 
     def get_budget(self, level: int, difficulty: str) -> int:
         for entry in XP_BUDGETS:
@@ -267,10 +297,11 @@ class EncounterGenerator:
                 else:
                     break
 
+            monsters = self._attach_monster_narrative(encounter, level, difficulty)
             return {
                 "level": level,
                 "difficulty": difficulty,
-                "monsters": encounter,
+                "monsters": monsters,
                 "total_xp": total
             }
         else:
@@ -284,9 +315,10 @@ class EncounterGenerator:
                     total += m["xp"]
                 else:
                     break
+            monsters = self._attach_monster_narrative(encounter, level, difficulty)
             return {
                 "level": level,
                 "difficulty": difficulty,
-                "monsters": encounter,
+                "monsters": monsters,
                 "total_xp": total
             }
