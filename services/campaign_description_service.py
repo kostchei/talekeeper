@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from string import Template
 from typing import Any, Dict, Optional, List
 
+from services.tarot_cards import draw_tarot_card, get_tarot_inspiration
+
 
 def _load_requests_module():
     if importlib.util.find_spec("requests") is None:
@@ -113,6 +115,32 @@ $combat_summary_json
 
 Write 2-3 sentences describing the aftermath. Keep under 70 words.
 Focus on cost of victory and spoils.
+Campaign tone: $campaign_description
+"""
+        )
+
+        self._encounter_prompt = Template(
+            """
+You are narrating a $campaign_style encounter.
+
+Tarot inspiration: $tarot_inspiration
+
+Monsters in this encounter (appearing together):
+$monsters_json
+
+Write your description in this exact structure:
+
+PARAGRAPH 1: Begin with the tarot inspiration, then describe the place and situation where these monsters appear. Write 2-3 sentences that set the scene.
+
+PARAGRAPH 2: For each unique monster type, write a bullet point with the monster name followed by a 1-sentence description of its appearance or behavior.
+
+Example structure (DO NOT use brackets - write actual descriptions):
+The tavern reeks of betrayal and false friendship. In this dimly lit corner, suspicious figures gather around crude wooden tables.
+
+- Goblin: Small, green-skinned creatures with yellow eyes that gleam with malice
+- Hobgoblin: A battle-scarred warrior towering over the goblins
+
+Keep total under 120 words.
 Campaign tone: $campaign_description
 """
         )
@@ -252,6 +280,50 @@ Campaign tone: $campaign_description
         )
 
         return self._generate_from_prompt(prompt.strip(), campaign_frame)
+
+    def generate_encounter_description(
+        self,
+        monsters: List[Dict[str, Any]],
+        campaign_frame: Any,
+        level: int,
+        difficulty: str
+    ) -> Optional[Dict[str, Any]]:
+
+        if not monsters:
+            return None
+
+        tarot_card = draw_tarot_card()
+        tarot_inspiration = get_tarot_inspiration(tarot_card)
+
+        monsters_json = json.dumps([{
+            "name": m.get("name"),
+            "type": m.get("type"),
+            "cr": m.get("cr_str", m.get("cr")),
+            "alignment": m.get("alignment")
+        } for m in monsters], indent=2)
+
+        prompt_template_text = getattr(campaign_frame, "narrative_encounter_prompt", None) or self._encounter_prompt.template
+        template = Template(prompt_template_text)
+
+        prompt = template.safe_substitute(
+            campaign_name=getattr(campaign_frame, "name", "Unnamed Campaign") or "Unnamed Campaign",
+            campaign_style=getattr(campaign_frame, "style", "") or "distinctive fantasy",
+            campaign_description=getattr(campaign_frame, "description", "") or "",
+            monsters_json=monsters_json,
+            tarot_inspiration=tarot_inspiration,
+            tarot_card=tarot_card["name"],
+            tarot_orientation=tarot_card["orientation"]
+        )
+
+        description = self._generate_from_prompt(prompt.strip(), campaign_frame)
+
+        return {
+            "description": description,
+            "tarot_card": tarot_card["name"],
+            "tarot_orientation": tarot_card["orientation"],
+            "tarot_aspect": tarot_card["aspect"],
+            "tarot_detail": tarot_card["detail"]
+        }
 
     # ------------------------------------------------------------------
     # Internal helpers

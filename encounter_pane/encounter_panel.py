@@ -4543,12 +4543,23 @@ class EncounterPanel(QWidget):
             total_xp = encounter_data.get('total_xp', 0)
             level = encounter_data.get('level', character_level)
             
+            # Get encounter description and tarot info (shared across all monsters)
+            encounter_description = None
+            tarot_info = None
+            if encounter_data['monsters']:
+                first_monster = encounter_data['monsters'][0]
+                encounter_description = first_monster.get('encounter_description')
+                tarot_card = first_monster.get('tarot_card')
+                tarot_orientation = first_monster.get('tarot_orientation')
+                if tarot_card:
+                    tarot_info = f"{tarot_card} ({tarot_orientation})"
+
             # Build monster list with individual XP
             monster_details = []
             for monster in encounter_data['monsters']:
                 monster_xp = monster.get('xp', 0)
                 cr = monster.get('cr', '?')
-                
+
                 # Format CR display (handle fractions)
                 if isinstance(cr, (int, float)):
                     if cr < 1:
@@ -4556,7 +4567,7 @@ class EncounterPanel(QWidget):
                         if cr == 0.125:
                             cr_display = "1/8"
                         elif cr == 0.25:
-                            cr_display = "1/4"  
+                            cr_display = "1/4"
                         elif cr == 0.5:
                             cr_display = "1/2"
                         else:
@@ -4565,13 +4576,8 @@ class EncounterPanel(QWidget):
                         cr_display = str(int(cr))
                 else:
                     cr_display = str(cr)
-                    
+
                 detail = f"{monster['name']} (CR {cr_display}, {monster_xp} XP)"
-                narrative = monster.get('narrative_description')
-                if narrative:
-                    narrative_lines = [line.strip() for line in narrative.splitlines() if line.strip()]
-                    if narrative_lines:
-                        detail += "\n    " + "\n    ".join(narrative_lines)
                 monster_details.append(detail)
             
             # Create detailed encounter description
@@ -4592,12 +4598,24 @@ class EncounterPanel(QWidget):
             except:
                 budget_info = f"XP Budget: {total_xp} ({difficulty_desc})"
             
-            desc = f"""== {difficulty_desc} Encounter (Level {level}) ==
+            # Build the full description
+            title = f"== {difficulty_desc} Encounter (Level {level})"
+            if tarot_info:
+                title += f" - {tarot_info}"
+            title += " =="
+            desc_parts = [title]
 
-{monsters_text}
+            # Add encounter narrative if available
+            if encounter_description:
+                desc_parts.append("")
+                desc_parts.append(encounter_description)
 
-{budget_info}
-Character Level: {character_level}"""
+            desc_parts.append("")
+            desc_parts.append(monsters_text)
+            desc_parts.append("")
+            desc_parts.append(budget_info)
+
+            desc = "\n".join(desc_parts)
             
             self.update_scene_description(desc)
             
