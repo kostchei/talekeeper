@@ -23,6 +23,7 @@ from log.log_panel import LogPanel
 from equipment_layout.equipment_panel import EquipmentPanel
 from action_cards.action_panel import ActionPanel
 from core.game_engine_sqlite import GameEngineSQLite
+from ui.settings_dialog import SettingsDialog
 
 from audio import (
     CampaignVoiceProfile,
@@ -191,7 +192,7 @@ class MainWindow(QMainWindow):
         self.menu.load_game_requested.connect(self._show_load_character_dialog)
         self.menu.save_and_exit_requested.connect(self._save_and_exit)
         self.menu.force_reload_requested.connect(self._force_reload_character)
-        self.menu.settings_requested.connect(lambda: self.log_panel.log_info("Settings requested"))
+        self.menu.settings_requested.connect(self._show_settings_dialog)
         self.menu.campaign_frame_requested.connect(self._show_campaign_selection)
         
         # Character sheet signals
@@ -1315,6 +1316,32 @@ class MainWindow(QMainWindow):
                     self.log_panel.log_error(f"No character found in slot {slot_number}")
             except Exception as e:
                 self.log_panel.log_error(f"Error deleting character from slot {slot_number}: {e}")
+
+    def _show_settings_dialog(self):
+        """Show settings dialog."""
+        try:
+            self.log_panel.log_system("Opening settings dialog...")
+
+            dialog = SettingsDialog(self)
+            dialog.settings_changed.connect(self._on_settings_changed)
+
+            if dialog.exec():
+                self.log_panel.log_info("Settings updated")
+            else:
+                self.log_panel.log_system("Settings dialog cancelled")
+
+        except Exception as e:
+            self.log_panel.log_error(f"Error opening settings: {e}")
+
+    def _on_settings_changed(self):
+        """Handle settings changes."""
+        try:
+            from core.config import get_config
+            config = get_config()
+
+            self.log_panel.log_system("Settings reloaded")
+        except Exception as e:
+            self.log_panel.log_error(f"Error reloading settings: {e}")
 
     def _show_campaign_selection(self):
         """Show dialog to select campaign frame."""

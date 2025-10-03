@@ -31,10 +31,11 @@ class LogLevel(Enum):
     """Message severity levels."""
     INFO = "info"
     WARNING = "warning"
-    ERROR = "error" 
+    ERROR = "error"
     COMBAT = "combat"
     DICE = "dice"
     SYSTEM = "system"
+    NARRATIVE = "narrative"
 
 
 class LogPanel(QWidget):
@@ -61,6 +62,13 @@ class LogPanel(QWidget):
         self.enabled_levels = set(LogLevel)  # All levels enabled by default
         self.max_entries = 1000  # Limit to prevent memory issues
 
+        # Load narrative config
+        try:
+            from core.config import get_config
+            self.config = get_config()
+        except Exception:
+            self.config = None
+
         # Set fixed size
         self.setFixedSize(
             self.layout_profile.log_panel_width,
@@ -68,12 +76,12 @@ class LogPanel(QWidget):
         )
         self._setup_ui()
         self._apply_styles()
-        
+
         # Auto-scroll timer
         self.scroll_timer = QTimer()
         self.scroll_timer.setSingleShot(True)
         self.scroll_timer.timeout.connect(self._scroll_to_bottom)
-        
+
         # Add welcome message
         self.add_log_message("Game session started", LogLevel.SYSTEM)
     
@@ -335,6 +343,9 @@ class LogPanel(QWidget):
         elif level == LogLevel.SYSTEM:
             format.setForeground(QColor(secondary_color))  # Use theme secondary color
             format.setFontItalic(True)
+        elif level == LogLevel.NARRATIVE:
+            format.setForeground(QColor("#a0d0ff"))  # Light blue for narratives
+            format.setFontItalic(True)
         
         # Format the message
         level_prefix = {
@@ -343,9 +354,15 @@ class LogPanel(QWidget):
             LogLevel.ERROR: "[FAIL] ",
             LogLevel.COMBAT: "[COMBAT] ",
             LogLevel.DICE: "[DICE] ",
-            LogLevel.SYSTEM: "[SYSTEM] "
+            LogLevel.SYSTEM: "[SYSTEM] ",
+            LogLevel.NARRATIVE: ">> "
         }
-        
+
+        # Check if we should show this message based on narrative config
+        if level == LogLevel.NARRATIVE and self.config:
+            if not self.config.narrative.enable_combat_narratives:
+                return  # Skip narrative messages if disabled
+
         formatted_message = f"[{timestamp.strftime('%H:%M:%S')}] {level_prefix.get(level, '')}{message}\n"
         
         # Insert with formatting
@@ -456,7 +473,10 @@ class LogPanel(QWidget):
         elif level == LogLevel.SYSTEM:
             format.setForeground(QColor(secondary_color))  # Use theme secondary color
             format.setFontItalic(True)
-        
+        elif level == LogLevel.NARRATIVE:
+            format.setForeground(QColor("#a0d0ff"))  # Light blue for narratives
+            format.setFontItalic(True)
+
         # Format the message
         level_prefix = {
             LogLevel.INFO: "",
@@ -464,9 +484,15 @@ class LogPanel(QWidget):
             LogLevel.ERROR: "[FAIL] ",
             LogLevel.COMBAT: "[COMBAT] ",
             LogLevel.DICE: "[DICE] ",
-            LogLevel.SYSTEM: "[SYSTEM] "
+            LogLevel.SYSTEM: "[SYSTEM] ",
+            LogLevel.NARRATIVE: ">> "
         }
-        
+
+        # Check if we should show this message based on narrative config
+        if level == LogLevel.NARRATIVE and self.config:
+            if not self.config.narrative.enable_combat_narratives:
+                return  # Skip narrative messages if disabled
+
         formatted_message = f"[{timestamp}] {level_prefix.get(level, '')}{message}\n"
         
         # Insert with formatting
@@ -600,3 +626,7 @@ class LogPanel(QWidget):
     def log_system(self, message: str, details: Optional[Dict[str, Any]] = None):
         """Log a system message."""
         self.add_log_message(message, LogLevel.SYSTEM, details)
+
+    def log_narrative(self, message: str, details: Optional[Dict[str, Any]] = None):
+        """Log a narrative message."""
+        self.add_log_message(message, LogLevel.NARRATIVE, details)
