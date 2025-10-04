@@ -8,7 +8,11 @@
       "Bash(ollama serve:*)",
       "Bash(timeout:*)",
       "Bash(ollama list:*)",
-      "Bash(ollama pull:*)"
+      "Bash(ollama pull:*)",
+      "Bash(conda:*)",
+      "Bash(git add:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
