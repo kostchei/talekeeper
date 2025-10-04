@@ -179,12 +179,13 @@ def create_monster_element(monster_data):
     return monster
 
 def prettify_xml(elem):
-    rough_string = ET.tostring(elem, encoding='utf-8')
+    rough_string = ET.tostring(elem)
     reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent='  ', encoding='UTF-8').decode('utf-8')
+    xml_str = reparsed.toprettyxml(indent='  ')
+    return ''.join(char for char in xml_str if ord(char) < 128)
 
 def generate_monsters_xml(json_file, output_xml):
-    with open(json_file, 'r', encoding='utf-8') as f:
+    with open(json_file, 'r') as f:
         monsters_data = json.load(f)
 
     root = ET.Element('monsters', version='5.2.1', source='SRD_CC_v5.2.1')
@@ -205,7 +206,7 @@ def generate_monsters_xml(json_file, output_xml):
 
     xml_string = prettify_xml(root)
 
-    with open(output_xml, 'w', encoding='utf-8') as f:
+    with open(output_xml, 'w') as f:
         f.write(xml_string)
 
     print(f'Generated {output_xml} with {len(monsters_data)} monsters')

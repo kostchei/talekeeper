@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 
-with open(r"d:\Code\TaleKeeper\monster_comparison_results.json", 'r', encoding='utf-8') as f:
+with open(r"d:\Code\TaleKeeper\monster_comparison_results.json", 'r') as f:
     results = json.load(f)
 
 print("=" * 80)

@@ -602,11 +602,11 @@ class LogPanel(QWidget):
                             'details': entry['details']
                         })
                     
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, 'w') as f:
                         json.dump(export_data, f, indent=2, ensure_ascii=False)
                 else:
                     # Export as plain text
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, 'w') as f:
                         f.write("TaleKeeper Game Log\n")
                         f.write("=" * 50 + "\n\n")
                         

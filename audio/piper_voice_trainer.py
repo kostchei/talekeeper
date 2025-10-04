@@ -122,7 +122,7 @@ class PiperVoiceTrainer:
             metadata_lines.append(f"{target.stem}|{sample.sanitized_transcript()}")
 
         metadata_path = output_dir / "metadata.csv"
-        metadata_path.write_text("\n".join(metadata_lines), encoding="utf-8")
+        metadata_path.write_text("\n".join(metadata_lines))
 
         print(f"Prepared {len(sample_list)} samples in {output_dir}")
         return metadata_path
@@ -178,7 +178,7 @@ class PiperVoiceTrainer:
             config["max_epochs"] = epochs
 
         config_path = output_dir / "training_config.json"
-        config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+        config_path.write_text(json.dumps(config, indent=2))
 
         print(f"Starting training for '{voice_name}'...")
         print(f"Quality: {quality}")
@@ -228,7 +228,7 @@ def create_sample_dataset_from_directory(
 
     transcripts = {}
     if transcript_file and transcript_file.exists():
-        for line in transcript_file.read_text(encoding="utf-8").splitlines():
+        for line in transcript_file.read_text().splitlines():
             if "|" in line:
                 filename, transcript = line.split("|", 1)
                 transcripts[filename.strip()] = transcript.strip()

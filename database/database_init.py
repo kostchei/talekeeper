@@ -54,7 +54,7 @@ class DatabaseInitializer:
                 return False
             
             print(f"Loading schema from {schema_file}...")
-            with open(schema_file, 'r', encoding='utf-8') as f:
+            with open(schema_file, 'r') as f:
                 schema_sql = f.read()
             
             cursor.executescript(schema_sql)
@@ -95,7 +95,7 @@ class DatabaseInitializer:
                 file_path = self.seeds_dir / seed_file
                 if file_path.exists():
                     print(f"Loading {seed_file}...")
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, 'r') as f:
                         sql_content = f.read()
                     
                     try:
@@ -153,7 +153,7 @@ class DatabaseInitializer:
                 return True
             
             print(f"Loading dev data from {dev_data_file}...")
-            with open(dev_data_file, 'r', encoding='utf-8') as f:
+            with open(dev_data_file, 'r') as f:
                 dev_data_sql = f.read()
             
             cursor.executescript(dev_data_sql)

@@ -2,7 +2,7 @@ import re
 import json
 
 def parse_srd_monsters(srd_file):
-    with open(srd_file, 'r', encoding='utf-8') as f:
+    with open(srd_file, 'r') as f:
         content = f.read()
 
     monsters = []
@@ -102,7 +102,7 @@ def main():
             for save in m['saving_throws']:
                 print(f"    - {save['ability']} DC {save['dc']}")
 
-    with open('srd_monsters_parsed.json', 'w', encoding='utf-8') as f:
+    with open('srd_monsters_parsed.json', 'w') as f:
         json.dump(monsters, f, indent=2)
 
     print(f"\nSaved to srd_monsters_parsed.json")

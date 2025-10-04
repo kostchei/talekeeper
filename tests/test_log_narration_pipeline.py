@@ -19,7 +19,7 @@ class DummyEngine:
 
     def synthesize(self, text, output_path: Path, voice_profile, *, style_overrides=None):
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text("dummy", encoding="utf-8")
+        output_path.write_text("dummy")
         self.calls.append({
             "text": text,
             "output_path": Path(output_path),

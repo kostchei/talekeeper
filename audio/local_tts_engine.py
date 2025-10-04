@@ -66,6 +66,8 @@ class LocalTTSEngine:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        clean_text = ''.join(char for char in text if ord(char) < 128)
+
         speaking_rate = voice_profile.style.speaking_rate
         if style_overrides and "rate" in style_overrides:
             speaking_rate = style_overrides["rate"]
@@ -98,7 +100,7 @@ class LocalTTSEngine:
         try:
             result = subprocess.run(
                 cmd,
-                input=text,
+                input=clean_text,
                 text=True,
                 capture_output=True,
                 timeout=30,

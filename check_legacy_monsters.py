@@ -5,7 +5,7 @@ def normalize_name(name):
     return name.lower().strip().replace('-', ' ').replace('_', ' ')
 
 def load_json_monsters():
-    with open('monsters_extracted.json', 'r', encoding='utf-8') as f:
+    with open('monsters_extracted.json', 'r') as f:
         return json.load(f)
 
 def main():

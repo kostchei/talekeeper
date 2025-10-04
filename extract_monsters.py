@@ -2,7 +2,7 @@ import re
 import json
 
 def parse_monsters(filepath, start_line=24667):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, 'r') as f:
         lines = f.readlines()
 
     monsters = []
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     monsters = parse_monsters(filepath)
 
     output_file = r'd:\Code\TaleKeeper\monsters_extracted.json'
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, 'w') as f:
         json.dump(monsters, f, indent=2, ensure_ascii=False)
 
     print(f"Extracted {len(monsters)} monsters")

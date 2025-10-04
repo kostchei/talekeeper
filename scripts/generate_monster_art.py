@@ -32,7 +32,7 @@ from encounter_pane.campaign_frame import CampaignFrame
 
 def load_campaign_frame(campaign_path: str) -> tuple[CampaignFrame, str]:
     """Load campaign frame data from JSON file and return frame + campaign name."""
-    with open(campaign_path, 'r', encoding='utf-8') as f:
+    with open(campaign_path, 'r') as f:
         campaign_data = json.load(f)
     campaign_name = campaign_data.get('name', Path(campaign_path).stem)
     return CampaignFrame(campaign_data), campaign_name

@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple, Any
 from collections import defaultdict
 
 def load_json_monsters(json_path: str) -> Dict[str, Dict]:
-    with open(json_path, 'r', encoding='utf-8') as f:
+    with open(json_path, 'r') as f:
         monsters_list = json.load(f)
 
     monsters = {}
@@ -213,7 +213,7 @@ def generate_report(results: Dict) -> str:
     return "\n".join(report)
 
 def save_detailed_json(results: Dict, output_path: str):
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, 'w') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"Detailed results saved to: {output_path}")
 
@@ -231,6 +231,6 @@ if __name__ == "__main__":
     save_detailed_json(results, output_path)
 
     report_path = r"d:\Code\TaleKeeper\monster_comparison_report.txt"
-    with open(report_path, 'w', encoding='utf-8') as f:
+    with open(report_path, 'w') as f:
         f.write(report)
     print(f"\nReport saved to: {report_path}")

@@ -3673,7 +3673,7 @@ class EncounterPanel(QWidget):
                 campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', 'conan.json')
 
             print(f"[DEBUG] Loading campaign from: {campaign_path}")
-            with open(campaign_path, 'r', encoding='utf-8') as f:
+            with open(campaign_path, 'r') as f:
                 frame_data = json.load(f)
 
             print(f"[DEBUG] Frame data loaded: {frame_data}")

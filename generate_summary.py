@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 
-with open('monsters_extracted.json', 'r', encoding='utf-8') as f:
+with open('monsters_extracted.json', 'r') as f:
     data = json.load(f)
 
 def cr_sort_key(cr):

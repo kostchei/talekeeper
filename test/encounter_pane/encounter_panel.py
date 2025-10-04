@@ -2881,7 +2881,7 @@ class EncounterPanel(QWidget):
         """Load campaign frame from conan.json and initialize encounter generator."""
         try:
             campaign_path = os.path.join(os.path.dirname(__file__), 'campaign', 'conan.json')
-            with open(campaign_path, 'r', encoding='utf-8') as f:
+            with open(campaign_path, 'r') as f:
                 frame_data = json.load(f)
             
             campaign_frame = CampaignFrame(frame_data)

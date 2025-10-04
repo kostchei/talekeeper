@@ -50,7 +50,7 @@ def extract_attack_info_from_db(actions_json):
 
 def main():
     print("Loading SRD parsed data...")
-    with open('srd_monsters_parsed.json', 'r', encoding='utf-8') as f:
+    with open('srd_monsters_parsed.json', 'r') as f:
         srd_monsters = json.load(f)
 
     srd_map = {normalize_name(m['name']): m for m in srd_monsters}
@@ -146,7 +146,7 @@ def main():
                 print(f"   - {issue}")
             print()
 
-    with open('monster_attack_discrepancies.json', 'w', encoding='utf-8') as f:
+    with open('monster_attack_discrepancies.json', 'w') as f:
         json.dump(discrepancies, f, indent=2)
 
     print(f"Full report saved to: monster_attack_discrepancies.json")

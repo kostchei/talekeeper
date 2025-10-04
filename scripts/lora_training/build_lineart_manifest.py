@@ -81,7 +81,7 @@ def build_manifest(
     if not entries:
         raise ValueError(f"No images discovered in {image_root}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as f:
+    with output_path.open("w") as f:
         json.dump([entry.to_dict() for entry in entries], f, indent=2)
         f.write("\n")
     return entries

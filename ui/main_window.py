@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         if not config_path.exists():
             raise FileNotFoundError(config_path)
 
-        data = json.loads(config_path.read_text(encoding="utf-8"))
+        data = json.loads(config_path.read_text())
         profiles_data = data.get("profiles", {})
         if not profiles_data:
             raise ValueError("voice_profiles.json does not define any profiles")
@@ -1443,7 +1443,7 @@ class MainWindow(QMainWindow):
                     if filename.endswith('.json'):
                         try:
                             filepath = os.path.join(campaign_dir, filename)
-                            with open(filepath, 'r', encoding='utf-8') as f:
+                            with open(filepath, 'r') as f:
                                 campaign_data = json.load(f)
 
                             campaign_name = campaign_data.get('name', filename[:-5])

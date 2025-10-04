@@ -57,7 +57,7 @@ def extract_attack_info(actions_json):
 def main():
     print("Loading SRD and database for detailed validation...")
 
-    with open('srd_monsters_parsed.json', 'r', encoding='utf-8') as f:
+    with open('srd_monsters_parsed.json', 'r') as f:
         srd_monsters = json.load(f)
 
     conn = sqlite3.connect('talekeeper.db')
@@ -159,7 +159,7 @@ def main():
         print(f"{i+1}. {issue['monster']} - {issue['attack_name']}")
         print(f"   {issue['issue_type']}: DB={issue.get('db_value')} vs SRD={issue.get('srd_value')}")
 
-    with open('monster_validation_issues.json', 'w', encoding='utf-8') as f:
+    with open('monster_validation_issues.json', 'w') as f:
         json.dump(real_issues, f, indent=2)
 
     print(f"\n\nFull report saved to: monster_validation_issues.json")

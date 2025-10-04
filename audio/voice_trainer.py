@@ -64,7 +64,7 @@ class VoiceTrainer:
                 target.symlink_to(source)
             lines.append(f"{target.stem}|{sample.sanitized_transcript()}")
 
-        metadata_path.write_text("\n".join(lines), encoding="utf-8")
+        metadata_path.write_text("\n".join(lines))
         return metadata_path, sample_list
 
     def train_voice(

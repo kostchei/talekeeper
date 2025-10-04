@@ -148,7 +148,7 @@ class TrainConfig:
 
 
 def read_manifest(path: Path) -> List[TrainingExample]:
-    with path.open("r", encoding="utf-8") as f:
+    with path.open("r") as f:
         data = json.load(f)
     entries: List[TrainingExample] = []
     for item in data:
@@ -246,7 +246,7 @@ def main() -> None:
 
     if accelerator.is_main_process:
         os.makedirs(config.output_dir, exist_ok=True)
-        with (config.output_dir / "train_config.json").open("w", encoding="utf-8") as f:
+        with (config.output_dir / "train_config.json").open("w") as f:
             json.dump(tracker_config, f, indent=2)
     accelerator.wait_for_everyone()
     if config.report_to:

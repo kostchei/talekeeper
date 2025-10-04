@@ -296,7 +296,7 @@ def main():
     for sample in samples:
         lines.append(f"{sample.audio_path.name}|{sample.transcript}")
 
-    transcript_file.write_text("\n".join(lines), encoding="utf-8")
+    transcript_file.write_text("\n".join(lines))
 
     print(f"\nSaved {len(samples)} transcripts to: {transcript_file}")
     print(f"Audio files in: {output_base / 'segments' if split_audio else audio_path.parent}")

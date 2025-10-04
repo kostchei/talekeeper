@@ -17,7 +17,7 @@ for monster in data:
         print(f"Fixing: {monster['name']} -> {name_fixes[monster['name']]}")
         monster['name'] = name_fixes[monster['name']]
 
-with open('monsters_extracted.json', 'w', encoding='utf-8') as f:
+with open('monsters_extracted.json', 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 
 print(f"\nFixed {len(name_fixes)} monster names")

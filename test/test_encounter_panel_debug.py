@@ -23,7 +23,7 @@ def test_encounter_panel_debug():
         # Test loading the JSON file directly
         print("\n1. Testing JSON file loading...")
         campaign_path = os.path.join('encounter_pane', 'campaign', 'conan.json')
-        with open(campaign_path, 'r', encoding='utf-8') as f:
+        with open(campaign_path, 'r') as f:
             frame_data = json.load(f)
         print(f"JSON data loaded: {frame_data.keys()}")
         

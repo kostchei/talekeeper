@@ -1,10 +1,10 @@
 import json
 import sqlite3
 
-with open(r"d:\Code\TaleKeeper\monster_comparison_results.json", 'r', encoding='utf-8') as f:
+with open(r"d:\Code\TaleKeeper\monster_comparison_results.json", 'r') as f:
     results = json.load(f)
 
-with open(r"d:\Code\TaleKeeper\monsters_extracted.json", 'r', encoding='utf-8') as f:
+with open(r"d:\Code\TaleKeeper\monsters_extracted.json", 'r') as f:
     json_monsters = {m['name']: m for m in json.load(f)}
 
 conn = sqlite3.connect(r"d:\Code\TaleKeeper\talekeeper.db")
