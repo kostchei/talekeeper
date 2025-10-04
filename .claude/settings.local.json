@@ -12,7 +12,8 @@
       "Bash(conda:*)",
       "Bash(git add:*)",
       "Bash(mkdir:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []
