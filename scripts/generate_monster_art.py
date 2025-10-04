@@ -103,13 +103,16 @@ def generate_monster_image(
     num_inference_steps: int = 30,
     guidance_scale: float = 7.5,
     seed: Optional[int] = None
-) -> Image.Image:
-    """Generate monster image using Stable Diffusion pipeline."""
+) -> tuple[Image.Image, Image.Image]:
+    """Generate monster image at high-res then downscale. Returns (full_res, thumbnail)."""
     generator = torch.Generator(device=pipeline.device)
     if seed is not None:
         generator.manual_seed(seed)
 
-    negative_prompt = "color, colored, photorealistic, photograph, digital art, 3d render, blur, text, watermark, modern style"
+    negative_prompt = "color, colored, photorealistic, photograph, digital art, 3d render, blur, text, watermark, modern style, words, boxes, letters, numbers, writing"
+
+    gen_width = 320
+    gen_height = 240
 
     result = pipeline(
         prompt=prompt,
@@ -117,20 +120,22 @@ def generate_monster_image(
         num_inference_steps=num_inference_steps,
         guidance_scale=guidance_scale,
         generator=generator,
-        width=512,
-        height=512,
+        width=gen_width,
+        height=gen_height,
     )
 
     image = result.images[0]
-    image = image.resize((width, height), Image.Resampling.LANCZOS)
     image = image.convert('L').convert('RGB')
 
-    return image
+    thumbnail = image.resize((width, height), Image.Resampling.LANCZOS)
+
+    return image, thumbnail
 
 
 def setup_pipeline(
     model_path: str = "runwayml/stable-diffusion-v1-5",
     lora_path: Optional[str] = None,
+    lora_scale: float = 1.0,
     device: str = "cuda"
 ) -> StableDiffusionPipeline:
     """Setup Stable Diffusion pipeline with optional LoRA."""
@@ -145,8 +150,14 @@ def setup_pipeline(
     pipeline.scheduler = DPMSolverMultistepScheduler.from_config(pipeline.scheduler.config)
 
     if lora_path and os.path.exists(lora_path):
-        print(f"Loading LoRA adapter from: {lora_path}")
+        print(f"Loading LoRA adapter from: {lora_path} (scale: {lora_scale})")
         pipeline.unet = PeftModel.from_pretrained(pipeline.unet, lora_path)
+        if hasattr(pipeline.unet, 'set_adapters'):
+            pipeline.unet.set_adapters(["default"], weights=[lora_scale])
+        elif lora_scale != 1.0:
+            for name, module in pipeline.unet.named_modules():
+                if hasattr(module, 'scaling'):
+                    module.scaling['default'] = lora_scale
 
     pipeline = pipeline.to(device)
     pipeline.enable_attention_slicing()
@@ -192,6 +203,12 @@ def main():
         type=str,
         default="artifacts/lineart_lora",
         help="Path to trained LoRA adapter"
+    )
+    parser.add_argument(
+        "--lora-scale",
+        type=float,
+        default=0.3,
+        help="LoRA strength/scale (0.0-1.0, default 0.3)"
     )
     parser.add_argument(
         "--model",
@@ -266,6 +283,7 @@ def main():
     pipeline = setup_pipeline(
         model_path=args.model,
         lora_path=args.lora_path if os.path.exists(args.lora_path) else None,
+        lora_scale=args.lora_scale,
         device=args.device
     )
 
@@ -291,7 +309,7 @@ def main():
         print(f"  Prompt: {prompt[:100]}...")
 
         print("  Generating image with Stable Diffusion...")
-        image = generate_monster_image(
+        full_image, thumbnail = generate_monster_image(
             prompt=prompt,
             pipeline=pipeline,
             width=args.width,
@@ -299,8 +317,11 @@ def main():
             seed=args.seed
         )
 
-        print(f"  Saving to: {output_path}")
-        image.save(output_path)
+        full_path = output_path.replace('.png', '_full.png')
+        print(f"  Saving full-res to: {full_path}")
+        full_image.save(full_path)
+        print(f"  Saving thumbnail to: {output_path}")
+        thumbnail.save(output_path)
 
     print(f"\n\nComplete! Generated images in {campaign_output_dir}")
 

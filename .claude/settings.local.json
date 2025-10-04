@@ -4,7 +4,11 @@
       "Bash(conda create:*)",
       "Bash(conda run:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(ollama serve:*)",
+      "Bash(timeout:*)",
+      "Bash(ollama list:*)",
+      "Bash(ollama pull:*)"
     ],
     "deny": [],
     "ask": []
