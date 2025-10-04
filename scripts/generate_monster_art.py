@@ -86,13 +86,12 @@ def generate_monster_description(
 
 def create_lineart_prompt(monster: Dict[str, Any], description: str) -> str:
     """Create prompt optimized for old school D&D black and white line art."""
-    size = monster.get('size', 'medium').lower()
     creature_type = monster.get('type', 'creature').lower()
+    monster_name = monster.get('name', 'creature')
 
-    base_prompt = f"1980s D&D Monster Manual illustration, black and white ink drawing, {size} {creature_type}, {description}"
-    base_prompt += ", crosshatching, pen and ink, fantasy RPG art, old school revival style, detailed linework, white background"
+    prompt = f"1980s D&D Monster Manual, {creature_type} {monster_name}, pen and ink, crosshatching, white background"
 
-    return base_prompt
+    return prompt
 
 
 def generate_monster_image(

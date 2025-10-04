@@ -27,11 +27,18 @@ python scripts/lora_training/build_lineart_manifest.py assets/line_art_cropped \
 
 ## 2. Install training dependencies
 
-The core TaleKeeper app does not require GPU libraries, so LoRA-specific packages live in a separate `requirements-lora.txt` file. Install them into a dedicated virtual environment to keep the main dependency footprint small:
+The core TaleKeeper app does not require GPU libraries, so LoRA-specific packages live in a separate `requirements-lora.txt` file. Use the `lora` conda environment:
 
 ```bash
-python -m venv .venv-lora
-source .venv-lora/bin/activate
+conda activate lora
+pip install -r requirements-lora.txt
+```
+
+Or create a new environment:
+
+```bash
+conda create -n lora python=3.10
+conda activate lora
 pip install -r requirements-lora.txt
 ```
 
@@ -42,26 +49,41 @@ pip install -r requirements-lora.txt
 Run the training script with the manifest path. The defaults mirror the HuggingFace diffusers LoRA example but tuned for line art.
 
 ```bash
+conda activate lora
 python scripts/lora_training/train_lineart_lora.py data/lora/lineart_manifest.json \
   --pretrained-model-name-or-path runwayml/stable-diffusion-v1-5 \
   --output-dir artifacts/lineart_lora \
-  --train-batch-size 4 \
-  --gradient-accumulation-steps 2 \
-  --max-train-steps 3000 \
+  --train-batch-size 2 \
+  --gradient-accumulation-steps 4 \
+  --max-train-steps 500 \
   --validation-prompt "clean black-and-white ink drawing of a heroic adventurer"
 ```
 
 Key flags:
 
-- `--rank` controls the LoRA rank (higher = more capacity, bigger file).
-- `--learning-rate` and `--max-train-steps` determine training intensity.
-- `--mixed-precision` can be set to `bf16`, `fp16`, or `no`.
+- `--rank` controls the LoRA rank (default: 8, higher = more capacity, bigger file).
+- `--learning-rate` and `--max-train-steps` determine training intensity (default: 1e-4, 500 steps).
+- `--mixed-precision` can be set to `bf16`, `fp16`, or `no` (default: fp16).
 - `--validation-prompt` optionally renders a sample image every `--validation-steps` into the output directory.
 
-The script writes checkpoints under `artifacts/lineart_lora/` and saves final weights compatible with both diffusers and AUTOMATIC1111/ComfyUI LoRA loaders.
+The script saves only the final LoRA adapter (~6MB) under `artifacts/lineart_lora/`. Intermediate checkpoints are disabled to save disk space.
+
+**Note:** The training script has been updated to skip checkpoint saves. Only the final `adapter_model.safetensors` and `adapter_config.json` are saved.
 
 ## 4. Using the LoRA
 
+### Monster Art Generation
+See [monster_art_generation.md](monster_art_generation.md) for the complete guide on generating campaign-aware monster art using the trained LoRA.
+
+Quick start:
+```bash
+conda activate lora
+python scripts/generate_monster_art.py \
+  --campaign encounter_pane/campaign/golden.json \
+  --limit 10
+```
+
+### Other Uses
 - **ComfyUI:** Drop the folder into `ComfyUI/models/loras/` and select it in your workflow.
 - **AUTOMATIC1111:** Copy the generated `*.safetensors`/`adapter_config.json` pair into `stable-diffusion-webui/models/Lora/`.
 - **Diffusers:** Use `pipe.load_lora_weights("artifacts/lineart_lora")` on any compatible pipeline.
