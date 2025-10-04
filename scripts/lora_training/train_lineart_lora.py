@@ -380,9 +380,6 @@ def main() -> None:
             if accelerator.sync_gradients:
                 global_step += 1
                 accelerator.log({"train_loss": loss.detach().item()}, step=global_step)
-                if accelerator.is_main_process and config.checkpointing_steps and global_step % config.checkpointing_steps == 0:
-                    save_path = config.output_dir / f"checkpoint-{global_step}"
-                    accelerator.save_state(str(save_path))
 
             if global_step >= config.max_train_steps:
                 break
