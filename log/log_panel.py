@@ -48,6 +48,7 @@ class LogPanel(QWidget):
     
     log_exported = pyqtSignal(str)  # file path
     filter_changed = pyqtSignal(list)  # enabled levels
+    log_message_added = pyqtSignal(dict)
     
     def __init__(
         self,
@@ -357,11 +358,11 @@ class LogPanel(QWidget):
         format.setFontItalic(False)
         cursor.setCharFormat(format)
     
-    def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO, 
+    def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO,
                        details: Optional[Dict[str, Any]] = None):
         """Add a new message to the log."""
         timestamp = datetime.now()
-        
+
         # Create log entry
         entry = {
             'timestamp': timestamp,
@@ -380,10 +381,35 @@ class LogPanel(QWidget):
         # Update display if this level is enabled
         if level in self.enabled_levels:
             self._add_message_to_display(entry)
-        
+
         # Auto-scroll if enabled
         if self.auto_scroll_cb.isChecked():
             self.scroll_timer.start(50)  # Small delay for smooth scrolling
+
+        # Emit signal for downstream automation (audio narration, analytics, etc.)
+        try:
+            self.log_message_added.emit(self._serialize_entry(entry))
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"Failed to emit log_message_added: {exc}")
+
+    def _serialize_entry(self, entry: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert internal entry representation into signal-friendly payload."""
+        level = entry.get('level')
+        if isinstance(level, LogLevel):
+            level_value = level.value
+        else:
+            level_value = str(level)
+        timestamp = entry.get('timestamp')
+        if isinstance(timestamp, datetime):
+            timestamp_value = timestamp.isoformat()
+        else:
+            timestamp_value = str(timestamp)
+        return {
+            'timestamp': timestamp_value,
+            'message': entry.get('message', ''),
+            'level': level_value,
+            'details': entry.get('details', {}),
+        }
     
     def _add_message_to_display(self, entry: Dict[str, Any]):
         """Add a message entry to the text display."""

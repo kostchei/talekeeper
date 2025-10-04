@@ -22,6 +22,9 @@ A single-player D&D 2024 tactical RPG for Windows. Experience classic tabletop R
 - **Monsters**: Goblins, Orcs, Wolves, Skeletons with full stat blocks
 - **Equipment**: Weapons, armor, and gear with D&D properties
 
+### Accessibility
+- **Narrated Log Panel** - Optional local text-to-speech pipeline that turns combat and system logs into spoken narration. Configure trained voices per campaign frame (`docs/LOG_AUDIO_PIPELINE.md`).
+
 ```
 
 ## 🚀 Quick Start

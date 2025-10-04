@@ -1,0 +1,37 @@
+{
+  "default_profile": "default",
+  "profiles": {
+    "default": {
+      "voice_id": "narrator_default",
+      "campaign_style": "default",
+      "model_path": "excess/narration/models/default_xtts.pth",
+      "sample_library": "excess/narration/samples/default/style.wav",
+      "description": "Baseline narrator used when no campaign-specific voice is configured.",
+      "style": {
+        "preset": "narration",
+        "speaking_rate": 0.98,
+        "energy": 0.1,
+        "emotion": "calm"
+      },
+      "metadata": {
+        "device": "auto",
+        "config_path": "excess/narration/models/default_xtts.json"
+      }
+    },
+    "conan": {
+      "voice_id": "narrator_conan",
+      "campaign_style": "conan",
+      "model_path": "excess/narration/models/conan_xtts.pth",
+      "description": "A grittier delivery for the Conan campaign frame.",
+      "style": {
+        "preset": "narration",
+        "speaking_rate": 0.94,
+        "energy": 0.35,
+        "pitch_shift": -0.1
+      },
+      "metadata": {
+        "device": "auto"
+      }
+    }
+  }
+}
