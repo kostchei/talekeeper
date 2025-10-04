@@ -5094,20 +5094,32 @@ class EncounterPanel(QWidget):
             # Get the absolute path to the data/images directory
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(current_dir)
-            images_dir = os.path.join(project_root, "data", "images")
-            
-            # Try common image extensions
+
+            # Replace spaces and special characters with underscores for filename
+            safe_name = monster_name.lower().replace(' ', '_').replace('-', '_')
+            # Remove any other special characters
+            import re
+            safe_name = re.sub(r'[^a-z0-9_]', '', safe_name)
+
+            # Get campaign style for folder name
+            campaign_style = getattr(self.campaign_frame, 'style', 'golden') if self.campaign_frame else 'golden'
+            campaign_folder = f"{campaign_style}_age" if campaign_style else "golden_age"
+
+            # Try campaign-specific folder first (e.g., data/images/monsters/golden_age/)
+            campaign_images_dir = os.path.join(project_root, "data", "images", "monsters", campaign_folder)
+
             for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
-                # Replace spaces and special characters with underscores for filename
-                safe_name = monster_name.lower().replace(' ', '_').replace('-', '_')
-                # Remove any other special characters
-                import re
-                safe_name = re.sub(r'[^a-z0-9_]', '', safe_name)
-                
-                image_path = os.path.join(images_dir, f"{safe_name}{ext}")
+                image_path = os.path.join(campaign_images_dir, f"{safe_name}{ext}")
                 if os.path.exists(image_path):
                     return image_path
-            
+
+            # Fallback to generic data/images directory
+            generic_images_dir = os.path.join(project_root, "data", "images")
+            for ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                image_path = os.path.join(generic_images_dir, f"{safe_name}{ext}")
+                if os.path.exists(image_path):
+                    return image_path
+
             return None
         except Exception as e:
             print(f"Error getting monster image path for {monster_name}: {e}")
