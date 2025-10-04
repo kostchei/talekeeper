@@ -13,7 +13,13 @@
       "Bash(git add:*)",
       "Bash(mkdir:*)",
       "Bash(rm:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(curl -s https://api.github.com/repos/rhasspy/piper/releases/latest)",
+      "Bash(curl:*)",
+      "Bash(tar:*)",
+      "Bash(unzip:*)",
+      "Bash(bin/piper/piper/piper.exe:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

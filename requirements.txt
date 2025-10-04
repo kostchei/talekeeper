@@ -20,5 +20,6 @@ pyinstaller>=5.13.0
 
 # Image processing
 Pillow>=10.0.0
-# Text-to-speech (optional local synthesis)
-TTS>=0.13.3
+
+# Audio playback for narration
+PyQt6-Multimedia>=6.5.0

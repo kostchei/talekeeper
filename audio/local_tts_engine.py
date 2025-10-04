@@ -1,16 +1,13 @@
-"""Wrapper around a local open-source TTS model."""
+"""Wrapper around Piper TTS for local narration synthesis."""
 
 from __future__ import annotations
 
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Dict, Optional
-
-try:
-    from TTS.api import TTS  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
-    TTS = None
+import os
 
 from .voice_profiles import CampaignVoiceProfile
 
@@ -18,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class LocalTTSEngine:
-    """Lazily loads a local model and performs synthesis on demand."""
+    """Uses Piper TTS for fast, local synthesis."""
 
     def __init__(
         self,
@@ -29,31 +26,32 @@ class LocalTTSEngine:
         self.model_path = Path(model_path)
         self.config_path = Path(config_path) if config_path else None
         self.device = device
-        if isinstance(device, bool):
-            self._use_gpu = device
-        else:
-            normalized = str(device).lower()
-            if normalized in {"cpu", "auto"}:
-                self._use_gpu = False if normalized == "cpu" else None
-            elif normalized in {"gpu", "cuda", "cuda:0"}:
-                self._use_gpu = True
-            else:
-                self._use_gpu = None
-        self._tts = None
+        self.piper_executable = self._find_piper()
+        self._verify_piper()
 
-    def _ensure_model(self) -> None:
-        if self._tts is not None:
-            return
-        if TTS is None:
-            raise RuntimeError(
-                "The coqui-TTS package is required for local synthesis but is not installed."
+    def _find_piper(self) -> str:
+        local_piper = Path("bin/piper/piper/piper.exe")
+        if local_piper.exists():
+            return str(local_piper.absolute())
+        return "piper"
+
+    def _verify_piper(self) -> None:
+        try:
+            result = subprocess.run(
+                [self.piper_executable, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
-        kwargs = {"model_path": str(self.model_path), "progress_bar": False}
-        if self.config_path:
-            kwargs["config_path"] = str(self.config_path)
-        if self._use_gpu is not None:
-            kwargs["gpu"] = self._use_gpu
-        self._tts = TTS(**kwargs)
+            if result.returncode != 0:
+                raise RuntimeError("Piper TTS not found or not executable")
+            LOGGER.info(f"Piper TTS available: {result.stdout.strip()}")
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Piper TTS is required but not found. Install from https://github.com/rhasspy/piper"
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Piper TTS verification timed out")
 
     def synthesize(
         self,
@@ -65,32 +63,54 @@ class LocalTTSEngine:
         style_overrides: Optional[Dict[str, float]] = None,
     ) -> Path:
         """Generate an audio file that narrates ``text``."""
-        self._ensure_model()
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        synthesis_kwargs: Dict[str, float] = voice_profile.style.build_synthesis_kwargs()
-        if style_overrides:
-            synthesis_kwargs.update(style_overrides)
+        speaking_rate = voice_profile.style.speaking_rate
+        if style_overrides and "rate" in style_overrides:
+            speaking_rate = style_overrides["rate"]
 
-        # Coqui TTS expects JSON serializable kwargs
-        safe_kwargs = json.loads(json.dumps(synthesis_kwargs))
+        cmd = [
+            self.piper_executable,
+            "--model", str(self.model_path),
+            "--output_file", str(output_path),
+        ]
+
+        if self.config_path and self.config_path.exists():
+            cmd.extend(["--config", str(self.config_path)])
+
+        if speaking_rate != 1.0:
+            cmd.extend(["--length_scale", str(1.0 / speaking_rate)])
+
+        if voice_profile.metadata.get("speaker"):
+            cmd.extend(["--speaker", voice_profile.metadata["speaker"]])
 
         LOGGER.debug(
-            "Synthesizing narration", extra={
+            "Synthesizing narration with Piper",
+            extra={
                 "voice": voice_profile.voice_id,
-                "style": voice_profile.style.preset,
+                "model": str(self.model_path),
                 "output": str(output_path),
-                "kwargs": safe_kwargs,
+                "rate": speaking_rate,
             }
         )
 
-        self._tts.tts_to_file(
-            text=text,
-            file_path=str(output_path),
-            speaker_wav=str(speaker_wav) if speaker_wav else None,
-            style_wav=str(voice_profile.sample_library) if voice_profile.sample_library else None,
-            preset=voice_profile.style.preset,
-            **safe_kwargs,
-        )
-        return output_path
+        try:
+            result = subprocess.run(
+                cmd,
+                input=text,
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"Piper synthesis failed: {result.stderr}")
+
+            if not output_path.exists() or output_path.stat().st_size == 0:
+                raise RuntimeError(f"Piper did not generate audio at {output_path}")
+
+            LOGGER.info(f"Generated narration: {output_path.name}")
+            return output_path
+
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"Piper synthesis timed out for text: {text[:50]}...")

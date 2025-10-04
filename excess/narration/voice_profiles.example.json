@@ -4,9 +4,8 @@
     "default": {
       "voice_id": "narrator_default",
       "campaign_style": "default",
-      "model_path": "excess/narration/models/default_xtts.pth",
-      "sample_library": "excess/narration/samples/default/style.wav",
-      "description": "Baseline narrator used when no campaign-specific voice is configured.",
+      "model_path": "excess/narration/models/en_US-amy-medium.onnx",
+      "description": "Baseline narrator using Piper TTS (en_US-amy-medium voice).",
       "style": {
         "preset": "narration",
         "speaking_rate": 0.98,
@@ -14,15 +13,15 @@
         "emotion": "calm"
       },
       "metadata": {
-        "device": "auto",
-        "config_path": "excess/narration/models/default_xtts.json"
+        "device": "cpu",
+        "config_path": "excess/narration/models/en_US-amy-medium.onnx.json"
       }
     },
     "conan": {
       "voice_id": "narrator_conan",
       "campaign_style": "conan",
-      "model_path": "excess/narration/models/conan_xtts.pth",
-      "description": "A grittier delivery for the Conan campaign frame.",
+      "model_path": "excess/narration/models/en_US-libritts-high.onnx",
+      "description": "Deeper voice for Conan campaign (en_US-libritts-high).",
       "style": {
         "preset": "narration",
         "speaking_rate": 0.94,
@@ -30,7 +29,8 @@
         "pitch_shift": -0.1
       },
       "metadata": {
-        "device": "auto"
+        "device": "cpu",
+        "speaker": "1"
       }
     }
   }

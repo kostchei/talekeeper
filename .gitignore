@@ -231,3 +231,17 @@ test-results/
 *.swo
 *~
 .DS_Store
+# Piper TTS binaries and models
+bin/piper/
+excess/narration/models/*.onnx
+excess/narration/models/*.json
+excess/narration/*.wav
+excess/narration/voice_profiles.json
+
+
+# Voice training
+bin/piper-training/
+training_data/
+training_samples/
+examples/__pycache__/
+

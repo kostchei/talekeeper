@@ -14,9 +14,9 @@ Designed to match ui_plan.md specifications:
 - Color-coded message types
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QComboBox,
-                            QCheckBox, QScrollArea)
+                            QCheckBox, QScrollArea, QSlider)
 from PyQt6.QtCore import Qt, pyqtSignal, QDateTime, QTimer
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont
 from typing import Optional, List, Dict, Any
@@ -50,6 +50,8 @@ class LogPanel(QWidget):
     log_exported = pyqtSignal(str)  # file path
     filter_changed = pyqtSignal(list)  # enabled levels
     log_message_added = pyqtSignal(dict)
+    narration_enabled_changed = pyqtSignal(bool)
+    narration_volume_changed = pyqtSignal(float)
     
     def __init__(
         self,
@@ -107,6 +109,36 @@ class LogPanel(QWidget):
         
         header_layout.addStretch()
         
+        # Narration toggle button
+        self.narration_toggle = QPushButton("TTS")
+        self.narration_toggle.setObjectName("narrationToggle")
+        self.narration_toggle.setCheckable(True)
+        self.narration_toggle.setChecked(True)
+        self.narration_toggle.setFixedWidth(40)
+        self.narration_toggle.setToolTip("Toggle narration on/off")
+        self.narration_toggle.toggled.connect(self._on_narration_toggled)
+        header_layout.addWidget(self.narration_toggle)
+
+        # Queue indicator
+        self.queue_label = QLabel("Q:0")
+        self.queue_label.setObjectName("queueLabel")
+        self.queue_label.setFixedWidth(30)
+        self.queue_label.setToolTip("Narration queue size")
+        header_layout.addWidget(self.queue_label)
+
+        # Volume slider
+        self.volume_slider = QSlider(Qt.Orientation.Horizontal)
+        self.volume_slider.setObjectName("volumeSlider")
+        self.volume_slider.setFixedWidth(60)
+        self.volume_slider.setMinimum(0)
+        self.volume_slider.setMaximum(100)
+        self.volume_slider.setValue(70)
+        self.volume_slider.setToolTip("Narration volume")
+        self.volume_slider.valueChanged.connect(self._on_volume_changed)
+        header_layout.addWidget(self.volume_slider)
+
+        header_layout.addStretch()
+
         # Filter dropdown
         self.filter_combo = QComboBox()
         self.filter_combo.setObjectName("filterCombo")
@@ -630,3 +662,20 @@ class LogPanel(QWidget):
     def log_narrative(self, message: str, details: Optional[Dict[str, Any]] = None):
         """Log a narrative message."""
         self.add_log_message(message, LogLevel.NARRATIVE, details)
+
+    def update_narration_queue(self, queue_size: int) -> None:
+        """Update the narration queue display."""
+        self.queue_label.setText(f"Q:{queue_size}")
+
+    def _on_narration_toggled(self, enabled: bool) -> None:
+        """Handle narration toggle button."""
+        self.narration_enabled_changed.emit(enabled)
+        if enabled:
+            self.narration_toggle.setStyleSheet("background-color: #2a9d2a;")
+        else:
+            self.narration_toggle.setStyleSheet("background-color: #9d2a2a;")
+
+    def _on_volume_changed(self, value: int) -> None:
+        """Handle volume slider change."""
+        volume = value / 100.0
+        self.narration_volume_changed.emit(volume)

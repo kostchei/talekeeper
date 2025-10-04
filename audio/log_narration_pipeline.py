@@ -27,6 +27,8 @@ except Exception:  # pragma: no cover - fallback when PyQt/GL is unavailable
 from .campaign_voice_registry import CampaignVoiceRegistry
 from .local_tts_engine import LocalTTSEngine
 from .voice_profiles import CampaignVoiceProfile
+from .audio_player import NarrationPlayer
+from .file_cleanup import NarrationFileCleanup
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,6 +119,7 @@ class LogNarrationPipeline:
         output_directory: Path | str = Path("excess") / "narration",
         batch_window_seconds: float = 2.5,
         auto_start: bool = True,
+        audio_player: Optional[NarrationPlayer] = None,
     ) -> None:
         self.log_panel = log_panel
         self.voice_registry = voice_registry
@@ -129,6 +132,8 @@ class LogNarrationPipeline:
         self._worker: Optional[threading.Thread] = None
         self._engine_cache: Dict[str, LocalTTSEngine] = {}
         self._active_campaign_style: Optional[str] = None
+        self.audio_player = audio_player
+        self.file_cleanup = NarrationFileCleanup(self.output_directory, max_age_hours=24, max_files=500)
         if auto_start:
             self.start()
 
@@ -142,6 +147,8 @@ class LogNarrationPipeline:
             self._stop_event.clear()
             self._worker = threading.Thread(target=self._process_loop, daemon=True)
             self._worker.start()
+        self.file_cleanup.run_cleanup()
+        LOGGER.info("Narration pipeline started")
 
     def stop(self) -> None:
         if self.log_panel is not None and hasattr(self.log_panel, "log_message_added"):
@@ -216,6 +223,10 @@ class LogNarrationPipeline:
             extra={"text": text, "output_path": str(output_path), "campaign_style": self._active_campaign_style},
         )
         engine.synthesize(text, output_path, profile, style_overrides=style_overrides)
+
+        if self.audio_player and output_path.exists():
+            self.audio_player.enqueue(output_path)
+
         return output_path
 
     def _derive_style_overrides(

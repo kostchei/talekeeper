@@ -31,6 +31,7 @@ from audio import (
     LogNarrationPipeline,
     LocalTTSEngine,
     VoiceStyleSettings,
+    NarrationPlayer,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
         # Audio narration pipeline (lazy initialization)
         self.voice_registry: Optional[CampaignVoiceRegistry] = None
         self.log_narration_pipeline: Optional[LogNarrationPipeline] = None
+        self.narration_player: Optional[NarrationPlayer] = None
 
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
@@ -258,18 +260,25 @@ class MainWindow(QMainWindow):
 
         self.voice_registry = registry
         engine_factory = self._build_engine_factory()
+
+        self.narration_player = NarrationPlayer(self)
+        self.narration_player.queue_changed.connect(self.log_panel.update_narration_queue)
+        self.log_panel.narration_enabled_changed.connect(self.narration_player.set_enabled)
+        self.log_panel.narration_volume_changed.connect(self.narration_player.set_volume)
+
         self.log_narration_pipeline = LogNarrationPipeline(
             self.log_panel,
             registry,
             engine_factory=engine_factory,
             auto_start=True,
+            audio_player=self.narration_player,
         )
         self._sync_narration_campaign()
 
         active_profile = registry.get_active_profile()
         if active_profile:
             self.log_panel.log_system(
-                f"🎧 Narration ready using voice '{active_profile.voice_id}' for style '{active_profile.campaign_style}'."
+                f"Narration ready: '{active_profile.voice_id}' for '{active_profile.campaign_style}'"
             )
 
     def _load_campaign_voice_registry(self) -> CampaignVoiceRegistry:
