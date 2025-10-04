@@ -28,7 +28,8 @@
       "Bash(do sed -i \"s/, encoding=''utf-8''//g\" \"$file\")",
       "Bash(echo \"Fixed: $file\")",
       "Bash(done)",
-      "Bash(for:*)"
+      "Bash(for:*)",
+      "Bash(del analyze_monsters.py)"
     ],
     "deny": [],
     "ask": []

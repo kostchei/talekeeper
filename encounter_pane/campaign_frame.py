@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional
 
 class CampaignFrame:
-    def __init__(self, data=None, name: str = None, monster_type_weights: Optional[Dict[str, float]] = None, difficulty_distribution: Dict[str, float] = None, rest_rules: Dict[str, float] = None, style: str = "", available_classes: Optional[List[str]] = None, monster_alignment_rules: Optional[Dict[str, any]] = None, guaranteed_hoards: bool = False, description: str = "", llm_model: Optional[str] = None, lora_adapter: Optional[str] = None, narrative_prompt: Optional[str] = None):
+    def __init__(self, data=None, name: str = None, monster_type_weights: Optional[Dict[str, float]] = None, difficulty_distribution: Dict[str, float] = None, rest_rules: Dict[str, float] = None, style: str = "", available_classes: Optional[List[str]] = None, monster_alignment_rules: Optional[Dict[str, any]] = None, guaranteed_hoards: bool = False, description: str = "", llm_model: Optional[str] = None, lora_adapter: Optional[str] = None, narrative_prompt: Optional[str] = None, tags: Optional[List[str]] = None):
         if isinstance(data, dict):
             # Initialize from dict (JSON loading)
             self.name = data.get('name', '')
@@ -18,6 +18,7 @@ class CampaignFrame:
             self.llm_model = data.get('llm_model')
             self.lora_adapter = data.get('lora_adapter')
             self.narrative_prompt = data.get('narrative_prompt')
+            self.tags = data.get('tags', [])
         else:
             # Initialize from individual parameters
             self.name = name or data or ''
@@ -32,6 +33,7 @@ class CampaignFrame:
             self.llm_model = llm_model
             self.lora_adapter = lora_adapter
             self.narrative_prompt = narrative_prompt
+            self.tags = tags or []
 
     def to_dict(self):
         return {
@@ -47,6 +49,7 @@ class CampaignFrame:
             "llm_model": self.llm_model,
             "lora_adapter": self.lora_adapter,
             "narrative_prompt": self.narrative_prompt,
+            "tags": self.tags,
         }
 
     def save_to_file(self, path: str):

@@ -57,7 +57,8 @@ def load_monsters():
             'name': monster_row[1],
             'type': monster_row[2],
             'cr': monster_row[15],
-            'alignment': monster_row[5]  # Add alignment from database
+            'alignment': monster_row[5],
+            'aquatic_only': monster_row[30] if len(monster_row) > 30 else 0
         }
         # Extract type - handle both string and object formats
         monster_type = monster['type']
@@ -113,7 +114,8 @@ def load_monsters():
             "type": monster_type,
             "alignment": monster.get('alignment', 'N'),
             "average_hp": average_hp,
-            "hp_formula": hp_formula
+            "hp_formula": hp_formula,
+            "aquatic_only": monster.get('aquatic_only', 0)
         })
     
     conn.close()
@@ -169,6 +171,7 @@ class CampaignFrame:
         self.style = data.get('style', '')
         self.available_classes = data.get('available_classes', [])
         self.monster_alignment_rules = data.get('monster_alignment_rules', {})
+        self.tags = data.get('tags', [])
 
 
 class RandomBag:
@@ -229,26 +232,33 @@ class EncounterGenerator:
             # Filter monsters based on CR limits and alignment rules
             cr_cap = 0.25 * level if level < 5 else 0.5 * level
             allowed = []
-            
+
+            # Check if campaign allows aquatic-only monsters
+            is_aquatic_campaign = 'aquatic' in self.frame.tags
+
             for m in MONSTER_DB:
                 if m["cr"] > cr_cap:
                     continue
-                    
+
+                # Skip aquatic-only monsters unless this is an aquatic campaign
+                if m.get("aquatic_only", 0) == 1 and not is_aquatic_campaign:
+                    continue
+
                 # Check alignment rules
                 alignment = m.get("alignment", "N").upper()
-                
+
                 # Allow evil monsters if configured
                 if self.frame.monster_alignment_rules.get("allow_evil", False):
-                    if "E" in alignment:  # Check for evil alignment
+                    if "E" in alignment:
                         allowed.append(m)
                         continue
-                
+
                 # Allow humanoid non-good monsters if configured
                 if self.frame.monster_alignment_rules.get("allow_humanoid_not_good", False):
                     if m["type"] == "humanoid" and "G" not in alignment:
                         allowed.append(m)
                         continue
-            
+
             # Create equally weighted pool from allowed monsters
             self.bags[level] = RandomBag(allowed if allowed else [m for m in MONSTER_DB if m["cr"] <= cr_cap])
 
