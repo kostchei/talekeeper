@@ -58,12 +58,13 @@ class CampaignDescriptionService:
         self,
         base_url: Optional[str] = None,
         default_model: Optional[str] = None,
-        request_timeout: float = 30.0,
+        request_timeout: float = 1.0,
     ) -> None:
         self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         self.default_model = default_model or os.getenv("OLLAMA_MODEL", "mistral:7b-instruct")
         self.request_timeout = request_timeout
         self.session = requests.Session()
+        self._ollama_available = None
 
         # Default prompt uses string.Template placeholders to avoid brace escaping
         self._default_prompt = Template(
@@ -167,6 +168,10 @@ Campaign tone: $campaign_description
         if not entity_data:
             return self._fallback_description(entity_type, {}, campaign_frame)
 
+        # Skip Ollama if we know it's not available
+        if self._ollama_available is False:
+            return self._fallback_description(entity_type, entity_data, campaign_frame)
+
         request = DescriptionRequest(entity_type=entity_type, entity_data=entity_data, campaign_frame=campaign_frame)
 
         try:
@@ -191,6 +196,7 @@ Campaign tone: $campaign_description
                 json=payload,
                 timeout=self.request_timeout,
             )
+            self._ollama_available = True
             response.raise_for_status()
             data = response.json()
             text = data.get("response")
@@ -206,8 +212,10 @@ Campaign tone: $campaign_description
 
         except requests.RequestException as exc:
             print(f"[LLM] Ollama request failed: {exc}")
+            self._ollama_available = False
         except ValueError as exc:  # JSON decoding errors
             print(f"[LLM] Failed to parse Ollama response: {exc}")
+            self._ollama_available = False
 
         return self._fallback_description(entity_type, entity_data, campaign_frame)
 
