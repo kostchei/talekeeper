@@ -515,11 +515,11 @@ class ActionPanel(QWidget):
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LAY_ON_HANDS] = card
 
-        # Channel Divinity for paladins
-        channel_divinity_feature = self._get_feature_data('Channel Divinity')
-        if channel_divinity_feature:
-            card = ActionCard(ActionType.CHANNEL_DIVINITY, "⚡", "Channel Divinity", "Channel divine energy for various effects")
-            card.feature_data = channel_divinity_feature
+        # Channel Divinity for paladins level 3+
+        if (self.character_context and self.character_context.get('class_id', '').lower() == 'paladin'
+            and self.character_context.get('level', 1) >= 3):
+            uses_text = self._get_channel_divinity_uses_text()
+            card = ActionCard(ActionType.CHANNEL_DIVINITY, uses_text, "Channel Divinity", "Channel divine energy for various effects")
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.CHANNEL_DIVINITY] = card
@@ -829,7 +829,12 @@ class ActionPanel(QWidget):
             card.action_triggered.connect(self._trigger_feature_action)
             card.action_hovered.connect(self._action_hovered)
             self.action_cards[ActionType.LUCK_POINT_DISADVANTAGE] = card
-    
+
+        # Apply current theme to all newly created cards
+        for card in self.action_cards.values():
+            if hasattr(card, 'update_theme_styles'):
+                card.update_theme_styles(self.current_theme)
+
     def _trigger_subclass_action(self, action_type):
         """Handle subclass feature actions."""
         character_id = self.character_context.get('character_id', '')
@@ -7596,6 +7601,26 @@ class ActionPanel(QWidget):
         except Exception as e:
             print(f"Error using Channel Divinity: {e}")
 
+    def _get_channel_divinity_uses_text(self) -> str:
+        """Get Channel Divinity uses as text (e.g., '2/2', '1/2', '0/2')."""
+        try:
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            character_level = self.character_context.get('level', 1)
+            paladin_info = paladin_service.get_paladin_info(character_id)
+
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_uses = paladin_info['paladin_features'].get('channel_divinity_uses_current', 0)
+                max_uses = paladin_info['paladin_features'].get('channel_divinity_uses_max', 2)
+            else:
+                max_uses = 3 if character_level >= 11 else 2
+                current_uses = 0
+
+            remaining = max_uses - current_uses
+            return f"{remaining}/{max_uses}"
+        except Exception:
+            return "2/2"
+
     def _has_channel_divinity_uses(self) -> bool:
         """Check if paladin has Channel Divinity uses remaining."""
         if not self._has_class_feature('Channel Divinity'):
@@ -8447,10 +8472,10 @@ class ActionCard(QWidget):
             icon_bg = "#f8ecdf"        # background highlight
             name_color = "#000000"     # Black text for maximum readability
             desc_color = "#000000"     # Black text for maximum readability
-            button_bg = "#a45f38"      # button color from light theme
-            button_hover = "#bb7346"   # button_hover from light theme
-            button_pressed = "#7c4f32" # accent_primary from light theme
-            button_text = "#ffffff"    # White text on colored buttons
+            button_bg = "#7c4f32"      # darker brown for better contrast
+            button_hover = "#2d8659"   # green on hover
+            button_pressed = "#5c3f22" # even darker when pressed
+            button_text = "#ffffff"    # White text on dark button
             button_disabled_bg = "#ddc3a7"  # Lighter surface color
             button_disabled_text = "#83644b"  # Darker secondary text
             cooldown_border = "#a45f38"
@@ -8461,13 +8486,13 @@ class ActionCard(QWidget):
             card_bg = "#2d2116"
             card_border = "#4c3a2a"
             card_border_hover = "#3d6d5a"
-            icon_bg = "#1f150d"
-            name_color = "#f2e6cf"
-            desc_color = "#d6c6ac"
-            button_bg = "#3d6d5a"
-            button_hover = "#4f846d"
-            button_pressed = "#2c5242"
-            button_text = "#f2e6cf"
+            icon_bg = "#4a3825"
+            name_color = "#ffffff"
+            desc_color = "#ffffff"
+            button_bg = "#5a7a68"
+            button_hover = "#6a8a78"
+            button_pressed = "#4a6a58"
+            button_text = "#ffffff"
             button_disabled_bg = "#3b2b1f"
             button_disabled_text = "#8c7b63"
             cooldown_border = "#5b4633"
@@ -8486,12 +8511,14 @@ class ActionCard(QWidget):
         }}
         
         QLabel#iconLabel {{
-            font-size: 18px;
+            color: {name_color};
+            font-size: 14px;
             background-color: {icon_bg};
             border-radius: 20px;
             min-height: 40px;
             max-height: 40px;
             font-weight: bold;
+            padding: 5px;
         }}
         
         QLabel#nameLabel {{

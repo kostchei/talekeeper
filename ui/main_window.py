@@ -1,31 +1,15 @@
-"""
-Main Application Window for TaleKeeper Desktop
+"""Main Application Window for TaleKeeper Desktop."""
 
-PyQt6-based main window integrating all game UI components in fixed positions.
-Coordinates character management, exploration, combat, and inventory systems.
-
-UI Components:
-- Game menu (top-left): Character/save management  
-- Character panel (left): Stats and character information
-- Encounter panel (center): Exploration and combat interface
-- Log panel (top-right): System messages and event logs
-- Equipment panel (bottom-right): Inventory and equipment management
-- Action panel (bottom-left): Combat actions and abilities
-
-Features:
-- Light/dark theme switching
-- Auto-load last played character
-- Signal-based component communication
-- Character creation integration
-- Save/load game state management
-"""
-
-import sys
+import json
+import logging
 import os
-from typing import Dict, List
+import sys
+from pathlib import Path
+from typing import Dict, List, Optional
+
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSplitter, QMenuBar, QMenu, QPushButton
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
 
 from ui.themes import build_stylesheet, get_theme_palette
 from ui.layout_profiles import (
@@ -41,6 +25,17 @@ from action_cards.action_panel import ActionPanel
 from core.game_engine_sqlite import GameEngineSQLite
 from ui.settings_dialog import SettingsDialog
 
+from audio import (
+    CampaignVoiceProfile,
+    CampaignVoiceRegistry,
+    LogNarrationPipeline,
+    LocalTTSEngine,
+    VoiceStyleSettings,
+    NarrationPlayer,
+)
+
+LOGGER = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow):
     def __init__(self, layout_profile: LayoutProfile | None = None):
@@ -54,10 +49,15 @@ class MainWindow(QMainWindow):
         
         # Initialize game engine
         self.game_engine = GameEngineSQLite()
-        
+
         # Theme management
         self.current_theme = "light"  # Default to light theme
-        
+
+        # Audio narration pipeline (lazy initialization)
+        self.voice_registry: Optional[CampaignVoiceRegistry] = None
+        self.log_narration_pipeline: Optional[LogNarrationPipeline] = None
+        self.narration_player: Optional[NarrationPlayer] = None
+
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -104,6 +104,9 @@ class MainWindow(QMainWindow):
         self.log_panel = LogPanel(self, layout_profile=profile)
         self.log_panel.move(right_column_x, profile.vertical_margin)
         self.log_panel.show()
+
+        # Initialize audio narration after log panel is ready
+        self._initialize_narration_pipeline()
 
         # Equipment panel (bottom right)
         self.equipment_panel = EquipmentPanel(self, layout_profile=profile)
@@ -185,7 +188,7 @@ class MainWindow(QMainWindow):
     
     def _connect_signals(self):
         """Connect all widget signals"""
-        
+
         # Menu signals
         self.menu.create_character_requested.connect(self._start_character_creation)
         self.menu.load_game_requested.connect(self._show_load_character_dialog)
@@ -234,6 +237,139 @@ class MainWindow(QMainWindow):
         
         # Encounter pane character creation signal
         self.encounter_pane.character_created.connect(self._on_character_created)
+
+    # === Audio Narration Helpers ===
+
+    def _initialize_narration_pipeline(self) -> None:
+        """Set up the optional log narration pipeline."""
+        if self.log_panel is None:
+            return
+
+        try:
+            registry = self._load_campaign_voice_registry()
+        except FileNotFoundError:
+            LOGGER.info("Narration voice profile file not found; narration disabled")
+            self.log_panel.log_system(
+                "🎙️ Narration disabled: place voice_profiles.json in excess/narration to enable audio logs."
+            )
+            return
+        except Exception as exc:
+            LOGGER.exception("Failed to initialize narration registry")
+            self.log_panel.log_warning(f"Narration pipeline unavailable: {exc}")
+            return
+
+        self.voice_registry = registry
+        engine_factory = self._build_engine_factory()
+
+        self.narration_player = NarrationPlayer(self)
+        self.narration_player.queue_changed.connect(self.log_panel.update_narration_queue)
+        self.log_panel.narration_enabled_changed.connect(self.narration_player.set_enabled)
+        self.log_panel.narration_volume_changed.connect(self.narration_player.set_volume)
+
+        self.log_narration_pipeline = LogNarrationPipeline(
+            self.log_panel,
+            registry,
+            engine_factory=engine_factory,
+            auto_start=True,
+            audio_player=self.narration_player,
+        )
+        self._sync_narration_campaign()
+
+        active_profile = registry.get_active_profile()
+        if active_profile:
+            self.log_panel.log_system(
+                f"Narration ready: '{active_profile.voice_id}' for '{active_profile.campaign_style}'"
+            )
+
+    def _load_campaign_voice_registry(self) -> CampaignVoiceRegistry:
+        config_path = Path("excess") / "narration" / "voice_profiles.json"
+        if not config_path.exists():
+            raise FileNotFoundError(config_path)
+
+        data = json.loads(config_path.read_text())
+        profiles_data = data.get("profiles", {})
+        if not profiles_data:
+            raise ValueError("voice_profiles.json does not define any profiles")
+
+        profiles: List[CampaignVoiceProfile] = []
+        default_key = data.get("default_profile")
+        default_profile: Optional[CampaignVoiceProfile] = None
+
+        for style_key, profile_payload in profiles_data.items():
+            profile = self._build_voice_profile(style_key, profile_payload)
+            profiles.append(profile)
+            if default_key and style_key.lower() == default_key.lower():
+                default_profile = profile
+
+        registry = CampaignVoiceRegistry(profiles, default_profile=default_profile)
+        if default_profile:
+            registry.set_active_campaign(default_profile.campaign_style)
+        elif profiles:
+            registry.set_active_campaign(profiles[0].campaign_style)
+        return registry
+
+    def _build_voice_profile(self, style_key: str, payload: Dict[str, object]) -> CampaignVoiceProfile:
+        if "model_path" not in payload:
+            raise ValueError(f"Voice profile '{style_key}' is missing a model_path")
+
+        style_payload = payload.get("style", {}) or {}
+        known_style_keys = {"preset", "speaking_rate", "energy", "pitch_shift", "emotion"}
+        additional_params = {
+            key: value for key, value in style_payload.items() if key not in known_style_keys
+        }
+
+        style = VoiceStyleSettings(
+            preset=str(style_payload.get("preset", "default")),
+            speaking_rate=float(style_payload.get("speaking_rate", 1.0)),
+            energy=float(style_payload.get("energy", 0.0)),
+            pitch_shift=float(style_payload.get("pitch_shift", 0.0)),
+            emotion=style_payload.get("emotion"),
+            additional_params=additional_params,
+        )
+
+        sample_library = payload.get("sample_library")
+        metadata = payload.get("metadata") or {}
+        metadata_dict = {str(key): value for key, value in metadata.items()}
+
+        return CampaignVoiceProfile(
+            campaign_style=str(payload.get("campaign_style") or style_key),
+            voice_id=str(payload.get("voice_id") or f"{style_key}_narrator"),
+            model_path=Path(payload["model_path"]),
+            style=style,
+            sample_library=Path(sample_library) if sample_library else None,
+            description=payload.get("description"),
+            metadata=metadata_dict,
+        )
+
+    def _build_engine_factory(self):
+        def factory(profile: CampaignVoiceProfile) -> LocalTTSEngine:
+            metadata = profile.metadata or {}
+            config_path_value = metadata.get("config_path")
+            config_path = Path(config_path_value) if config_path_value else None
+            device_value = metadata.get("device", "auto")
+            if isinstance(device_value, (dict, list)):
+                device = "auto"
+            else:
+                device = str(device_value)
+            return LocalTTSEngine(profile.model_path, config_path=config_path, device=device)
+
+        return factory
+
+    def _sync_narration_campaign(self) -> None:
+        if not self.log_narration_pipeline:
+            return
+        campaign_style = self._get_active_campaign_style()
+        self.log_narration_pipeline.update_campaign_voice(campaign_style)
+
+    def _get_active_campaign_style(self) -> Optional[str]:
+        campaign_frame = getattr(self.encounter_pane, "campaign_frame", None)
+        if not campaign_frame:
+            return None
+        style = getattr(campaign_frame, "style", None)
+        if style and str(style).strip():
+            return str(style)
+        name = getattr(campaign_frame, "name", None)
+        return str(name) if name else None
     
     def _on_monster_selected(self, monster_id: str):
         """Handle monster selection for targeting."""
@@ -1307,7 +1443,7 @@ class MainWindow(QMainWindow):
                     if filename.endswith('.json'):
                         try:
                             filepath = os.path.join(campaign_dir, filename)
-                            with open(filepath, 'r', encoding='utf-8') as f:
+                            with open(filepath, 'r') as f:
                                 campaign_data = json.load(f)
 
                             campaign_name = campaign_data.get('name', filename[:-5])
@@ -1401,6 +1537,8 @@ class MainWindow(QMainWindow):
             # Clear any active encounters since campaign changed
             if hasattr(self.encounter_pane, 'current_encounter'):
                 self.encounter_pane.current_encounter = None
+
+            self._sync_narration_campaign()
 
         except Exception as e:
             self.log_panel.log_error(f"Error applying campaign frame: {e}")
@@ -1665,3 +1803,12 @@ class MainWindow(QMainWindow):
             'feats': character_dict['feats'],  # Include feats from SQLite migration!
             'speed': 30  # Default speed for now
         }
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Ensure background workers are stopped when window closes."""
+        if self.log_narration_pipeline:
+            try:
+                self.log_narration_pipeline.stop()
+            except Exception:
+                LOGGER.exception("Error while shutting down narration pipeline")
+        super().closeEvent(event)

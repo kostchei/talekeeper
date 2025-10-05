@@ -460,7 +460,7 @@ Can swap any weapon mastery to **Push**, **Sap**, or **Slow** on a per-attack ba
 **Build Optimization:** Combat-focused tank/DPS hybrid
 """
 
-        with open(doc_path, 'w', encoding='utf-8') as f:
+        with open(doc_path, 'w') as f:
             f.write(content)
 
         print(f"\nDetailed stats document generated: {doc_path}")

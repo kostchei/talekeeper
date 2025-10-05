@@ -1,0 +1,37 @@
+{
+  "default_profile": "default",
+  "profiles": {
+    "default": {
+      "voice_id": "narrator_default",
+      "campaign_style": "default",
+      "model_path": "excess/narration/models/en_US-amy-medium.onnx",
+      "description": "Baseline narrator using Piper TTS (en_US-amy-medium voice).",
+      "style": {
+        "preset": "narration",
+        "speaking_rate": 0.98,
+        "energy": 0.1,
+        "emotion": "calm"
+      },
+      "metadata": {
+        "device": "cpu",
+        "config_path": "excess/narration/models/en_US-amy-medium.onnx.json"
+      }
+    },
+    "conan": {
+      "voice_id": "narrator_conan",
+      "campaign_style": "conan",
+      "model_path": "excess/narration/models/en_US-libritts-high.onnx",
+      "description": "Deeper voice for Conan campaign (en_US-libritts-high).",
+      "style": {
+        "preset": "narration",
+        "speaking_rate": 0.94,
+        "energy": 0.35,
+        "pitch_shift": -0.1
+      },
+      "metadata": {
+        "device": "cpu",
+        "speaker": "1"
+      }
+    }
+  }
+}

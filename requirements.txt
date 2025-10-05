@@ -1,8 +1,9 @@
 # TaleKeeper Desktop - Python Dependencies
 # Core dependencies for single-player D&D desktop application
 
-# GUI Framework
-PyQt6>=6.5.0
+# GUI Framework - IMPORTANT: PyQt6 6.7.x required for working multimedia on Windows
+PyQt6==6.7.0
+PyQt6-Qt6>=6.7.0,<6.8.0
 
 # Logging
 loguru>=0.7.0

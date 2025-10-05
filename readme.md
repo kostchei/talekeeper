@@ -22,17 +22,37 @@ A single-player D&D 2024 tactical RPG for Windows. Experience classic tabletop R
 - **Monsters**: Goblins, Orcs, Wolves, Skeletons with full stat blocks
 - **Equipment**: Weapons, armor, and gear with D&D properties
 
+### Accessibility
+- **Narrated Log Panel** - Optional local text-to-speech pipeline that turns combat and system logs into spoken narration. Configure trained voices per campaign frame (`docs/LOG_AUDIO_PIPELINE.md`).
+
 ```
 
 ## 🚀 Quick Start
 
-### From Source
+### Option 1: Using Conda (Recommended)
 ```bash
 # Clone the repository
 git clone https://github.com/kostchei/talekeeper
 cd talekeeper
 
-# Install dependencies
+# Create and activate the conda environment
+conda env create -f environment.yml
+conda activate talekeeper
+
+# Run the game (database auto-initializes on first run)
+python main.py
+
+# Optional: Run with dev mode for test data
+python main.py --dev
+```
+
+### Option 2: Using pip
+```bash
+# Clone the repository
+git clone https://github.com/kostchei/talekeeper
+cd talekeeper
+
+# Install dependencies (IMPORTANT: Must use exact PyQt6 version 6.7.0)
 pip install -r requirements.txt
 
 # Run the game (database auto-initializes on first run)
@@ -41,6 +61,8 @@ python main.py
 # Optional: Run with dev mode for test data
 python main.py --dev
 ```
+
+**Important**: PyQt6 version 6.7.0 is required. Newer versions (6.8+, 6.9+) have broken QtMultimedia DLL dependencies on Windows.
 
 ### Database Management
 ```bash

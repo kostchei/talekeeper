@@ -56,33 +56,82 @@ cd test && python -m pytest services/test_weapon_attack_service.py -v
 cd test && python test_simple_validation.py
 ```
 
-## Project Structure
+## Project Structure (Production-Ready)
+
+**NEW STRUCTURE** (as of Oct 2025 - reorganized for exe conversion):
+
 ```
 TaleKeeper/
-├── main.py                 # Entry point
-├── talekeeper.db           # SQLite database (auto-created)
-├── database/               # Database management
-│   ├── database_init.py      # Database initialization
-│   ├── schema/                # Database schema files
-│   ├── seeds/                 # Game data (D&D rules)
-│   └── migrations/            # Database updates
-├── core/
-│   ├── game_engine_sqlite.py  # Main game coordinator
-│   ├── feature_integration.py # Feature system
-│   └── combat_engine.py       # Combat mechanics
-├── ui/
-│   ├── main_window.py         # Main window with panels
-│   └── themes.py               # Light/dark theme system
-├── character_sheet/            # Character display
-├── encounter_pane/             # Combat/exploration
-├── action_cards/               # Combat actions UI
-├── equipment_layout/           # Equipment/inventory
-├── services/                   # Game services
-│   └── feat_effects.py        # Feat implementations
-└── testing/                   # Qt6-based testing framework
-    ├── test_framework.py       # Core testing infrastructure
-    ├── test_specific_features.py # Feature tests
-    └── run_tests.py           # Test runner
+├── main.py                      # Entry point (ONLY .py in root)
+├── setup.py                     # Package metadata
+├── pyproject.toml               # Modern Python packaging
+│
+├── src/talekeeper/              # Main application package
+│   ├── __init__.py
+│   ├── __main__.py              # Allows: python -m talekeeper
+│   ├── paths.py                 # Path helpers (dev + exe)
+│   ├── core/                    # Game engine & systems
+│   │   ├── game_engine_sqlite.py
+│   │   ├── feature_integration.py
+│   │   ├── combat_manager.py
+│   │   ├── config.py
+│   │   └── debug_commands.py
+│   ├── services/                # Game services (50+ modules)
+│   │   ├── feat_effects.py
+│   │   ├── condition_manager.py
+│   │   ├── subclass_registry.py
+│   │   └── ...
+│   ├── ui/                      # PyQt6 UI components
+│   │   ├── main_window.py
+│   │   ├── themes.py
+│   │   ├── action_cards/
+│   │   ├── character_sheet/
+│   │   ├── encounter_pane/
+│   │   ├── equipment_layout/
+│   │   └── menu/
+│   ├── audio/                   # TTS & narration
+│   ├── database/                # DB initialization
+│   │   └── database_init.py
+│   └── models/                  # Data models
+│
+├── data/                        # Game data & runtime files
+│   ├── database/
+│   │   ├── schema/              # SQL schema files
+│   │   ├── seeds/               # Game data (D&D rules)
+│   │   ├── migrations/          # Database updates
+│   │   └── talekeeper.db        # SQLite database (auto-created)
+│   ├── monsters/                # Monster JSON data
+│   ├── config/                  # Runtime configuration
+│   │   └── talekeeper_config.json
+│   └── assets/                  # Images, fonts, art
+│
+├── scripts/                     # Dev tools (excluded from exe)
+│   ├── monster_tools/           # Monster data utilities
+│   ├── database_tools/          # DB utilities
+│   ├── character_tools/         # Character utilities
+│   └── utilities/               # General utilities
+│
+├── tests/                       # Consolidated test suite
+│   ├── run_regression_tests.py
+│   ├── unit/
+│   ├── integration/
+│   ├── regression/
+│   └── qt_framework/
+│
+└── docs/                        # Documentation
+    ├── development/
+    └── reports/
+```
+
+**Import Pattern Changes:**
+```python
+# OLD (pre-Oct 2025)
+from core.game_engine_sqlite import GameEngine
+from services.feat_effects import FeatEffects
+
+# NEW (current)
+from talekeeper.core.game_engine_sqlite import GameEngine
+from talekeeper.services.feat_effects import FeatEffects
 ```
 
 ## Testing System
@@ -154,8 +203,15 @@ Combat HP is tracked in `parent.character_sheet.character_data`, NOT in the data
 - **Damage Application**: Reads from character_sheet → applies damage → updates character_sheet
 - **Healing MUST**: Read from character_sheet → apply healing → update character_sheet
 - **NEVER**: Read HP from database or character_context for healing during combat (will be stale)
-- **Pattern Location**: See `_apply_damage_to_player()` and Second Wind implementation in `action_cards/action_panel.py`
+- **Pattern Location**: See `_apply_damage_to_player()` and Second Wind implementation in `src/talekeeper/ui/action_cards/action_panel.py`
 - All healing abilities (potions, spells, class features) must follow this pattern
+
+### Ollama LLM Integration (Optional)
+The campaign description service can use Ollama for narrative generation:
+- **Warning**: `[LLM] Ollama request failed: HTTPConnectionPool` is EXPECTED when Ollama isn't running
+- **Fallback**: Service automatically uses deterministic text when Ollama unavailable
+- **Not Critical**: Application works fine without Ollama
+- **To Enable**: Install and run Ollama separately (`ollama serve`)
 
 ## Database Schema
 Key tables in `talekeeper.db`:

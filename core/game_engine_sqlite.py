@@ -1846,7 +1846,7 @@ class GameEngineSQLite:
             monster_files = glob.glob("data/monsters*.json")
             for file_path in monster_files:
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+                    with open(file_path, 'r') as f:
                         monster_data = json.load(f)
                         
                     # Handle different JSON structures

@@ -14,9 +14,9 @@ Designed to match ui_plan.md specifications:
 - Color-coded message types
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QPushButton, QFrame, QTextEdit, QComboBox,
-                            QCheckBox, QScrollArea)
+                            QCheckBox, QScrollArea, QSlider)
 from PyQt6.QtCore import Qt, pyqtSignal, QDateTime, QTimer
 from PyQt6.QtGui import QTextCursor, QTextCharFormat, QColor, QFont
 from typing import Optional, List, Dict, Any
@@ -49,6 +49,9 @@ class LogPanel(QWidget):
     
     log_exported = pyqtSignal(str)  # file path
     filter_changed = pyqtSignal(list)  # enabled levels
+    log_message_added = pyqtSignal(dict)
+    narration_enabled_changed = pyqtSignal(bool)
+    narration_volume_changed = pyqtSignal(float)
     
     def __init__(
         self,
@@ -106,6 +109,36 @@ class LogPanel(QWidget):
         
         header_layout.addStretch()
         
+        # Narration toggle button
+        self.narration_toggle = QPushButton("TTS")
+        self.narration_toggle.setObjectName("narrationToggle")
+        self.narration_toggle.setCheckable(True)
+        self.narration_toggle.setChecked(True)
+        self.narration_toggle.setFixedWidth(40)
+        self.narration_toggle.setToolTip("Toggle narration on/off")
+        self.narration_toggle.toggled.connect(self._on_narration_toggled)
+        header_layout.addWidget(self.narration_toggle)
+
+        # Queue indicator
+        self.queue_label = QLabel("Q:0")
+        self.queue_label.setObjectName("queueLabel")
+        self.queue_label.setFixedWidth(30)
+        self.queue_label.setToolTip("Narration queue size")
+        header_layout.addWidget(self.queue_label)
+
+        # Volume slider
+        self.volume_slider = QSlider(Qt.Orientation.Horizontal)
+        self.volume_slider.setObjectName("volumeSlider")
+        self.volume_slider.setFixedWidth(60)
+        self.volume_slider.setMinimum(0)
+        self.volume_slider.setMaximum(100)
+        self.volume_slider.setValue(70)
+        self.volume_slider.setToolTip("Narration volume")
+        self.volume_slider.valueChanged.connect(self._on_volume_changed)
+        header_layout.addWidget(self.volume_slider)
+
+        header_layout.addStretch()
+
         # Filter dropdown
         self.filter_combo = QComboBox()
         self.filter_combo.setObjectName("filterCombo")
@@ -374,11 +407,11 @@ class LogPanel(QWidget):
         format.setFontItalic(False)
         cursor.setCharFormat(format)
     
-    def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO, 
+    def add_log_message(self, message: str, level: LogLevel = LogLevel.INFO,
                        details: Optional[Dict[str, Any]] = None):
         """Add a new message to the log."""
         timestamp = datetime.now()
-        
+
         # Create log entry
         entry = {
             'timestamp': timestamp,
@@ -397,10 +430,35 @@ class LogPanel(QWidget):
         # Update display if this level is enabled
         if level in self.enabled_levels:
             self._add_message_to_display(entry)
-        
+
         # Auto-scroll if enabled
         if self.auto_scroll_cb.isChecked():
             self.scroll_timer.start(50)  # Small delay for smooth scrolling
+
+        # Emit signal for downstream automation (audio narration, analytics, etc.)
+        try:
+            self.log_message_added.emit(self._serialize_entry(entry))
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"Failed to emit log_message_added: {exc}")
+
+    def _serialize_entry(self, entry: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert internal entry representation into signal-friendly payload."""
+        level = entry.get('level')
+        if isinstance(level, LogLevel):
+            level_value = level.value
+        else:
+            level_value = str(level)
+        timestamp = entry.get('timestamp')
+        if isinstance(timestamp, datetime):
+            timestamp_value = timestamp.isoformat()
+        else:
+            timestamp_value = str(timestamp)
+        return {
+            'timestamp': timestamp_value,
+            'message': entry.get('message', ''),
+            'level': level_value,
+            'details': entry.get('details', {}),
+        }
     
     def _add_message_to_display(self, entry: Dict[str, Any]):
         """Add a message entry to the text display."""
@@ -544,11 +602,11 @@ class LogPanel(QWidget):
                             'details': entry['details']
                         })
                     
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, 'w') as f:
                         json.dump(export_data, f, indent=2, ensure_ascii=False)
                 else:
                     # Export as plain text
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(file_path, 'w') as f:
                         f.write("TaleKeeper Game Log\n")
                         f.write("=" * 50 + "\n\n")
                         
@@ -604,3 +662,20 @@ class LogPanel(QWidget):
     def log_narrative(self, message: str, details: Optional[Dict[str, Any]] = None):
         """Log a narrative message."""
         self.add_log_message(message, LogLevel.NARRATIVE, details)
+
+    def update_narration_queue(self, queue_size: int) -> None:
+        """Update the narration queue display."""
+        self.queue_label.setText(f"Q:{queue_size}")
+
+    def _on_narration_toggled(self, enabled: bool) -> None:
+        """Handle narration toggle button."""
+        self.narration_enabled_changed.emit(enabled)
+        if enabled:
+            self.narration_toggle.setStyleSheet("background-color: #2a9d2a;")
+        else:
+            self.narration_toggle.setStyleSheet("background-color: #9d2a2a;")
+
+    def _on_volume_changed(self, value: int) -> None:
+        """Handle volume slider change."""
+        volume = value / 100.0
+        self.narration_volume_changed.emit(volume)

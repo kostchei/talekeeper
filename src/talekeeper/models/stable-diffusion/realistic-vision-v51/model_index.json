@@ -1,0 +1,38 @@
+{
+  "_class_name": "StableDiffusionPipeline",
+  "_diffusers_version": "0.35.1",
+  "_name_or_path": "stablediffusionapi/realistic-vision-v51",
+  "feature_extractor": [
+    "transformers",
+    "CLIPFeatureExtractor"
+  ],
+  "image_encoder": [
+    null,
+    null
+  ],
+  "requires_safety_checker": true,
+  "safety_checker": [
+    "stable_diffusion",
+    "StableDiffusionSafetyChecker"
+  ],
+  "scheduler": [
+    "diffusers",
+    "PNDMScheduler"
+  ],
+  "text_encoder": [
+    "transformers",
+    "CLIPTextModel"
+  ],
+  "tokenizer": [
+    "transformers",
+    "CLIPTokenizer"
+  ],
+  "unet": [
+    "diffusers",
+    "UNet2DConditionModel"
+  ],
+  "vae": [
+    "diffusers",
+    "AutoencoderKL"
+  ]
+}

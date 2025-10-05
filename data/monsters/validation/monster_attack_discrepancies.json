@@ -1,0 +1,2477 @@
+[
+  {
+    "name": "Air Elemental",
+    "issues": [
+      "Slam: Damage 14 should be 5",
+      "Slam: Dice 2d8 + 5 should be 1d6 + 2",
+      "Slam: Type thunder should be bludgeoning",
+      "Actions\nSmother: Dice 2d6 + 3 should be 2d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Thunderous Slam",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Thunder"
+      },
+      {
+        "name": "Slam",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Actions\nSlash",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nSmother",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Thunderous Slam",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Thunder"
+      },
+      {
+        "name": "Slam",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Slash",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Smother",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Barbed Devil",
+    "issues": [
+      "Tail: Dice 2d10 + 3 should be 2d10 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Tail",
+        "attack_bonus": 6,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d10 \n+ 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "attack_bonus": 5,
+        "reach_range": "150 ft",
+        "damage_avg": 17,
+        "damage_dice": "5d6",
+        "damage_type": "Fire"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Tail",
+        "damage_avg": 14,
+        "damage_dice": "2d10 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "damage_avg": 17,
+        "damage_dice": "5d6",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Barbed Hide",
+        "damage_avg": 5,
+        "damage_dice": "1d10",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Bearded Devil",
+    "issues": [
+      "Beard: Dice 1d8 + 3 should be 1d8 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Beard",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 \n+ 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Infernal Glaive",
+        "attack_bonus": 5,
+        "reach_range": "10 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Beard",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Infernal Glaive",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Slashing"
+      }
+    ]
+  },
+  {
+    "name": "Behir",
+    "issues": [
+      "Bite: Dice 2d12 + 6 should be 2d12 \n+ 6"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 19,
+        "damage_dice": "2d12 \n+ 6",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 19,
+        "damage_dice": "2d12 + 6",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 18
+      }
+    ]
+  },
+  {
+    "name": "Berserker",
+    "issues": [
+      "Rend: Damage 5 should be 9",
+      "Rend: Dice 1d6 + 2 should be 2d4 \n+ 4",
+      "Rend: Damage 5 should be 13",
+      "Rend: Dice 1d6 + 2 should be 2d6 \n+ 6",
+      "Missing or incorrect saving throw: Dexterity DC 14",
+      "Missing or incorrect saving throw: Dexterity DC 18",
+      "Missing or incorrect saving throw: Dexterity DC 17",
+      "Missing or incorrect saving throw: Dexterity DC 22",
+      "Missing or incorrect saving throw: Dexterity DC 21"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Greataxe",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d12 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d4 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Greataxe",
+        "damage_avg": 9,
+        "damage_dice": "1d12 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Bone Devil",
+    "issues": [
+      "Claw: Dice 2d8 + 4 should be 2d8 \n+ 4",
+      "Actions\nRend: Dice 1d10 + 2 should be 1d10 \n+ 2",
+      "Rend: Damage 7 should be 17",
+      "Rend: Dice 1d10 + 2 should be 2d10 \n+ 6",
+      "Missing or incorrect saving throw: Dexterity DC 18",
+      "Missing or incorrect saving throw: Constitution DC 18",
+      "Missing or incorrect saving throw: Dexterity DC 16",
+      "Missing or incorrect saving throw: Dexterity DC 21",
+      "Missing or incorrect saving throw: Constitution DC 21",
+      "Missing or incorrect saving throw: Dexterity DC 20",
+      "Missing or incorrect saving throw: Strength DC 15",
+      "Missing or incorrect saving throw: Strength DC 19",
+      "Missing or incorrect saving throw: Constitution DC 17",
+      "Missing or incorrect saving throw: Strength DC 23",
+      "Missing or incorrect saving throw: Constitution DC 22",
+      "Missing or incorrect saving throw: Dexterity DC 13"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Infernal Sting",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d10 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Claw",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Infernal Sting",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 7,
+        "damage_dice": "1d10 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 11
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 14
+      },
+      {
+        "name": "Strength Save",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Bulette",
+    "issues": [
+      "Bite: Dice 2d12 + 4 should be 2d12 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d12 \n+ 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 17,
+        "damage_dice": "2d12 + 4",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Chain Devil",
+    "issues": [
+      "Chain: Dice 2d6 + 4 should be 2d6 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Chain",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Chain",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Chimera",
+    "issues": [
+      "Ram: Dice 1d12 + 4 should be 1d12 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Ram",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d12 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Ram",
+        "damage_avg": 10,
+        "damage_dice": "1d12 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Chuul",
+    "issues": [
+      "Pincer: Dice 1d10 + 4 should be 1d10 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Pincer",
+        "attack_bonus": 6,
+        "reach_range": "10 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Pincer",
+        "damage_avg": 9,
+        "damage_dice": "1d10 + 4",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Clay Golem",
+    "issues": [
+      "Slam: Dice 1d10 + 5 should be 1d10 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 9,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d10 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Slam",
+        "damage_avg": 10,
+        "damage_dice": "1d10 + 5",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Commoner",
+    "issues": [
+      "Rend: Dice 1d10 + 2 should be 1d10 \n+ 2",
+      "Rend: Damage 7 should be 15",
+      "Rend: Dice 1d10 + 2 should be 2d10 \n+ 4",
+      "Rend: Damage 7 should be 17",
+      "Rend: Dice 1d10 + 2 should be 2d10 \n+ 6",
+      "Missing or incorrect saving throw: Dexterity DC 18",
+      "Missing or incorrect saving throw: Constitution DC 18",
+      "Missing or incorrect saving throw: Dexterity DC 22",
+      "Missing or incorrect saving throw: Constitution DC 22",
+      "Missing or incorrect saving throw: Charisma DC 21"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Club",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d10 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Club",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 7,
+        "damage_dice": "1d10 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 11
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 14
+      },
+      {
+        "name": "Charisma Save",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Couatl",
+    "issues": [
+      "Bite: Dice 1d12 + 5 should be 1d12 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "1d12 \n+ 5",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 11,
+        "damage_dice": "1d12 + 5",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Darkmantle",
+    "issues": [
+      "Crush: Dice 1d6 + 3 should be 1d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Crush",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Crush",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Death Dog",
+    "issues": [
+      "Bite: Dice 1d4 + 2 should be 1d4 \n+ 2"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 \n+ 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 4,
+        "damage_dice": "1d4 + 2",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Drider",
+    "issues": [
+      "Foreleg: Dice 2d8 + 4 should be 2d8 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Foreleg",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Burst",
+        "attack_bonus": 6,
+        "reach_range": "120 ft",
+        "damage_avg": 13,
+        "damage_dice": "3d6 + 3",
+        "damage_type": "Poison"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Foreleg",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Burst",
+        "damage_avg": 13,
+        "damage_dice": "3d6 + 3",
+        "damage_type": "Poison"
+      }
+    ]
+  },
+  {
+    "name": "Earth Elemental",
+    "issues": [
+      "Slam: Dice 2d8 + 5 should be 2d8 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Slam",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Efreeti",
+    "issues": [
+      "Missing attack: Withering Sword"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Heated Blade",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 + 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "attack_bonus": 8,
+        "reach_range": "120 ft",
+        "damage_avg": 24,
+        "damage_dice": "7d6",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Withering Sword",
+        "attack_bonus": 8,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Bite",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Heated Blade",
+        "damage_avg": 13,
+        "damage_dice": "2d6 + 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "damage_avg": 24,
+        "damage_dice": "7d6",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Bite",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Ettin",
+    "issues": [
+      "Battleaxe: Dice 2d8 + 5 should be 2d8 +  5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Battleaxe",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 +  5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Morningstar",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Battleaxe",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Morningstar",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Fire Elemental",
+    "issues": [
+      "Burn: Dice 2d6 + 3 should be 2d6 + \n3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Burn",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + \n3",
+        "damage_type": "Fire"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Burn",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Fire Aura",
+        "damage_avg": 5,
+        "damage_dice": "1d10",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Fire Form",
+        "damage_avg": 5,
+        "damage_dice": "1d10",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "System Reference Document 5",
+        "damage_avg": 3,
+        "damage_dice": "1d6",
+        "damage_type": "Cold"
+      }
+    ]
+  },
+  {
+    "name": "Flesh Golem",
+    "issues": [
+      "Slam: Dice 2d8 + 4 should be 2d8 + \n4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + \n4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Slam",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Berserk",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Ghast",
+    "issues": [
+      "Claw: Dice 2d6 + 3 should be 2d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Stench",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Ghoul",
+    "issues": [
+      "Claw: Dice 1d4 + 2 should be 1d4 \n+ 2"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 \n+ 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Claw",
+        "damage_avg": 4,
+        "damage_dice": "1d4 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Gibbering Mouther",
+    "issues": [
+      "Pincer: Dice 2d10 + 5 should be 2d10 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Pincer",
+        "attack_bonus": 9,
+        "reach_range": "10 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d10 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Pincer",
+        "damage_avg": 16,
+        "damage_dice": "2d10 + 5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Gibbering",
+        "dc": 10
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Gladiator",
+    "issues": [
+      "Missing attack: Bone Bow",
+      "Missing or incorrect saving throw: Dexterity DC 17",
+      "Missing or incorrect saving throw: Strength DC 17",
+      "Missing or incorrect saving throw: Dexterity DC 24",
+      "Missing or incorrect saving throw: Strength DC 24",
+      "Missing or incorrect saving throw: Charisma DC 24"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Bone Bow",
+        "attack_bonus": 3,
+        "reach_range": "150/600 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d10 + 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 15
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 13
+      },
+      {
+        "name": "Charisma Save",
+        "dc": 21
+      }
+    ]
+  },
+  {
+    "name": "Gray Ooze",
+    "issues": [
+      "Rend: Dice 1d10 + 2 should be 1d10 \n+ 2",
+      "Rend: Damage 7 should be 11",
+      "Rend: Dice 1d10 + 2 should be 2d6 \n+ 4",
+      "Rend: Damage 7 should be 15",
+      "Rend: Dice 1d10 + 2 should be 2d8 \n+ 6",
+      "Missing or incorrect saving throw: Constitution DC 21"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 7,
+        "damage_dice": "1d10 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Pseudopod",
+        "damage_avg": 10,
+        "damage_dice": "2d8 + 1",
+        "damage_type": "Acid"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Griffon",
+    "issues": [
+      "Missing attack: Actions\nBone Cudgel"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Actions\nBone Cudgel",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 8,
+        "damage_dice": "1d8 + 4",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Guardian Naga",
+    "issues": [
+      "Bite: Dice 2d12 + 4 should be 2d12 \n+ 4",
+      "Claw: Dice 1d4 + 4 should be 1d4 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d12 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Longsword",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d4 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 17,
+        "damage_dice": "2d12 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Longsword",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 6,
+        "damage_dice": "1d4 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Hippogriff",
+    "issues": [
+      "Longbow: Damage 5 should be 6",
+      "Longbow: Dice 1d8 + 1 should be 1d8 + 2"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nLongsword",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longbow",
+        "attack_bonus": 3,
+        "reach_range": "150/600 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d8 + 1",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d6 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longbow",
+        "attack_bonus": 4,
+        "reach_range": "150/600 \nft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longsword",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longbow",
+        "damage_avg": 5,
+        "damage_dice": "1d8 + 1",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "damage_avg": 9,
+        "damage_dice": "2d6 + 2",
+        "damage_type": "Slashing"
+      }
+    ]
+  },
+  {
+    "name": "Hydra",
+    "issues": [
+      "Bite: Dice 1d10 + 5 should be 1d10 \n+ 5",
+      "Tail: Dice 3d6 + 5 should be 3d6 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d10 \n+ 5",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tail",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "3d6 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 10,
+        "damage_dice": "1d10 + 5",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tail",
+        "damage_avg": 15,
+        "damage_dice": "3d6 + 5",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Knight",
+    "issues": [
+      "Missing or incorrect saving throw: Dexterity DC 25"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Greatsword",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "attack_bonus": 2,
+        "reach_range": "100/400 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tentacle",
+        "attack_bonus": 17,
+        "reach_range": "30 ft",
+        "damage_avg": 24,
+        "damage_dice": "4d6 + 10",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Greatsword",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "damage_avg": 11,
+        "damage_dice": "2d10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tentacle",
+        "damage_avg": 24,
+        "damage_dice": "4d6 + 10",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 23
+      }
+    ]
+  },
+  {
+    "name": "Magmin",
+    "issues": [
+      "Touch: Dice 2d4 + 2 should be 2d4 + \n2"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Touch",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + \n2",
+        "damage_type": "Fire"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Touch",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + 2",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Death Burst",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Medusa",
+    "issues": [
+      "Claw: Dice 2d6 + 3 should be 2d6 \n+ 3",
+      "Actions\nClaw: Damage 10 should be 4",
+      "Actions\nClaw: Dice 2d6 + 3 should be 1d4 + 2",
+      "Actions\nClaw: Damage 10 should be 3",
+      "Actions\nClaw: Dice 2d6 + 3 should be 1d4 + 1",
+      "Actions\nClaw: Damage 10 should be 3",
+      "Actions\nClaw: Dice 2d6 + 3 should be 1d4 + 1",
+      "Actions\nClaw: Damage 10 should be 2",
+      "Actions\nClaw: Dice 2d6 + 3 should be 1d4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Snake Hair",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Ray",
+        "attack_bonus": 5,
+        "reach_range": "150 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d8 + 2",
+        "damage_type": "Poison"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 3,
+        "damage_dice": "1d4 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 3,
+        "damage_dice": "1d4 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Claw",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Snake Hair",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Ray",
+        "damage_avg": 11,
+        "damage_dice": "2d8 + 2",
+        "damage_type": "Poison"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Mimic",
+    "issues": [
+      "Missing or incorrect saving throw: Wisdom DC 17"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Pseudopod",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Pseudopod",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Nalfeshnee",
+    "issues": [
+      "Rend: Dice 2d10 + 5 should be 2d10 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d10 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 16,
+        "damage_dice": "2d10 + 5",
+        "damage_type": "Slashing"
+      }
+    ]
+  },
+  {
+    "name": "Night Hag",
+    "issues": [
+      "Claw: Dice 2d8 + 4 should be 2d8 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Claw",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Coven Magic",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Nightmare",
+    "issues": [
+      "Hooves: Dice 2d8 + 4 should be 2d8 \n+ 4",
+      "Actions\nRapier: Dice 1d8 + 1 should be 1d8 \n+ 1"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Actions\nRapier",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d8 \n+ 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Hooves",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rapier",
+        "damage_avg": 5,
+        "damage_dice": "1d8 + 1",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Owlbear",
+    "issues": [
+      "Rend: Dice 2d8 + 5 should be 2d8 \n+ 5"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Slashing"
+      }
+    ]
+  },
+  {
+    "name": "Pegasus",
+    "issues": [
+      "Hooves: Dice 1d6 + 4 should be 1d6 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Hooves",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Phase Spider",
+    "issues": [
+      "Bite: Dice 1d10 + 3 should be 1d10 + \n3",
+      "Missing or incorrect saving throw: Wisdom DC 14"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + \n3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Pit Fiend",
+    "issues": [
+      "Bite: Dice 3d6 + 8 should be 3d6 \n+ 8",
+      "Missing attack: Radiant Sword"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 18,
+        "damage_dice": "3d6 \n+ 8",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Devilish Claw",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 26,
+        "damage_dice": "4d8 + 8",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Fiery Mace",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 22,
+        "damage_dice": "4d6 + 8",
+        "damage_type": "Force"
+      },
+      {
+        "name": "Radiant Sword",
+        "attack_bonus": 12,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d6 + 7",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 18,
+        "damage_dice": "3d6 + 8",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Devilish Claw",
+        "damage_avg": 26,
+        "damage_dice": "4d8 + 8",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Fiery Mace",
+        "damage_avg": 22,
+        "damage_dice": "4d6 + 8",
+        "damage_type": "Force"
+      },
+      {
+        "name": "Fear Aura",
+        "dc": 21
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 20
+      }
+    ]
+  },
+  {
+    "name": "Rakshasa",
+    "issues": [
+      "Rend: Dice 1d10 + 4 should be 1d10 \n+ 4",
+      "Rend: Damage 9 should be 13",
+      "Rend: Dice 1d10 + 4 should be 2d6 \n+ 6",
+      "Rend: Damage 9 should be 13",
+      "Rend: Dice 1d10 + 4 should be 1d10 \n+ 8",
+      "Missing or incorrect saving throw: Dexterity DC 17",
+      "Missing or incorrect saving throw: Dexterity DC 21",
+      "Missing or incorrect saving throw: Dexterity DC 24"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Cursed Touch",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d6 + 5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 \n+ 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "1d10 \n+ 8",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Cursed Touch",
+        "damage_avg": 12,
+        "damage_dice": "2d6 + 5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 9,
+        "damage_dice": "1d10 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Remorhaz",
+    "issues": [
+      "Bite: Dice 2d10 + 7 should be 2d10 \n+ 7"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 18,
+        "damage_dice": "2d10 \n+ 7",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 18,
+        "damage_dice": "2d10 + 7",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Heat Aura",
+        "damage_avg": 16,
+        "damage_dice": "3d10",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 19
+      }
+    ]
+  },
+  {
+    "name": "Roc",
+    "issues": [
+      "Beak: Dice 3d12 + 9 should be 3d12 \n+ 9",
+      "Talons: Dice 4d6 + 9 should be 4d6 \n+ 9"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Beak",
+        "attack_bonus": 13,
+        "reach_range": "10 ft",
+        "damage_avg": 28,
+        "damage_dice": "3d12 \n+ 9",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Talons",
+        "attack_bonus": 13,
+        "reach_range": "5 ft",
+        "damage_avg": 23,
+        "damage_dice": "4d6 \n+ 9",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Beak",
+        "damage_avg": 28,
+        "damage_dice": "3d12 + 9",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Talons",
+        "damage_avg": 23,
+        "damage_dice": "4d6 + 9",
+        "damage_type": "Slashing"
+      }
+    ]
+  },
+  {
+    "name": "Satyr",
+    "issues": [
+      "Hooves: Dice 1d4 + 3 should be 1d4 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Hooves",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Sea Hag",
+    "issues": [
+      "Claw: Dice 2d6 + 3 should be 2d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Claw",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Amphibious",
+        "dc": 11
+      },
+      {
+        "name": "Vile Appearance",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Shambling Mound",
+    "issues": [
+      "Fist: Dice 2d6 + 4 should be 2d6 \n+ 4",
+      "Rend: Dice 1d10 + 4 should be 1d10 \n+ 4",
+      "Rend: Damage 9 should be 17",
+      "Rend: Dice 1d10 + 4 should be 2d8 \n+ 8",
+      "Rend: Type piercing should be slashing",
+      "Missing or incorrect saving throw: Constitution DC 17",
+      "Missing or incorrect saving throw: Constitution DC 20",
+      "Missing or incorrect saving throw: Constitution DC 24",
+      "Missing or incorrect saving throw: Dexterity DC 23",
+      "Missing or incorrect saving throw: Dexterity DC 21",
+      "Missing or incorrect saving throw: Constitution DC 25",
+      "Missing or incorrect saving throw: Dexterity DC 25"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Charged Tendril",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Fist",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 13,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d8 \n+ 8",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Charged Tendril",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Fist",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 9,
+        "damage_dice": "1d10 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 15
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 13
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 19
+      }
+    ]
+  },
+  {
+    "name": "Specter",
+    "issues": [
+      "Claw: Dice 3d6 + 4 should be 3d6 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Life Drain",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 8,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "3d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Life Drain",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Rend",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 14,
+        "damage_dice": "3d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Terrain",
+        "damage_avg": 5,
+        "damage_dice": "1d10",
+        "damage_type": "Force"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 16
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 20
+      }
+    ]
+  },
+  {
+    "name": "Stirge",
+    "issues": [
+      "Proboscis: Dice 1d6 + 3 should be 1d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Proboscis",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Proboscis",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Stone Giant",
+    "issues": [
+      "Missing attack: Stone Club",
+      "Missing attack: Boulder",
+      "Slam: Dice 2d8 + 6 should be 2d8 \n+ 6",
+      "Missing attack: Force Bolt"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Stone Club",
+        "attack_bonus": 9,
+        "reach_range": "15 ft",
+        "damage_avg": 22,
+        "damage_dice": "3d10 + 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Boulder",
+        "attack_bonus": 9,
+        "reach_range": "60/240 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 + 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Slam",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 \n+ 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Force Bolt",
+        "attack_bonus": 9,
+        "reach_range": "120 ft",
+        "damage_avg": 22,
+        "damage_dice": "4d10",
+        "damage_type": "Force"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Slam",
+        "damage_avg": 15,
+        "damage_dice": "2d8 + 6",
+        "damage_type": "Bludgeoning"
+      }
+    ]
+  },
+  {
+    "name": "Tarrasque",
+    "issues": [
+      "Bite: Dice 4d12 + 10 should be 4d12 \n+ 10",
+      "Claw: Dice 4d8 + 10 should be 4d8 \n+ 10",
+      "Tail: Dice 3d8 + 10 should be 3d8 \n+ 10"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 19,
+        "reach_range": "15 ft",
+        "damage_avg": 36,
+        "damage_dice": "4d12 \n+ 10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 19,
+        "reach_range": "15 ft",
+        "damage_avg": 28,
+        "damage_dice": "4d8 \n+ 10",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Tail",
+        "attack_bonus": 19,
+        "reach_range": "30 ft",
+        "damage_avg": 23,
+        "damage_dice": "3d8 \n+ 10",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 36,
+        "damage_dice": "4d12 + 10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 28,
+        "damage_dice": "4d8 + 10",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Tail",
+        "damage_avg": 23,
+        "damage_dice": "3d8 + 10",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 27
+      }
+    ]
+  },
+  {
+    "name": "Troll",
+    "issues": [
+      "Rend: Dice 2d6 + 4 should be 2d6 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Rend",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Vrock",
+    "issues": [
+      "Shred: Dice 2d6 + 3 should be 2d6 \n+ 3"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Shred",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "attack_bonus": 3,
+        "reach_range": "100/400 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Shred",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Wererat",
+    "issues": [
+      "Scratch: Dice 1d6 + 3 should be 1d6 \n+ 3",
+      "Missing or incorrect saving throw: Constitution DC 13"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Scratch",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Scratch",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Werewolf",
+    "issues": [
+      "Scratch: Dice 2d6 + 3 should be 2d6 \n+ 3",
+      "Missing or incorrect saving throw: Constitution DC 14",
+      "Missing or incorrect saving throw: Constitution DC 20",
+      "Missing or incorrect saving throw: Constitution DC 13",
+      "Missing or incorrect saving throw: Constitution DC 10"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Scratch",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Scratch",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Constitution Save",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Wyvern",
+    "issues": [
+      "Sting: Dice 2d6 + 4 should be 2d6 \n+ 4"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Sting",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Sting",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Piercing"
+      }
+    ]
+  },
+  {
+    "name": "Xorn",
+    "issues": [
+      "Claw: Dice 1d10 + 3 should be 1d10 + \n3",
+      "Missing or incorrect saving throw: Strength DC 14",
+      "Missing or incorrect saving throw: Dexterity DC 13",
+      "Missing or incorrect saving throw: Dexterity DC 18"
+    ],
+    "srd_attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 17,
+        "damage_dice": "4d6 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + \n3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "db_attacks": [
+      {
+        "name": "Bite",
+        "damage_avg": 17,
+        "damage_dice": "4d6 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Strength Save",
+        "dc": 12
+      },
+      {
+        "name": "Dexterity Save",
+        "dc": 16
+      },
+      {
+        "name": "Wisdom Save",
+        "dc": 11
+      }
+    ]
+  }
+]

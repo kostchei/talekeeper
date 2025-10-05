@@ -1,0 +1,1 @@
+# Encounter pane widget package

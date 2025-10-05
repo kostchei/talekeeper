@@ -33,12 +33,6 @@ except ImportError:
     ConditionDisplayWidget = None
     print("[CharacterPanel] Condition display not available")
 
-# Import subclass features widget
-try:
-    from ui.subclass_features_widget import SubclassFeaturesWidget
-except ImportError:
-    SubclassFeaturesWidget = None
-    print("[CharacterPanel] Subclass features display not available")
 
 
 class CharacterPanel(QWidget):
@@ -291,11 +285,6 @@ class CharacterPanel(QWidget):
         self.features_text.setFrameShape(QFrame.Shape.NoFrame)
         features_layout.addWidget(self.features_text, 2)
 
-        # Create subclass features widget if available (for interactive features)
-        if SubclassFeaturesWidget:
-            self.subclass_features_widget = SubclassFeaturesWidget(self)
-            self.subclass_features_widget.feature_activated.connect(self._on_subclass_feature_activated)
-            features_layout.addWidget(self.subclass_features_widget, 4)
         
         # === PROFICIENCIES SECTION ===
         self.proficiencies_frame = QFrame()
@@ -1041,7 +1030,7 @@ class CharacterPanel(QWidget):
             min-width: 30px;
         }
         
-        QTextEdit#featuresText, QTextEdit#spellsText {
+        QTextEdit#featuresText, QTextEdit#spellsText, QTextEdit#proficienciesText {
             background-color: #1e1e1e;
             color: #ffffff;
             border: 1px solid #555555;
@@ -1286,10 +1275,6 @@ class CharacterPanel(QWidget):
             self.character_data['feats'] = []
             self.character_data['features'] = {}
 
-        # Update subclass features widget if available
-        if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
-            level = character_data.get('level', 1)
-            self.subclass_features_widget.set_character(char_id, level)
 
         # Update character name in title
         name = character_data.get('name', 'Unknown Character')
@@ -1591,7 +1576,8 @@ class CharacterPanel(QWidget):
                 known_subclass_features = {
                     'Fast Hands', 'Second-Story Work', 'Supreme Sneak', 'Use Magic Device', "Thief's Reflexes",
                     'Remarkable Athlete', 'Additional Fighting Style', 'Improved Critical', 'Superior Critical', 'Survivor',
-                    'Intimidating Presence', 'Retaliation', 'Brutal Critical', 'Persistent Rage', 'Mindless Rage'
+                    'Intimidating Presence', 'Retaliation', 'Brutal Critical', 'Persistent Rage', 'Mindless Rage',
+                    'Sacred Weapon', 'Turn the Unholy', 'Aura of Devotion', 'Purity of Spirit', 'Smite of Protection', 'Holy Nimbus'
                 }
 
                 features_seen = set()
@@ -1765,13 +1751,6 @@ class CharacterPanel(QWidget):
         if hasattr(self, 'features_text'):
             self.features_text.setPlainText(features_text)
 
-        # Update subclass features widget (if available)
-        if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
-            if hasattr(self, 'character_data') and self.character_data:
-                char_id = self.character_data.get('id')
-                level = self.character_data.get('level', 1)
-                if char_id:
-                    self.subclass_features_widget.set_character(char_id, level)
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
         
@@ -1876,30 +1855,6 @@ class CharacterPanel(QWidget):
         if hasattr(self, 'ac_widget') and self.ac_widget:
             self.ac_widget.value_label.setText(str(new_ac))
 
-    def _on_subclass_feature_activated(self, feature_name: str, character_id: str):
-        """Handle activation of a subclass feature."""
-        try:
-            from services.enhanced_subclass_manager import EnhancedSubclassManager
-            manager = EnhancedSubclassManager()
-
-            # Handle specific feature activations
-            if feature_name == "Intimidating Presence":
-                result = manager.use_intimidating_presence(character_id)
-                self._log_feature_activation(feature_name, result)
-            elif feature_name == "Second Wind":
-                # Handle Second Wind if implemented in subclass system
-                self._log_feature_activation(feature_name, {"success": True, "message": "Second Wind used"})
-            else:
-                # Generic feature activation
-                self._log_feature_activation(feature_name, {"success": True, "message": f"{feature_name} activated"})
-
-            # Refresh the features display to update availability
-            if hasattr(self, 'subclass_features_widget') and self.subclass_features_widget:
-                self.subclass_features_widget.update_feature_availability()
-
-        except Exception as e:
-            print(f"[CharacterPanel] Error activating {feature_name}: {e}")
-            self._log_feature_activation(feature_name, {"success": False, "error": str(e)})
 
     def _log_feature_activation(self, feature_name: str, result: dict):
         """Log feature activation to the game log."""

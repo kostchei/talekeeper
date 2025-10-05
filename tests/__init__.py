@@ -1,1 +1,1 @@
-# TaleKeeper regression test suite
+# Test module for TaleKeeper
