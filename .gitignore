@@ -166,8 +166,20 @@ cython_debug/
 talekeeper.db
 talekeeper.db.backup.*
 talekeeper.log
+*.db
+!data/database/schema/
+!data/database/seeds/
 config/settings.json
 config/keybindings.json
+
+# Runtime logs
+logs/
+*.log
+
+# Build output
+build/
+dist/
+*.spec
 
 # Large ML/AI artifacts (>10MB)
 artifacts/

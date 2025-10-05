@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "talekeeper"
+version = "3.0.0"
+description = "A single-player D&D 2024 tactical RPG for Windows"
+readme = "readme.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "TaleKeeper Development Team"}
+]
+keywords = ["dnd", "rpg", "game", "tactical", "dungeons and dragons"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment :: Role-Playing",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Microsoft :: Windows",
+]
+
+dependencies = [
+    "PyQt6>=6.5.0",
+    "PyQt6-WebEngine>=6.5.0",
+    "piper-tts>=1.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-qt>=4.0.0",
+    "pylint>=2.0.0",
+    "mypy>=1.0.0",
+]
+lora = [
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+]
+
+[project.scripts]
+talekeeper = "talekeeper.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.pylint.main]
+max-line-length = 120
+disable = [
+    "C0111",
+    "C0103",
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
