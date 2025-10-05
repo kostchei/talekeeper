@@ -35,7 +35,8 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(git checkout:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": [],
     "ask": []

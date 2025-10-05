@@ -169,8 +169,11 @@ talekeeper.log
 *.db
 !data/database/schema/
 !data/database/seeds/
+!data/database/migrations/
+data/database/*.db
 config/settings.json
 config/keybindings.json
+data/config/settings.json
 
 # Runtime logs
 logs/
