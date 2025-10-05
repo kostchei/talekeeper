@@ -58,7 +58,7 @@ class CampaignDescriptionService:
         self,
         base_url: Optional[str] = None,
         default_model: Optional[str] = None,
-        request_timeout: float = 1.0,
+        request_timeout: float = 10.0,
     ) -> None:
         self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         self.default_model = default_model or os.getenv("OLLAMA_MODEL", "mistral:7b-instruct")

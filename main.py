@@ -15,6 +15,7 @@ Application Flow:
 
 import sys
 import os
+import subprocess
 from pathlib import Path
 from loguru import logger
 
@@ -48,10 +49,38 @@ def setup_logging():
     )
 
 
+def start_ollama_server():
+    """Start Ollama server in background if not already running."""
+    try:
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', 11434))
+        sock.close()
+
+        if result == 0:
+            logger.info("Ollama server already running")
+            return
+
+        logger.info("Starting Ollama server in background...")
+        subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+        )
+        logger.info("Ollama server started")
+    except FileNotFoundError:
+        logger.warning("Ollama not installed - narrative generation will use fallback text")
+    except Exception as e:
+        logger.warning(f"Could not start Ollama: {e} - narrative generation will use fallback text")
+
+
 def main(layout_profile: LayoutProfile | None = None):
     try:
         setup_logging()
         logger.info("Starting TaleKeeper Desktop Application")
+
+        start_ollama_server()
 
         app = QApplication(sys.argv)
         app.setStyle('Fusion')
