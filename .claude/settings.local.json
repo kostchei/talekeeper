@@ -30,7 +30,10 @@
       "Bash(done)",
       "Bash(for:*)",
       "Bash(del analyze_monsters.py)",
-      "Bash(dir /s /b databaseseeds)"
+      "Bash(dir /s /b databaseseeds)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []
