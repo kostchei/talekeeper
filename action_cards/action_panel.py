@@ -8468,12 +8468,12 @@ class ActionCard(QWidget):
             # Light theme colors tuned to palette
             card_bg = "#f4e5d4"        # surface color from light theme
             card_border = "#a45f38"    # button color from light theme
-            card_border_hover = "#2d8659"  # green for hover
+            card_border_hover = "#3f7663"  # accent_tertiary from light theme
             icon_bg = "#f8ecdf"        # background highlight
             name_color = "#000000"     # Black text for maximum readability
             desc_color = "#000000"     # Black text for maximum readability
             button_bg = "#7c4f32"      # darker brown for better contrast
-            button_hover = "#9c6f52"   # lighter brown on hover
+            button_hover = "#2d8659"   # green on hover
             button_pressed = "#5c3f22" # even darker when pressed
             button_text = "#ffffff"    # White text on dark button
             button_disabled_bg = "#ddc3a7"  # Lighter surface color
