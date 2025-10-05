@@ -37,7 +37,12 @@
       "Bash(git checkout:*)",
       "Read(//d/**)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git mv:*)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then echo \"ROOT: $file\")",
+      "Bash(fi)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
