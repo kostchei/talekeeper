@@ -9,6 +9,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
+from talekeeper.paths import get_config_path
 
 
 @dataclass
@@ -89,7 +90,7 @@ class ConfigManager:
     """Manages application configuration"""
 
     def __init__(self, config_file: str = "talekeeper_config.json"):
-        self.config_file = config_file
+        self.config_file = get_config_path(config_file) if not os.path.isabs(config_file) else config_file
         self.performance = PerformanceConfig()
         self.debug = DebugConfig()
         self.features = FeatureConfig()

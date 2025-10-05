@@ -6,14 +6,14 @@ from typing import Optional, List, Tuple
 import json
 import hashlib
 from datetime import datetime
+from talekeeper.paths import get_data_path
 
 class DatabaseInitializer:
     def __init__(self, db_path: str = 'talekeeper.db'):
         self.db_path = db_path
-        self.database_dir = Path(__file__).parent
-        self.schema_dir = self.database_dir / 'schema'
-        self.seeds_dir = self.database_dir / 'seeds'
-        self.migrations_dir = self.database_dir / 'migrations'
+        self.schema_dir = Path(get_data_path('database/schema'))
+        self.seeds_dir = Path(get_data_path('database/seeds'))
+        self.migrations_dir = Path(get_data_path('database/migrations'))
         
     def initialize(self, force: bool = False, dev_mode: bool = False) -> bool:
         if os.path.exists(self.db_path) and not force:

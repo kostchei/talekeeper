@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from pathlib import Path
 from talekeeper.services.proficiency_system import ProficiencySystem
+from talekeeper.paths import get_config_path
 
 # DTOs no longer needed - using direct dictionaries from SQL queries
 
@@ -42,8 +43,7 @@ class GameEngineSQLite:
     def _load_settings(self):
         """Load application settings from SQLite or file."""
         try:
-            # For now, use a simple file-based settings system
-            settings_file = Path("settings.json")
+            settings_file = Path(get_config_path("settings.json"))
             if settings_file.exists():
                 with open(settings_file, 'r') as f:
                     self.settings = json.load(f)
@@ -51,11 +51,13 @@ class GameEngineSQLite:
                 self.settings = {}
         except Exception:
             self.settings = {}
-    
+
     def save_settings(self):
         """Save application settings."""
         try:
-            with open("settings.json", 'w') as f:
+            settings_file = Path(get_config_path("settings.json"))
+            settings_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(settings_file, 'w') as f:
                 json.dump(self.settings, f, indent=2)
         except Exception:
             pass
