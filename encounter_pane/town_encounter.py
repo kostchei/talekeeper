@@ -848,13 +848,35 @@ Training includes food and lodging (counts as a long rest)."""
         try:
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
-            cursor.execute("SELECT id, name, description FROM feats ORDER BY name")
+
+            cursor.execute("""
+                SELECT id, name, description, category
+                FROM feats
+                ORDER BY
+                    CASE
+                        WHEN category = 'general' THEN 1
+                        WHEN category = 'O' THEN 2
+                        WHEN category = 'FS' THEN 3
+                        ELSE 4
+                    END,
+                    name
+            """)
             feats = cursor.fetchall()
-            
-            for feat_id, name, description in feats:
-                self.feat_combo.addItem(name, {'id': feat_id, 'name': name, 'description': description})
-            
+
+            for feat_id, name, description, category in feats:
+                category_label = ''
+                if category == 'O':
+                    category_label = ' (O)'
+                elif category == 'FS':
+                    category_label = ' (FS)'
+
+                display_desc = description if description else 'No description available'
+                short_desc = display_desc[:100] + '...' if len(display_desc) > 100 else display_desc
+
+                display_name = f"{name}{category_label}"
+                self.feat_combo.addItem(f"{display_name} - {short_desc}",
+                                       {'id': feat_id, 'name': name, 'description': description})
+
             conn.close()
         except Exception as e:
             print(f"Error loading feats: {e}")

@@ -29,7 +29,8 @@
       "Bash(echo \"Fixed: $file\")",
       "Bash(done)",
       "Bash(for:*)",
-      "Bash(del analyze_monsters.py)"
+      "Bash(del analyze_monsters.py)",
+      "Bash(dir /s /b databaseseeds)"
     ],
     "deny": [],
     "ask": []

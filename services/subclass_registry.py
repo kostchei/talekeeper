@@ -51,10 +51,10 @@ class SubclassRegistry:
         ("cleric", "trickery"): "services.subclasses.cleric.trickery.TrickeryDefinition",
 
         # Paladin subclasses
-        ("paladin", "devotion"): "services.subclasses.paladin.devotion.DevotionDefinition",
-        ("paladin", "ancients"): "services.subclasses.paladin.ancients.AncientsDefinition",
-        ("paladin", "vengeance"): "services.subclasses.paladin.vengeance.VengeanceDefinition",
-        ("paladin", "glory"): "services.subclasses.paladin.glory.GloryDefinition",
+        ("paladin", "oath_of_devotion"): "services.subclasses.paladin.devotion.DevotionDefinition",
+        ("paladin", "oath_of_the_ancients"): "services.subclasses.paladin.ancients.AncientsDefinition",
+        ("paladin", "oath_of_vengeance"): "services.subclasses.paladin.vengeance.VengeanceDefinition",
+        ("paladin", "oath_of_glory"): "services.subclasses.paladin.glory.GloryDefinition",
 
         # Ranger subclasses
         ("ranger", "hunter"): "services.subclasses.ranger.hunter.HunterDefinition",
