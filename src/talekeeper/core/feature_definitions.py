@@ -573,7 +573,272 @@ class ClassFeatures:
             )
         ]
     }
-    
+
+    PALADIN_FEATURES = {
+        1: [
+            FeatureDefinition(
+                name="Divine Sense",
+                description="Detect celestials, fiends, and undead within 60 feet",
+                level_acquired=1,
+                feature_type="resource",
+                mechanics={"range": 60, "action_type": "action"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={1: {"uses": 2}, 5: {"uses": 3}, 9: {"uses": 4}, 13: {"uses": 5}, 17: {"uses": 6}}
+            ),
+            FeatureDefinition(
+                name="Lay on Hands",
+                description="Heal wounds using a pool of healing power (5 HP per paladin level)",
+                level_acquired=1,
+                feature_type="resource",
+                mechanics={"pool": 5, "action_type": "action", "max_per_use": 5},
+                usage="limited",
+                recharge="long_rest",
+                scaling={1: {"pool": 5}, 2: {"pool": 10}, 3: {"pool": 15}, 4: {"pool": 20}, 5: {"pool": 25},
+                        6: {"pool": 30}, 7: {"pool": 35}, 8: {"pool": 40}, 9: {"pool": 45}, 10: {"pool": 50},
+                        11: {"pool": 55}, 12: {"pool": 60}, 13: {"pool": 65}, 14: {"pool": 70}, 15: {"pool": 75},
+                        16: {"pool": 80}, 17: {"pool": 85}, 18: {"pool": 90}, 19: {"pool": 95}, 20: {"pool": 100}}
+            ),
+            FeatureDefinition(
+                name="Spellcasting",
+                description="Cast paladin spells using Charisma as spellcasting ability (D&D 2024)",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"spellcasting_ability": "charisma", "caster_type": "half"}
+            )
+        ],
+        2: [
+            FeatureDefinition(
+                name="Fighting Style",
+                description="Choose a specialized form of combat training",
+                level_acquired=2,
+                feature_type="passive",
+                mechanics={"choices": ["defense", "dueling", "great_weapon_fighting", "protection"]}
+            ),
+            FeatureDefinition(
+                name="Divine Smite",
+                description="Expend spell slots to deal extra radiant damage on weapon hits",
+                level_acquired=2,
+                feature_type="active",
+                mechanics={"damage_type": "radiant", "dice": "d8", "action_type": "reaction"}
+            )
+        ],
+        3: [
+            FeatureDefinition(
+                name="Channel Divinity",
+                description="Channel divine energy to fuel magical effects",
+                level_acquired=3,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="short_rest",
+                scaling={3: {"uses": 1}, 7: {"uses": 2}, 15: {"uses": 3}}
+            )
+        ],
+        5: [
+            FeatureDefinition(
+                name="Extra Attack",
+                description="Make two attacks when you take the Attack action",
+                level_acquired=5,
+                feature_type="passive",
+                mechanics={"extra_attacks": 1}
+            )
+        ],
+        6: [
+            FeatureDefinition(
+                name="Aura of Protection",
+                description="You and friendly creatures within 10 feet add your Charisma modifier to saving throws",
+                level_acquired=6,
+                feature_type="passive",
+                mechanics={"aura_range": 10, "bonus_type": "charisma_to_saves"}
+            )
+        ],
+        10: [
+            FeatureDefinition(
+                name="Aura of Courage",
+                description="You and friendly creatures within 10 feet cannot be frightened",
+                level_acquired=10,
+                feature_type="passive",
+                mechanics={"aura_range": 10, "immunity": "frightened"}
+            )
+        ],
+        11: [
+            FeatureDefinition(
+                name="Improved Divine Smite",
+                description="All weapon attacks deal extra 1d8 radiant damage",
+                level_acquired=11,
+                feature_type="passive",
+                mechanics={"damage_type": "radiant", "damage_dice": "1d8"}
+            )
+        ],
+        14: [
+            FeatureDefinition(
+                name="Cleansing Touch",
+                description="End one spell affecting yourself or a willing creature you touch",
+                level_acquired=14,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={14: {"uses": 4}, 18: {"uses": 5}}
+            )
+        ]
+    }
+
+    WIZARD_FEATURES = {
+        1: [
+            FeatureDefinition(
+                name="Spellcasting",
+                description="Cast wizard spells using Intelligence as spellcasting ability",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"spellcasting_ability": "intelligence", "caster_type": "full"}
+            ),
+            FeatureDefinition(
+                name="Arcane Recovery",
+                description="Recover spell slots during a short rest",
+                level_acquired=1,
+                feature_type="resource",
+                mechanics={"action_type": "short_rest", "slot_recovery": "half_level"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={1: {"uses": 1}}
+            )
+        ],
+        2: [
+            FeatureDefinition(
+                name="Scholar",
+                description="Gain Expertise in Arcana, History, Investigation, or Nature",
+                level_acquired=2,
+                feature_type="passive",
+                mechanics={"expertise_choice": ["arcana", "history", "investigation", "nature"]}
+            )
+        ],
+        5: [
+            FeatureDefinition(
+                name="Memorize Spell",
+                description="Memorize one spell from your spellbook without preparing it",
+                level_acquired=5,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={5: {"uses": 1}}
+            )
+        ]
+    }
+
+    CLERIC_FEATURES = {
+        1: [
+            FeatureDefinition(
+                name="Spellcasting",
+                description="Cast cleric spells using Wisdom as spellcasting ability",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"spellcasting_ability": "wisdom", "caster_type": "full"}
+            ),
+            FeatureDefinition(
+                name="Divine Order",
+                description="Choose Protector (heavy armor + martial weapons) or Thaumaturge (bonus cantrip + Arcana/Religion)",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"choices": ["protector", "thaumaturge"]}
+            )
+        ],
+        2: [
+            FeatureDefinition(
+                name="Channel Divinity",
+                description="Channel divine energy to fuel magical effects",
+                level_acquired=2,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="short_rest",
+                scaling={2: {"uses": 1}, 6: {"uses": 2}, 18: {"uses": 3}}
+            )
+        ],
+        10: [
+            FeatureDefinition(
+                name="Divine Intervention",
+                description="Call on your deity for aid",
+                level_acquired=10,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={10: {"uses": 1}}
+            )
+        ]
+    }
+
+    WARLOCK_FEATURES = {
+        1: [
+            FeatureDefinition(
+                name="Pact Magic",
+                description="Cast warlock spells using Charisma as spellcasting ability",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"spellcasting_ability": "charisma", "caster_type": "pact"}
+            ),
+            FeatureDefinition(
+                name="Eldritch Invocations",
+                description="Learn magical invocations granted by your patron",
+                level_acquired=1,
+                feature_type="passive",
+                mechanics={"invocations_known": 2},
+                scaling={1: {"invocations_known": 2}, 5: {"invocations_known": 4}, 9: {"invocations_known": 6}, 12: {"invocations_known": 7}, 15: {"invocations_known": 8}, 18: {"invocations_known": 9}}
+            )
+        ],
+        11: [
+            FeatureDefinition(
+                name="Mystic Arcanum",
+                description="Learn a 6th-level spell from the warlock spell list",
+                level_acquired=11,
+                feature_type="passive",
+                mechanics={"arcanum_level": 6}
+            )
+        ],
+        13: [
+            FeatureDefinition(
+                name="Mystic Arcanum (7th level)",
+                description="Learn a 7th-level spell from the warlock spell list",
+                level_acquired=13,
+                feature_type="passive",
+                mechanics={"arcanum_level": 7}
+            )
+        ],
+        15: [
+            FeatureDefinition(
+                name="Mystic Arcanum (8th level)",
+                description="Learn an 8th-level spell from the warlock spell list",
+                level_acquired=15,
+                feature_type="passive",
+                mechanics={"arcanum_level": 8}
+            )
+        ],
+        17: [
+            FeatureDefinition(
+                name="Mystic Arcanum (9th level)",
+                description="Learn a 9th-level spell from the warlock spell list",
+                level_acquired=17,
+                feature_type="passive",
+                mechanics={"arcanum_level": 9}
+            )
+        ],
+        20: [
+            FeatureDefinition(
+                name="Eldritch Master",
+                description="Regain all expended Pact Magic spell slots",
+                level_acquired=20,
+                feature_type="resource",
+                mechanics={"action_type": "action"},
+                usage="limited",
+                recharge="long_rest",
+                scaling={20: {"uses": 1}}
+            )
+        ]
+    }
+
     # Subclass features
     CHAMPION_FEATURES = {
         3: [

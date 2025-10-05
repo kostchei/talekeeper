@@ -509,7 +509,8 @@ class ActionPanel(QWidget):
 
         lay_on_hands_feature = self._get_feature_data('Lay on Hands')
         if lay_on_hands_feature:
-            card = ActionCard(ActionType.LAY_ON_HANDS, "✋", lay_on_hands_feature.get('name', 'Lay on Hands'), "Heal 5 HP with divine touch")
+            pool_text = self._get_lay_on_hands_pool_text()
+            card = ActionCard(ActionType.LAY_ON_HANDS, pool_text, lay_on_hands_feature.get('name', 'Lay on Hands'), "Heal 5 HP with divine touch")
             card.feature_data = lay_on_hands_feature
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
@@ -7421,6 +7422,27 @@ class ActionPanel(QWidget):
         self._create_weapon_cards()
         self._update_visible_cards()
     
+    def _get_lay_on_hands_pool_text(self) -> str:
+        """Get Lay on Hands pool as text (e.g., '5/5', '3/10', '0/15')."""
+        try:
+            paladin_service = PaladinAbilitiesService()
+            character_id = self.character_context.get('id', '')
+            character_level = self.character_context.get('level', 1)
+            paladin_info = paladin_service.get_paladin_info(character_id)
+
+            if paladin_info and 'paladin_features' in paladin_info:
+                current_pool = paladin_info['paladin_features'].get('lay_on_hands_pool_current', 0)
+                max_pool = paladin_info['paladin_features'].get('lay_on_hands_pool_max', character_level * 5)
+            else:
+                max_pool = character_level * 5
+                current_pool = max_pool
+
+            return f"{current_pool}/{max_pool}"
+        except Exception:
+            level = self.character_context.get('level', 1) if self.character_context else 1
+            pool = level * 5
+            return f"{pool}/{pool}"
+
     def _has_lay_on_hands_uses(self) -> bool:
         """Check if paladin has Lay on Hands uses remaining."""
         if not self._has_class_feature('Lay on Hands'):

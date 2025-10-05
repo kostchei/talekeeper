@@ -1356,6 +1356,8 @@ class GameEngineSQLite:
             self._initialize_cleric_features(cursor, character_id, character_data)
         elif class_id == 'rogue':
             self._initialize_rogue_features(cursor, character_id, character_data)
+        elif class_id == 'paladin':
+            self._initialize_paladin_features(cursor, character_id, character_data)
         else:
             print(f"[SQLite] Warning: No class-specific features defined for '{class_id}'")
     
@@ -1614,7 +1616,44 @@ class GameEngineSQLite:
             None  # Archetype chosen at level 3
         ))
         print(f"[SQLite] Initialized Rogue features - {sneak_attack_dice}d6 sneak attack, expertise: {expertise_skills}")
-    
+
+    def _initialize_paladin_features(self, cursor, character_id: str, character_data: Dict):
+        """Initialize Paladin-specific features (D&D 2024 rules - spellcasting from level 1)."""
+        level = character_data.get('level', 1)
+        charisma = character_data.get('charisma', 10)
+        cha_modifier = (charisma - 10) // 2
+
+        lay_on_hands_pool = 5 * level
+
+        if level >= 15:
+            channel_divinity_max = 3
+        elif level >= 7:
+            channel_divinity_max = 2
+        elif level >= 3:
+            channel_divinity_max = 1
+        else:
+            channel_divinity_max = 0
+
+        max_prepared = max(1, cha_modifier + (level // 2))
+
+        sacred_oath = character_data.get('subclass', 'devotion')
+
+        cursor.execute("""
+            INSERT INTO paladin_features (
+                character_id, level, sacred_oath,
+                lay_on_hands_pool_current, lay_on_hands_pool_max,
+                channel_divinity_uses_current, channel_divinity_uses_max,
+                channel_divinity_last_reset,
+                spells_prepared, max_spells_prepared
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
+        """, (
+            character_id, level, sacred_oath,
+            lay_on_hands_pool, lay_on_hands_pool,
+            0, channel_divinity_max,
+            0, max_prepared
+        ))
+        print(f"[SQLite] Initialized Paladin features - {lay_on_hands_pool} Lay on Hands, {max_prepared} prepared spells, {channel_divinity_max} Channel Divinity")
+
     def _get_full_caster_spell_slots(self, level: int) -> Dict[int, int]:
         """Get spell slot progression for full casters (Wizard, Cleric)."""
         # D&D 5e full caster spell slot table
