@@ -1,0 +1,915 @@
+[
+  {
+    "monster": "Air Elemental",
+    "issue_type": "missing_attack",
+    "attack_name": "Thunderous Slam",
+    "srd_data": {
+      "name": "Thunderous Slam",
+      "attack_bonus": 8,
+      "reach_range": "10 ft",
+      "damage_avg": 14,
+      "damage_dice": "2d8 + 5",
+      "damage_type": "Thunder"
+    }
+  },
+  {
+    "monster": "Air Elemental",
+    "issue_type": "missing_attack",
+    "attack_name": "Slam",
+    "srd_data": {
+      "name": "Slam",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d6 + 2",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Ankheg",
+    "issue_type": "missing_attack",
+    "attack_name": "Shortsword",
+    "srd_data": {
+      "name": "Shortsword",
+      "attack_bonus": 7,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d6 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Ankheg",
+    "issue_type": "missing_attack",
+    "attack_name": "Light Crossbow",
+    "srd_data": {
+      "name": "Light Crossbow",
+      "attack_bonus": 7,
+      "reach_range": "80/320 ft",
+      "damage_avg": 8,
+      "damage_dice": "1d8 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Axe Beak",
+    "issue_type": "missing_attack",
+    "attack_name": "Beak",
+    "srd_data": {
+      "name": "Beak",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d8 + 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_avg_mismatch",
+    "attack_name": "Tail",
+    "db_value": 10,
+    "srd_value": 14
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_dice_mismatch",
+    "attack_name": "Tail",
+    "db_value": "2d6+3",
+    "srd_value": "2d10 \n+ 3"
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_type_mismatch",
+    "attack_name": "Tail",
+    "db_value": "piercing",
+    "srd_value": "slashing"
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_avg_mismatch",
+    "attack_name": "Hurl Flame",
+    "db_value": 10,
+    "srd_value": 17
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_dice_mismatch",
+    "attack_name": "Hurl Flame",
+    "db_value": "2d6+3",
+    "srd_value": "5d6"
+  },
+  {
+    "monster": "Barbed Devil",
+    "issue_type": "damage_type_mismatch",
+    "attack_name": "Hurl Flame",
+    "db_value": "piercing",
+    "srd_value": "fire"
+  },
+  {
+    "monster": "Basilisk",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 10,
+      "damage_dice": "2d6 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Berserker",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d6 + 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Berserker",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 7,
+      "reach_range": "10 ft",
+      "damage_avg": 9,
+      "damage_dice": "2d4 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Berserker",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 11,
+      "reach_range": "10 ft",
+      "damage_avg": 13,
+      "damage_dice": "2d6 \n+ 6",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Blink Dog",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d4 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Bone Devil",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 11,
+      "reach_range": "10 ft",
+      "damage_avg": 17,
+      "damage_dice": "2d10 \n+ 6",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Chimera",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 7,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d6 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Commoner",
+    "issue_type": "missing_attack",
+    "attack_name": "Club",
+    "srd_data": {
+      "name": "Club",
+      "attack_bonus": 2,
+      "reach_range": "5 ft",
+      "damage_avg": 2,
+      "damage_dice": "1d4",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Commoner",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d10 \n+ 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Commoner",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 7,
+      "reach_range": "10 ft",
+      "damage_avg": 15,
+      "damage_dice": "2d10 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Commoner",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 11,
+      "reach_range": "10 ft",
+      "damage_avg": 17,
+      "damage_dice": "2d10 \n+ 6",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Efreeti",
+    "issue_type": "missing_attack",
+    "attack_name": "Withering Sword",
+    "srd_data": {
+      "name": "Withering Sword",
+      "attack_bonus": 8,
+      "reach_range": "5 ft",
+      "damage_avg": 13,
+      "damage_dice": "2d8 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Efreeti",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d6 + 2",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Efreeti",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "2d4 + 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Gargoyle",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "2d4 + 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Ghast",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Gibbering Mouther",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 2,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "2d6",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Gibbering Mouther",
+    "issue_type": "missing_attack",
+    "attack_name": "Pincer",
+    "srd_data": {
+      "name": "Pincer",
+      "attack_bonus": 9,
+      "reach_range": "10 ft",
+      "damage_avg": 16,
+      "damage_dice": "2d10 \n+ 5",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Gladiator",
+    "issue_type": "missing_attack",
+    "attack_name": "Bone Bow",
+    "srd_data": {
+      "name": "Bone Bow",
+      "attack_bonus": 3,
+      "reach_range": "150/600 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d10 + 1",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Gray Ooze",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d10 \n+ 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Gray Ooze",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 7,
+      "reach_range": "10 ft",
+      "damage_avg": 11,
+      "damage_dice": "2d6 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Gray Ooze",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 11,
+      "reach_range": "10 ft",
+      "damage_avg": 15,
+      "damage_dice": "2d8 \n+ 6",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Green Hag",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 8,
+      "damage_dice": "1d8 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Grick",
+    "issue_type": "missing_attack",
+    "attack_name": "Beak",
+    "srd_data": {
+      "name": "Beak",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 9,
+      "damage_dice": "2d6 + 2",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Griffon",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 8,
+      "damage_dice": "1d8 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Guardian Naga",
+    "issue_type": "missing_attack",
+    "attack_name": "Longsword",
+    "srd_data": {
+      "name": "Longsword",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 15,
+      "damage_dice": "2d10 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Guardian Naga",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 7,
+      "reach_range": "10 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d4 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Hell Hound",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Hell Hound",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 7,
+      "reach_range": "5 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d4 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Hippogriff",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Hippogriff",
+    "issue_type": "missing_attack",
+    "attack_name": "Longbow",
+    "srd_data": {
+      "name": "Longbow",
+      "attack_bonus": 3,
+      "reach_range": "150/600 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d8 + 1",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Hippogriff",
+    "issue_type": "missing_attack",
+    "attack_name": "Greatsword",
+    "srd_data": {
+      "name": "Greatsword",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 9,
+      "damage_dice": "2d6 + 2",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Hippogriff",
+    "issue_type": "missing_attack",
+    "attack_name": "Longbow",
+    "srd_data": {
+      "name": "Longbow",
+      "attack_bonus": 4,
+      "reach_range": "150/600 \nft",
+      "damage_avg": 6,
+      "damage_dice": "1d8 + 2",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Hydra",
+    "issue_type": "missing_attack",
+    "attack_name": "Tail",
+    "srd_data": {
+      "name": "Tail",
+      "attack_bonus": 10,
+      "reach_range": "10 ft",
+      "damage_avg": 15,
+      "damage_dice": "3d6 \n+ 5",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Imp",
+    "issue_type": "missing_attack",
+    "attack_name": "Sting",
+    "srd_data": {
+      "name": "Sting",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d6 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Knight",
+    "issue_type": "missing_attack",
+    "attack_name": "Tentacle",
+    "srd_data": {
+      "name": "Tentacle",
+      "attack_bonus": 17,
+      "reach_range": "30 ft",
+      "damage_avg": 24,
+      "damage_dice": "4d6 + 10",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Lamia",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Manticore",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Manticore",
+    "issue_type": "missing_attack",
+    "attack_name": "Tail Spike",
+    "srd_data": {
+      "name": "Tail Spike",
+      "attack_bonus": 5,
+      "reach_range": "100/200 ft",
+      "damage_avg": 7,
+      "damage_dice": "1d8 + 3",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Merrow",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 9,
+      "damage_dice": "2d4 + 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Pit Fiend",
+    "issue_type": "missing_attack",
+    "attack_name": "Radiant Sword",
+    "srd_data": {
+      "name": "Radiant Sword",
+      "attack_bonus": 12,
+      "reach_range": "10 ft",
+      "damage_avg": 14,
+      "damage_dice": "2d6 + 7",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Pseudodragon",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 4,
+      "reach_range": "5 ft",
+      "damage_avg": 4,
+      "damage_dice": "1d4 + 2",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Rakshasa",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 9,
+      "damage_dice": "1d10 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Rakshasa",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 10,
+      "reach_range": "10 ft",
+      "damage_avg": 13,
+      "damage_dice": "2d6 \n+ 6",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Rakshasa",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 14,
+      "reach_range": "10 ft",
+      "damage_avg": 13,
+      "damage_dice": "1d10 \n+ 8",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Roper",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 7,
+      "reach_range": "5 ft",
+      "damage_avg": 17,
+      "damage_dice": "3d8 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Rust Monster",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 3,
+      "reach_range": "5 ft",
+      "damage_avg": 5,
+      "damage_dice": "1d8 + 1",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Rust Monster",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 3,
+      "reach_range": "5 ft",
+      "damage_avg": 4,
+      "damage_dice": "1d6 + 1",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Scout",
+    "issue_type": "missing_attack",
+    "attack_name": "Longbow",
+    "srd_data": {
+      "name": "Longbow",
+      "attack_bonus": 4,
+      "reach_range": "150/600 ft",
+      "damage_avg": 6,
+      "damage_dice": "1d8 + 2",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Shambling Mound",
+    "issue_type": "missing_attack",
+    "attack_name": "Fist",
+    "srd_data": {
+      "name": "Fist",
+      "attack_bonus": 7,
+      "reach_range": "10 ft",
+      "damage_avg": 11,
+      "damage_dice": "2d6 \n+ 4",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Shambling Mound",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 9,
+      "damage_dice": "1d10 \n+ 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Shambling Mound",
+    "issue_type": "missing_attack",
+    "attack_name": "Rend",
+    "srd_data": {
+      "name": "Rend",
+      "attack_bonus": 13,
+      "reach_range": "10 ft",
+      "damage_avg": 17,
+      "damage_dice": "2d8 \n+ 8",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Specter",
+    "issue_type": "missing_attack",
+    "attack_name": "Claw",
+    "srd_data": {
+      "name": "Claw",
+      "attack_bonus": 8,
+      "reach_range": "5 ft",
+      "damage_avg": 14,
+      "damage_dice": "3d6 \n+ 4",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Stone Giant",
+    "issue_type": "missing_attack",
+    "attack_name": "Stone Club",
+    "srd_data": {
+      "name": "Stone Club",
+      "attack_bonus": 9,
+      "reach_range": "15 ft",
+      "damage_avg": 22,
+      "damage_dice": "3d10 + 6",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Stone Giant",
+    "issue_type": "missing_attack",
+    "attack_name": "Boulder",
+    "srd_data": {
+      "name": "Boulder",
+      "attack_bonus": 9,
+      "reach_range": "60/240 ft",
+      "damage_avg": 15,
+      "damage_dice": "2d8 + 6",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Stone Giant",
+    "issue_type": "missing_attack",
+    "attack_name": "Slam",
+    "srd_data": {
+      "name": "Slam",
+      "attack_bonus": 10,
+      "reach_range": "5 ft",
+      "damage_avg": 15,
+      "damage_dice": "2d8 \n+ 6",
+      "damage_type": "Bludgeoning"
+    }
+  },
+  {
+    "monster": "Stone Giant",
+    "issue_type": "missing_attack",
+    "attack_name": "Force Bolt",
+    "srd_data": {
+      "name": "Force Bolt",
+      "attack_bonus": 9,
+      "reach_range": "120 ft",
+      "damage_avg": 22,
+      "damage_dice": "4d10",
+      "damage_type": "Force"
+    }
+  },
+  {
+    "monster": "Vrock",
+    "issue_type": "missing_attack",
+    "attack_name": "Greatsword",
+    "srd_data": {
+      "name": "Greatsword",
+      "attack_bonus": 5,
+      "reach_range": "5 ft",
+      "damage_avg": 10,
+      "damage_dice": "2d6 + 3",
+      "damage_type": "Slashing"
+    }
+  },
+  {
+    "monster": "Vrock",
+    "issue_type": "missing_attack",
+    "attack_name": "Heavy Crossbow",
+    "srd_data": {
+      "name": "Heavy Crossbow",
+      "attack_bonus": 3,
+      "reach_range": "100/400 ft",
+      "damage_avg": 12,
+      "damage_dice": "2d10 + 1",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Winter Wolf",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 11,
+      "damage_dice": "2d6 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Wyvern",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 7,
+      "reach_range": "5 ft",
+      "damage_avg": 13,
+      "damage_dice": "2d8 + 4",
+      "damage_type": "Piercing"
+    }
+  },
+  {
+    "monster": "Xorn",
+    "issue_type": "missing_attack",
+    "attack_name": "Bite",
+    "srd_data": {
+      "name": "Bite",
+      "attack_bonus": 6,
+      "reach_range": "5 ft",
+      "damage_avg": 17,
+      "damage_dice": "4d6 + 3",
+      "damage_type": "Piercing"
+    }
+  }
+]

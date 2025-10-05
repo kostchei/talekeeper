@@ -1,0 +1,3623 @@
+[
+  {
+    "name": "Aboleth",
+    "size": "Large",
+    "type": "Aberration",
+    "ac": 17,
+    "hp": 150,
+    "hp_dice": "20d10 + 40",
+    "speed": "10 ft., Swim 40 ft.",
+    "cr": "10",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Tentacle",
+        "attack_bonus": 9,
+        "reach_range": "15 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d6 + 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 14
+      },
+      {
+        "ability": "Intelligence",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Air Elemental",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 15,
+    "hp": 90,
+    "hp_dice": "12d10 + 24",
+    "speed": "10 ft., Fly 90 ft. (hover)",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Thunderous Slam",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Thunder"
+      },
+      {
+        "name": "Slam",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Actions\nSlash",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nSmother",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Ankheg",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 45,
+    "hp_dice": "6d10 + 12",
+    "speed": "30 ft., Burrow 10 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Shortsword",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Light Crossbow",
+        "attack_bonus": 7,
+        "reach_range": "80/320 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d8 + 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Axe Beak",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 11,
+    "hp": 19,
+    "hp_dice": "3d10 + 3",
+    "speed": "50 ft.",
+    "cr": "1/4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Beak",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nBurning Hammer",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Balor",
+    "size": "Huge",
+    "type": "Fiend",
+    "ac": 19,
+    "hp": 287,
+    "hp_dice": "23d12 + 138",
+    "speed": "40 ft., Fly 80 ft.",
+    "cr": "19",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Flame Whip",
+        "attack_bonus": 14,
+        "reach_range": "30 ft",
+        "damage_avg": 18,
+        "damage_dice": "3d6 + 8",
+        "damage_type": "Force"
+      },
+      {
+        "name": "Lightning Blade",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 21,
+        "damage_dice": "3d8 + 8",
+        "damage_type": "Force"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "terity",
+        "dc": 20
+      }
+    ]
+  },
+  {
+    "name": "Barbed Devil",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 110,
+    "hp_dice": "13d8 + 52",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Tail",
+        "attack_bonus": 6,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d10 \n+ 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "attack_bonus": 5,
+        "reach_range": "150 ft",
+        "damage_avg": 17,
+        "damage_dice": "5d6",
+        "damage_type": "Fire"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Basilisk",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 15,
+    "hp": 52,
+    "hp_dice": "8d8 + 16",
+    "speed": "20 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Bearded Devil",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 13,
+    "hp": 58,
+    "hp_dice": "9d8 + 18",
+    "speed": "30 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Beard",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 \n+ 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Infernal Glaive",
+        "attack_bonus": 5,
+        "reach_range": "10 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Behir",
+    "size": "Huge",
+    "type": "Monstrosity",
+    "ac": 17,
+    "hp": 168,
+    "hp_dice": "16d12 + 64",
+    "speed": "50 ft., Climb 50 ft.",
+    "cr": "11",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 19,
+        "damage_dice": "2d12 \n+ 6",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 18
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 18
+      }
+    ]
+  },
+  {
+    "name": "Berserker",
+    "size": "Medium",
+    "type": "or",
+    "ac": 13,
+    "hp": 67,
+    "hp_dice": "9d8 + 27",
+    "speed": "30 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Greataxe",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d12 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d4 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 11
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 14
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 18
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 17
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 22
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 21
+      }
+    ]
+  },
+  {
+    "name": "Black Pudding",
+    "size": "Large",
+    "type": "Ooze",
+    "ac": 7,
+    "hp": 68,
+    "hp_dice": "8d10 + 24",
+    "speed": "20 ft., Climb 20 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Dissolving Pseudopod",
+        "attack_bonus": 5,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "4d6 + 3",
+        "damage_type": "Acid"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Blink Dog",
+    "size": "Medium",
+    "type": "Fey",
+    "ac": 13,
+    "hp": 22,
+    "hp_dice": "4d8 + 4",
+    "speed": "40 ft.",
+    "cr": "1/4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Bone Devil",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 16,
+    "hp": 161,
+    "hp_dice": "17d10 + 68",
+    "speed": "40 ft., Fly 40 ft.",
+    "cr": "9",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Infernal Sting",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d10 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 11
+      },
+      {
+        "ability": "Constitution",
+        "dc": 11
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 14
+      },
+      {
+        "ability": "Constitution",
+        "dc": 14
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 18
+      },
+      {
+        "ability": "Constitution",
+        "dc": 18
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 16
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 21
+      },
+      {
+        "ability": "Constitution",
+        "dc": 21
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 20
+      },
+      {
+        "ability": "Strength",
+        "dc": 12
+      },
+      {
+        "ability": "Strength",
+        "dc": 15
+      },
+      {
+        "ability": "Strength",
+        "dc": 19
+      },
+      {
+        "ability": "Constitution",
+        "dc": 17
+      },
+      {
+        "ability": "Strength",
+        "dc": 23
+      },
+      {
+        "ability": "Constitution",
+        "dc": 22
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Bulette",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 17,
+    "hp": 94,
+    "hp_dice": "9d10 + 45",
+    "speed": "40 ft., Burrow 40 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d12 \n+ 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Chain Devil",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 85,
+    "hp_dice": "10d8 + 40",
+    "speed": "30 ft.",
+    "cr": "8",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Chain",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Chimera",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 114,
+    "hp_dice": "12d10 + 48",
+    "speed": "30 ft., Fly 60 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Ram",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d12 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Chuul",
+    "size": "Large",
+    "type": "Aberration",
+    "ac": 16,
+    "hp": 76,
+    "hp_dice": "9d10 + 27",
+    "speed": "30 ft., Swim 30 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Pincer",
+        "attack_bonus": 6,
+        "reach_range": "10 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Clay Golem",
+    "size": "Large",
+    "type": "Construct",
+    "ac": 14,
+    "hp": 123,
+    "hp_dice": "13d10 + 52",
+    "speed": "30 ft.",
+    "cr": "9",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 9,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d10 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Cockatrice",
+    "size": "Small",
+    "type": "Monstrosity",
+    "ac": 11,
+    "hp": 22,
+    "hp_dice": "5d6 + 5",
+    "speed": "20 ft., Fly 40 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Commoner",
+    "size": "Medium",
+    "type": "or",
+    "ac": 10,
+    "hp": 4,
+    "hp_dice": "1d8",
+    "speed": "30 ft.",
+    "cr": "0",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Club",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d10 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 11
+      },
+      {
+        "ability": "Constitution",
+        "dc": 11
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 14
+      },
+      {
+        "ability": "Constitution",
+        "dc": 14
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 18
+      },
+      {
+        "ability": "Constitution",
+        "dc": 18
+      },
+      {
+        "ability": "Charisma",
+        "dc": 17
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 22
+      },
+      {
+        "ability": "Constitution",
+        "dc": 22
+      },
+      {
+        "ability": "Charisma",
+        "dc": 21
+      }
+    ]
+  },
+  {
+    "name": "Couatl",
+    "size": "Medium",
+    "type": "Celestial",
+    "ac": 19,
+    "hp": 60,
+    "hp_dice": "8d8 + 24",
+    "speed": "30 ft., Fly 90 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "1d12 \n+ 5",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Darkmantle",
+    "size": "Small",
+    "type": "Aberration",
+    "ac": 11,
+    "hp": 22,
+    "hp_dice": "5d6 + 5",
+    "speed": "10 ft., Fly 30 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Crush",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Death Dog",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 12,
+    "hp": 39,
+    "hp_dice": "6d8 + 12",
+    "speed": "40 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 \n+ 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Deva",
+    "size": "Medium",
+    "type": "Celestial",
+    "ac": 17,
+    "hp": 229,
+    "hp_dice": "27d8 + 108",
+    "speed": "30 ft., Fly 90 ft. (hover)",
+    "cr": "10",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Holy Mace",
+        "attack_bonus": 8,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Doppelganger",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 52,
+    "hp_dice": "8d8 + 16",
+    "speed": "30 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Dretch",
+    "size": "Small",
+    "type": "Fiend",
+    "ac": 11,
+    "hp": 18,
+    "hp_dice": "4d6 + 4",
+    "speed": "20 ft.",
+    "cr": "1/4",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Drider",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 19,
+    "hp": 123,
+    "hp_dice": "13d10 + 52",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Foreleg",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Burst",
+        "attack_bonus": 6,
+        "reach_range": "120 ft",
+        "damage_avg": 13,
+        "damage_dice": "3d6 + 3",
+        "damage_type": "Poison"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Dryad",
+    "size": "Medium",
+    "type": "Fey",
+    "ac": 16,
+    "hp": 22,
+    "hp_dice": "5d8",
+    "speed": "30 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Earth Elemental",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 17,
+    "hp": 147,
+    "hp_dice": "14d10 + 70",
+    "speed": "30 ft., Burrow 30 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Efreeti",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 17,
+    "hp": 212,
+    "hp_dice": "17d10 + 119",
+    "speed": "40 ft., Fly 60 ft. (hover)",
+    "cr": "11",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Heated Blade",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 + 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hurl Flame",
+        "attack_bonus": 8,
+        "reach_range": "120 ft",
+        "damage_avg": 24,
+        "damage_dice": "7d6",
+        "damage_type": "Fire"
+      },
+      {
+        "name": "Withering Sword",
+        "attack_bonus": 8,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Bite",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Ettin",
+    "size": "Large",
+    "type": "Giant",
+    "ac": 12,
+    "hp": 85,
+    "hp_dice": "10d10 + 30",
+    "speed": "40 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Battleaxe",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 +  5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Morningstar",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 + 5",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Fire Elemental",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 13,
+    "hp": 93,
+    "hp_dice": "11d10 + 33",
+    "speed": "50 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Burn",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + \n3",
+        "damage_type": "Fire"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Fire Giant",
+    "size": "Huge",
+    "type": "Giant",
+    "ac": 18,
+    "hp": 162,
+    "hp_dice": "13d12 + 78",
+    "speed": "30 ft.",
+    "cr": "9",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Flame Sword",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 21,
+        "damage_dice": "4d6 + 7",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Hammer Throw",
+        "attack_bonus": 11,
+        "reach_range": "60/240 \nft",
+        "damage_avg": 23,
+        "damage_dice": "3d10 + 7",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Flesh Golem",
+    "size": "Medium",
+    "type": "Construct",
+    "ac": 9,
+    "hp": 127,
+    "hp_dice": "15d8 + 60",
+    "speed": "30 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Slam",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + \n4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Frost Giant",
+    "size": "Huge",
+    "type": "Giant",
+    "ac": 15,
+    "hp": 149,
+    "hp_dice": "13d12 + 65",
+    "speed": "40 ft.",
+    "cr": "8",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Frost Axe",
+        "attack_bonus": 9,
+        "reach_range": "10 ft",
+        "damage_avg": 19,
+        "damage_dice": "2d12 + 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Great Bow",
+        "attack_bonus": 9,
+        "reach_range": "150/600 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d10 + 6",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Gargoyle",
+    "size": "Medium",
+    "type": "Elemental",
+    "ac": 15,
+    "hp": 67,
+    "hp_dice": "9d8 + 27",
+    "speed": "30 ft., Fly 60 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Gelatinous Cube",
+    "size": "Large",
+    "type": "Ooze",
+    "ac": 6,
+    "hp": 63,
+    "hp_dice": "6d10 + 30",
+    "speed": "15 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Pseudopod",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "3d6 + 2",
+        "damage_type": "Acid"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Ghast",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 13,
+    "hp": 36,
+    "hp_dice": "8d8",
+    "speed": "30 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 10
+      },
+      {
+        "ability": "tution",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Ghost",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 11,
+    "hp": 45,
+    "hp_dice": "10d8",
+    "speed": "5 ft., Fly 40 ft. (hover)",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Ghoul",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 12,
+    "hp": 22,
+    "hp_dice": "5d8",
+    "speed": "30 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 \n+ 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Gibbering Mouther",
+    "size": "Medium",
+    "type": "Aberration",
+    "ac": 9,
+    "hp": 52,
+    "hp_dice": "7d8 + 21",
+    "speed": "20 ft., Swim 20 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Pincer",
+        "attack_bonus": 9,
+        "reach_range": "10 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d10 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Gladiator",
+    "size": "Medium",
+    "type": "or",
+    "ac": 16,
+    "hp": 112,
+    "hp_dice": "15d8 + 45",
+    "speed": "30 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Bone Bow",
+        "attack_bonus": 3,
+        "reach_range": "150/600 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d10 + 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 15
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 13
+      },
+      {
+        "ability": "Strength",
+        "dc": 13
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 17
+      },
+      {
+        "ability": "Strength",
+        "dc": 17
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 21
+      },
+      {
+        "ability": "Strength",
+        "dc": 21
+      },
+      {
+        "ability": "Charisma",
+        "dc": 21
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 24
+      },
+      {
+        "ability": "Strength",
+        "dc": 24
+      },
+      {
+        "ability": "Charisma",
+        "dc": 24
+      }
+    ]
+  },
+  {
+    "name": "Gorgon",
+    "size": "Large",
+    "type": "Construct",
+    "ac": 19,
+    "hp": 114,
+    "hp_dice": "12d10 + 48",
+    "speed": "40 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Gray Ooze",
+    "size": "Medium",
+    "type": "Ooze",
+    "ac": 9,
+    "hp": 22,
+    "hp_dice": "3d8 + 9",
+    "speed": "10 ft., Climb 10 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 \n+ 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 \n+ 6",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 17
+      },
+      {
+        "ability": "Constitution",
+        "dc": 21
+      }
+    ]
+  },
+  {
+    "name": "Green Hag",
+    "size": "Medium",
+    "type": "Fey",
+    "ac": 17,
+    "hp": 82,
+    "hp_dice": "11d8 + 33",
+    "speed": "30 ft., Swim 30 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d8 + 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Grick",
+    "size": "Medium",
+    "type": "Aberration",
+    "ac": 14,
+    "hp": 54,
+    "hp_dice": "12d8",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Beak",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tentacles",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d10 + 2",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Griffon",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 12,
+    "hp": 59,
+    "hp_dice": "7d10 + 21",
+    "speed": "30 ft., Fly 80 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Actions\nBone Cudgel",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Guardian Naga",
+    "size": "Large",
+    "type": "Celestial",
+    "ac": 18,
+    "hp": 136,
+    "hp_dice": "16d10 + 48",
+    "speed": "40 ft., Climb 40 ft., Swim 40 ft.",
+    "cr": "10",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d12 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Longsword",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d10 + 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d4 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Harpy",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 11,
+    "hp": 38,
+    "hp_dice": "7d8 + 7",
+    "speed": "20 ft., Fly 40 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Hell Hound",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 58,
+    "hp_dice": "9d8 + 18",
+    "speed": "50 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d4 + 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 12
+      },
+      {
+        "ability": "Constitution",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Hill Giant",
+    "size": "Huge",
+    "type": "Giant",
+    "ac": 13,
+    "hp": 105,
+    "hp_dice": "10d12 + 40",
+    "speed": "40 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Hippogriff",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 11,
+    "hp": 26,
+    "hp_dice": "4d10 + 4",
+    "speed": "40 ft., Fly 60 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nLongsword",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longbow",
+        "attack_bonus": 3,
+        "reach_range": "150/600 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d8 + 1",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d6 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Longbow",
+        "attack_bonus": 4,
+        "reach_range": "150/600 \nft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Homunculus",
+    "size": "Tiny",
+    "type": "Construct",
+    "ac": 13,
+    "hp": 4,
+    "hp_dice": "1d4 + 2",
+    "speed": "20 ft., Fly 40 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "0",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Horned Devil",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 18,
+    "hp": 199,
+    "hp_dice": "19d10 + 95",
+    "speed": "30 ft., Fly 60 ft.",
+    "cr": "11",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Hurl Flame",
+        "attack_bonus": 8,
+        "reach_range": "150 ft",
+        "damage_avg": 26,
+        "damage_dice": "5d8 + 4",
+        "damage_type": "Fire"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Hydra",
+    "size": "Huge",
+    "type": "Monstrosity",
+    "ac": 15,
+    "hp": 184,
+    "hp_dice": "16d12 + 80",
+    "speed": "40 ft., Swim 40 ft.",
+    "cr": "8",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 8,
+        "reach_range": "10 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d10 \n+ 5",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tail",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 15,
+        "damage_dice": "3d6 \n+ 5",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Imp",
+    "size": "Tiny",
+    "type": "Fiend",
+    "ac": 13,
+    "hp": 21,
+    "hp_dice": "6d4 + 6",
+    "speed": "20 ft., Fly 40 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Sting",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Incubus",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 66,
+    "hp_dice": "12d8 + 12",
+    "speed": "30 ft., Fly 60 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Invisible Stalker",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 14,
+    "hp": 97,
+    "hp_dice": "13d10 + 26",
+    "speed": "50 ft., Fly 50 ft. (hover)",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Wind Swipe",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Force"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Iron Golem",
+    "size": "Large",
+    "type": "Construct",
+    "ac": 20,
+    "hp": 252,
+    "hp_dice": "24d10 + 120",
+    "speed": "30 ft.",
+    "cr": "16",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bladed Arm",
+        "attack_bonus": 12,
+        "reach_range": "10 ft",
+        "damage_avg": 20,
+        "damage_dice": "3d8 + 7",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Fiery Bolt",
+        "attack_bonus": 10,
+        "reach_range": "120 ft",
+        "damage_avg": 36,
+        "damage_dice": "8d8",
+        "damage_type": "Fire"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Knight",
+    "size": "Medium",
+    "type": "or",
+    "ac": 18,
+    "hp": 52,
+    "hp_dice": "8d8 + 16",
+    "speed": "30 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Greatsword",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "attack_bonus": 2,
+        "reach_range": "100/400 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tentacle",
+        "attack_bonus": 17,
+        "reach_range": "30 ft",
+        "damage_avg": 24,
+        "damage_dice": "4d6 + 10",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 23
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 25
+      },
+      {
+        "ability": "Constitution",
+        "dc": 23
+      }
+    ]
+  },
+  {
+    "name": "Lamia",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 13,
+    "hp": 97,
+    "hp_dice": "13d10 + 26",
+    "speed": "40 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Lemure",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 9,
+    "hp": 9,
+    "hp_dice": "2d8",
+    "speed": "20 ft.",
+    "cr": "0",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Vile Slime",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Poison"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Lich",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 20,
+    "hp": 315,
+    "hp_dice": "42d8 + 126",
+    "speed": "30 ft.",
+    "cr": "21",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Paralyzing Touch",
+        "attack_bonus": 12,
+        "reach_range": "5 \nft",
+        "damage_avg": 15,
+        "damage_dice": "3d6 + 5",
+        "damage_type": "Cold"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 20
+      }
+    ]
+  },
+  {
+    "name": "Magmin",
+    "size": "Small",
+    "type": "Elemental",
+    "ac": 14,
+    "hp": 13,
+    "hp_dice": "3d6 + 3",
+    "speed": "30 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Touch",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d4 + \n2",
+        "damage_type": "Fire"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "terity",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Manticore",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 68,
+    "hp_dice": "8d10 + 24",
+    "speed": "30 ft., Fly 50 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Tail Spike",
+        "attack_bonus": 5,
+        "reach_range": "100/200 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Marilith",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 16,
+    "hp": 220,
+    "hp_dice": "21d10 + 105",
+    "speed": "40 ft., Climb 40 ft.",
+    "cr": "16",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Pact Blade",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "1d10 + 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Medusa",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 15,
+    "hp": 127,
+    "hp_dice": "17d8 + 51",
+    "speed": "30 ft.",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Snake Hair",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Poison Ray",
+        "attack_bonus": 5,
+        "reach_range": "150 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d8 + 2",
+        "damage_type": "Poison"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 + 2",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 3,
+        "damage_dice": "1d4 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 3,
+        "damage_dice": "1d4 + 1",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Actions\nClaw",
+        "attack_bonus": 2,
+        "reach_range": "5 ft",
+        "damage_avg": 2,
+        "damage_dice": "1d4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "terity",
+        "dc": 10
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 10
+      },
+      {
+        "ability": "tution",
+        "dc": 10
+      },
+      {
+        "ability": "Constitution",
+        "dc": 10
+      },
+      {
+        "ability": "terity",
+        "dc": 11
+      },
+      {
+        "ability": "terity",
+        "dc": 10
+      },
+      {
+        "ability": "Constitution",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Merrow",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 13,
+    "hp": 45,
+    "hp_dice": "6d10 + 12",
+    "speed": "10 ft., Swim 40 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d4 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d4 + 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Mimic",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 12,
+    "hp": 58,
+    "hp_dice": "9d8 + 18",
+    "speed": "20 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Pseudopod",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 11
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 17
+      }
+    ]
+  },
+  {
+    "name": "Nalfeshnee",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 18,
+    "hp": 184,
+    "hp_dice": "16d10 + 96",
+    "speed": "20 ft., Fly 30 ft.",
+    "cr": "13",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d10 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Night Hag",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 17,
+    "hp": 112,
+    "hp_dice": "15d8 + 45",
+    "speed": "30 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Nightmare",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 13,
+    "hp": 68,
+    "hp_dice": "8d10 + 24",
+    "speed": "60 ft., Fly 90 ft. (hover)",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 \n+ 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Actions\nRapier",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d8 \n+ 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Ochre Jelly",
+    "size": "Large",
+    "type": "Ooze",
+    "ac": 8,
+    "hp": 52,
+    "hp_dice": "7d10 + 14",
+    "speed": "20 ft., Climb 20 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Pseudopod",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "3d6 + 2",
+        "damage_type": "Acid"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Ogre",
+    "size": "Large",
+    "type": "Giant",
+    "ac": 11,
+    "hp": 68,
+    "hp_dice": "8d10 + 24",
+    "speed": "40 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Greatclub",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Oni",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 17,
+    "hp": 119,
+    "hp_dice": "14d10 + 42",
+    "speed": "30 ft., Fly 30 ft. (hover)",
+    "cr": "7",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Nightmare Ray",
+        "attack_bonus": 5,
+        "reach_range": "60 ft",
+        "damage_avg": 9,
+        "damage_dice": "2d6 + 2",
+        "damage_type": "Psychic"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Otyugh",
+    "size": "Large",
+    "type": "Aberration",
+    "ac": 14,
+    "hp": 104,
+    "hp_dice": "11d10 + 44",
+    "speed": "30 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d8 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tentacle",
+        "attack_bonus": 6,
+        "reach_range": "10 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d8 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Owlbear",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 13,
+    "hp": 59,
+    "hp_dice": "7d10 + 21",
+    "speed": "40 ft., Climb 40 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d8 \n+ 5",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Pegasus",
+    "size": "Large",
+    "type": "Celestial",
+    "ac": 12,
+    "hp": 59,
+    "hp_dice": "7d10 + 21",
+    "speed": "60 ft., Fly 90 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 \n+ 4",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Phase Spider",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 45,
+    "hp_dice": "7d10 + 7",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + \n3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 12
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Pit Fiend",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 21,
+    "hp": 337,
+    "hp_dice": "27d10 + 189",
+    "speed": "30 ft., Fly 60 ft.",
+    "cr": "20",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 18,
+        "damage_dice": "3d6 \n+ 8",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Devilish Claw",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 26,
+        "damage_dice": "4d8 + 8",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Fiery Mace",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 22,
+        "damage_dice": "4d6 + 8",
+        "damage_type": "Force"
+      },
+      {
+        "name": "Radiant Sword",
+        "attack_bonus": 12,
+        "reach_range": "10 ft",
+        "damage_avg": 14,
+        "damage_dice": "2d6 + 7",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 21
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 20
+      }
+    ]
+  },
+  {
+    "name": "Pseudodragon",
+    "size": "Tiny",
+    "type": "Dragon",
+    "ac": 14,
+    "hp": 10,
+    "hp_dice": "3d4 + 3",
+    "speed": "15 ft., Fly 60 ft.",
+    "cr": "1/4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d4 + 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Purple Worm",
+    "size": "Gargantuan",
+    "type": "Monstrosity",
+    "ac": 18,
+    "hp": 247,
+    "hp_dice": "15d20 + 90",
+    "speed": "50 ft., Burrow 50 ft.",
+    "cr": "15",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 22,
+        "damage_dice": "3d8 + 9",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Tail Stinger",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d6 + 9",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 19
+      }
+    ]
+  },
+  {
+    "name": "Quasit",
+    "size": "Tiny",
+    "type": "Fiend",
+    "ac": 13,
+    "hp": 25,
+    "hp_dice": "10d4",
+    "speed": "40 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Rakshasa",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 17,
+    "hp": 221,
+    "hp_dice": "26d8 + 104",
+    "speed": "40 ft.",
+    "cr": "13",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Cursed Touch",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d6 + 5",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 10,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d6 \n+ 6",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 13,
+        "damage_dice": "1d10 \n+ 8",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Dexterity",
+        "dc": 13
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 17
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 21
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 24
+      }
+    ]
+  },
+  {
+    "name": "Remorhaz",
+    "size": "Huge",
+    "type": "Monstrosity",
+    "ac": 17,
+    "hp": 195,
+    "hp_dice": "17d12 + 85",
+    "speed": "40 ft., Burrow 30 ft.",
+    "cr": "11",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 11,
+        "reach_range": "10 ft",
+        "damage_avg": 18,
+        "damage_dice": "2d10 \n+ 7",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 19
+      }
+    ]
+  },
+  {
+    "name": "Roc",
+    "size": "Gargantuan",
+    "type": "Monstrosity",
+    "ac": 15,
+    "hp": 248,
+    "hp_dice": "16d20 + 80",
+    "speed": "20 ft., Fly 120 ft.",
+    "cr": "11",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Beak",
+        "attack_bonus": 13,
+        "reach_range": "10 ft",
+        "damage_avg": 28,
+        "damage_dice": "3d12 \n+ 9",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Talons",
+        "attack_bonus": 13,
+        "reach_range": "5 ft",
+        "damage_avg": 23,
+        "damage_dice": "4d6 \n+ 9",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Roper",
+    "size": "Large",
+    "type": "Aberration",
+    "ac": 20,
+    "hp": 93,
+    "hp_dice": "11d10 + 33",
+    "speed": "10 ft., Climb 20 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 17,
+        "damage_dice": "3d8 + 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Rust Monster",
+    "size": "Medium",
+    "type": "Monstrosity",
+    "ac": 14,
+    "hp": 33,
+    "hp_dice": "6d8 + 6",
+    "speed": "40 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d8 + 1",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 3,
+        "reach_range": "5 ft",
+        "damage_avg": 4,
+        "damage_dice": "1d6 + 1",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Satyr",
+    "size": "Medium",
+    "type": "Fey",
+    "ac": 13,
+    "hp": 31,
+    "hp_dice": "7d8",
+    "speed": "40 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Hooves",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 \n+ 3",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Scout",
+    "size": "Medium",
+    "type": "or",
+    "ac": 13,
+    "hp": 16,
+    "hp_dice": "3d8 + 3",
+    "speed": "30 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Shortsword",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Longbow",
+        "attack_bonus": 4,
+        "reach_range": "150/600 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d8 + 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Sea Hag",
+    "size": "Medium",
+    "type": "Fey",
+    "ac": 14,
+    "hp": 52,
+    "hp_dice": "7d8 + 21",
+    "speed": "30 ft., Swim 40 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Claw",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Wisdom",
+        "dc": 11
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 11
+      }
+    ]
+  },
+  {
+    "name": "Shadow",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 12,
+    "hp": 27,
+    "hp_dice": "5d8 + 5",
+    "speed": "40 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": []
+  },
+  {
+    "name": "Shambling Mound",
+    "size": "Large",
+    "type": "Plant",
+    "ac": 15,
+    "hp": 110,
+    "hp_dice": "13d10 + 39",
+    "speed": "30 ft., Swim 20 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Charged Tendril",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d6 + 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Fist",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 9,
+        "damage_dice": "1d10 \n+ 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Rend",
+        "attack_bonus": 13,
+        "reach_range": "10 ft",
+        "damage_avg": 17,
+        "damage_dice": "2d8 \n+ 8",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 15
+      },
+      {
+        "ability": "Constitution",
+        "dc": 13
+      },
+      {
+        "ability": "Constitution",
+        "dc": 17
+      },
+      {
+        "ability": "Constitution",
+        "dc": 20
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 19
+      },
+      {
+        "ability": "Constitution",
+        "dc": 24
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 23
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 21
+      },
+      {
+        "ability": "Constitution",
+        "dc": 25
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 25
+      }
+    ]
+  },
+  {
+    "name": "Specter",
+    "size": "Medium",
+    "type": "Undead",
+    "ac": 12,
+    "hp": 22,
+    "hp_dice": "5d8",
+    "speed": "30 ft., Fly 50 ft. (hover)",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Life Drain",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "2d6",
+        "damage_type": "Necrotic"
+      },
+      {
+        "name": "Actions\nRend",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d4 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 8,
+        "reach_range": "5 ft",
+        "damage_avg": 14,
+        "damage_dice": "3d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 16
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 20
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 20
+      },
+      {
+        "ability": "Constitution",
+        "dc": 20
+      },
+      {
+        "ability": "Constitution",
+        "dc": 16
+      }
+    ]
+  },
+  {
+    "name": "Sprite",
+    "size": "Tiny",
+    "type": "Fey",
+    "ac": 15,
+    "hp": 10,
+    "hp_dice": "4d4",
+    "speed": "10 ft., Fly 40 ft.",
+    "cr": "1/4",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Charisma",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Spy",
+    "size": "Medium",
+    "type": "or",
+    "ac": 12,
+    "hp": 27,
+    "hp_dice": "6d8",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "1",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Shortsword",
+        "attack_bonus": 4,
+        "reach_range": "5 ft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Hand Crossbow",
+        "attack_bonus": 4,
+        "reach_range": "30/120 \nft",
+        "damage_avg": 5,
+        "damage_dice": "1d6 + 2",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Stirge",
+    "size": "Tiny",
+    "type": "Monstrosity",
+    "ac": 13,
+    "hp": 5,
+    "hp_dice": "2d4",
+    "speed": "10 ft., Fly 40 ft.",
+    "cr": "1/8",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Proboscis",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Stone Giant",
+    "size": "Huge",
+    "type": "Giant",
+    "ac": 17,
+    "hp": 126,
+    "hp_dice": "11d12 + 55",
+    "speed": "40 ft.",
+    "cr": "7",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Stone Club",
+        "attack_bonus": 9,
+        "reach_range": "15 ft",
+        "damage_avg": 22,
+        "damage_dice": "3d10 + 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Boulder",
+        "attack_bonus": 9,
+        "reach_range": "60/240 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 + 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Slam",
+        "attack_bonus": 10,
+        "reach_range": "5 ft",
+        "damage_avg": 15,
+        "damage_dice": "2d8 \n+ 6",
+        "damage_type": "Bludgeoning"
+      },
+      {
+        "name": "Force Bolt",
+        "attack_bonus": 9,
+        "reach_range": "120 ft",
+        "damage_avg": 22,
+        "damage_dice": "4d10",
+        "damage_type": "Force"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Storm Giant",
+    "size": "Huge",
+    "type": "Giant",
+    "ac": 16,
+    "hp": 230,
+    "hp_dice": "20d12 + 100",
+    "speed": "50 ft., Fly 25 ft. (hover), Swim 50 ft.",
+    "cr": "13",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Storm Sword",
+        "attack_bonus": 14,
+        "reach_range": "10 ft",
+        "damage_avg": 23,
+        "damage_dice": "4d6 + 9",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Thunderbolt",
+        "attack_bonus": 14,
+        "reach_range": "500 ft",
+        "damage_avg": 22,
+        "damage_dice": "2d12 + 9",
+        "damage_type": "Lightning"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Succubus",
+    "size": "Medium",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 71,
+    "hp_dice": "13d8 + 13",
+    "speed": "30 ft., Fly 60 ft.",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Fiendish Touch",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 16,
+        "damage_dice": "2d10 + 5",
+        "damage_type": "Psychic"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Tarrasque",
+    "size": "Gargantuan",
+    "type": "Monstrosity",
+    "ac": 25,
+    "hp": 697,
+    "hp_dice": "34d20 + 340",
+    "speed": "60 ft., Burrow 40 ft., Climb 60 ft.",
+    "cr": "30",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 19,
+        "reach_range": "15 ft",
+        "damage_avg": 36,
+        "damage_dice": "4d12 \n+ 10",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 19,
+        "reach_range": "15 ft",
+        "damage_avg": 28,
+        "damage_dice": "4d8 \n+ 10",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Tail",
+        "attack_bonus": 19,
+        "reach_range": "30 ft",
+        "damage_avg": 23,
+        "damage_dice": "3d8 \n+ 10",
+        "damage_type": "Bludgeoning"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 27
+      }
+    ]
+  },
+  {
+    "name": "Troll",
+    "size": "Large",
+    "type": "Giant",
+    "ac": 15,
+    "hp": 94,
+    "hp_dice": "9d10 + 45",
+    "speed": "30 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Rend",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Vrock",
+    "size": "Large",
+    "type": "Fiend",
+    "ac": 15,
+    "hp": 152,
+    "hp_dice": "16d10 + 64",
+    "speed": "40 ft., Fly 60 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Shred",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Greatsword",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 + 3",
+        "damage_type": "Slashing"
+      },
+      {
+        "name": "Heavy Crossbow",
+        "attack_bonus": 3,
+        "reach_range": "100/400 ft",
+        "damage_avg": 12,
+        "damage_dice": "2d10 + 1",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Water Elemental",
+    "size": "Large",
+    "type": "Elemental",
+    "ac": 14,
+    "hp": 114,
+    "hp_dice": "12d10 + 48",
+    "speed": "30 ft., Swim 90 ft.",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 15
+      }
+    ]
+  },
+  {
+    "name": "Werebear",
+    "size": "Medium",
+    "type": "or",
+    "ac": 15,
+    "hp": 135,
+    "hp_dice": "18d8 + 54",
+    "speed": "30 ft., 40 ft. (bear form only), Climb 30 ft. (bear",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 14
+      }
+    ]
+  },
+  {
+    "name": "Wereboar",
+    "size": "Medium",
+    "type": "or",
+    "ac": 15,
+    "hp": 97,
+    "hp_dice": "15d8 + 30",
+    "speed": "30 ft., 40 ft. (boar form only)",
+    "cr": "4",
+    "abilities": {},
+    "attacks": [],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 12
+      }
+    ]
+  },
+  {
+    "name": "Wererat",
+    "size": "Medium",
+    "type": "or",
+    "ac": 13,
+    "hp": 60,
+    "hp_dice": "11d8 + 11",
+    "speed": "30 ft., Climb 30 ft.",
+    "cr": "2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Scratch",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 6,
+        "damage_dice": "1d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 11
+      },
+      {
+        "ability": "Constitution",
+        "dc": 13
+      }
+    ]
+  },
+  {
+    "name": "Werewolf",
+    "size": "Medium",
+    "type": "or",
+    "ac": 15,
+    "hp": 71,
+    "hp_dice": "11d8 + 22",
+    "speed": "30 ft., 40 ft. (wolf form only)MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Scratch",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 10,
+        "damage_dice": "2d6 \n+ 3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Constitution",
+        "dc": 12
+      },
+      {
+        "ability": "Constitution",
+        "dc": 14
+      },
+      {
+        "ability": "Constitution",
+        "dc": 20
+      },
+      {
+        "ability": "Constitution",
+        "dc": 13
+      },
+      {
+        "ability": "Constitution",
+        "dc": 10
+      }
+    ]
+  },
+  {
+    "name": "Winter Wolf",
+    "size": "Large",
+    "type": "Monstrosity",
+    "ac": 13,
+    "hp": 75,
+    "hp_dice": "10d10 + 20",
+    "speed": "50 ft.",
+    "cr": "3",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 + 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Worg",
+    "size": "Large",
+    "type": "Fey",
+    "ac": 13,
+    "hp": 26,
+    "hp_dice": "4d10 + 4",
+    "speed": "50 ft.",
+    "cr": "1/2",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 5,
+        "reach_range": "5 ft",
+        "damage_avg": 7,
+        "damage_dice": "1d8 + 3",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Wraith",
+    "size": "Medium",
+    "type": "or",
+    "ac": 13,
+    "hp": 67,
+    "hp_dice": "9d8 + 27",
+    "speed": "5 ft., Fly 60 ft. (hover)",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Life Drain",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 21,
+        "damage_dice": "4d8 + 3",
+        "damage_type": "Necrotic"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Wyvern",
+    "size": "Large",
+    "type": "Dragon",
+    "ac": 14,
+    "hp": 127,
+    "hp_dice": "15d10 + 45",
+    "speed": "30 ft., Fly 80 ft.",
+    "cr": "6",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 7,
+        "reach_range": "5 ft",
+        "damage_avg": 13,
+        "damage_dice": "2d8 + 4",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Sting",
+        "attack_bonus": 7,
+        "reach_range": "10 ft",
+        "damage_avg": 11,
+        "damage_dice": "2d6 \n+ 4",
+        "damage_type": "Piercing"
+      }
+    ],
+    "saving_throws": []
+  },
+  {
+    "name": "Xorn",
+    "size": "Medium",
+    "type": "Elemental",
+    "ac": 19,
+    "hp": 84,
+    "hp_dice": "8d8 + 48",
+    "speed": "20 ft., Burrow 20 ft.MOD SAVE MOD SAVE MOD SAVE",
+    "cr": "5",
+    "abilities": {},
+    "attacks": [
+      {
+        "name": "Bite",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 17,
+        "damage_dice": "4d6 + 3",
+        "damage_type": "Piercing"
+      },
+      {
+        "name": "Claw",
+        "attack_bonus": 6,
+        "reach_range": "5 ft",
+        "damage_avg": 8,
+        "damage_dice": "1d10 + \n3",
+        "damage_type": "Slashing"
+      }
+    ],
+    "saving_throws": [
+      {
+        "ability": "Strength",
+        "dc": 12
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 16
+      },
+      {
+        "ability": "Strength",
+        "dc": 14
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 13
+      },
+      {
+        "ability": "Wisdom",
+        "dc": 11
+      },
+      {
+        "ability": "Dexterity",
+        "dc": 18
+      }
+    ]
+  }
+]
