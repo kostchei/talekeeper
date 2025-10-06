@@ -143,7 +143,12 @@ class WeaponAttackService:
         if fighting_style_attack > 0:
             modifiers_applied.append(f'Fighting Style +{fighting_style_attack}')
 
-        attack_total = attack_roll + ability_mod + prof_bonus + fighting_style_attack
+        # Weapon magic bonus to attack
+        weapon_bonus = self._get_weapon_magic_bonus(weapon)
+        if weapon_bonus > 0:
+            modifiers_applied.append(f'Magic Weapon +{weapon_bonus}')
+
+        attack_total = attack_roll + ability_mod + prof_bonus + fighting_style_attack + weapon_bonus
 
         # Check if critical
         if attack_roll == 20:
@@ -182,8 +187,12 @@ class WeaponAttackService:
             damage_bonus += fighting_damage
             modifiers_applied.append(f'Fighting Style +{fighting_damage} damage')
 
+        # Weapon magic bonus to damage (use same bonus variable from attack calculation)
+        if weapon_bonus > 0:
+            damage_bonus += weapon_bonus
+
         # Two-Weapon Fighting special case for off-hand
-        if action_type == 'off_hand' and 'light' in weapon_props:
+        if action_type == 'off_hand' and 'light' in weapon_properties:
             if 'Two-Weapon Fighting' not in fighting_styles:
                 # Normally off-hand doesn't get ability mod
                 damage_bonus -= ability_mod
@@ -653,6 +662,19 @@ class WeaponAttackService:
             return ''
         else:
             return str(weapon_props).lower()
+
+    def _get_weapon_magic_bonus(self, weapon: Dict[str, Any]) -> int:
+        """
+        Extract magic bonus from weapon name.
+        Returns the numeric bonus from weapons named like 'Longsword +1', 'Rapier +2', etc.
+        """
+        import re
+        weapon_name = weapon.get('name', '')
+
+        match = re.search(r'\+(\d+)', weapon_name)
+        if match:
+            return int(match.group(1))
+        return 0
 
     def _get_die_size_from_weapon(self, weapon: Dict[str, Any]) -> int:
         """Extract die size from weapon damage dice string.

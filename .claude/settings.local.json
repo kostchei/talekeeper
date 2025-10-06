@@ -42,7 +42,8 @@
       "Bash(do if [ -f \"$file\" ])",
       "Bash(then echo \"ROOT: $file\")",
       "Bash(fi)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []

@@ -182,7 +182,9 @@ CREATE TABLE equipment (
     range_long INTEGER,
     versatile_damage TEXT,
     ammunition TEXT,
-    
+    attack_bonus INTEGER DEFAULT 0,  -- Magic weapon bonus to attack rolls
+    damage_bonus INTEGER DEFAULT 0,  -- Magic weapon bonus to damage rolls
+
     -- Armor properties (nullable for non-armor)
     armor_class INTEGER,
     armor_type TEXT,  -- 'light', 'medium', 'heavy'
@@ -475,7 +477,7 @@ CREATE TABLE races (
 CREATE TABLE monsters (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
-                    type TEXT,
+                    type TEXT, -- Normalized types: aberration, beast, celestial, construct, dragon, elemental, fey, fiend, giant, humanoid, monstrosity, ooze, plant, undead
                     subtype TEXT,
                     size TEXT,
                     alignment TEXT,
@@ -502,7 +504,14 @@ CREATE TABLE monsters (
                     actions TEXT,
                     legendary_actions TEXT,
                     reactions TEXT,
-                    environment TEXT
+                    environment TEXT,
+                    aquatic_only INTEGER DEFAULT 0,
+                    multiattack_description TEXT,
+                    primary_attack_name TEXT,
+                    primary_attack_bonus INTEGER,
+                    primary_attack_reach TEXT,
+                    primary_damage_dice TEXT,
+                    primary_damage_type TEXT
                 );
 CREATE TABLE feats (
                     id TEXT PRIMARY KEY,

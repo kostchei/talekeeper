@@ -167,12 +167,13 @@ class EquipmentDatabase:
         
         try:
             cursor.execute("""
-                SELECT 
+                SELECT
                     name, description, item_type, rarity, cost_gp, weight_lb,
                     weapon_category, damage_dice, damage_type, weapon_properties,
                     weapon_mastery, range_normal, range_long, versatile_damage,
                     ammunition, armor_class, armor_type, dex_bonus_max,
-                    strength_requirement, stealth_disadvantage, is_magical
+                    strength_requirement, stealth_disadvantage, is_magical,
+                    attack_bonus, damage_bonus
                 FROM equipment
                 WHERE name = ?
             """, (name,))

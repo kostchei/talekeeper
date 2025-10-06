@@ -433,11 +433,17 @@ class ActionPanel(QWidget):
                         'range_long',
                         'versatile_damage',
                         'weapon_properties',
+                        'attack_bonus',
+                        'damage_bonus',
                     ):
                         value = record.get(key)
                         if key == 'weapon_properties':
                             if hydrated.get('weapon_properties') in (None, '', []) and value is not None:
                                 hydrated['weapon_properties'] = list(value) if isinstance(value, list) else value
+                            continue
+                        if key in ('attack_bonus', 'damage_bonus'):
+                            if value not in (None, ''):
+                                hydrated[key] = value
                             continue
                         if not hydrated.get(key) and value not in (None, ''):
                             hydrated[key] = value
@@ -1339,9 +1345,14 @@ class ActionPanel(QWidget):
             # Melee weapons use Str
             ability_mod = (self.character_context.get('strength', 10) - 10) // 2
         
-        # Magic weapon bonus
-        magic_bonus = weapon.get('attack_bonus') or 0
-        
+        # Magic weapon bonus (from database field or weapon name fallback)
+        magic_bonus = weapon.get('attack_bonus', 0)
+        if not magic_bonus:
+            import re
+            weapon_name = weapon.get('name', '')
+            magic_bonus_match = re.search(r'\+(\d+)', weapon_name)
+            magic_bonus = int(magic_bonus_match.group(1)) if magic_bonus_match else 0
+
         return prof_bonus + ability_mod + magic_bonus
     
     def _format_damage(self, weapon: Dict[str, Any], is_off_hand: bool = False) -> str:
@@ -1363,9 +1374,14 @@ class ActionPanel(QWidget):
         # Off-hand attacks don't add ability modifier to damage (unless Two Weapon Fighting)
         if is_off_hand:
             ability_mod = 0  # Simplified - would check for Two Weapon Fighting feat
-        
-        # Magic weapon damage bonus
-        magic_bonus = weapon.get('damage_bonus') or 0
+
+        # Magic weapon damage bonus (from database field or weapon name fallback)
+        magic_bonus = weapon.get('damage_bonus', 0)
+        if not magic_bonus:
+            import re
+            weapon_name = weapon.get('name', '')
+            magic_bonus_match = re.search(r'\+(\d+)', weapon_name)
+            magic_bonus = int(magic_bonus_match.group(1)) if magic_bonus_match else 0
         
         # Get feature-based damage bonuses (rage, dueling, etc.)
         weapon_context = {
@@ -2069,7 +2085,8 @@ class ActionPanel(QWidget):
         bonus_parts = [f"+{prof_bonus} prof", f"{ability_mod:+d} {ability_name}"]
         if fighting_style_attack_bonus > 0:
             bonus_parts.append(f"+{fighting_style_attack_bonus} fighting style")
-        bonus_str = f" ({' '.join(bonus_parts)})"
+
+        # This section is no longer used - logging moved to line 2428
 
         if hit:
             # Add advantage state to context for damage calculation (needed for sneak attack)
@@ -2384,13 +2401,27 @@ class ActionPanel(QWidget):
                 if hasattr(parent, 'log_panel'):
                     # Attack message with critical hit notation
                     attack_type = "[CRITICAL HIT!]" if is_critical else "[ATTACK]"
+
+                    # Build attack bonus breakdown
+                    bonus_breakdown = f"+{prof_bonus} prof {ability_mod:+d} {ability_name}"
+
+                    # Add magic weapon bonus if present
+                    import re
+                    magic_bonus_match = re.search(r'\+(\d+)', weapon_name)
+                    weapon_attack_bonus = context.get('attack_bonus', 0)
+                    if magic_bonus_match:
+                        magic_bonus = int(magic_bonus_match.group(1))
+                        bonus_breakdown += f" +{magic_bonus} magic"
+                    elif weapon_attack_bonus > 0:
+                        bonus_breakdown += f" +{weapon_attack_bonus} magic"
+
                     parent.log_panel.log_combat(
-                        f"{attack_type} {weapon_name} hits {target_monster.monster_name}! Attack: {roll_desc} (+{prof_bonus} prof {ability_mod:+d} {ability_name}) = {attack_total} vs AC {target_ac}"
+                        f"{attack_type} {weapon_name} hits {target_monster.monster_name}! Attack: {roll_desc} ({bonus_breakdown}) = {attack_total} vs AC {target_ac}"
                     )
 
                     # Damage message with critical dice notation
                     parent.log_panel.log_combat(
-                        f"💥 Damage: {damage_formula_text} -> {total_damage} damage"
+                        f"[DAMAGE] {damage_formula_text} -> {total_damage} damage"
                     )
                     break
                 parent = parent.parent()
@@ -7799,8 +7830,8 @@ class ActionPanel(QWidget):
             # Find encounter panel to check for active monsters
             parent = self.parent()
             while parent:
-                if hasattr(parent, 'encounter_panel'):
-                    encounter_panel = parent.encounter_panel
+                if hasattr(parent, 'encounter_pane'):
+                    encounter_panel = parent.encounter_pane
                     # Check if there are alive monsters in encounter_instances dict
                     if hasattr(encounter_panel, 'encounter_instances') and encounter_panel.encounter_instances:
                         # Check if any monster instance is alive (HP > 0)
@@ -7833,8 +7864,8 @@ class ActionPanel(QWidget):
         try:
             parent = self.parent()
             while parent:
-                if hasattr(parent, 'encounter_panel'):
-                    encounter_panel = parent.encounter_panel
+                if hasattr(parent, 'encounter_pane'):
+                    encounter_panel = parent.encounter_pane
                     # Check if hazard widget exists and has an active hazard
                     if hasattr(encounter_panel, 'hazard_widget') and encounter_panel.hazard_widget:
                         if hasattr(encounter_panel.hazard_widget, 'current_hazard') and encounter_panel.hazard_widget.current_hazard:

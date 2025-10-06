@@ -48,7 +48,7 @@ def load_monsters():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM monsters")
     monster_rows = cursor.fetchall()
-    
+
     monsters = []
     for monster_row in monster_rows:
         # Reconstruct monster dict from database
@@ -58,6 +58,7 @@ def load_monsters():
             'type': monster_row[2],
             'cr': monster_row[15],
             'alignment': monster_row[5],
+            'intelligence': monster_row[12] if len(monster_row) > 12 else 3,
             'aquatic_only': monster_row[30] if len(monster_row) > 30 else 0
         }
         # Extract type - handle both string and object formats
@@ -113,6 +114,7 @@ def load_monsters():
             "xp": CR_TO_XP.get(cr_str, 0),
             "type": monster_type,
             "alignment": monster.get('alignment', 'N'),
+            "intelligence": monster.get('intelligence', 3),
             "average_hp": average_hp,
             "hp_formula": hp_formula,
             "aquatic_only": monster.get('aquatic_only', 0)
@@ -227,110 +229,179 @@ class EncounterGenerator:
                 return entry[difficulty.capitalize()]
         raise ValueError("Unknown level")
 
+    def _get_available_monsters(self, level: int) -> List[Dict[str, Any]]:
+        """Get monsters available for this level based on CR and campaign rules"""
+        cr_cap = 0.25 * level if level < 5 else 0.5 * level
+        allowed = []
+        is_aquatic_campaign = 'aquatic' in self.frame.tags
+
+        for m in MONSTER_DB:
+            if m["cr"] > cr_cap:
+                continue
+
+            if m.get("aquatic_only", 0) == 1 and not is_aquatic_campaign:
+                continue
+
+            alignment = m.get("alignment", "N").upper()
+
+            if self.frame.monster_alignment_rules.get("allow_evil", False):
+                if "E" in alignment:
+                    allowed.append(m)
+                    continue
+
+            if self.frame.monster_alignment_rules.get("allow_humanoid_not_good", False):
+                if m["type"] == "humanoid" and "G" not in alignment:
+                    allowed.append(m)
+                    continue
+
+        return allowed if allowed else [m for m in MONSTER_DB if m["cr"] <= cr_cap]
+
+    def _can_pair_with_beast(self, monster: Dict[str, Any]) -> bool:
+        """Check if a monster can be paired with a beast (both must have Int 6+)"""
+        return monster["type"] == "beast" or monster["intelligence"] >= 6
+
+    def _generate_solo_encounter(self, available: List[Dict[str, Any]], budget: int) -> List[Dict[str, Any]]:
+        """High difficulty: Single strongest monster"""
+        available_sorted = sorted(available, key=lambda m: m["xp"], reverse=True)
+        for monster in available_sorted:
+            if monster["xp"] <= budget:
+                return [monster]
+        return [available_sorted[0]] if available_sorted else []
+
+    def _generate_pair_encounter(self, available: List[Dict[str, Any]], budget: int) -> List[Dict[str, Any]]:
+        """Pair of 2 random types (if one is beast, other must be beast or Int 6+)"""
+        encounter = []
+
+        first = random.choice(available)
+        if first["xp"] > budget * 0.7:
+            return []
+
+        encounter.append(first)
+        remaining_budget = budget - first["xp"]
+
+        valid_pairs = []
+        for m in available:
+            if m["xp"] > remaining_budget:
+                continue
+
+            if first["type"] == "beast":
+                if m["type"] == "beast" or m["intelligence"] >= 6:
+                    valid_pairs.append(m)
+            elif m["type"] == "beast":
+                if first["intelligence"] >= 6:
+                    valid_pairs.append(m)
+            else:
+                valid_pairs.append(m)
+
+        if valid_pairs:
+            second = max(valid_pairs, key=lambda m: m["xp"])
+            encounter.append(second)
+
+        return encounter
+
+    def _generate_leader_minions_encounter(self, available: List[Dict[str, Any]], budget: int) -> List[Dict[str, Any]]:
+        """1 leader + 1-4 minions of same type (aberration, fiend, humanoid, undead, etc)"""
+        valid_types = ["aberration", "fiend", "humanoid", "undead", "beast", "dragon", "elemental", "fey", "giant", "monstrosity", "ooze", "plant"]
+
+        type_groups = {}
+        for m in available:
+            mtype = m["type"]
+            if mtype in valid_types:
+                if mtype not in type_groups:
+                    type_groups[mtype] = []
+                type_groups[mtype].append(m)
+
+        for mtype, monsters in type_groups.items():
+            if len(monsters) < 2:
+                continue
+
+            monsters_sorted = sorted(monsters, key=lambda m: m["xp"], reverse=True)
+
+            for leader in monsters_sorted:
+                if leader["xp"] > budget * 0.6:
+                    continue
+
+                encounter = [leader]
+                remaining_budget = budget - leader["xp"]
+
+                minions = [m for m in monsters_sorted if m["name"] != leader["name"] and m["xp"] <= remaining_budget * 0.4]
+
+                if not minions:
+                    continue
+
+                minion_type = max(minions, key=lambda m: m["xp"])
+
+                count = 0
+                while count < 4 and remaining_budget >= minion_type["xp"]:
+                    encounter.append(minion_type)
+                    remaining_budget -= minion_type["xp"]
+                    count += 1
+
+                if len(encounter) >= 2:
+                    return encounter
+
+        return []
+
     def generate_encounter(self, level: int) -> Dict[str, Any]:
-        if level not in self.bags:
-            # Filter monsters based on CR limits and alignment rules
-            cr_cap = 0.25 * level if level < 5 else 0.5 * level
-            allowed = []
-
-            # Check if campaign allows aquatic-only monsters
-            is_aquatic_campaign = 'aquatic' in self.frame.tags
-
-            for m in MONSTER_DB:
-                if m["cr"] > cr_cap:
-                    continue
-
-                # Skip aquatic-only monsters unless this is an aquatic campaign
-                if m.get("aquatic_only", 0) == 1 and not is_aquatic_campaign:
-                    continue
-
-                # Check alignment rules
-                alignment = m.get("alignment", "N").upper()
-
-                # Allow evil monsters if configured
-                if self.frame.monster_alignment_rules.get("allow_evil", False):
-                    if "E" in alignment:
-                        allowed.append(m)
-                        continue
-
-                # Allow humanoid non-good monsters if configured
-                if self.frame.monster_alignment_rules.get("allow_humanoid_not_good", False):
-                    if m["type"] == "humanoid" and "G" not in alignment:
-                        allowed.append(m)
-                        continue
-
-            # Create equally weighted pool from allowed monsters
-            self.bags[level] = RandomBag(allowed if allowed else [m for m in MONSTER_DB if m["cr"] <= cr_cap])
-
         difficulty = random.choices(
             population=["low", "moderate", "high"],
             weights=[self.frame.difficulty_distribution.get(k, 0) for k in ["low", "moderate", "high"]]
         )[0]
 
         budget = self.get_budget(level, difficulty)
+        available = self._get_available_monsters(level)
+
+        if not available:
+            return {
+                "level": level,
+                "difficulty": difficulty,
+                "monsters": [],
+                "total_xp": 0
+            }
+
+        encounter = []
 
         if difficulty == "high":
-            # High encounter = strongest available monster + smaller ones to fill budget
-            encounter = []
-            total = 0
+            pattern = random.choice(["solo", "pair", "leader_minions"])
 
-            # Get all available monsters for this level, sorted by XP descending
-            available_monsters = []
-            cr_cap = 0.25 * level if level < 5 else 0.5 * level
-            for m in MONSTER_DB:
-                if m["cr"] <= cr_cap:
-                    available_monsters.append(m)
+            if pattern == "solo":
+                encounter = self._generate_solo_encounter(available, budget)
+            elif pattern == "pair":
+                encounter = self._generate_pair_encounter(available, budget)
+                if not encounter:
+                    encounter = self._generate_leader_minions_encounter(available, budget)
+            else:
+                encounter = self._generate_leader_minions_encounter(available, budget)
+                if not encounter:
+                    encounter = self._generate_pair_encounter(available, budget)
 
-            if not available_monsters:
-                # No monsters available, fallback to moderate
-                return self.generate_encounter(level)
-
-            available_monsters.sort(key=lambda m: m["xp"], reverse=True)
-
-            # Add the strongest monster first
-            strongest = available_monsters[0]
-            encounter.append(strongest)
-            total += strongest["xp"]
-
-            # Fill remaining budget with smaller monsters
-            while total < budget and len(encounter) < 4:
-                best_fit = None
-                remaining_budget = budget - total
-
-                # Find the largest monster that fits in remaining budget
-                for m in available_monsters:
-                    if m["xp"] <= remaining_budget and m not in encounter:
-                        if best_fit is None or m["xp"] > best_fit["xp"]:
-                            best_fit = m
-
-                if best_fit:
-                    encounter.append(best_fit)
-                    total += best_fit["xp"]
-                else:
-                    break
-
-            monsters = self._attach_monster_narrative(encounter, level, difficulty)
-            return {
-                "level": level,
-                "difficulty": difficulty,
-                "monsters": monsters,
-                "total_xp": total
-            }
         else:
-            # Low/Moderate: build up encounter
-            encounter = []
-            total = 0
-            while total < budget and len(encounter) < 4:
-                m = self.bags[level].draw()
-                if total + m["xp"] <= budget:
-                    encounter.append(m)
-                    total += m["xp"]
-                else:
-                    break
-            monsters = self._attach_monster_narrative(encounter, level, difficulty)
-            return {
-                "level": level,
-                "difficulty": difficulty,
-                "monsters": monsters,
-                "total_xp": total
-            }
+            cr_cap = 0.25 * level if level < 5 else 0.5 * level
+            available_capped = [m for m in available if m["cr"] <= cr_cap]
+
+            if not available_capped:
+                available_capped = available
+
+            pattern = random.choice(["pair", "leader_minions"])
+
+            if pattern == "pair":
+                encounter = self._generate_pair_encounter(available_capped, budget)
+                if not encounter:
+                    encounter = self._generate_leader_minions_encounter(available_capped, budget)
+            else:
+                encounter = self._generate_leader_minions_encounter(available_capped, budget)
+                if not encounter:
+                    encounter = self._generate_pair_encounter(available_capped, budget)
+
+        if not encounter:
+            encounter = self._generate_solo_encounter(available, budget)
+
+        total_xp = sum(m["xp"] for m in encounter)
+        monsters = self._attach_monster_narrative(encounter, level, difficulty)
+
+        return {
+            "level": level,
+            "difficulty": difficulty,
+            "monsters": monsters,
+            "total_xp": total_xp
+        }
