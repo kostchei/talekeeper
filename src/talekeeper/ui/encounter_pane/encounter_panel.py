@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QTabWidget, QListWidget, QListWidgetItem,
                             QSplitter, QGroupBox, QGridLayout, QComboBox,
                             QSpinBox, QCheckBox, QStackedWidget, QRadioButton,
-                            QButtonGroup, QProgressBar, QSizePolicy)
+                            QButtonGroup, QProgressBar, QSizePolicy, QDialog)
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import json
@@ -6965,13 +6965,44 @@ class EncounterPanel(QWidget):
             if abilities_restored:
                 self._log_monster_action(f"[LIGHTNING] Abilities restored: {', '.join(abilities_restored)}")
             
-            # 5. Reset action economy for new day (if in combat)
+            # 5. Spell Preparation (for preparing classes: Paladin, Cleric, Wizard, etc.)
+            try:
+                preparing_classes = ['paladin', 'cleric', 'wizard', 'druid']
+                if character.get('class_id', '').lower() in preparing_classes and character.get('level', 1) >= 2:
+                    from talekeeper.ui.dialogs.spell_preparation_dialog import SpellPreparationDialog
+
+                    dialog = SpellPreparationDialog(
+                        character['id'],
+                        character['name'],
+                        db_path='talekeeper.db',
+                        parent=self
+                    )
+
+                    if dialog.exec() == QDialog.DialogCode.Accepted:
+                        dialog.save_prepared_spells()
+                        self._log_monster_action(f"[BOOK] Spells prepared for the day")
+
+                        parent = self.parent()
+                        while parent:
+                            if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, '_create_spell_action_cards'):
+                                parent.action_panel._create_spell_action_cards()
+                                parent.action_panel._update_visible_cards()
+                                break
+                            parent = parent.parent()
+                    else:
+                        self._log_monster_action("[INFO] Spell preparation cancelled - keeping previous preparation")
+            except Exception as e:
+                print(f"Error in spell preparation: {e}")
+                import traceback
+                traceback.print_exc()
+
+            # 6. Reset action economy for new day (if in combat)
             if hasattr(self, 'current_combat_session') and self.current_combat_session:
                 # Reset action surge usage
                 if 'action_surge_used' in character:
                     character['action_surge_used'] = False
-            
-            # 6. Update rest timestamp
+
+            # 7. Update rest timestamp
             character['last_long_rest'] = datetime.now().isoformat()
             character['updated_at'] = datetime.now().isoformat()
             

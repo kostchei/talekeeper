@@ -1485,20 +1485,21 @@ class ActionPanel(QWidget):
         
         # Add cards for current category
         if self.current_category == ActionCategory.COMBAT:
-            # Combat: main-hand attacks + other combat actions (off-hand is bonus action only)
             combat_actions = []
-            
-            # Add main-hand weapon attack only (off-hand goes to bonus actions)
+
             if ActionType.ATTACK_MAIN_HAND in self.action_cards:
                 combat_actions.append(ActionType.ATTACK_MAIN_HAND)
-            
-            # Add spell actions (all spell_ prefixed cards)
-            spell_cards = [key for key in self.action_cards.keys() if isinstance(key, str) and key.startswith('spell_')]
-            combat_actions.extend(spell_cards)
 
-            # Add other combat actions
+            print(f"[DEBUG] Filtering for Action tab, checking keys:")
+            for key in self.action_cards.keys():
+                if isinstance(key, str) and key.startswith('spell_level_'):
+                    matches = key.endswith('_action')
+                    print(f"  Key: '{key}' -> endswith('_action'): {matches}")
+                    if matches:
+                        combat_actions.append(key)
+
             combat_actions.extend([ActionType.USE_ITEM, ActionType.DODGE, ActionType.LAY_ON_HANDS, ActionType.CHANNEL_DIVINITY, ActionType.HOLY_NIMBUS])
-            
+
             for action_key in combat_actions:
                 if action_key in self.action_cards:
                     card = self.action_cards[action_key]
@@ -1548,7 +1549,6 @@ class ActionPanel(QWidget):
                     if ActionType.INTIMIDATING_PRESENCE in self.action_cards:
                         bonus_actions.append(ActionType.INTIMIDATING_PRESENCE)
 
-            # Add off-hand weapon attacks to bonus actions (always check, empty if nothing equipped)
             if ActionType.ATTACK_OFF_HAND in self.action_cards:
                 bonus_actions.append(ActionType.ATTACK_OFF_HAND)
             for action_type in bonus_actions:
@@ -1556,29 +1556,32 @@ class ActionPanel(QWidget):
                     card = self.action_cards[action_type]
                     self.cards_layout.addWidget(card)
                     card.show()
-            
-            # Add feature cards that are bonus actions (like Second Wind)
-            if ActionType.SECOND_WIND in self.action_cards:  # Second Wind
+
+            if ActionType.SECOND_WIND in self.action_cards:
                 card = self.action_cards[ActionType.SECOND_WIND]
                 self.cards_layout.addWidget(card)
                 card.show()
-            
-            # Add potion cards (only if character has potions)
+
             if ActionType.USE_POTION in self.action_cards and self._character_has_potions():
                 card = self.action_cards[ActionType.USE_POTION]
                 self.cards_layout.addWidget(card)
                 card.show()
-            
-            # Add weapon mastery bonus action cards
-            if ActionType.NICK_MASTERY in self.action_cards:  # Nick mastery
+
+            if ActionType.NICK_MASTERY in self.action_cards:
                 card = self.action_cards[ActionType.NICK_MASTERY]
                 self.cards_layout.addWidget(card)
                 card.show()
-            
-            if ActionType.CLEAVE_MASTERY in self.action_cards:  # Cleave mastery
+
+            if ActionType.CLEAVE_MASTERY in self.action_cards:
                 card = self.action_cards[ActionType.CLEAVE_MASTERY]
                 self.cards_layout.addWidget(card)
                 card.show()
+
+            for key in self.action_cards.keys():
+                if isinstance(key, str) and key.startswith('spell_level_') and key.endswith('_bonus'):
+                    card = self.action_cards[key]
+                    self.cards_layout.addWidget(card)
+                    card.show()
                     
         elif self.current_category == ActionCategory.FREE:
             free_actions = [ActionType.INTERACT, ActionType.ACTION_SURGE, ActionType.RECKLESS_ATTACK]
@@ -1598,13 +1601,18 @@ class ActionPanel(QWidget):
         elif self.current_category == ActionCategory.REACTION:
             reaction_actions = [ActionType.OPPORTUNITY]
 
-            # Add character-specific reaction actions
             if ActionType.RETALIATION in self.action_cards:
                 reaction_actions.append(ActionType.RETALIATION)
 
             for action_type in reaction_actions:
                 if action_type in self.action_cards:
                     card = self.action_cards[action_type]
+                    self.cards_layout.addWidget(card)
+                    card.show()
+
+            for key in self.action_cards.keys():
+                if isinstance(key, str) and key.startswith('spell_level_') and key.endswith('_reaction'):
+                    card = self.action_cards[key]
                     self.cards_layout.addWidget(card)
                     card.show()
         
@@ -4526,7 +4534,7 @@ class ActionPanel(QWidget):
             return []
 
     def _create_spell_action_cards(self):
-        """Create swappable spell slot cards grouped by level and action type."""
+        """Create spell hand cards grouped by level AND casting time."""
         if not self.character_context or not self.character_context.get('id'):
             return
 
@@ -4538,26 +4546,32 @@ class ActionPanel(QWidget):
         print(f"[DEBUG] Found {len(spells)} castable spells: {[s['name'] for s in spells]}")
         print(f"[DEBUG] Spell slots: {spell_slots}")
 
-        # Group spells by level and action type
-        spell_groups = {}
+        spells_by_level_and_type = {}
         for spell in spells:
             spell_level = spell['spell_level']
-            action_type = self._determine_spell_action_type(spell)
+            casting_time = spell.get('casting_time', '').lower()
 
-            key = (spell_level, action_type)
-            if key not in spell_groups:
-                spell_groups[key] = []
-            spell_groups[key].append(spell)
+            if 'bonus action' in casting_time:
+                cast_type = 'bonus'
+            elif 'reaction' in casting_time:
+                cast_type = 'reaction'
+            else:
+                cast_type = 'action'
 
-        # Create one slot card per (spell_level, action_type) combination
-        for (spell_level, action_type), available_spells in spell_groups.items():
+            key = (spell_level, cast_type)
+            if key not in spells_by_level_and_type:
+                spells_by_level_and_type[key] = []
+            spells_by_level_and_type[key].append(spell)
+            print(f"[DEBUG] Added {spell['name']} to group {key}")
+
+        print(f"[DEBUG] Spell groups: {[(k, [s['name'] for s in v]) for k, v in spells_by_level_and_type.items()]}")
+
+        for (spell_level, cast_type), available_spells in spells_by_level_and_type.items():
             if not available_spells:
                 continue
 
-            # Get spell slot info for this level
             slot_info = next((slot for slot in spell_slots if slot.level == spell_level), None)
 
-            # For cantrips (level 0), always available
             if spell_level == 0:
                 available_slots = float('inf')
                 max_slots = float('inf')
@@ -4568,21 +4582,18 @@ class ActionPanel(QWidget):
                 available_slots = 0
                 max_slots = 0
 
-            # Skip if no slots available (except cantrips)
             if spell_level > 0 and available_slots == 0:
                 continue
 
-            # Choose default spell (first alphabetically) for the card display
             default_spell = sorted(available_spells, key=lambda s: s['name'])[0]
 
-            # Create slot card
             card = self._create_spell_slot_card(
-                spell_level, action_type, default_spell,
+                spell_level, cast_type, default_spell,
                 available_spells, available_slots, max_slots
             )
 
-            # Store with unique key for this slot
-            card_key = f"spell_slot_{spell_level}_{action_type.value}"
+            card_key = f"spell_level_{spell_level}_{cast_type}"
+            print(f"[DEBUG] Creating card key='{card_key}' with {len(available_spells)} spells: {[s['name'] for s in available_spells]}")
             self.action_cards[card_key] = card
 
     def _determine_spell_action_type(self, spell: Dict[str, Any]) -> ActionType:
@@ -4680,73 +4691,88 @@ class ActionPanel(QWidget):
             print(f"Error getting character spell slots: {e}")
             return []
 
-    def _create_spell_slot_card(self, spell_level: int, action_type: ActionType,
+    def _create_spell_slot_card(self, spell_level: int, cast_type: str,
                                default_spell: Dict[str, Any], available_spells: List[Dict[str, Any]],
-                               available_slots: int, max_slots: int) -> "ActionCard":
-        """Create a swappable spell slot card."""
-        # Create icon based on spell level
-        if spell_level == 0:
-            icon = "✨"  # Cantrip
-        else:
-            icon = f"{spell_level}⭐"  # Level number with star
+                               available_slots: int, max_slots: int):
+        """Create a spell card stack widget."""
+        from talekeeper.ui.action_cards.spell_card_stack import SpellCardStack
 
-        # Create card name showing level and current spell
-        if spell_level == 0:
-            name = f"Cantrip: {default_spell['name']}"
-        else:
-            name = f"Level {spell_level}: {default_spell['name']}"
+        if isinstance(available_slots, float):
+            available_slots = 999
+            max_slots = 999
 
-        # Create description with slot availability and spell info
-        description_parts = []
+        card = SpellCardStack(
+            spell_level=spell_level,
+            cast_type=cast_type,
+            spells=available_spells,
+            available_slots=available_slots,
+            max_slots=max_slots,
+            parent=self
+        )
 
-        # Add slot availability
-        if spell_level == 0:
-            description_parts.append("Cantrip (unlimited)")
-        else:
-            slots_display = self._create_slots_display(available_slots, max_slots)
-            description_parts.append(f"Slots: {slots_display}")
-
-        # Add spell info
-        casting_time = default_spell.get('casting_time', '')
-        if casting_time:
-            description_parts.append(f"Time: {casting_time}")
-
-        range_value = default_spell.get('range_value', '')
-        if range_value:
-            description_parts.append(f"Range: {range_value}")
-
-        if default_spell.get('concentration'):
-            description_parts.append("Concentration")
-
-        # Add spell count if multiple available
-        if len(available_spells) > 1:
-            description_parts.append(f"({len(available_spells)} spells available)")
-
-        description = " | ".join(description_parts)
-
-        # Create action card
-        card = ActionCard(action_type, icon, name, description)
-
-        # Apply current theme to match other cards
         if hasattr(self, 'current_theme'):
             card.update_theme_styles(self.current_theme)
         else:
             card.update_theme_styles("light")
 
-        # Store spell slot data for casting
+        card.spell_cast.connect(self._on_spell_cast_from_stack)
+
         card.spell_slot_data = {
             'spell_level': spell_level,
-            'action_type': action_type,
-            'default_spell': default_spell,
-            'available_spells': available_spells,
-            'available_slots': available_slots,
-            'max_slots': max_slots
+            'cast_type': cast_type,
+            'available_spells': available_spells
         }
 
-        card.action_triggered.connect(self._trigger_action)
-        card.action_hovered.connect(self._action_hovered)
-
         return card
+
+    def _on_spell_cast_from_stack(self, spell: Dict[str, Any]):
+        """Handle spell cast from spell card stack."""
+        character_id = self.character_context.get('id')
+        if not character_id:
+            self._log_to_combat_panel("❌ Error: No character selected")
+            return
+
+        spell_level = spell.get('spell_level', 0)
+
+        if spell_level > 0:
+            spellcasting_service = self._get_spellcasting_service()
+            spell_slots = spellcasting_service.get_character_spell_slots(character_id)
+            slot_info = next((s for s in spell_slots if s.level == spell_level), None)
+
+            if not slot_info or slot_info.available_slots <= 0:
+                self._log_to_combat_panel(f"❌ No level {spell_level} spell slots available")
+                return
+
+        range_val = spell.get('range_value', 'Self').lower()
+        if range_val == 'self':
+            self._execute_spell_cast(spell, character_id, target=None)
+        else:
+            self._log_to_combat_panel(f"Casting {spell['name']} - select target...")
+
+    def _execute_spell_cast(self, spell: Dict[str, Any], character_id: str, target=None):
+        """Execute the actual spell cast."""
+        try:
+            spellcasting_service = self._get_spellcasting_service()
+            result = spellcasting_service.cast_spell(character_id, spell['spell_id'])
+
+            if result.success:
+                self._log_to_combat_panel(f"✨ Cast {spell['name']}!")
+
+                for key, card in self.action_cards.items():
+                    if isinstance(key, str) and key.startswith('spell_level_'):
+                        if hasattr(card, 'spell_slot_data'):
+                            if card.spell_slot_data.get('spell_level') == spell['spell_level']:
+                                new_slots = spellcasting_service.get_character_spell_slots(character_id)
+                                slot_info = next((s for s in new_slots if s.level == spell['spell_level']), None)
+                                if slot_info and hasattr(card, 'update_slots'):
+                                    card.update_slots(slot_info.available_slots, slot_info.max_slots)
+            else:
+                self._log_to_combat_panel(f"❌ Failed to cast: {result.reason}")
+
+        except Exception as e:
+            self._log_to_combat_panel(f"❌ Error casting spell: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _create_slots_display(self, available: int, maximum: int) -> str:
         """Create visual display of spell slots like ●●●○○ (3/5)."""
