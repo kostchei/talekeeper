@@ -95,15 +95,12 @@ TaleKeeper/
 │   └── models/                  # Data models
 │
 ├── data/                        # Game data & runtime files
-│   ├── database/
-│   │   ├── schema/              # SQL schema files
-│   │   ├── seeds/               # Game data (D&D rules)
-│   │   ├── migrations/          # Database updates
-│   │   └── talekeeper.db        # SQLite database (auto-created)
 │   ├── monsters/                # Monster JSON data
 │   ├── config/                  # Runtime configuration
 │   │   └── talekeeper_config.json
 │   └── assets/                  # Images, fonts, art
+│
+├── talekeeper.db                # SQLite database (root directory)
 │
 ├── scripts/                     # Dev tools (excluded from exe)
 │   ├── monster_tools/           # Monster data utilities

@@ -23,7 +23,7 @@ def get_config_path(relative_path=''):
 
 def get_database_path(db_name='talekeeper.db'):
     root = get_root_path()
-    return str(root / 'data' / 'database' / db_name)
+    return str(root / db_name)
 
 def get_assets_path(relative_path=''):
     root = get_root_path()

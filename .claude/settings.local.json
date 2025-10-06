@@ -43,7 +43,8 @@
       "Bash(then echo \"ROOT: $file\")",
       "Bash(fi)",
       "Bash(dir:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

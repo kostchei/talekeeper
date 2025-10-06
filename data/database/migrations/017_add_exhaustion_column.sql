@@ -1,1 +1,0 @@
-ALTER TABLE characters ADD COLUMN exhaustion_level INTEGER DEFAULT 0;

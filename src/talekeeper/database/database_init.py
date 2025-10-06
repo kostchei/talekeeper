@@ -11,9 +11,10 @@ from talekeeper.paths import get_data_path
 class DatabaseInitializer:
     def __init__(self, db_path: str = 'talekeeper.db'):
         self.db_path = db_path
-        self.schema_dir = Path(get_data_path('database/schema'))
-        self.seeds_dir = Path(get_data_path('database/seeds'))
-        self.migrations_dir = Path(get_data_path('database/migrations'))
+        root = Path(__file__).parent.parent.parent.parent
+        self.schema_dir = root / 'database' / 'schema'
+        self.seeds_dir = root / 'database' / 'seeds'
+        self.migrations_dir = root / 'database' / 'migrations'
         
     def initialize(self, force: bool = False, dev_mode: bool = False) -> bool:
         if os.path.exists(self.db_path) and not force:
@@ -44,25 +45,26 @@ class DatabaseInitializer:
         return True
     
     def create_schema(self) -> bool:
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            
+
             schema_file = self.schema_dir / '001_initial_schema.sql'
             if not schema_file.exists():
                 print(f"Error: Schema file not found at {schema_file}")
                 return False
-            
+
             print(f"Loading schema from {schema_file}...")
             with open(schema_file, 'r') as f:
                 schema_sql = f.read()
-            
+
             cursor.executescript(schema_sql)
             conn.commit()
-            
+
             print("Schema created successfully")
             return True
-            
+
         except Exception as e:
             print(f"Error creating schema: {e}")
             return False
@@ -71,6 +73,7 @@ class DatabaseInitializer:
                 conn.close()
     
     def load_game_data(self) -> bool:
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -143,6 +146,7 @@ class DatabaseInitializer:
                 conn.close()
     
     def load_dev_data(self) -> bool:
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -170,6 +174,7 @@ class DatabaseInitializer:
                 conn.close()
     
     def create_migrations_table(self) -> bool:
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -207,6 +212,7 @@ class DatabaseInitializer:
     
     def check_schema_version(self) -> bool:
         """Check and upgrade database schema if needed."""
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -275,6 +281,7 @@ class DatabaseInitializer:
                 conn.close()
     
     def verify_database(self) -> bool:
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()

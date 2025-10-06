@@ -409,12 +409,9 @@ class ActionPanel(QWidget):
     def _hydrate_equipped_weapon(self, weapon: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure equipped weapon entries include mastery-critical metadata."""
         hydrated = dict(weapon)
-        needs_lookup = not hydrated.get('damage_dice') or not hydrated.get('damage_type')
-        needs_lookup = needs_lookup or hydrated.get('weapon_properties') in (None, '', [])
-        needs_lookup = needs_lookup or not hydrated.get('weapon_mastery')
+        weapon_name = hydrated.get('name', '')
 
-        if needs_lookup:
-            weapon_name = hydrated.get('name', '')
+        if weapon_name:
             try:
                 db = self._get_equipment_database()
                 record = db.get_equipment_by_name(weapon_name) if weapon_name else None
@@ -422,6 +419,7 @@ class ActionPanel(QWidget):
                     base_name = self._infer_base_weapon_name(weapon_name)
                     if base_name and base_name.lower() != weapon_name.lower():
                         record = db.get_equipment_by_name(base_name)
+
                 if record:
                     for key in (
                         'item_type',
@@ -445,9 +443,17 @@ class ActionPanel(QWidget):
                             if value not in (None, ''):
                                 hydrated[key] = value
                             continue
+                        if key in ('damage_dice', 'damage_type'):
+                            if value not in (None, ''):
+                                hydrated[key] = value
+                            continue
                         if not hydrated.get(key) and value not in (None, ''):
                             hydrated[key] = value
                     hydrated.setdefault('item_type', record.get('item_type', 'weapon'))
+                else:
+                    print(f"[Equipment] WARNING: Weapon '{weapon_name}' not found in database - weapon stats may be incomplete")
+                    if not hydrated.get('damage_dice'):
+                        raise ValueError(f"Weapon '{weapon_name}' missing from database and has no damage_dice")
             except Exception as exc:
                 print(f"[Equipment] Failed to hydrate weapon '{weapon_name or 'Unknown'}': {exc}")
 
@@ -4639,6 +4645,38 @@ class ActionPanel(QWidget):
         else:
             return ActionType.SPELL_UTILITY
 
+    def _is_self_targeting_spell(self, spell_data: Dict[str, Any]) -> bool:
+        """Determine if spell should default to self-targeting when no target selected."""
+        if 'is_buff' in spell_data and spell_data['is_buff']:
+            return True
+
+        description = spell_data.get('description', '').lower()
+        spell_range = spell_data.get('range', '').lower()
+
+        requires_tohit = any(keyword in description for keyword in [
+            'make a spell attack', 'make a ranged spell attack',
+            'make a melee spell attack', 'spell attack roll'
+        ])
+
+        requires_save = any(keyword in description for keyword in [
+            'must make a saving throw', 'must succeed on a',
+            'make a dexterity saving throw', 'make a constitution saving throw',
+            'make a wisdom saving throw', 'make a strength saving throw',
+            'make a intelligence saving throw', 'make a charisma saving throw',
+            'saving throw', 'fails its save', 'succeeds on its save'
+        ])
+
+        if requires_tohit or requires_save:
+            return False
+
+        buff_keywords = ['gain', 'bonus', 'advantage', 'resistance', 'immunity',
+                        'ac', 'armor', 'hit points', 'speed', 'healing']
+        is_buff = any(keyword in description for keyword in buff_keywords)
+
+        is_touch_or_self = 'self' in spell_range or 'touch' in spell_range
+
+        return is_buff or is_touch_or_self
+
     def _get_spell_icon(self, spell: Dict[str, Any]) -> str:
         """Get an appropriate icon for the spell based on school and properties."""
         school = spell.get('school', '').lower()
@@ -5072,7 +5110,16 @@ class ActionPanel(QWidget):
 
         target_monster = encounter_panel.get_selected_monster()
         if not target_monster:
-            self._log_to_combat_panel(f"⚠️ {spell_name} cast but no target selected")
+            if self._is_self_targeting_spell(spell_data):
+                self._handle_spell_utility(spell_data, context)
+                return
+            else:
+                self._log_to_combat_panel(f"⚠️ {spell_name} cast but no target selected")
+                return
+
+        if self._is_self_targeting_spell(spell_data) and target_monster:
+            self._log_to_combat_panel(f"⚠️ Cannot cast {spell_name} on enemies! Casting on self instead.")
+            self._handle_spell_utility(spell_data, context)
             return
 
         spell_mechanics = self._get_spell_mechanics(spell_name)
@@ -5289,11 +5336,89 @@ class ActionPanel(QWidget):
         return total, breakdown
 
     def _handle_spell_utility(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
-        """Handle utility/buff spell effects."""
+        """Handle utility/buff spell effects on self."""
         spell_name = spell_data['name']
+        spell_level = spell_data.get('level', 0)
+        cast_level = context.get('cast_level', spell_level)
 
-        # For now, just log the effect - this can be expanded with specific spell implementations
-        self._log_to_combat_panel(f"🔮 {spell_name} effect applied")
+        char_name = self.character_context.get('name', 'Character')
+
+        buff_effects = self._get_spell_buff_effects(spell_name, cast_level)
+
+        if buff_effects:
+            self._log_to_combat_panel(f"✨ {char_name} casts {spell_name} on self")
+            for effect in buff_effects:
+                self._log_to_combat_panel(f"   {effect}")
+
+            if self._is_concentration_spell(spell_name):
+                self._log_to_combat_panel(f"   💭 Requires concentration")
+        else:
+            self._log_to_combat_panel(f"🔮 {char_name} casts {spell_name}")
+
+    def _is_concentration_spell(self, spell_name: str) -> bool:
+        """Check if a spell requires concentration."""
+        concentration_spells = {
+            'Bless', 'Divine Favor', 'Protection from Evil and Good',
+            'Shield of Faith', 'Hunter\'s Mark', 'Hex', 'Faerie Fire',
+            'Fog Cloud', 'Grease', 'Entangle', 'Haste', 'Slow',
+            'Polymorph', 'Greater Invisibility', 'Banishment'
+        }
+        return spell_name in concentration_spells
+
+    def _get_spell_buff_effects(self, spell_name: str, cast_level: int) -> List[str]:
+        """Get the buff effects of a spell for display."""
+        effects = {
+            'Divine Favor': [
+                '+1d4 radiant damage to weapon attacks',
+                f'Duration: 1 minute (concentration)'
+            ],
+            'Bless': [
+                '+1d4 to attack rolls and saving throws',
+                f'Duration: 1 minute (concentration)'
+            ],
+            'Protection from Evil and Good': [
+                'Disadvantage on attacks from aberrations, celestials, elementals, fey, fiends, and undead',
+                'Advantage on saves against those creature types',
+                'Cannot be charmed, frightened, or possessed by them',
+                f'Duration: 10 minutes (concentration)'
+            ],
+            'Mage Armor': [
+                'AC = 13 + Dexterity modifier (if not wearing armor)',
+                f'Duration: 8 hours'
+            ],
+            'Shield of Faith': [
+                '+2 bonus to AC',
+                f'Duration: 10 minutes (concentration)'
+            ],
+            'Shield': [
+                '+5 AC until start of your next turn',
+                'Reaction when hit by attack or Magic Missile',
+                f'Duration: 1 round'
+            ],
+            'Longstrider': [
+                '+10 feet to walking speed',
+                f'Duration: 1 hour'
+            ],
+            'Jump': [
+                'Triple jump distance',
+                f'Duration: 1 minute'
+            ],
+            'Expeditious Retreat': [
+                'Dash as a bonus action',
+                f'Duration: 10 minutes (concentration)'
+            ],
+            'False Life': [
+                f'+{5 + cast_level * 5} temporary hit points',
+                f'Duration: 1 hour'
+            ],
+            'Heroism': [
+                'Immune to frightened condition',
+                '+spellcasting modifier temporary HP each turn',
+                f'Duration: 1 minute (concentration)'
+            ],
+        }
+
+        return effects.get(spell_name, [])
 
     def _handle_spell_reaction(self, spell_data: Dict[str, Any], context: Dict[str, Any]):
         """Handle reaction spell effects."""
