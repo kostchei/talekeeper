@@ -933,10 +933,15 @@ class MainWindow(QMainWindow):
     def _force_reload_character(self):
         """Refresh inventory and action panels to show updated data."""
         self.log_panel.log_system("Refreshing inventory...")
-        
+
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
-                character = self.game_engine.current_character
+                character_id = self.game_engine.current_character['id']
+                character = self.game_engine.get_character_by_id_sync(character_id)
+                if character:
+                    self.game_engine.current_character = character
+                else:
+                    character = self.game_engine.current_character
                 character_name = character['name']
                 
                 # Get updated inventory from database
@@ -992,8 +997,9 @@ class MainWindow(QMainWindow):
 
                 # Refresh character sheet panel to show updated stats
                 if hasattr(self, 'character_sheet'):
-                    formatted_character = self._format_character_for_display(character)
-                    self.character_sheet.load_character_data(formatted_character)
+                    print(f"[ForceReload] Updating character sheet for {character['name']} level {character['level']} {character['class_id']}")
+                    self.character_sheet.load_character_data(character)
+                    print(f"[ForceReload] Character sheet updated")
 
                 self.log_panel.log_info(f"Inventory refreshed for {character_name}")
                 self.log_panel.log_system("Equipment and action panels updated")
@@ -1001,6 +1007,9 @@ class MainWindow(QMainWindow):
                 self.log_panel.log_error("No active character to refresh")
                 self.log_panel.log_info("Load or create a character first")
         except Exception as e:
+            import traceback
+            print(f"[ForceReload] EXCEPTION: {e}")
+            print(traceback.format_exc())
             self.log_panel.log_error(f"Failed to refresh inventory: {e}")
             self.log_panel.log_system("Refresh operation failed")
     

@@ -1959,6 +1959,18 @@ class TownEncounterPanel(QWidget):
     
     def _training_completed(self):
         """Handle training completion - refresh the town panel"""
+        # Force refresh character sheet first
+        main_window = self.parent()
+        while main_window:
+            if hasattr(main_window, 'game_engine') and main_window.game_engine.current_character:
+                if hasattr(main_window, '_force_reload_character'):
+                    main_window._force_reload_character()
+                    print(f"[Training] Forced character reload after training")
+                    self.character_data = main_window.game_engine.current_character
+                    print(f"[Training] Updated character_data to level {self.character_data.get('level')}")
+                break
+            main_window = main_window.parent()
+
         # Clear existing layout
         layout = self.layout()
         if layout:
@@ -1966,10 +1978,10 @@ class TownEncounterPanel(QWidget):
                 child = layout.takeAt(0)
                 if child.widget():
                     child.widget().setParent(None)
-        
-        # Recreate the town interface
+
+        # Recreate the town interface with updated character data
         self._setup_ui()
-        
+
         # Notify parent that character may have changed
         parent = self.parent()
         while parent:
@@ -1977,21 +1989,6 @@ class TownEncounterPanel(QWidget):
                 parent.refresh_character_data()
                 break
             parent = parent.parent()
-        
-        # Force refresh character sheet
-        main_window = parent
-        while main_window:
-            if hasattr(main_window, 'character_sheet'):
-                # Reload character data into character sheet
-                if hasattr(main_window, 'game_engine') and main_window.game_engine.current_character:
-                    # Force reload character by calling the main window's force reload method
-                    if hasattr(main_window, '_force_reload_character'):
-                        main_window._force_reload_character()
-                        print(f"[Training] Forced character reload after training")
-                    else:
-                        print(f"[Training] Force reload method not found")
-                break
-            main_window = main_window.parent()
     
     def _leave_town(self):
         """Leave town and return to exploration"""

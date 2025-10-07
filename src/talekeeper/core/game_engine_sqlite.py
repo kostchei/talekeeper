@@ -365,7 +365,7 @@ class GameEngineSQLite:
             print(f"[SQLite] Loading character by ID: {character_id}")
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                
+
                 # Get the character data with save slot info
                 cursor.execute("""
                     SELECT c.*, s.save_name, s.current_location, s.last_played, s.slot_number
@@ -373,16 +373,21 @@ class GameEngineSQLite:
                     JOIN save_slots s ON c.save_slot_id = s.id
                     WHERE c.id = ?
                 """, (character_id,))
-                
+
                 character_row = cursor.fetchone()
                 if not character_row:
                     print(f"[SQLite] No character found with ID {character_id}")
                     return None
-                
+
+                print(f"[SQLite] Found character: {character_row['name']} level {character_row['level']} {character_row['class_id']}")
+
                 # Get the save slot and reload using the existing method
                 slot_number = character_row['slot_number']
-                return self.load_character_sync(slot_number)
-                
+                loaded_char = self.load_character_sync(slot_number)
+                if loaded_char:
+                    print(f"[SQLite] Loaded character: {loaded_char['name']} level {loaded_char['level']} {loaded_char['class_id']}")
+                return loaded_char
+
         except Exception as e:
             print(f"[SQLite] Error loading character by ID {character_id}: {e}")
             return None
