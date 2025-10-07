@@ -984,12 +984,17 @@ class MainWindow(QMainWindow):
                 # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
                     self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character['strength'], character['dexterity'], character.get('class_id', ''), character['constitution'])
-                
+
                 # Refresh action panel (for potion availability)
                 if hasattr(self, 'action_panel'):
                     self.action_panel._update_potion_card()
                     self.action_panel._update_visible_cards()
-                
+
+                # Refresh character sheet panel to show updated stats
+                if hasattr(self, 'character_sheet'):
+                    formatted_character = self._format_character_for_display(character)
+                    self.character_sheet.load_character_data(formatted_character)
+
                 self.log_panel.log_info(f"Inventory refreshed for {character_name}")
                 self.log_panel.log_system("Equipment and action panels updated")
             else:
