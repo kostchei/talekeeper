@@ -287,22 +287,53 @@ class LevelUpService:
         except Exception as e:
             print(f"[LevelUp] Warning: Failed to update resources: {e}")
 
-        if assigned_subclass_id and class_normalized == 'paladin':
+        if class_normalized == 'paladin':
             try:
-                from talekeeper.services.subclass_feature_manager import SubclassFeatureManager
-                subclass_feature_mgr = SubclassFeatureManager(self.db_path)
+                from talekeeper.services.paladin_abilities import get_paladin_service
+                paladin_service = get_paladin_service(self.db_path)
 
-                features = subclass_feature_mgr.get_subclass_features_for_level(assigned_subclass_id, new_class_level)
-                for feature in features:
-                    subclass_feature_mgr.grant_subclass_feature(character_id, feature['id'], new_class_level)
+                # D&D 2024: Prepared spells are fixed by level, not ability modifier
+                prepared_spells_by_level = {
+                    1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,
+                    11: 10, 12: 10, 13: 11, 14: 11, 15: 12, 16: 12, 17: 14, 18: 14, 19: 15, 20: 15
+                }
+                max_prepared = prepared_spells_by_level.get(new_class_level, 2)
 
-                new_spells = subclass_feature_mgr.grant_oath_spells_for_level(character_id, assigned_subclass_id, new_class_level)
-                if new_spells:
-                    print(f"[LevelUp] Granted oath spells: {', '.join(new_spells)}")
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
 
-                print(f"[LevelUp] Granted {len(features)} subclass features for {assigned_subclass_id}")
+                cursor.execute("""
+                    UPDATE paladin_features
+                    SET level = ?, max_spells_prepared = ?, lay_on_hands_pool_max = ?,
+                        channel_divinity_uses_max = CASE
+                            WHEN ? >= 15 THEN 3
+                            WHEN ? >= 7 THEN 2
+                            WHEN ? >= 3 THEN 1
+                            ELSE 0
+                        END
+                    WHERE character_id = ?
+                """, (new_class_level, max_prepared, new_class_level * 5,
+                      new_class_level, new_class_level, new_class_level, character_id))
+                conn.commit()
+                conn.close()
+
+                print(f"[LevelUp] Updated Paladin features: level={new_class_level}, max_prepared={max_prepared}")
+
+                if assigned_subclass_id:
+                    from talekeeper.services.subclass_feature_manager import SubclassFeatureManager
+                    subclass_feature_mgr = SubclassFeatureManager(self.db_path)
+
+                    features = subclass_feature_mgr.get_subclass_features_for_level(assigned_subclass_id, new_class_level)
+                    for feature in features:
+                        subclass_feature_mgr.grant_subclass_feature(character_id, feature['id'], new_class_level)
+
+                    new_spells = subclass_feature_mgr.grant_oath_spells_for_level(character_id, assigned_subclass_id, new_class_level)
+                    if new_spells:
+                        print(f"[LevelUp] Granted oath spells: {', '.join(new_spells)}")
+
+                    print(f"[LevelUp] Granted {len(features)} subclass features for {assigned_subclass_id}")
             except Exception as e:
-                print(f"[LevelUp] Warning: Failed to grant subclass features: {e}")
+                print(f"[LevelUp] Warning: Failed to update paladin features: {e}")
 
         return True
     def _get_hit_die_for_class(self, class_name: str) -> int:

@@ -6968,7 +6968,7 @@ class EncounterPanel(QWidget):
             # 5. Spell Preparation (for preparing classes: Paladin, Cleric, Wizard, etc.)
             try:
                 preparing_classes = ['paladin', 'cleric', 'wizard', 'druid']
-                if character.get('class_id', '').lower() in preparing_classes and character.get('level', 1) >= 2:
+                if character.get('class_id', '').lower() in preparing_classes and character.get('level', 1) >= 1:
                     from talekeeper.ui.dialogs.spell_preparation_dialog import SpellPreparationDialog
 
                     dialog = SpellPreparationDialog(

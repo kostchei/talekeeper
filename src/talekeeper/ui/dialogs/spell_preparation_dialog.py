@@ -41,20 +41,66 @@ class SpellPreparationDialog(QDialog):
                 self.level = row['level']
                 self.spellcasting_ability = row['spellcasting_ability'] or 'charisma'
 
-                ability_scores = {
-                    'charisma': row['charisma'],
-                    'wisdom': row['wisdom'],
-                    'intelligence': row['intelligence']
-                }
-                ability_score = ability_scores.get(self.spellcasting_ability, 10)
-                ability_mod = (ability_score - 10) // 2
-
+                # D&D 2024: Fixed prepared spells by class and level
                 if self.class_id == 'paladin':
-                    self.max_prepared = max(1, ability_mod + (self.level // 2))
+                    # Paladin prepared spells from SRD table
+                    paladin_prepared = {
+                        1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,
+                        11: 10, 12: 10, 13: 11, 14: 11, 15: 12, 16: 12, 17: 14, 18: 14, 19: 15, 20: 15
+                    }
+                    self.max_prepared = paladin_prepared.get(self.level, 2)
                 elif self.class_id == 'cleric':
-                    self.max_prepared = max(1, ability_mod + self.level)
+                    # Cleric prepared spells from SRD table
+                    cleric_prepared = {
+                        1: 4, 2: 5, 3: 6, 4: 7, 5: 9, 6: 9, 7: 10, 8: 10, 9: 12, 10: 12,
+                        11: 13, 12: 13, 13: 14, 14: 14, 15: 15, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19
+                    }
+                    self.max_prepared = cleric_prepared.get(self.level, 4)
+                elif self.class_id == 'wizard':
+                    # Wizard prepared spells from SRD table
+                    wizard_prepared = {
+                        1: 4, 2: 5, 3: 6, 4: 7, 5: 9, 6: 9, 7: 10, 8: 10, 9: 12, 10: 12,
+                        11: 13, 12: 13, 13: 14, 14: 14, 15: 15, 16: 15, 17: 16, 18: 17, 19: 18, 20: 19
+                    }
+                    self.max_prepared = wizard_prepared.get(self.level, 4)
+                elif self.class_id == 'warlock':
+                    # Warlock prepared spells from SRD table
+                    warlock_prepared = {
+                        1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 10,
+                        11: 11, 12: 11, 13: 12, 14: 12, 15: 13, 16: 13, 17: 14, 18: 14, 19: 15, 20: 15
+                    }
+                    self.max_prepared = warlock_prepared.get(self.level, 2)
+                elif self.class_id == 'bard':
+                    # Bard prepared spells from SRD table
+                    bard_prepared = {
+                        1: 4, 2: 5, 3: 6, 4: 7, 5: 9, 6: 10, 7: 11, 8: 12, 9: 14, 10: 15,
+                        11: 16, 12: 16, 13: 17, 14: 17, 15: 18, 16: 18, 17: 19, 18: 20, 19: 21, 20: 22
+                    }
+                    self.max_prepared = bard_prepared.get(self.level, 4)
+                elif self.class_id == 'druid':
+                    # Druid prepared spells from SRD table
+                    druid_prepared = {
+                        1: 4, 2: 5, 3: 6, 4: 7, 5: 9, 6: 10, 7: 11, 8: 12, 9: 14, 10: 15,
+                        11: 16, 12: 16, 13: 17, 14: 17, 15: 18, 16: 18, 17: 19, 18: 20, 19: 21, 20: 22
+                    }
+                    self.max_prepared = druid_prepared.get(self.level, 4)
+                elif self.class_id == 'ranger':
+                    # Ranger prepared spells from SRD table
+                    ranger_prepared = {
+                        1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,
+                        11: 10, 12: 10, 13: 11, 14: 11, 15: 12, 16: 12, 17: 14, 18: 14, 19: 15, 20: 15
+                    }
+                    self.max_prepared = ranger_prepared.get(self.level, 2)
+                elif self.class_id == 'sorcerer':
+                    # Sorcerer prepared spells from SRD table
+                    sorcerer_prepared = {
+                        1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 11,
+                        11: 12, 12: 12, 13: 13, 14: 13, 15: 14, 16: 14, 17: 15, 18: 15, 19: 16, 20: 17
+                    }
+                    self.max_prepared = sorcerer_prepared.get(self.level, 2)
                 else:
-                    self.max_prepared = max(1, ability_mod + self.level)
+                    # Fallback - shouldn't reach here in D&D 2024
+                    self.max_prepared = 2
 
             cursor.execute("""
                 SELECT spell_id, is_prepared, always_prepared

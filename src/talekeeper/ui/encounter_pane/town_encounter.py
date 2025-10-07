@@ -645,7 +645,7 @@ Training includes food and lodging (counts as a long rest)."""
             if success:
                 # Deduct gold
                 self._deduct_gold(character_id, cost)
-                
+
                 # Force reload the character from database to get updated stats
                 parent = self.parent()
                 while parent:
@@ -659,7 +659,32 @@ Training includes food and lodging (counts as a long rest)."""
                                   f"level {updated_character['level']}, {updated_character['hit_points_max']} HP")
                         break
                     parent = parent.parent()
-                
+
+                # Offer spell preparation for preparing classes after level-up
+                try:
+                    preparing_classes = ['paladin', 'cleric', 'wizard', 'druid']
+                    char_class = updated_character.get('class_id', '').lower() if updated_character else ''
+                    if char_class in preparing_classes and updated_character.get('level', 1) >= 1:
+                        from talekeeper.ui.dialogs.spell_preparation_dialog import SpellPreparationDialog
+                        from PyQt6.QtWidgets import QDialog
+
+                        dialog = SpellPreparationDialog(
+                            updated_character['id'],
+                            updated_character['name'],
+                            db_path='talekeeper.db',
+                            parent=self
+                        )
+
+                        if dialog.exec() == QDialog.DialogCode.Accepted:
+                            dialog.save_prepared_spells()
+                            print(f"[Training] Spells prepared for {updated_character['name']}")
+                        else:
+                            print(f"[Training] Spell preparation cancelled")
+                except Exception as e:
+                    print(f"Error in spell preparation after level-up: {e}")
+                    import traceback
+                    traceback.print_exc()
+
                 QMessageBox.information(self, "Training Complete!",
                                       f"Congratulations! You are now level {current_level + 1}!\n\n"
                                       f"Training took {days} days and you feel refreshed (full rest).")

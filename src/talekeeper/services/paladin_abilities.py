@@ -58,8 +58,8 @@ class PaladinAbilitiesService:
                 charisma_score = char_row['charisma']
                 cha_modifier = (charisma_score - 10) // 2
 
-                # Initialize spellcasting if level 2+
-                if level >= 2 and self.spellcasting_service:
+                # Initialize spellcasting if level 1+
+                if level >= 1 and self.spellcasting_service:
                     try:
                         spellcasting_init = self.spellcasting_service.initialize_character_spellcasting(
                             character_id, 'paladin'
@@ -71,8 +71,12 @@ class PaladinAbilitiesService:
                         # Continue without spellcasting
                         pass
 
-                # Calculate max prepared spells (Cha modifier + half paladin level, minimum 1)
-                max_prepared = max(1, cha_modifier + (level // 2)) if level >= 2 else 0
+                # D&D 2024: Prepared spells fixed by level (not ability modifier)
+                prepared_spells_by_level = {
+                    1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,
+                    11: 10, 12: 10, 13: 11, 14: 11, 15: 12, 16: 12, 17: 14, 18: 14, 19: 15, 20: 15
+                }
+                max_prepared = prepared_spells_by_level.get(level, 2)
 
                 # Calculate Lay on Hands pool (5 x paladin level)
                 lay_on_hands_max = 5 * level
