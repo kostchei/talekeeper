@@ -1,0 +1,31 @@
+version: 1
+last_updated: null
+pauses: []
+tasks:
+  - id: qt6-ui-verification-baseline
+    description: Verify that the existing Qt6 UI smoke tests run successfully as a baseline.
+    status: pending
+    tests:
+      - tests/test_spell_cards_qt6.py::test_spell_action_cards
+      - tests/test_stage_1_3_ui.py::test_condition_badge_creation
+    documentation_targets:
+      - docs/agentic_harness_plan.yaml
+    subtasks: []
+    history: []
+    last_result: null
+    last_success_at: null
+    max_retries: 5
+    retries: 0
+  - id: document-handoff-protocol
+    description: Capture the documentation hand-off workflow between the harness and Claude Code.
+    status: pending
+    tests:
+      - tests/test_spell_selection_ui.py::test_wizard_selection
+    documentation_targets:
+      - docs/agentic_harness_service.md
+    subtasks: []
+    history: []
+    last_result: null
+    last_success_at: null
+    max_retries: 5
+    retries: 0
