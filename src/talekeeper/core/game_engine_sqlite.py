@@ -1847,6 +1847,17 @@ class GameEngineSQLite:
                     ac += magical_ac_bonus
                     print(f"[SQLite] Magical AC bonus: +{magical_ac_bonus} (total now {ac})")
 
+            # Apply spell effect AC bonuses (Shield of Faith, etc.)
+            try:
+                from talekeeper.services.spell_effects_service import SpellEffectsService
+                spell_effects = SpellEffectsService(self.db_path)
+                spell_ac_bonus = spell_effects.get_ac_modifier(character_id)
+                if spell_ac_bonus > 0:
+                    ac += spell_ac_bonus
+                    print(f"[SQLite] Spell AC bonus: +{spell_ac_bonus} (total now {ac})")
+            except Exception as e:
+                print(f"[SQLite] Error getting spell AC bonus: {e}")
+
             return ac
 
         except Exception as e:

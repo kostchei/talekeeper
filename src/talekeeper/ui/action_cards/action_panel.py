@@ -1498,7 +1498,11 @@ class ActionPanel(QWidget):
         # Guard: Check if UI is initialized
         if not hasattr(self, '_ui_initialized') or not self._ui_initialized:
             return
-            
+
+        # Hide all cards first
+        for card in self.action_cards.values():
+            card.hide()
+
         # Clear current layout
         for i in reversed(range(self.cards_layout.count())):
             child = self.cards_layout.itemAt(i).widget()
@@ -4575,6 +4579,14 @@ class ActionPanel(QWidget):
         if not self.character_context or not self.character_context.get('id'):
             return
 
+        # Clear existing spell cards first
+        cards_to_remove = [key for key in self.action_cards.keys()
+                          if isinstance(key, str) and key.startswith('spell_level_')]
+        for key in cards_to_remove:
+            if key in self.action_cards:
+                self.action_cards[key].deleteLater()
+                del self.action_cards[key]
+
         character_id = self.character_context['id']
         spells = self._get_character_castable_spells(character_id)
         spell_slots = self._get_character_spell_slots(character_id)
@@ -4632,6 +4644,8 @@ class ActionPanel(QWidget):
             card_key = f"spell_level_{spell_level}_{cast_type}"
             print(f"[DEBUG] Creating card key='{card_key}' with {len(available_spells)} spells: {[s['name'] for s in available_spells]}")
             self.action_cards[card_key] = card
+
+        self._update_visible_cards()
 
     def _determine_spell_action_type(self, spell: Dict[str, Any]) -> ActionType:
         """Determine the appropriate action type for a spell."""
@@ -4813,7 +4827,9 @@ class ActionPanel(QWidget):
                 return
 
         range_val = spell.get('range_value', 'Self').lower()
-        if range_val == 'self':
+        is_buff = spell.get('is_buff', False)
+
+        if range_val == 'self' or (is_buff and range_val == 'touch'):
             self._execute_spell_cast(spell, character_id, target=None)
         else:
             self._log_to_combat_panel(f"Casting {spell['name']} - select target...")

@@ -44,7 +44,8 @@
       "Bash(fi)",
       "Bash(dir:*)",
       "Bash(del:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

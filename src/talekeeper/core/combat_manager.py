@@ -447,10 +447,11 @@ class CombatManager:
             self._start_new_round()
         
         next_combatant = self.get_current_combatant()
-        
+
         if next_combatant:
             self.log(f"[COMBAT] [LIGHTNING] {next_combatant.name}'s turn!")
             self._handle_champion_turn_start(next_combatant)
+            self._handle_spell_effects_turn_start(next_combatant)
 
         return next_combatant
 
@@ -477,6 +478,30 @@ class CombatManager:
             self.log(
                 f"[COMBAT] [SURVIVOR] {combatant.name} recovers {healing_amount} HP ({new_hp}/{max_hp} HP)."
             )
+
+    def _handle_spell_effects_turn_start(self, combatant: Optional[Combatant]) -> None:
+        """Process spell effects at the start of a turn (Heroism temp HP, etc.)."""
+        if not combatant:
+            return
+
+        try:
+            from talekeeper.services.spell_effects_service import SpellEffectsService
+            spell_effects = SpellEffectsService(self.db_path)
+
+            effects_triggered = spell_effects.process_turn_start_effects(combatant.id)
+
+            for effect in effects_triggered:
+                if effect.get('type') == 'temp_hp_granted':
+                    spell_name = effect.get('spell', 'Unknown Spell')
+                    amount = effect.get('amount', 0)
+                    self.log(f"[COMBAT] [{spell_name.upper()}] {combatant.name} gains {amount} temporary HP.")
+
+            expired = spell_effects.decrement_effect_durations(combatant.id)
+            for spell_id in expired:
+                self.log(f"[COMBAT] Spell effect expired on {combatant.name}.")
+
+        except Exception as e:
+            pass
 
 
     def is_combat_ended(self) -> bool:

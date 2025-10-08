@@ -53,7 +53,9 @@ class SpellCardStack(QFrame):
         layout.addWidget(self.cast_button)
 
         if len(self.spells) > 1:
-            self.mousePressEvent = self._on_card_clicked
+            self.header_label.mousePressEvent = self._on_label_clicked
+            self.name_label.mousePressEvent = self._on_label_clicked
+            self.effect_label.mousePressEvent = self._on_label_clicked
 
     def _update_display(self):
         if self.spell_level == 0:
@@ -114,7 +116,7 @@ class SpellCardStack(QFrame):
 
         return " | ".join(effects)
 
-    def _on_card_clicked(self, event):
+    def _on_label_clicked(self, event):
         if len(self.spells) <= 1:
             print(f"[SPELL STACK] Card clicked but only {len(self.spells)} spell(s)")
             return

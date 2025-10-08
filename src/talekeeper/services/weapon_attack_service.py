@@ -148,7 +148,29 @@ class WeaponAttackService:
         if weapon_bonus > 0:
             modifiers_applied.append(f'Magic Weapon +{weapon_bonus}')
 
-        attack_total = attack_roll + ability_mod + prof_bonus + fighting_style_attack + weapon_bonus
+        # Spell effect bonuses to attack (Bless, etc.)
+        spell_attack_bonus = 0
+        spell_attack_dice_bonuses = []
+        try:
+            from talekeeper.services.spell_effects_service import SpellEffectsService
+            spell_effects = SpellEffectsService(self.db_path)
+            attack_bonus_data = spell_effects.get_attack_bonus(character.get('id'))
+            spell_attack_bonus = attack_bonus_data.get('static', 0)
+            spell_attack_dice_bonuses = attack_bonus_data.get('dice_bonuses', [])
+
+            if spell_attack_bonus > 0:
+                modifiers_applied.append(f'Spell Bonus +{spell_attack_bonus}')
+
+            for dice_bonus in spell_attack_dice_bonuses:
+                dice_str = dice_bonus.get('dice', '1d4')
+                num_dice, die_size = self._parse_damage_dice(dice_str)
+                bonus_roll = sum(random.randint(1, die_size) for _ in range(num_dice))
+                spell_attack_bonus += bonus_roll
+                modifiers_applied.append(f"{dice_bonus.get('spell')} +{bonus_roll}")
+        except Exception as e:
+            pass
+
+        attack_total = attack_roll + ability_mod + prof_bonus + fighting_style_attack + weapon_bonus + spell_attack_bonus
 
         # Check if critical
         if attack_roll == 20:
@@ -191,6 +213,32 @@ class WeaponAttackService:
         if weapon_bonus > 0:
             damage_bonus += weapon_bonus
 
+        # Spell effect bonuses to damage (Divine Favor, etc.)
+        spell_damage_dice = []
+        try:
+            from talekeeper.services.spell_effects_service import SpellEffectsService
+            spell_effects = SpellEffectsService(self.db_path)
+            damage_bonus_data = spell_effects.get_damage_bonus(character.get('id'))
+
+            spell_static_bonus = damage_bonus_data.get('static', 0)
+            if spell_static_bonus > 0:
+                damage_bonus += spell_static_bonus
+                modifiers_applied.append(f'Spell Bonus +{spell_static_bonus} damage')
+
+            for dice_bonus in damage_bonus_data.get('dice_bonuses', []):
+                dice_str = dice_bonus.get('dice')
+                if dice_str:
+                    num_dice, die_size = self._parse_damage_dice(dice_str)
+                    bonus_roll = sum(random.randint(1, die_size) for _ in range(num_dice))
+                    spell_damage_dice.append({
+                        'roll': bonus_roll,
+                        'dice': dice_str,
+                        'type': dice_bonus.get('damage_type', 'radiant'),
+                        'spell': dice_bonus.get('spell')
+                    })
+        except Exception as e:
+            pass
+
         # Two-Weapon Fighting special case for off-hand
         if action_type == 'off_hand' and 'light' in weapon_properties:
             if 'Two-Weapon Fighting' not in fighting_styles:
@@ -201,6 +249,10 @@ class WeaponAttackService:
                 modifiers_applied.append('Two-Weapon Fighting (ability mod to off-hand)')
 
         damage_total = sum(damage_rolls) + damage_bonus
+
+        for spell_dice in spell_damage_dice:
+            damage_total += spell_dice['roll']
+            modifiers_applied.append(f"{spell_dice['spell']} +{spell_dice['roll']} {spell_dice['type']}")
 
         # Apply Sneak Attack if eligible (Rogue class)
         sneak_attack_data = self._apply_sneak_attack_if_eligible(

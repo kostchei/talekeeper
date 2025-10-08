@@ -22,11 +22,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 try:
     from talekeeper.services.condition_manager import ConditionManager, ConditionType, ActiveCondition, ConditionEffects
 except ImportError:
-    # Graceful fallback if condition system not available
     ConditionManager = None
     ConditionType = None
     ActiveCondition = None
     ConditionEffects = None
+
+try:
+    from talekeeper.services.spell_effects_service import SpellEffectsService
+except ImportError:
+    SpellEffectsService = None
 
 
 class ConditionBadge(QLabel):
@@ -191,6 +195,147 @@ class ConditionBadge(QLabel):
         return "<br>".join(summary) if summary else "• See D&D rules for details"
 
 
+class SpellEffectBadge(QLabel):
+
+    EFFECT_COLORS = {
+        "ac_bonus": "#4488ff",
+        "attack_bonus": "#ff8844",
+        "attack_and_save_bonus": "#ff8844",
+        "damage_bonus": "#ff4488",
+        "damage_bonus_per_hit": "#ff4488",
+        "temp_hp_per_turn": "#44ff88",
+        "hp_maximum_increase": "#44ff88",
+        "condition_immunity": "#8844ff",
+        "default": "#888888"
+    }
+
+    def __init__(self, spell_name: str, effect_type: str, effect_data: Dict, rounds_remaining: int = None, concentration: bool = False, parent=None):
+        super().__init__(parent)
+        self.spell_name = spell_name
+        self.effect_type = effect_type
+        self.effect_data = effect_data
+        self.rounds_remaining = rounds_remaining
+        self.concentration = concentration
+        self._setup_badge()
+
+    def _setup_badge(self):
+        badge_text = self._get_badge_text()
+        self.setText(badge_text)
+
+        self.setObjectName("spellEffectBadge")
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setMinimumSize(28, 20)
+        self.setMaximumSize(28, 20)
+
+        font = QFont()
+        font.setPixelSize(10)
+        font.setBold(True)
+        self.setFont(font)
+
+        color = self.EFFECT_COLORS.get(self.effect_type, self.EFFECT_COLORS["default"])
+
+        self.setStyleSheet(f"""
+            QLabel#spellEffectBadge {{
+                background-color: {color};
+                color: white;
+                border-radius: 3px;
+                border: 1px solid {color};
+                padding: 1px;
+                margin: 1px;
+            }}
+            QLabel#spellEffectBadge:hover {{
+                border: 1px solid white;
+                background-color: {color}dd;
+            }}
+        """)
+
+        tooltip = self._build_tooltip()
+        self.setToolTip(tooltip)
+
+    def _get_badge_text(self) -> str:
+        spell_abbrevs = {
+            "Shield of Faith": "SoF",
+            "Divine Favor": "DvF",
+            "Bless": "BLS",
+            "Heroism": "HER",
+            "Aid": "AID",
+            "Magic Weapon": "MgW",
+            "Death Ward": "DtW",
+            "Protection from Evil and Good": "PEG",
+            "Warding Bond": "WBd",
+            "Aura of Life": "AoL",
+            "Shining Smite": "ShS",
+            "Zone of Truth": "ZoT"
+        }
+
+        abbrev = spell_abbrevs.get(self.spell_name, self.spell_name[:3].upper())
+
+        if self.concentration:
+            abbrev = f"{abbrev}*"
+
+        return abbrev
+
+    def _build_tooltip(self) -> str:
+        tooltip = f"<b>{self.spell_name}</b><br>"
+
+        if self.concentration:
+            tooltip += "⚡ <b>Concentration</b><br>"
+
+        if self.rounds_remaining:
+            if self.rounds_remaining >= 100:
+                minutes = self.rounds_remaining // 10
+                tooltip += f"⏱ <b>{minutes} min remaining</b><br>"
+            else:
+                tooltip += f"⏱ <b>{self.rounds_remaining} rounds remaining</b><br>"
+
+        tooltip += "<br><u>Effect:</u><br>"
+        tooltip += self._get_effect_description()
+
+        return tooltip
+
+    def _get_effect_description(self) -> str:
+        if self.effect_type == "ac_bonus":
+            value = self.effect_data.get('value', 0)
+            return f"+{value} AC"
+        elif self.effect_type in ("attack_bonus", "attack_and_save_bonus"):
+            dice = self.effect_data.get('bonus_dice', '+1d4')
+            return f"{dice} to attacks/saves"
+        elif self.effect_type in ("damage_bonus", "damage_bonus_per_hit"):
+            dice = self.effect_data.get('damage_dice', '1d4')
+            dtype = self.effect_data.get('damage_type', 'radiant')
+            return f"+{dice} {dtype} damage per hit"
+        elif self.effect_type == "temp_hp_per_turn":
+            amount = self.effect_data.get('temp_hp_per_turn', 0)
+            return f"{amount} temp HP at start of each turn"
+        elif self.effect_type == "hp_maximum_increase":
+            value = self.effect_data.get('value', 0)
+            return f"+{value} HP maximum"
+        elif self.effect_type == "condition_immunity":
+            condition = self.effect_data.get('condition', 'unknown')
+            return f"Immune to {condition.title()}"
+        elif self.effect_type == "weapon_enchantment":
+            attack_bonus = self.effect_data.get('attack_bonus', 1)
+            damage_bonus = self.effect_data.get('damage_bonus', 1)
+            return f"+{attack_bonus} to hit, +{damage_bonus} damage (magical)"
+        elif self.effect_type == "warding_bond":
+            return f"+1 AC, +1 saves, resistance to all damage"
+        elif self.effect_type == "death_ward":
+            return f"Prevents death once (restore to 1 HP)"
+        elif self.effect_type == "aura_of_life":
+            return f"30ft aura: necrotic resistance, heal unconscious 1 HP/turn"
+        elif self.effect_type == "protection_from_evil_and_good":
+            return f"Protection from 6 creature types"
+        elif self.effect_type == "next_hit_bonus_damage":
+            dice = self.effect_data.get('damage_dice', 2)
+            die_type = self.effect_data.get('damage_die_type', 'd6')
+            dtype = self.effect_data.get('damage_type', 'radiant')
+            return f"Next hit: +{dice}{die_type} {dtype} damage"
+        elif self.effect_type == "zone_of_truth":
+            return f"15ft radius: creatures cannot lie (Cha save)"
+        else:
+            return "See spell description"
+
+
 class ConditionDisplayWidget(QWidget):
     """Widget displaying all active conditions as compact badges."""
 
@@ -202,14 +347,20 @@ class ConditionDisplayWidget(QWidget):
         self.character_id = character_id
         self.db_path = db_path
         self.condition_manager = None
+        self.spell_effects_service = None
         self.badges = []
 
-        # Initialize condition manager if available
         if ConditionManager:
             try:
                 self.condition_manager = ConditionManager(db_path)
             except Exception as e:
                 print(f"[ConditionDisplay] Could not initialize condition manager: {e}")
+
+        if SpellEffectsService:
+            try:
+                self.spell_effects_service = SpellEffectsService(db_path)
+            except Exception as e:
+                print(f"[ConditionDisplay] Could not initialize spell effects service: {e}")
 
         self._setup_ui()
 
@@ -219,8 +370,7 @@ class ConditionDisplayWidget(QWidget):
         self.layout.setContentsMargins(2, 2, 2, 2)
         self.layout.setSpacing(2)
 
-        # Add status label for when no conditions
-        self.no_conditions_label = QLabel("No active conditions")
+        self.no_conditions_label = QLabel("No active conditions or effects")
         self.no_conditions_label.setObjectName("noConditionsLabel")
         self.no_conditions_label.setStyleSheet("""
             QLabel#noConditionsLabel {
@@ -230,9 +380,8 @@ class ConditionDisplayWidget(QWidget):
             }
         """)
         self.layout.addWidget(self.no_conditions_label)
-        self.no_conditions_label.show()  # Explicitly show initially
+        self.no_conditions_label.show()
 
-        # Set widget properties
         self.setMaximumHeight(24)
         self.setMinimumHeight(24)
 
@@ -242,45 +391,70 @@ class ConditionDisplayWidget(QWidget):
         self.refresh_conditions()
 
     def refresh_conditions(self):
-        """Update the condition display from talekeeper.database."""
-        if not self.character_id or not self.condition_manager:
+        if not self.character_id:
             self._clear_display()
             return
 
         try:
-            # Get current conditions
-            conditions = self.condition_manager.get_active_conditions(self.character_id)
-            self._update_display(conditions)
+            conditions = []
+            spell_effects = []
 
-            # Emit signal for log integration
-            self.conditions_changed.emit(conditions)
+            if self.condition_manager:
+                conditions = self.condition_manager.get_active_conditions(self.character_id)
+
+            if self.spell_effects_service:
+                spell_effects = self.spell_effects_service.get_active_buffs(self.character_id)
+
+            self._update_display(conditions, spell_effects)
+
+            if conditions:
+                self.conditions_changed.emit(conditions)
 
         except Exception as e:
             print(f"[ConditionDisplay] Error refreshing conditions: {e}")
             self._clear_display()
 
-    def _update_display(self, conditions: List[ActiveCondition]):
-        """Update the badge display with current conditions."""
-        # Clear existing badges
+    def _update_display(self, conditions: List, spell_effects: List[Dict]):
         self._clear_badges()
 
-        if not conditions:
+        conditions = conditions or []
+        spell_effects = spell_effects or []
+
+        total_items = len(conditions) + len(spell_effects)
+
+        if total_items == 0:
             self.no_conditions_label.show()
             return
 
         self.no_conditions_label.hide()
 
-        # Show up to 5 badges, then overflow indicator
-        visible_conditions = conditions[:5]
-        overflow_count = len(conditions) - len(visible_conditions)
+        max_badges = 8
+        visible_count = 0
 
-        # Create badges for visible conditions
-        for condition in visible_conditions:
+        for condition in conditions:
+            if visible_count >= max_badges:
+                break
             badge = ConditionBadge(condition, self)
             self.badges.append(badge)
             self.layout.addWidget(badge)
+            visible_count += 1
 
-        # Add overflow indicator if needed
+        for effect in spell_effects:
+            if visible_count >= max_badges:
+                break
+            badge = SpellEffectBadge(
+                spell_name=effect.get('spell_name', 'Unknown'),
+                effect_type=effect.get('effect_type', 'default'),
+                effect_data=effect.get('effect_data', {}),
+                rounds_remaining=effect.get('rounds_remaining'),
+                concentration=effect.get('concentration', False),
+                parent=self
+            )
+            self.badges.append(badge)
+            self.layout.addWidget(badge)
+            visible_count += 1
+
+        overflow_count = total_items - visible_count
         if overflow_count > 0:
             overflow_label = QLabel(f"+{overflow_count}")
             overflow_label.setObjectName("overflowLabel")
@@ -292,11 +466,10 @@ class ConditionDisplayWidget(QWidget):
                     margin-left: 2px;
                 }
             """)
-            overflow_label.setToolTip(f"{overflow_count} additional conditions - see log for details")
+            overflow_label.setToolTip(f"{overflow_count} more - see character sheet for details")
             self.layout.addWidget(overflow_label)
-            self.badges.append(overflow_label)  # Track for cleanup
+            self.badges.append(overflow_label)
 
-        # Add stretch to push badges to left
         self.layout.addStretch()
 
     def _clear_display(self):
