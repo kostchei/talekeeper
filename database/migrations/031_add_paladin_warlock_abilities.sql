@@ -86,7 +86,7 @@ INSERT OR IGNORE INTO class_abilities (ability_id, class_name, ability_name, des
 -- ============================================================
 
 INSERT OR IGNORE INTO ability_scaling_formulas (formula_name, description, formula_type, formula_data) VALUES
-('invocations_by_level', 'Warlock Eldritch Invocations known', 'lookup', '{"1":1,"2":2,"3":2,"4":2,"5":3,"6":3,"7":4,"8":4,"9":5,"10":5,"11":5,"12":6,"13":6,"14":6,"15":7,"16":7,"17":7,"18":8,"19":8,"20":8}');
+('invocations_by_level', 'Warlock Eldritch Invocations known', 'lookup', '{"1":0,"2":2,"3":2,"4":2,"5":3,"6":3,"7":4,"8":4,"9":5,"10":5,"11":5,"12":6,"13":6,"14":6,"15":7,"16":7,"17":7,"18":8,"19":8,"20":8}');
 
 -- ============================================================
 -- Migration Complete

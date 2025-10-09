@@ -3083,12 +3083,15 @@ class ActionPanel(QWidget):
             if hasattr(self, 'sneak_attack_used_this_turn'):
                 self.sneak_attack_used_this_turn = False
 
+            # Reset reaction availability
+            self.character_context['reaction_used'] = False
+
             # Handle rage turn countdown
             self._update_rage_state()
 
             # Handle Reckless Attack automatic deactivation
             self._update_reckless_attack_state()
-            
+
             # Reset Savage Attacker for new turn
             self.first_attack_this_round = True
 
@@ -4090,6 +4093,10 @@ class ActionPanel(QWidget):
                     if damage > 0:
                         self._check_concentration_save(character_data.get('id'), damage)
 
+                    # Check for reaction spells (Hellish Rebuke)
+                    if damage > 0 and encounter_panel:
+                        self._check_damage_reaction_spells(encounter_panel, damage, character_data)
+
                     # Log damage with HP tracking (similar to monster damage)
                     log_parent = self.parent()
                     while log_parent:
@@ -4153,6 +4160,106 @@ class ActionPanel(QWidget):
             return (constitution - 10) // 2
         except:
             return 0
+
+    def _check_damage_reaction_spells(self, encounter_panel, damage: int, character_data: dict):
+        """Check for reaction spells that trigger when taking damage."""
+        from PyQt6.QtWidgets import QMessageBox
+
+        character_id = character_data.get('id')
+        if not character_id:
+            return
+
+        has_hellish_rebuke = self._character_has_spell('Hellish Rebuke')
+        has_reaction_available = not self.character_context.get('reaction_used', False)
+
+        if has_hellish_rebuke and has_reaction_available:
+            attacker = encounter_panel.get_selected_monster()
+            if attacker:
+                reply = QMessageBox.question(
+                    self,
+                    'Hellish Rebuke',
+                    f'You took {damage} damage! Use Hellish Rebuke as a reaction? (Requires spell slot)',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+
+                if reply == QMessageBox.StandardButton.Yes:
+                    self._cast_hellish_rebuke(attacker, character_id)
+
+    def _character_has_spell(self, spell_name: str) -> bool:
+        """Check if character has a specific spell prepared."""
+        try:
+            import sqlite3
+            character_id = self.character_context.get('id')
+            if not character_id:
+                return False
+
+            with sqlite3.connect('talekeeper.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT COUNT(*) FROM character_spells
+                    WHERE character_id = ? AND spell_name = ? AND is_prepared = 1
+                """, (character_id, spell_name))
+                count = cursor.fetchone()[0]
+                return count > 0
+        except:
+            return False
+
+    def _cast_hellish_rebuke(self, target_monster: dict, character_id: str):
+        """Cast Hellish Rebuke as a reaction."""
+        from talekeeper.services.spellcasting_service import SpellcastingService
+
+        try:
+            spellcasting_service = SpellcastingService('talekeeper.db')
+            available_slots = spellcasting_service.get_character_spell_slots(character_id)
+
+            lowest_slot = None
+            for slot in available_slots:
+                if slot.level >= 1 and slot.available_slots > 0:
+                    lowest_slot = slot
+                    break
+
+            if not lowest_slot:
+                self._log_to_combat_panel("❌ No spell slots available for Hellish Rebuke")
+                return
+
+            cast_level = lowest_slot.level
+            spell_level = 1
+
+            damage, damage_log = self._calculate_spell_damage('Hellish Rebuke', spell_level, cast_level)
+
+            save_dc = self._calculate_spell_save_dc()
+            save_type = 'DEX'
+            save_roll, save_breakdown = self._roll_monster_save(target_monster, save_type)
+
+            if save_roll >= save_dc:
+                final_damage = damage // 2
+                result_text = f"SAVE! (rolled {save_roll} vs DC {save_dc})"
+            else:
+                final_damage = damage
+                result_text = f"FAILED! (rolled {save_roll} vs DC {save_dc})"
+
+            self._log_to_combat_panel(f"🔥 HELLISH REBUKE (Reaction)")
+            self._log_to_combat_panel(f"   Target: {target_monster.get('name', 'Unknown')}")
+            self._log_to_combat_panel(f"   {save_type} Save: {result_text}")
+            self._log_to_combat_panel(f"   Damage: {damage_log}")
+            self._log_to_combat_panel(f"   {target_monster.get('name')} takes {final_damage} fire damage!")
+
+            encounter_panel = self._get_encounter_panel()
+            if encounter_panel:
+                encounter_panel.apply_monster_damage(target_monster, final_damage)
+
+            result = spellcasting_service.use_spell_slot(character_id, cast_level)
+            if result.success:
+                self._log_to_combat_panel(f"   Used level {cast_level} spell slot")
+
+            self.character_context['reaction_used'] = True
+            self._log_to_combat_panel("   Reaction used")
+
+        except Exception as e:
+            self._log_to_combat_panel(f"❌ Error casting Hellish Rebuke: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _apply_healing_to_player(self, healing: int):
         """Apply healing to the player character."""
@@ -5271,6 +5378,34 @@ class ActionPanel(QWidget):
                 'die_size': 10,
                 'damage_type': 'force',
             },
+            'Chill Touch': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 8,
+                'damage_type': 'necrotic',
+            },
+            'Poison Spray': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 12,
+                'damage_type': 'poison',
+            },
+            'Hellish Rebuke': {
+                'base_dice': 2,
+                'die_size': 10,
+                'damage_type': 'fire',
+                'scaling': 'per_level',
+            },
+            'Arms of Hadar': {
+                'base_dice': 2,
+                'die_size': 6,
+                'damage_type': 'necrotic',
+                'scaling': 'per_level',
+            },
+            'Witch Bolt': {
+                'base_dice': 1,
+                'die_size': 12,
+                'damage_type': 'lightning',
+                'scaling': 'per_level',
+            },
         }
 
         if spell_name not in spell_damage_data:
@@ -5291,6 +5426,22 @@ class ActionPanel(QWidget):
                 rolls.append(f"{roll}+{modifier}")
 
             damage_log = f"{num_darts} darts: [{', '.join(rolls)}] = {total_damage} force damage"
+            return total_damage, damage_log
+        elif 'base_dice' in data:
+            base_dice = data['base_dice']
+            die_size = data['die_size']
+            damage_type = data.get('damage_type', 'damage')
+
+            if data.get('scaling') == 'per_level' and cast_level > spell_level:
+                num_dice = base_dice + (cast_level - spell_level)
+            else:
+                num_dice = base_dice
+
+            rolls = [random.randint(1, die_size) for _ in range(num_dice)]
+            total_damage = sum(rolls)
+
+            rolls_str = '+'.join(str(r) for r in rolls)
+            damage_log = f"{num_dice}d{die_size} [{rolls_str}] = {total_damage} {damage_type} damage"
             return total_damage, damage_log
         else:
             num_dice = data['dice']
@@ -5317,8 +5468,8 @@ class ActionPanel(QWidget):
 
     def _get_spell_mechanics(self, spell_name: str) -> str:
         """Determine spell mechanics: 'attack', 'save', or 'auto'."""
-        attack_spells = {'Fire Bolt', 'Ray of Frost', 'Shocking Grasp', 'Eldritch Blast'}
-        save_spells = {'Sacred Flame', 'Burning Hands', 'Thunderwave'}
+        attack_spells = {'Fire Bolt', 'Ray of Frost', 'Shocking Grasp', 'Eldritch Blast', 'Chill Touch', 'Witch Bolt'}
+        save_spells = {'Sacred Flame', 'Burning Hands', 'Thunderwave', 'Poison Spray', 'Hellish Rebuke', 'Arms of Hadar'}
 
         if spell_name in attack_spells:
             return 'attack'
@@ -5378,6 +5529,9 @@ class ActionPanel(QWidget):
             'Thunderwave': 'CON',
             'Hold Person': 'WIS',
             'Charm Person': 'WIS',
+            'Poison Spray': 'CON',
+            'Hellish Rebuke': 'DEX',
+            'Arms of Hadar': 'STR',
         }
         return save_types.get(spell_name, 'DEX')  # Default to DEX
 
