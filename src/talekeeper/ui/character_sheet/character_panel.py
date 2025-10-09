@@ -334,8 +334,8 @@ class CharacterPanel(QWidget):
         # Add all sections to detail panel
         self.detail_layout.addWidget(self.xp_frame, 1)
         self.detail_layout.addWidget(self.proficiencies_frame, 1)
-        self.detail_layout.addWidget(self.features_frame, 6)
-        self.detail_layout.addWidget(self.spells_frame, 2)
+        self.detail_layout.addWidget(self.features_frame, 4)
+        self.detail_layout.addWidget(self.spells_frame, 4)
     
     def _create_ability_widget(self, short_name: str, full_name: str) -> QWidget:
         """Create an ability score widget like in D&D character sheet."""
@@ -1512,7 +1512,79 @@ class CharacterPanel(QWidget):
             return feats, features
         except Exception:
             return [], {}
-    
+
+    def _load_character_spells(self, character_id: str) -> str:
+        """Load and format character spells from database."""
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT cs.spell_id, s.name, s.level, s.school, s.description,
+                       cs.is_prepared, cs.always_prepared, cs.source
+                FROM character_spells cs
+                JOIN spells s ON cs.spell_id = s.id
+                WHERE cs.character_id = ?
+                ORDER BY s.level, s.name
+            """, (character_id,))
+
+            rows = cursor.fetchall()
+            conn.close()
+
+            if not rows:
+                return "=== Cantrips ===\n• No cantrips known\n\n=== Spells Known ===\n• No spells learned\n\n=== Special Abilities ===\n• Class-specific magical abilities\n• Racial magical traits"
+
+            cantrips = []
+            spells_by_level = {}
+
+            for row in rows:
+                spell_name = row['name']
+                spell_level = row['level']
+                is_prepared = row['is_prepared']
+                always_prepared = row['always_prepared']
+                source = row['source']
+                school = row['school']
+
+                if spell_level == 0:
+                    cantrips.append(f"• {spell_name} ({school})")
+                else:
+                    if spell_level not in spells_by_level:
+                        spells_by_level[spell_level] = []
+
+                    prep_marker = ""
+                    if always_prepared:
+                        prep_marker = " [Always Prepared]"
+                    elif is_prepared:
+                        prep_marker = " [Prepared]"
+
+                    spells_by_level[spell_level].append(f"• {spell_name} ({school}){prep_marker}")
+
+            text = "=== Cantrips ===\n"
+            if cantrips:
+                text += "\n".join(cantrips) + "\n"
+            else:
+                text += "• No cantrips known\n"
+
+            text += "\n=== Spells Known ===\n"
+            if spells_by_level:
+                for level in sorted(spells_by_level.keys()):
+                    level_suffix = {1: "st", 2: "nd", 3: "rd"}.get(level, "th")
+                    text += f"\n--- {level}{level_suffix} Level ---\n"
+                    text += "\n".join(spells_by_level[level]) + "\n"
+            else:
+                text += "• No leveled spells known\n"
+
+            text += "\n=== Special Abilities ===\n"
+            text += "• Class-specific magical abilities\n"
+            text += "• Racial magical traits\n"
+
+            return text
+
+        except Exception as e:
+            print(f"[CharacterPanel] Error loading spells: {e}")
+            return "=== Spells ===\nError loading spell data"
+
     def _get_feature_description(self, feature_name: str, class_name: str = "fighter") -> str:
         """Get feature description from feature definitions."""
         try:
@@ -1754,18 +1826,18 @@ class CharacterPanel(QWidget):
         
         # Load weapon masteries for Fighter characters (ensure UI is visible)
         
-        # Update spells section (basic implementation)
-        spells_text = "=== Cantrips ===\n"
-        spells_text += "• Known cantrips will appear here\n\n"
-        
-        spells_text += "=== Spells Known ===\n"
-        spells_text += f"• Level 1-{(level + 1) // 2} spells available\n"
-        spells_text += "• Spell slots and casting ability\n\n"
-        
-        spells_text += "=== Special Abilities ===\n"
-        spells_text += "• Class-specific magical abilities\n"
-        spells_text += "• Racial magical traits\n"
-        
+        # Update spells section with actual character spells
+        if char_id:
+            spells_text = self._load_character_spells(char_id)
+        else:
+            spells_text = "=== Cantrips ===\n"
+            spells_text += "• No cantrips known\n\n"
+            spells_text += "=== Spells Known ===\n"
+            spells_text += "• No spells learned\n\n"
+            spells_text += "=== Special Abilities ===\n"
+            spells_text += "• Class-specific magical abilities\n"
+            spells_text += "• Racial magical traits\n"
+
         self.spells_text.setPlainText(spells_text)
 
     def _update_conditions(self, character_data: Dict[str, Any]):

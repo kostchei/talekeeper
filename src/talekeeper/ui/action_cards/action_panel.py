@@ -4595,6 +4595,15 @@ class ActionPanel(QWidget):
         print(f"[DEBUG] Found {len(spells)} castable spells: {[s['name'] for s in spells]}")
         print(f"[DEBUG] Spell slots: {spell_slots}")
 
+        is_warlock = self.character_context.get('class_id', '').lower() == 'warlock'
+        pact_slot_level = None
+
+        if is_warlock:
+            pact_slots = [slot for slot in spell_slots if slot.slot_type.value == 'pact']
+            if pact_slots:
+                pact_slot_level = pact_slots[0].level
+                print(f"[DEBUG] Warlock detected - Pact Magic slot level: {pact_slot_level}")
+
         spells_by_level_and_type = {}
         for spell in spells:
             spell_level = spell['spell_level']
@@ -4607,7 +4616,13 @@ class ActionPanel(QWidget):
             else:
                 cast_type = 'action'
 
-            key = (spell_level, cast_type)
+            if is_warlock and spell_level > 0 and pact_slot_level:
+                effective_level = pact_slot_level
+                print(f"[DEBUG] Warlock spell {spell['name']} (base level {spell_level}) -> using pact slot level {effective_level}")
+            else:
+                effective_level = spell_level
+
+            key = (effective_level, cast_type)
             if key not in spells_by_level_and_type:
                 spells_by_level_and_type[key] = []
             spells_by_level_and_type[key].append(spell)
@@ -4832,7 +4847,15 @@ class ActionPanel(QWidget):
         if range_val == 'self' or (is_buff and range_val == 'touch'):
             self._execute_spell_cast(spell, character_id, target=None)
         else:
-            self._log_to_combat_panel(f"Casting {spell['name']} - select target...")
+            encounter_panel = self._get_encounter_panel()
+            if encounter_panel:
+                target_monster = encounter_panel.get_selected_monster()
+                if target_monster:
+                    self._execute_spell_cast(spell, character_id, target=target_monster)
+                else:
+                    self._log_to_combat_panel(f"⚠️ {spell['name']} requires a target - select a monster first")
+            else:
+                self._log_to_combat_panel(f"Casting {spell['name']} - select target...")
 
     def _execute_spell_cast(self, spell: Dict[str, Any], character_id: str, target=None):
         """Execute the actual spell cast."""
@@ -4841,7 +4864,17 @@ class ActionPanel(QWidget):
             result = spellcasting_service.cast_spell(character_id, spell['spell_id'])
 
             if result.success:
-                self._log_to_combat_panel(f"✨ Cast {spell['name']}!")
+                spell_level = spell.get('spell_level', 0)
+
+                if spell_level == 0:
+                    self._log_to_combat_panel(f"✨ Cast cantrip: {spell['name']}")
+                else:
+                    self._log_to_combat_panel(f"✨ Cast {spell['name']} (level {spell_level})")
+
+                spell_mechanics = self._get_spell_mechanics(spell['name'])
+                if spell_mechanics in ['attack', 'save', 'auto']:
+                    context = {'cast_level': spell_level}
+                    self._handle_spell_attack(spell, context)
 
                 for key, card in self.action_cards.items():
                     if isinstance(key, str) and key.startswith('spell_level_'):
@@ -4851,6 +4884,13 @@ class ActionPanel(QWidget):
                                 slot_info = next((s for s in new_slots if s.level == spell['spell_level']), None)
                                 if slot_info and hasattr(card, 'update_slots'):
                                     card.update_slots(slot_info.available_slots, slot_info.max_slots)
+
+                self._update_action_economy(ActionType.CAST_SPELL)
+
+                encounter_panel = self._get_encounter_panel()
+                if encounter_panel:
+                    self._advance_combat_turn(encounter_panel)
+
             else:
                 self._log_to_combat_panel(f"❌ Failed to cast: {result.reason}")
 
@@ -5225,6 +5265,11 @@ class ActionPanel(QWidget):
                 'dice': self._get_cantrip_dice_by_level(char_level),
                 'die_size': 8,
                 'damage_type': 'radiant',
+            },
+            'Eldritch Blast': {
+                'dice': self._get_cantrip_dice_by_level(char_level),
+                'die_size': 10,
+                'damage_type': 'force',
             },
         }
 

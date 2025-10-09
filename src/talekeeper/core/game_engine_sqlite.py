@@ -739,6 +739,9 @@ class GameEngineSQLite:
                 selected_cantrips = character_data.get('selected_cantrips', [])
                 selected_spells = character_data.get('selected_spells', [])
 
+                print(f"[SQLite] Character data contains {len(selected_cantrips)} cantrips: {selected_cantrips}")
+                print(f"[SQLite] Character data contains {len(selected_spells)} spells: {selected_spells}")
+
                 if selected_cantrips:
                     for cantrip_id in selected_cantrips:
                         cursor.execute("""

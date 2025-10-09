@@ -2387,10 +2387,15 @@ class EncounterPanel(QWidget):
         self.spell_selection_widget = spell_widget
         self.class_features_layout.addWidget(spell_widget)
 
+        self._on_spells_changed()
+        print(f"[DEBUG] Spell selection widget setup complete for {class_name}")
+
     def _on_spells_changed(self):
         if hasattr(self, 'spell_selection_widget'):
             self.character_creation_data['selected_cantrips'] = self.spell_selection_widget.get_selected_cantrips()
             self.character_creation_data['selected_spells'] = self.spell_selection_widget.get_selected_spells()
+            print(f"[DEBUG] Spells changed - Cantrips: {self.character_creation_data['selected_cantrips']}")
+            print(f"[DEBUG] Spells changed - Level 1: {self.character_creation_data['selected_spells']}")
 
     def _setup_species_skill_selection(self, species_id: str):
         """Setup skill selection interface for the selected species."""
@@ -3225,6 +3230,11 @@ class EncounterPanel(QWidget):
     
     def _finish_character_creation(self):
         """Complete character creation and emit the character data."""
+        # Capture final spell selections before creating character
+        if hasattr(self, 'spell_selection_widget'):
+            self._on_spells_changed()
+            print("[DEBUG] Final spell capture before character creation")
+
         # Calculate final ability scores with background bonuses (D&D 2024)
         final_ability_scores = {}
         rolled_scores = self.character_creation_data.get('rolled_scores', {})
@@ -3399,6 +3409,9 @@ class EncounterPanel(QWidget):
             'selected_spells': self.character_creation_data.get('selected_spells', []),
             'skilled_feat_skills': self.character_creation_data.get('skilled_feat_skills', {})
         }
+
+        print(f"[DEBUG] Final character cantrips: {final_character['selected_cantrips']}")
+        print(f"[DEBUG] Final character spells: {final_character['selected_spells']}")
 
         # Record selected equipment options - break down combination strings
         if hasattr(self, 'equipment_button_groups'):
