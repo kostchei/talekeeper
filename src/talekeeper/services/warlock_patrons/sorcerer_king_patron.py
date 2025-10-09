@@ -20,13 +20,16 @@ class SorcererKingPatron:
             9: ["dominate_person", "synaptic_static"]
         }
 
-    def initialize_patron_features(self, character_id: str, level: int):
+    def initialize_patron_features(self, character_id: str, level: int, cursor=None):
         """Initialize all Sorcerer-King patron features for the given level."""
-        with sqlite3.connect(self.db_path) as conn:
+        should_commit = False
+        if cursor is None:
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
+            should_commit = True
 
-            # Level 3: Sorcerer-King Spells and Tyrant's Herald
-            if level >= 3:
+        # Level 3: Sorcerer-King Spells and Tyrant's Herald
+        if level >= 3:
                 # Sorcerer-King Spells with Psionic Casting
                 expanded_spells = self.get_expanded_spells()
                 cursor.execute("""
@@ -150,7 +153,9 @@ class SorcererKingPatron:
                     })
                 ))
 
+        if should_commit:
             conn.commit()
+            conn.close()
 
     def use_voice_of_tyranny(self, character_id: str) -> bool:
         """Use Voice of Tyranny to cast Command as bonus action."""

@@ -23,11 +23,11 @@ class PatronManager:
         """Get patron implementation by name."""
         return self.patrons.get(patron_name)
 
-    def initialize_patron_features(self, character_id: str, patron_name: str, level: int):
+    def initialize_patron_features(self, character_id: str, patron_name: str, level: int, cursor=None):
         """Initialize patron features for a character."""
         patron = self.get_patron(patron_name)
         if patron:
-            patron.initialize_patron_features(character_id, level)
+            patron.initialize_patron_features(character_id, level, cursor)
 
     def get_expanded_spells(self, patron_name: str) -> Dict[int, List[str]]:
         """Get expanded spells for a patron."""

@@ -1464,8 +1464,10 @@ class GameEngineSQLite:
         print(f"[SQLite] Initialized Wizard features - Level {level} spell slots")
     
     def _initialize_warlock_features(self, cursor, character_id: str, character_data: Dict):
-        """Initialize Warlock-specific features (pact magic)."""
+        """Initialize Warlock-specific features (pact magic, D&D 2024 rules)."""
         level = character_data.get('level', 1)
+        charisma = character_data.get('charisma', 10)
+        cha_modifier = (charisma - 10) // 2
 
         # Get pact progression from the progression table
         cursor.execute("""
@@ -1482,14 +1484,12 @@ class GameEngineSQLite:
             cantrips_known = progression['cantrips_known']
             spells_known = progression['spells_known']
         else:
-            # Fallback values for level 1
             pact_slots = 1
             pact_slot_level = 1
-            invocations_known = 0
+            invocations_known = 1
             cantrips_known = 2
             spells_known = 2
 
-        # Get patron from character data (might be selected during creation)
         patron = character_data.get('subclass', 'Fiend')
 
         # Initialize warlock features table
@@ -1516,40 +1516,62 @@ class GameEngineSQLite:
             ) VALUES (?, 'warlock', 'Charisma', ?, ?, '[]', '[]', ?, 0, 'arcane_focus')
         """, (
             character_id,
-            8 + 2 + ((character_data.get('charisma', 10) - 10) // 2),  # Base DC calculation
-            2 + ((character_data.get('charisma', 10) - 10) // 2),  # Attack bonus calculation
+            8 + 2 + cha_modifier,
+            2 + cha_modifier,
             cantrips_known
         ))
 
-        # Save selected invocation if provided
-        if 'warlock_invocation' in character_data and character_data['warlock_invocation']:
-            invocation_data = character_data['warlock_invocation']
-            invocation_id = invocation_data.get('id')
-            if invocation_id:
-                cursor.execute("""
-                    INSERT INTO warlock_invocations (character_id, invocation_id, learned_at_level)
-                    VALUES (?, ?, ?)
-                """, (character_id, invocation_id, level))
-
-                current_invocations = json.loads('[]')
-                current_invocations.append(invocation_id)
-                cursor.execute("""
-                    UPDATE warlock_features
-                    SET invocations_known = ?
-                    WHERE character_id = ?
-                """, (json.dumps(current_invocations), character_id))
-
-        # Apply patron-specific features
-        try:
-            from talekeeper.services.warlock_patrons import get_patron_manager
-            patron_manager = get_patron_manager(self.db_path)
-            patron_manager.initialize_patron_features(character_id, patron, level)
-        except ImportError:
-            # Fallback for older implementation
+        # Patron features start at level 3 (like Paladin Sacred Oath at level 3)
+        if level >= 3:
             if patron == 'Fiend':
-                from talekeeper.services.warlock_service import FiendPatronService
-                fiend_service = FiendPatronService(self.db_path)
-                fiend_service.apply_fiend_features(character_id, level)
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Dark One's Blessing", 'passive', 'permanent', 3,
+                      "When you reduce an enemy to 0 HP, gain Temporary HP = Charisma mod + Warlock level (min 1). Also triggers if ally within 10 ft reduces enemy to 0 HP.",
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend'})))
+
+                fiend_spells = {
+                    3: ['burning_hands', 'command', 'scorching_ray', 'suggestion'],
+                    5: ['fireball', 'stinking_cloud'],
+                    7: ['fire_shield', 'wall_of_fire'],
+                    9: ['geas', 'insect_plague']
+                }
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Fiend Spells', 'passive', 'permanent', 3,
+                      'Your patron ensures you always have certain spells prepared.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'spells': fiend_spells})))
+
+            if level >= 6 and patron == 'Fiend':
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Dark One's Own Luck", 'special', 'long_rest', 6,
+                      "Add 1d10 to ability check or save (after seeing roll, before effects). Usable Charisma mod times (min 1) per long rest.",
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': max(1, cha_modifier), 'uses_current': max(1, cha_modifier)})))
+
+            if level >= 10 and patron == 'Fiend':
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Fiendish Resilience', 'passive', 'short_rest', 10,
+                      'Choose one damage type (not Force) after short/long rest. Gain Resistance until you choose different type.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'current_resistance': None})))
+
+            if level >= 14 and patron == 'Fiend':
+                cursor.execute("""
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Hurl Through Hell', 'special', 'long_rest', 14,
+                      'Once per turn on hit, target Charisma save or 8d10 Psychic + Incapacitated until end of next turn. Restore use with Pact slot.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1, 'damage': '8d10', 'damage_type': 'psychic'})))
 
         print(f"[SQLite] Initialized Warlock features - {pact_slots} level {pact_slot_level} pact slots, {patron} patron")
     

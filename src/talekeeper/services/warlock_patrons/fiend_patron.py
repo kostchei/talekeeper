@@ -21,64 +21,69 @@ class FiendPatron:
             5: ["flame_strike", "hallow"]
         }
 
-    def initialize_patron_features(self, character_id: str, level: int):
+    def initialize_patron_features(self, character_id: str, level: int, cursor=None):
         """Initialize all Fiend patron features for the given level."""
-        with sqlite3.connect(self.db_path) as conn:
+        should_commit = False
+        if cursor is None:
+            conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
+            should_commit = True
 
-            # Level 1: Dark One's Blessing
-            if level >= 1:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features
-                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, "Dark One's Blessing", 'passive', 'permanent', 1,
-                      "When you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).",
-                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend'})))
+        # Level 1: Dark One's Blessing
+        if level >= 1:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, "Dark One's Blessing", 'passive', 'permanent', 1,
+                  "When you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).",
+                  json.dumps({'source': 'warlock_patron', 'patron': 'fiend'})))
 
-                # Add expanded spells
-                expanded_spells = self.get_expanded_spells()
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features
-                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, 'Fiend Expanded Spells', 'passive', 'permanent', 1,
-                      'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell.',
-                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'spells': expanded_spells})))
+            # Add expanded spells
+            expanded_spells = self.get_expanded_spells()
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, 'Fiend Expanded Spells', 'passive', 'permanent', 1,
+                  'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell.',
+                  json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'spells': expanded_spells})))
 
-            # Level 6: Dark One's Own Luck
-            if level >= 6:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features
-                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, "Dark One's Own Luck", 'reaction', 'short_rest', 6,
-                      "You can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll's effects occur.",
-                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1})))
+        # Level 6: Dark One's Own Luck
+        if level >= 6:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, "Dark One's Own Luck", 'reaction', 'short_rest', 6,
+                  "You can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll's effects occur.",
+                  json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1})))
 
-            # Level 10: Fiendish Resilience
-            if level >= 10:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features
-                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, 'Fiendish Resilience', 'passive', 'permanent', 10,
-                      'You can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature.',
-                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'current_resistance': None,
-                                  'available_types': ['acid', 'cold', 'fire', 'lightning', 'necrotic', 'poison', 'radiant', 'thunder']})))
+        # Level 10: Fiendish Resilience
+        if level >= 10:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, 'Fiendish Resilience', 'passive', 'permanent', 10,
+                  'You can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature.',
+                  json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'current_resistance': None,
+                              'available_types': ['acid', 'cold', 'fire', 'lightning', 'necrotic', 'poison', 'radiant', 'thunder']})))
 
-            # Level 14: Hurl Through Hell
-            if level >= 14:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features
-                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (character_id, 'Hurl Through Hell', 'action', 'long_rest', 14,
-                      'When you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.',
-                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1,
-                                  'damage': '10d10', 'damage_type': 'psychic'})))
+        # Level 14: Hurl Through Hell
+        if level >= 14:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, 'Hurl Through Hell', 'action', 'long_rest', 14,
+                  'When you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.',
+                  json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1,
+                              'damage': '10d10', 'damage_type': 'psychic'})))
 
+        if should_commit:
             conn.commit()
+            conn.close()
 
     def dark_ones_blessing(self, character_id: str, target_cr: float = 1.0) -> int:
         """Apply Dark One's Blessing when a creature is reduced to 0 HP."""
