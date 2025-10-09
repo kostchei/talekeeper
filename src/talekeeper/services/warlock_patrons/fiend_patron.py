@@ -29,65 +29,54 @@ class FiendPatron:
             # Level 1: Dark One's Blessing
             if level >= 1:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source, feature_data)
-                    VALUES (?, 'dark_ones_blessing', 'warlock_patron', ?)
-                """, (character_id, json.dumps({
-                    'name': "Dark One's Blessing",
-                    'description': "When you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).",
-                    'usage': 'passive'
-                })))
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Dark One's Blessing", 'passive', 'permanent', 1,
+                      "When you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).",
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend'})))
 
                 # Add expanded spells
                 expanded_spells = self.get_expanded_spells()
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source, feature_data)
-                    VALUES (?, 'fiend_expanded_spells', 'warlock_patron', ?)
-                """, (character_id, json.dumps({
-                    'name': 'Fiend Expanded Spells',
-                    'description': 'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell.',
-                    'spells': expanded_spells
-                })))
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Fiend Expanded Spells', 'passive', 'permanent', 1,
+                      'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'spells': expanded_spells})))
 
             # Level 6: Dark One's Own Luck
             if level >= 6:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source, feature_data)
-                    VALUES (?, 'dark_ones_own_luck', 'warlock_patron', ?)
-                """, (character_id, json.dumps({
-                    'name': "Dark One's Own Luck",
-                    'description': "You can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll's effects occur.",
-                    'usage': 'short_rest',
-                    'uses_max': 1,
-                    'uses_current': 1
-                })))
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, "Dark One's Own Luck", 'reaction', 'short_rest', 6,
+                      "You can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll's effects occur.",
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1})))
 
             # Level 10: Fiendish Resilience
             if level >= 10:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source, feature_data)
-                    VALUES (?, 'fiendish_resilience', 'warlock_patron', ?)
-                """, (character_id, json.dumps({
-                    'name': 'Fiendish Resilience',
-                    'description': 'You can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature.',
-                    'usage': 'rest_choice',
-                    'current_resistance': None,
-                    'available_types': ['acid', 'cold', 'fire', 'lightning', 'necrotic', 'poison', 'radiant', 'thunder']
-                })))
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Fiendish Resilience', 'passive', 'permanent', 10,
+                      'You can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'current_resistance': None,
+                                  'available_types': ['acid', 'cold', 'fire', 'lightning', 'necrotic', 'poison', 'radiant', 'thunder']})))
 
             # Level 14: Hurl Through Hell
             if level >= 14:
                 cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source, feature_data)
-                    VALUES (?, 'hurl_through_hell', 'warlock_patron', ?)
-                """, (character_id, json.dumps({
-                    'name': 'Hurl Through Hell',
-                    'description': 'When you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.',
-                    'usage': 'long_rest',
-                    'uses_max': 1,
-                    'uses_current': 1,
-                    'damage': '10d10',
-                    'damage_type': 'psychic'
-                })))
+                    INSERT OR IGNORE INTO character_features
+                    (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, 'Hurl Through Hell', 'action', 'long_rest', 14,
+                      'When you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.',
+                      json.dumps({'source': 'warlock_patron', 'patron': 'fiend', 'uses_max': 1, 'uses_current': 1,
+                                  'damage': '10d10', 'damage_type': 'psychic'})))
 
             conn.commit()
 
@@ -133,25 +122,25 @@ class FiendPatron:
 
             # Check if feature is available
             cursor.execute("""
-                SELECT feature_data FROM character_features
-                WHERE character_id = ? AND feature_id = 'dark_ones_own_luck'
+                SELECT mechanics FROM character_features
+                WHERE character_id = ? AND feature_name = 'Dark One''s Own Luck'
             """, (character_id,))
 
             result = cursor.fetchone()
             if not result:
                 return False
 
-            feature_data = json.loads(result[0])
-            if feature_data.get('uses_current', 0) <= 0:
+            mechanics = json.loads(result[0])
+            if mechanics.get('uses_current', 0) <= 0:
                 return False
 
             # Use the feature
-            feature_data['uses_current'] = feature_data.get('uses_current', 1) - 1
+            mechanics['uses_current'] = mechanics.get('uses_current', 1) - 1
             cursor.execute("""
                 UPDATE character_features
-                SET feature_data = ?
-                WHERE character_id = ? AND feature_id = 'dark_ones_own_luck'
-            """, (json.dumps(feature_data), character_id))
+                SET mechanics = ?
+                WHERE character_id = ? AND feature_name = 'Dark One''s Own Luck'
+            """, (json.dumps(mechanics), character_id))
 
             conn.commit()
             return True
@@ -169,8 +158,8 @@ class FiendPatron:
             # Update the resistance choice
             cursor.execute("""
                 UPDATE character_features
-                SET feature_data = json_set(feature_data, '$.current_resistance', ?)
-                WHERE character_id = ? AND feature_id = 'fiendish_resilience'
+                SET mechanics = json_set(mechanics, '$.current_resistance', ?)
+                WHERE character_id = ? AND feature_name = 'Fiendish Resilience'
             """, (damage_type, character_id))
 
             # Also update character resistances
@@ -203,25 +192,25 @@ class FiendPatron:
 
             # Check if feature is available
             cursor.execute("""
-                SELECT feature_data FROM character_features
-                WHERE character_id = ? AND feature_id = 'hurl_through_hell'
+                SELECT mechanics FROM character_features
+                WHERE character_id = ? AND feature_name = 'Hurl Through Hell'
             """, (character_id,))
 
             result = cursor.fetchone()
             if not result:
                 return {'success': False, 'reason': 'Feature not available'}
 
-            feature_data = json.loads(result[0])
-            if feature_data.get('uses_current', 0) <= 0:
+            mechanics = json.loads(result[0])
+            if mechanics.get('uses_current', 0) <= 0:
                 return {'success': False, 'reason': 'No uses remaining'}
 
             # Use the feature
-            feature_data['uses_current'] = feature_data.get('uses_current', 1) - 1
+            mechanics['uses_current'] = mechanics.get('uses_current', 1) - 1
             cursor.execute("""
                 UPDATE character_features
-                SET feature_data = ?
-                WHERE character_id = ? AND feature_id = 'hurl_through_hell'
-            """, (json.dumps(feature_data), character_id))
+                SET mechanics = ?
+                WHERE character_id = ? AND feature_name = 'Hurl Through Hell'
+            """, (json.dumps(mechanics), character_id))
 
             conn.commit()
 
@@ -243,9 +232,9 @@ class FiendPatron:
             # Restore Dark One's Own Luck
             cursor.execute("""
                 UPDATE character_features
-                SET feature_data = json_set(feature_data, '$.uses_current', json_extract(feature_data, '$.uses_max'))
-                WHERE character_id = ? AND feature_id = 'dark_ones_own_luck'
-                AND json_extract(feature_data, '$.usage') = 'short_rest'
+                SET mechanics = json_set(mechanics, '$.uses_current', json_extract(mechanics, '$.uses_max'))
+                WHERE character_id = ? AND feature_name = 'Dark One''s Own Luck'
+                AND usage_type = 'short_rest'
             """, (character_id,))
 
             conn.commit()
@@ -271,22 +260,22 @@ class FiendPatron:
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT feature_id, feature_data FROM character_features
-                WHERE character_id = ? AND feature_source = 'warlock_patron'
+                SELECT feature_name, mechanics FROM character_features
+                WHERE character_id = ? AND mechanics LIKE '%warlock_patron%'
             """, (character_id,))
 
             features = []
             for row in cursor.fetchall():
-                feature_id, feature_data = row
-                data = json.loads(feature_data) if feature_data else {}
+                feature_name, mechanics_json = row
+                mechanics = json.loads(mechanics_json) if mechanics_json else {}
                 features.append({
-                    'id': feature_id,
-                    'name': data.get('name', feature_id),
-                    'description': data.get('description', ''),
-                    'usage': data.get('usage', 'passive'),
-                    'uses_current': data.get('uses_current'),
-                    'uses_max': data.get('uses_max'),
-                    'data': data
+                    'id': feature_name.lower().replace(' ', '_'),
+                    'name': feature_name,
+                    'description': mechanics.get('description', ''),
+                    'usage': mechanics.get('usage', 'passive'),
+                    'uses_current': mechanics.get('uses_current'),
+                    'uses_max': mechanics.get('uses_max'),
+                    'data': mechanics
                 })
 
             return features

@@ -45,7 +45,8 @@
       "Bash(dir:*)",
       "Bash(del:*)",
       "Bash(grep:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(tasklist)"
     ],
     "deny": [],
     "ask": []

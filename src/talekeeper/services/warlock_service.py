@@ -77,8 +77,11 @@ class WarlockService:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                VALUES (?, 'pact_weapon', 'warlock_pact')
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, 'Pact of the Blade', 'action', 'permanent', 3,
+                        'You can use your action to create a pact weapon in your empty hand.',
+                        '{"source": "warlock_pact", "pact_type": "blade"}')
             """, (character_id,))
             conn.commit()
 
@@ -87,8 +90,11 @@ class WarlockService:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                VALUES (?, 'pact_familiar', 'warlock_pact')
+                INSERT OR IGNORE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, 'Pact of the Chain', 'passive', 'permanent', 3,
+                        'You learn the Find Familiar spell and can cast it as a ritual.',
+                        '{"source": "warlock_pact", "pact_type": "chain"}')
             """, (character_id,))
             conn.commit()
 
@@ -164,9 +170,12 @@ class WarlockService:
                 # Check for Eldritch Master at level 20
                 if new_level == 20:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                        VALUES (?, 'eldritch_master', 'warlock')
-                    """, (character_id,))
+                        INSERT OR IGNORE INTO character_features
+                        (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (character_id, 'Eldritch Master', 'action', 'long_rest', 20,
+                          'You can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots.',
+                          json.dumps({'source': 'warlock', 'uses_max': 1, 'uses_current': 1})))
 
                 conn.commit()
 
@@ -184,9 +193,12 @@ class WarlockService:
             for req_level, spell_level in arcanum_levels.items():
                 if level >= req_level:
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                        VALUES (?, ?, 'warlock')
-                    """, (character_id, f'mystic_arcanum_{spell_level}'))
+                        INSERT OR IGNORE INTO character_features
+                        (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (character_id, f'Mystic Arcanum (Level {spell_level})', 'action', 'long_rest', req_level,
+                          f'You can cast one {spell_level}th-level spell chosen from the warlock spell list. You regain the ability to do so when you finish a long rest.',
+                          json.dumps({'source': 'warlock', 'spell_level': spell_level, 'uses_max': 1, 'uses_current': 1})))
             conn.commit()
 
 
@@ -444,18 +456,26 @@ class ElditchInvocationService:
                         """, (character_id, skill))
 
                 if 'darkvision' in effects:
+                    dv_range = effects["darkvision"]
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                        VALUES (?, ?, 'invocation')
-                    """, (character_id, f'darkvision_{effects["darkvision"]}'))
+                        INSERT OR IGNORE INTO character_features
+                        (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (character_id, f'Invocation: Darkvision {dv_range}ft', 'passive', 'permanent', 1,
+                          f'You can see in dim light within {dv_range} feet of you as if it were bright light, and in darkness as if it were dim light.',
+                          json.dumps({'source': 'invocation', 'darkvision': dv_range})))
 
             elif effect_type == 'active':
                 # Record at-will spells
                 if 'spell' in effects and effects.get('cost') == 'none':
+                    spell_name = effects["spell"]
                     cursor.execute("""
-                        INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                        VALUES (?, ?, 'invocation')
-                    """, (character_id, f'at_will_{effects["spell"]}'))
+                        INSERT OR IGNORE INTO character_features
+                        (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (character_id, f'Invocation: {spell_name.title()} at Will', 'action', 'permanent', 1,
+                          f'You can cast {spell_name} at will, without expending a spell slot.',
+                          json.dumps({'source': 'invocation', 'spell': spell_name, 'cost': 'none'})))
 
             conn.commit()
 
@@ -491,36 +511,12 @@ class FiendPatronService:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            # Level 1: Dark One's Blessing
-            if level >= 1:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                    VALUES (?, 'dark_ones_blessing', 'warlock_patron')
-                """, (character_id,))
-
-                # Add expanded spell list
-                self._add_expanded_spells(character_id, 'fiend')
-
-            # Level 6: Dark One's Own Luck
-            if level >= 6:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                    VALUES (?, 'dark_ones_own_luck', 'warlock_patron')
-                """, (character_id,))
-
-            # Level 10: Fiendish Resilience
-            if level >= 10:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                    VALUES (?, 'fiendish_resilience', 'warlock_patron')
-                """, (character_id,))
-
-            # Level 14: Hurl Through Hell
-            if level >= 14:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_id, feature_source)
-                    VALUES (?, 'hurl_through_hell', 'warlock_patron')
-                """, (character_id,))
+            # Use the proper patron manager instead - this is legacy code
+            from talekeeper.services.warlock_patrons import get_patron_manager
+            patron_mgr = get_patron_manager(self.db_path)
+            patron = patron_mgr.get_patron('Fiend')
+            if patron:
+                patron.initialize_features(character_id, level)
 
             conn.commit()
 
