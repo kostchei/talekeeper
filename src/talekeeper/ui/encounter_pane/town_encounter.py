@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from typing import Optional, List, Dict, Any
 import sqlite3
 import json
-from talekeeper.services.level_up import LevelUpService
+from talekeeper.services.unified_level_up import UnifiedLevelUpService
 from talekeeper.services.equipment_database import EquipmentDatabase
 from talekeeper.services.subclass_manager import SubclassManager
 from talekeeper.services.shop_service import ShopService, ShopSize
@@ -126,8 +126,8 @@ class TrainingHallInterface(QWidget):
     def __init__(self, character_data: Dict[str, Any], parent=None):
         super().__init__(parent)
         self.character_data = character_data
-        self.level_up_service = LevelUpService()
         self.db_path = "talekeeper.db"
+        self.level_up_service = UnifiedLevelUpService(self.db_path)
         self.selected_class = None
         print(f"[TrainingHall] Initializing for {character_data.get('name')} level {character_data.get('level')}")
         self.is_asi_level = False
@@ -625,10 +625,12 @@ Training includes food and lodging (counts as a long rest)."""
         if reply == QMessageBox.StandardButton.Yes:
             # Perform the level up
             character_id = self.character_data.get('id', '')
-            selected_subclass_id = None
-            if self.is_subclass_level and self.selected_subclass:
-                selected_subclass_id = self.selected_subclass['id']
-            success = self.level_up_service.level_up_character(character_id, self.selected_class, selected_subclass_id)
+
+            result = self.level_up_service.level_up_character(character_id)
+            success = result.get('success', False)
+
+            if success and self.is_subclass_level and self.selected_subclass:
+                self.level_up_service.apply_subclass_choice(character_id, self.selected_subclass['id'])
 
             # Apply ASI/Feat choices if this is an ASI level
             if success and self.is_asi_level:
@@ -659,6 +661,44 @@ Training includes food and lodging (counts as a long rest)."""
                                   f"level {updated_character['level']}, {updated_character['hit_points_max']} HP")
                         break
                     parent = parent.parent()
+
+                # Handle warlock choices (invocations and spells)
+                try:
+                    char_class = updated_character.get('class_id', '').lower() if updated_character else ''
+                    if char_class == 'warlock':
+                        from talekeeper.ui.dialogs.warlock_level_up_dialog import WarlockLevelUpDialog
+                        from PyQt6.QtWidgets import QDialog
+
+                        choices_required = result.get('choices_required', [])
+                        invocation_choice = next((c for c in choices_required if c.get('type') == 'eldritch_invocations'), None)
+                        spell_choice = next((c for c in choices_required if c.get('type') == 'spell_preparation'), None)
+
+                        if invocation_choice or spell_choice:
+                            dialog = WarlockLevelUpDialog(
+                                updated_character['id'],
+                                updated_character['name'],
+                                updated_character['level'],
+                                invocation_choice.get('count', 0) if invocation_choice else 0,
+                                db_path='talekeeper.db',
+                                parent=self
+                            )
+
+                            if dialog.exec() == QDialog.DialogCode.Accepted:
+                                selected_invocations, selected_spells = dialog.get_selections()
+
+                                if selected_invocations:
+                                    self.level_up_service.apply_warlock_invocations(character_id, selected_invocations)
+                                    print(f"[Training] Invocations learned: {selected_invocations}")
+
+                                if selected_spells:
+                                    self.level_up_service.apply_spell_selection(character_id, selected_spells, 'warlock')
+                                    print(f"[Training] Spells learned: {selected_spells}")
+                            else:
+                                print(f"[Training] Warlock choices cancelled")
+                except Exception as e:
+                    print(f"Error in warlock level-up choices: {e}")
+                    import traceback
+                    traceback.print_exc()
 
                 # Offer spell preparation for preparing classes after level-up
                 try:

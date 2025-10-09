@@ -41,9 +41,8 @@ class WarlockService:
             cursor.execute("""
                 INSERT OR IGNORE INTO character_spellcasting
                 (character_id, spellcasting_class, spellcasting_ability,
-                 spell_save_dc, spell_attack_bonus, prepared_spells, known_spells,
-                 cantrips_known, ritual_casting, spellcasting_focus)
-                VALUES (?, 'warlock', 'Charisma', 0, 0, '[]', '[]', ?, 0, 'arcane_focus')
+                 spell_save_dc, spell_attack_bonus, cantrips_known, ritual_casting, spellcasting_focus)
+                VALUES (?, 'warlock', 'Charisma', 0, 0, ?, 0, 'arcane_focus')
             """, (character_id, cantrips_known))
 
             conn.commit()
@@ -364,31 +363,19 @@ class ElditchInvocationService:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT known_spells FROM character_spellcasting
-                WHERE character_id = ? AND spellcasting_class = 'warlock'
-            """, (character_id,))
-
-            result = cursor.fetchone()
-            if result and result[0]:
-                known = json.loads(result[0])
-                return cantrip in known.get('0', [])  # Cantrips are level 0
-            return False
+                SELECT 1 FROM character_spells
+                WHERE character_id = ? AND spell_id = ? AND spell_level = 0
+            """, (character_id, cantrip))
+            return cursor.fetchone() is not None
 
     def _knows_spell(self, character_id: str, spell_id: str) -> bool:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT known_spells FROM character_spellcasting
-                WHERE character_id = ? AND spellcasting_class = 'warlock'
-            """, (character_id,))
-
-            result = cursor.fetchone()
-            if result and result[0]:
-                known = json.loads(result[0])
-                for level_spells in known.values():
-                    if spell_id in level_spells:
-                        return True
-            return False
+                SELECT 1 FROM character_spells
+                WHERE character_id = ? AND spell_id = ?
+            """, (character_id, spell_id))
+            return cursor.fetchone() is not None
 
     def learn_invocation(self, character_id: str, invocation_id: str) -> bool:
         available = self.get_available_invocations(character_id)

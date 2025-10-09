@@ -1722,6 +1722,18 @@ class CharacterPanel(QWidget):
                                 subclass_name = subclass_name_row[0]
                                 features_text += f"\n{subclass_name} Features: {', '.join(sorted(subclass_features))}\n"
 
+                if class_name.lower() == 'warlock':
+                    cursor.execute("""
+                        SELECT i.name
+                        FROM warlock_invocations wi
+                        JOIN invocations i ON wi.invocation_id = i.id
+                        WHERE wi.character_id = ?
+                        ORDER BY i.name
+                    """, (char_id,))
+                    invocations = [row[0] for row in cursor.fetchall()]
+                    if invocations:
+                        features_text += f"\nEldritch Invocations: {', '.join(invocations)}\n"
+
                 print(f"[CharacterPanel] Features text being displayed:\n{features_text}")
                 conn.close()
             except Exception as e:

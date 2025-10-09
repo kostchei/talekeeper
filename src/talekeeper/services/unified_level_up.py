@@ -1,15 +1,92 @@
 import sqlite3
 import json
 from typing import Dict, List, Optional, Tuple, Any
-from talekeeper.services.feature_registry import FeatureRegistry
-from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
 
 
 class UnifiedLevelUpService:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.feature_registry = FeatureRegistry(db_path)
-        self.spellcasting_progression = SpellcastingProgressionService(db_path)
+
+    def get_available_classes(self) -> List[str]:
+        """Get list of available classes for leveling."""
+        return ['Barbarian', 'Cleric', 'Paladin', 'Rogue', 'Warlock', 'Wizard', 'Fighter']
+
+    def get_character_class_levels(self, character_id: str) -> Dict[str, int]:
+        """Get current class levels for a character."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        result = {}
+
+        try:
+            cursor.execute("""
+                SELECT class_name, level
+                FROM character_class_levels
+                WHERE character_id = ?
+            """, (character_id,))
+
+            result = {class_name.lower(): level for class_name, level in cursor.fetchall()}
+        except Exception as e:
+            print(f"Error getting character class levels: {e}")
+            result = {}
+        finally:
+            conn.close()
+
+        return result
+
+    def is_asi_level(self, character_id: str, class_choice: str) -> bool:
+        """Check if next level grants ASI for the selected class."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT level FROM character_class_levels
+                WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
+            """, (character_id, class_choice))
+
+            result = cursor.fetchone()
+            if result:
+                current_class_level = result[0]
+            else:
+                cursor.execute("""
+                    SELECT level, class_id FROM characters
+                    WHERE id = ?
+                """, (character_id,))
+                char_result = cursor.fetchone()
+                if char_result and char_result[1] and char_result[1].lower() == class_choice.lower():
+                    current_class_level = char_result[0]
+                else:
+                    current_class_level = 0
+
+            next_class_level = current_class_level + 1
+
+            asi_levels = {
+                'fighter': [4, 6, 8, 12, 14, 16],
+                'rogue': [4, 8, 10, 12, 16],
+                'barbarian': [4, 8, 12, 16],
+                'bard': [4, 8, 12, 16],
+                'cleric': [4, 8, 12, 16],
+                'druid': [4, 8, 12, 16],
+                'monk': [4, 8, 12, 16],
+                'paladin': [4, 8, 12, 16],
+                'ranger': [4, 8, 12, 16],
+                'sorcerer': [4, 8, 12, 16],
+                'warlock': [4, 8, 12, 16],
+                'wizard': [4, 8, 12, 16]
+            }
+
+            class_name = class_choice.lower()
+            if class_name in asi_levels:
+                is_asi = next_class_level in asi_levels[class_name]
+            else:
+                is_asi = next_class_level in [4, 8, 12, 16, 19]
+
+            conn.close()
+            return is_asi
+
+        except Exception as e:
+            print(f"Error checking ASI level: {e}")
+            return False
 
     def level_up_character(self, character_id: str) -> Dict[str, Any]:
         """Level up a character using the unified feature system"""
@@ -39,68 +116,65 @@ class UnifiedLevelUpService:
 
             cursor.execute("UPDATE characters SET level = ? WHERE id = ?", (new_level, character_id))
 
-            class_features = self.feature_registry.get_class_features_for_level(class_id, new_level)
-            for feature in class_features:
-                self._grant_class_feature(cursor, character_id, feature, new_level, results)
+            cursor.execute("""
+                UPDATE character_class_levels
+                SET level = ?
+                WHERE character_id = ? AND LOWER(class_name) = LOWER(?)
+            """, (new_level, character_id, class_id))
 
-            if subclass_id:
-                subclass_features = self.feature_registry.get_subclass_features_for_level(subclass_id, new_level)
-                for feature in subclass_features:
-                    self._grant_subclass_feature(cursor, character_id, feature, new_level, results)
+            expected_hp = self._calculate_total_hp_for_level(cursor, character_id, class_id, new_level, character['constitution'])
+            current_hp_max = character['max_hp']
 
-            hp_gain = self._calculate_hp_gain(class_id, character['constitution'])
-            if hp_gain > 0:
-                new_hp = character['max_hp'] + hp_gain
-                cursor.execute("UPDATE characters SET max_hp = ?, current_hp = ? WHERE id = ?",
-                             (new_hp, new_hp, character_id))
+            if expected_hp != current_hp_max:
+                hp_gain = expected_hp - current_hp_max
+                current_hp_current = character.get('hit_points_current', current_hp_max)
+                new_current_hp = min(current_hp_current + hp_gain, expected_hp)
+
+                cursor.execute("UPDATE characters SET hit_points_max = ?, hit_points_current = ?, max_hit_points = ?, current_hit_points = ? WHERE id = ?",
+                             (expected_hp, new_current_hp, expected_hp, new_current_hp, character_id))
                 results["hp_gained"] = hp_gain
-
-            subclass_selection_level = self.feature_registry.get_subclass_selection_level(class_id)
-            if new_level == subclass_selection_level and not subclass_id:
-                available_subclasses = self.feature_registry.get_available_subclasses(class_id)
-                results["choices_required"].append({
-                    "type": "subclass_selection",
-                    "options": available_subclasses
-                })
-
-            if new_level == 19 and not self._has_epic_boon(cursor, character_id):
-                results["choices_required"].append({
-                    "type": "epic_boon",
-                    "level": 19
-                })
-
-            spell_result = self.spellcasting_progression.update_spellcasting_on_level_up(
-                character_id, new_level, class_id
-            )
-            if spell_result.get('success'):
-                results['spellcasting_updated'] = spell_result
-
-                if spell_result.get('prepared_spell_count', 0) > 0:
-                    results["choices_required"].append({
-                        "type": "spell_preparation",
-                        "class": class_id,
-                        "max_prepared": spell_result['prepared_spell_count']
-                    })
-
-                if spell_result.get('cantrips_updated'):
-                    results["choices_required"].append({
-                        "type": "cantrip_selection",
-                        "class": class_id,
-                        "new_cantrips": spell_result['new_cantrips']
-                    })
 
             if class_id == 'warlock':
                 warlock_choices = self._handle_warlock_level_up(cursor, character_id, new_level)
                 if warlock_choices:
                     results["choices_required"].extend(warlock_choices)
 
+            if class_id == 'fighter':
+                self._handle_fighter_level_up(cursor, character_id, new_level)
+
+            if class_id == 'rogue':
+                self._handle_rogue_level_up(cursor, character_id, new_level)
+
+            if class_id == 'barbarian':
+                self._handle_barbarian_level_up(cursor, character_id, new_level)
+
+            if class_id == 'paladin':
+                self._handle_paladin_level_up(cursor, character_id, new_level, subclass_id)
+
             conn.commit()
-            return results
+
+        try:
+            from talekeeper.services.class_abilities_service import ClassAbilitiesService
+            abilities_service = ClassAbilitiesService(self.db_path)
+            abilities_service.update_ability_resources_for_level(character_id, new_level)
+            print(f"[UnifiedLevelUp] Updated class abilities for {class_id} level {new_level}")
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Warning: Class abilities update failed: {e}")
+
+        try:
+            from talekeeper.core.feature_integration import FeatureSystemIntegration
+            feature_system = FeatureSystemIntegration(self.db_path)
+            feature_system.initialize_character_features(character_id)
+            print(f"[UnifiedLevelUp] Updated feature system for {class_id} level {new_level}")
+        except Exception as e:
+            print(f"Error initializing features: {e}")
+
+        return results
 
     def _get_character_data(self, cursor, character_id: str) -> Optional[Dict[str, Any]]:
         """Get character data from database"""
         cursor.execute("""
-            SELECT level, class_id, subclass_id, max_hp, constitution
+            SELECT level, class_id, subclass_id, hit_points_max, constitution
             FROM characters WHERE id = ?
         """, (character_id,))
 
@@ -190,6 +264,49 @@ class UnifiedLevelUpService:
             "description": feature['description'],
             "source": "subclass"
         })
+
+    def _calculate_total_hp_for_level(self, cursor, character_id: str, class_id: str, level: int, constitution: int) -> int:
+        """Calculate expected total HP for a given level"""
+        hit_dice = {
+            'barbarian': 12,
+            'fighter': 10,
+            'paladin': 10,
+            'ranger': 10,
+            'bard': 8,
+            'cleric': 8,
+            'druid': 8,
+            'rogue': 8,
+            'warlock': 8,
+            'sorcerer': 6,
+            'wizard': 6
+        }
+
+        base_hp = hit_dice.get(class_id, 8)
+        con_modifier = (constitution - 10) // 2
+
+        hp_at_level_1 = base_hp + con_modifier
+        hp_per_additional_level = max(1, base_hp // 2 + 1 + con_modifier)
+
+        bonus_hp_per_level = 0
+
+        cursor.execute("SELECT feat_name, feat_id FROM character_feats WHERE character_id = ?", (character_id,))
+        feat_rows = cursor.fetchall()
+        feat_names = [(row[0] or '').lower() for row in feat_rows]
+        feat_ids = [(row[1] or '').lower() for row in feat_rows]
+        if 'tough' in feat_names or 'toughness' in feat_names or 'tough' in feat_ids or 'toughness' in feat_ids:
+            bonus_hp_per_level += 2
+
+        cursor.execute("SELECT race_id FROM characters WHERE id = ?", (character_id,))
+        race_row = cursor.fetchone()
+        if race_row and race_row[0] in ['hill_dwarf', 'dwarf_hill']:
+            bonus_hp_per_level += 1
+
+        total_bonus_hp = bonus_hp_per_level * level
+
+        if level == 1:
+            return max(1, hp_at_level_1 + total_bonus_hp)
+        else:
+            return max(level, hp_at_level_1 + (level - 1) * hp_per_additional_level + total_bonus_hp)
 
     def _calculate_hp_gain(self, class_id: str, constitution: int) -> int:
         """Calculate HP gain for level up"""
@@ -444,44 +561,35 @@ class UnifiedLevelUpService:
             return 0
 
     def apply_spell_selection(self, character_id: str, spell_ids: List[str], spellcasting_class: str = None) -> Dict[str, Any]:
-        """Apply selected spells to character's known/prepared spells (works for Warlock, Sorcerer, Wizard, etc)"""
+        """Apply selected spells to character's known/prepared spells"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
             if not spellcasting_class:
-                cursor.execute("""
-                    SELECT class_id FROM characters WHERE id = ?
-                """, (character_id,))
+                cursor.execute("SELECT class_id FROM characters WHERE id = ?", (character_id,))
                 row = cursor.fetchone()
                 if row:
                     spellcasting_class = row[0]
 
-            cursor.execute("""
-                SELECT known_spells FROM character_spellcasting
-                WHERE character_id = ? AND spellcasting_class = ?
-            """, (character_id, spellcasting_class))
-
-            row = cursor.fetchone()
-            if not row:
+            cursor.execute("SELECT 1 FROM character_spellcasting WHERE character_id = ? AND spellcasting_class = ?",
+                         (character_id, spellcasting_class))
+            if not cursor.fetchone():
                 return {"success": False, "error": f"{spellcasting_class} spellcasting not found"}
 
-            known_spells = json.loads(row[0]) if row[0] else {}
+            cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
+            level_row = cursor.fetchone()
+            char_level = level_row[0] if level_row else 1
 
             for spell_id in spell_ids:
                 cursor.execute("SELECT level FROM spells WHERE id = ?", (spell_id,))
                 spell_row = cursor.fetchone()
                 if spell_row:
-                    spell_level = str(spell_row[0])
-                    if spell_level not in known_spells:
-                        known_spells[spell_level] = []
-                    if spell_id not in known_spells[spell_level]:
-                        known_spells[spell_level].append(spell_id)
-
-            cursor.execute("""
-                UPDATE character_spellcasting
-                SET known_spells = ?
-                WHERE character_id = ? AND spellcasting_class = ?
-            """, (json.dumps(known_spells), character_id, spellcasting_class))
+                    spell_level_num = spell_row[0]
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO character_spells
+                        (character_id, spell_id, spell_level, is_prepared, source, source_level, always_prepared)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (character_id, spell_id, spell_level_num, True, 'class', char_level, False))
 
             conn.commit()
 
@@ -511,3 +619,153 @@ class UnifiedLevelUpService:
                 "success": True,
                 "pact_boon": pact_boon.lower()
             }
+
+    def _handle_fighter_level_up(self, cursor, character_id: str, level: int):
+        """Handle Fighter-specific level-up updates"""
+        try:
+            from talekeeper.services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService(self.db_path)
+            result = resource_service.initialize_fighter_resources(character_id, level)
+            print(f"[UnifiedLevelUp] Updated Fighter resources: {result.get('resources_added', [])}")
+
+            cursor.execute("UPDATE fighter_features SET level = ? WHERE character_id = ?", (level, character_id))
+
+            if level == 2:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET action_surge_uses_max = 1, action_surge_uses_current = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Action Surge to Fighter")
+
+            elif level == 5:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET extra_attacks = 2
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Extra Attack to Fighter")
+
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Error in Fighter level-up: {e}")
+
+    def _handle_rogue_level_up(self, cursor, character_id: str, level: int):
+        """Handle Rogue-specific level-up updates"""
+        try:
+            sneak_attack_dice = (level + 1) // 2
+
+            cursor.execute("SELECT character_id FROM rogue_features WHERE character_id = ?", (character_id,))
+            exists = cursor.fetchone() is not None
+
+            if not exists:
+                cursor.execute("""
+                    INSERT INTO rogue_features
+                    (character_id, level, sneak_attack_dice, cunning_action_available,
+                     expertise_count, uncanny_dodge_available, evasion_available,
+                     cunning_strike_available, reliable_talent_active, improved_cunning_strike,
+                     slippery_mind_active, elusive_active, stroke_of_luck_uses_current, stroke_of_luck_uses_max)
+                    VALUES (?, ?, ?, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                """, (character_id, level, sneak_attack_dice))
+            else:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET level = ?, sneak_attack_dice = ?
+                    WHERE character_id = ?
+                """, (level, sneak_attack_dice, character_id))
+
+            if level == 2:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET cunning_action_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Cunning Action to Rogue")
+
+            elif level == 5:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET uncanny_dodge_available = 1, cunning_strike_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Uncanny Dodge and Cunning Strike to Rogue")
+
+            elif level == 6:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET expertise_count = 4
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Improved Expertise to 4 skills")
+
+            elif level == 7:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET evasion_available = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Evasion to Rogue")
+
+            elif level == 11:
+                cursor.execute("""
+                    UPDATE rogue_features
+                    SET reliable_talent_active = 1, reliable_talent_minimum = 10
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Reliable Talent to Rogue")
+
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Error in Rogue level-up: {e}")
+
+    def _handle_barbarian_level_up(self, cursor, character_id: str, level: int):
+        """Handle Barbarian-specific level-up updates"""
+        try:
+            from talekeeper.services.character_resources import CharacterResourceService
+            resource_service = CharacterResourceService(self.db_path)
+            result = resource_service.initialize_barbarian_resources(character_id, level)
+            print(f"[UnifiedLevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
+
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Error in Barbarian level-up: {e}")
+
+    def _handle_paladin_level_up(self, cursor, character_id: str, level: int, subclass_id: Optional[str]):
+        """Handle Paladin-specific level-up updates"""
+        try:
+            from talekeeper.services.paladin_abilities import get_paladin_service
+            paladin_service = get_paladin_service(self.db_path)
+
+            prepared_spells_by_level = {
+                1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,
+                11: 10, 12: 10, 13: 11, 14: 11, 15: 12, 16: 12, 17: 14, 18: 14, 19: 15, 20: 15
+            }
+            max_prepared = prepared_spells_by_level.get(level, 2)
+
+            cursor.execute("""
+                UPDATE paladin_features
+                SET level = ?, max_spells_prepared = ?, lay_on_hands_pool_max = ?,
+                    channel_divinity_uses_max = CASE
+                        WHEN ? >= 15 THEN 3
+                        WHEN ? >= 7 THEN 2
+                        WHEN ? >= 3 THEN 1
+                        ELSE 0
+                    END
+                WHERE character_id = ?
+            """, (level, max_prepared, level * 5, level, level, level, character_id))
+
+            print(f"[UnifiedLevelUp] Updated Paladin features: level={level}, max_prepared={max_prepared}")
+
+            if subclass_id:
+                from talekeeper.services.subclass_feature_manager import SubclassFeatureManager
+                subclass_feature_mgr = SubclassFeatureManager(self.db_path)
+
+                features = subclass_feature_mgr.get_subclass_features_for_level(subclass_id, level)
+                for feature in features:
+                    subclass_feature_mgr.grant_subclass_feature(character_id, feature['id'], level)
+
+                new_spells = subclass_feature_mgr.grant_oath_spells_for_level(character_id, subclass_id, level)
+                if new_spells:
+                    print(f"[UnifiedLevelUp] Granted oath spells: {', '.join(new_spells)}")
+
+                print(f"[UnifiedLevelUp] Granted {len(features)} subclass features for {subclass_id}")
+
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Error in Paladin level-up: {e}")

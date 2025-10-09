@@ -47,7 +47,8 @@
       "Bash(grep:*)",
       "Bash(findstr:*)",
       "Bash(tasklist)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
