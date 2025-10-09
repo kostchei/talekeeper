@@ -143,6 +143,14 @@ class SpellCardStack(QFrame):
         self.max_slots = max_slots
         self._update_display()
 
+    def set_available(self, available: bool):
+        self.setEnabled(available)
+        if not available:
+            self.cast_button.setEnabled(False)
+        else:
+            can_cast = self.spell_level == 0 or self.available_slots > 0
+            self.cast_button.setEnabled(can_cast)
+
     def update_theme_styles(self, theme: str):
         if theme == "light":
             self.setStyleSheet("""
