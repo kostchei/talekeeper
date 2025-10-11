@@ -134,6 +134,17 @@ class UnifiedLevelUpService:
                              (expected_hp, new_current_hp, expected_hp, new_current_hp, character_id))
                 results["hp_gained"] = hp_gain
 
+            # Update spellcasting for all spellcasting classes
+            spellcasting_classes = ['wizard', 'cleric', 'druid', 'bard', 'sorcerer', 'ranger']
+            if class_id in spellcasting_classes:
+                try:
+                    from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
+                    progression_service = SpellcastingProgressionService(self.db_path)
+                    progression_service.update_spellcasting_on_level_up(character_id, new_level, class_id)
+                    print(f"[UnifiedLevelUp] Updated {class_id} spell slots for level {new_level}")
+                except Exception as e:
+                    print(f"[UnifiedLevelUp] Error updating {class_id} spell slots: {e}")
+
             if class_id == 'warlock':
                 warlock_choices = self._handle_warlock_level_up(cursor, character_id, new_level)
                 if warlock_choices:
@@ -458,6 +469,15 @@ class UnifiedLevelUpService:
         """Handle Warlock-specific level-up choices (invocations and pact boon)"""
         choices = []
 
+        # Update pact magic slots
+        try:
+            from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
+            progression_service = SpellcastingProgressionService(self.db_path)
+            progression_service.update_spellcasting_on_level_up(character_id, new_level, 'warlock')
+            print(f"[UnifiedLevelUp] Updated Warlock pact magic slots for level {new_level}")
+        except Exception as e:
+            print(f"[UnifiedLevelUp] Error updating Warlock pact slots: {e}")
+
         cursor.execute("""
             SELECT formula_data FROM ability_scaling_formulas
             WHERE formula_name = 'invocations_by_level'
@@ -732,6 +752,15 @@ class UnifiedLevelUpService:
         try:
             from talekeeper.services.paladin_abilities import get_paladin_service
             paladin_service = get_paladin_service(self.db_path)
+
+            # Update spell slots
+            try:
+                from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
+                progression_service = SpellcastingProgressionService(self.db_path)
+                progression_service.update_spellcasting_on_level_up(character_id, level, 'paladin')
+                print(f"[UnifiedLevelUp] Updated Paladin spell slots for level {level}")
+            except Exception as e:
+                print(f"[UnifiedLevelUp] Error updating Paladin spell slots: {e}")
 
             prepared_spells_by_level = {
                 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6, 7: 7, 8: 7, 9: 9, 10: 9,

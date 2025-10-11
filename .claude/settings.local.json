@@ -48,7 +48,8 @@
       "Bash(findstr:*)",
       "Bash(tasklist)",
       "Bash(awk:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

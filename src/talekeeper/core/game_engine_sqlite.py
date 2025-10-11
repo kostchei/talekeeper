@@ -1828,6 +1828,28 @@ class GameEngineSQLite:
                     # Barbarian Unarmored Defense: 10 + Dex + Con
                     ac = 10 + dex_mod + con_mod
                     print(f"[SQLite] Barbarian Unarmored Defense: 10 + Dex {dex_mod} + Con {con_mod} = {ac}")
+                elif class_id == 'warlock':
+                    # Check for Armour of Shadows invocation (Mage Armour at will)
+                    # Note: This only applies when NOT wearing armor. If wearing armor (e.g., +2 Studded Leather),
+                    # the armor AC is used instead (calculated in the branch above).
+                    # Mage Armour provides AC 13 + Dex, so +2 Studded Leather (14 + Dex) is better.
+                    with self._get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            SELECT 1 FROM warlock_invocations wi
+                            JOIN invocations i ON wi.invocation_id = i.id
+                            WHERE wi.character_id = ? AND i.id = 'armor_of_shadows'
+                        """, (character_id,))
+                        has_armor_of_shadows = cursor.fetchone()
+
+                    if has_armor_of_shadows:
+                        # Mage Armour: 13 + Dex (always assumed active with this invocation)
+                        ac = 13 + dex_mod
+                        print(f"[SQLite] Warlock Armour of Shadows (Mage Armour): 13 + Dex {dex_mod} = {ac}")
+                    else:
+                        # Standard unarmored AC: 10 + Dex
+                        ac = 10 + dex_mod
+                        print(f"[SQLite] Standard unarmored AC: 10 + Dex {dex_mod} = {ac}")
                 else:
                     # Standard unarmored AC: 10 + Dex
                     ac = 10 + dex_mod

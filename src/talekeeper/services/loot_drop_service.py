@@ -6,19 +6,37 @@ class LootDropService:
     def __init__(self, db_path: str = 'talekeeper.db'):
         self.db_path = db_path
 
-    def drop_loot(self, character_id: str, character_data: dict, rarity: str) -> Optional[dict]:
+    def drop_loot(self, character_id: str, character_data: dict, rarity: str, exclude_items: Optional[Set[str]] = None) -> Optional[dict]:
+        """
+        Drop loot for a character based on BiS system.
+
+        Args:
+            character_id: Character ID
+            character_data: Character data dict
+            rarity: Item rarity to drop
+            exclude_items: Set of item names to exclude (already dropped this cycle)
+
+        Returns:
+            Item dict or None if no valid items available
+        """
+        if exclude_items is None:
+            exclude_items = set()
+
         class_build = self.get_character_build(character_data)
         owned_items = self.get_player_inventory(character_id)
+
+        # Combine owned items with excluded items to avoid duplicates
+        unavailable_items = owned_items | exclude_items
 
         bis_items = self.get_bis_items_for_rarity(class_build, rarity)
 
         for slot_number, item_name in bis_items:
-            if item_name not in owned_items:
+            if item_name not in unavailable_items:
                 item = self._get_equipment_by_name(item_name)
                 if item:
                     return item
 
-        other_items = self.get_other_items_for_rarity(rarity, owned_items)
+        other_items = self.get_other_items_for_rarity(rarity, unavailable_items)
         if other_items:
             item_name = random.choice(other_items)
             item = self._get_equipment_by_name(item_name)
