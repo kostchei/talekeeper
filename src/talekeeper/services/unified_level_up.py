@@ -6,6 +6,8 @@ from typing import Dict, List, Optional, Tuple, Any
 class UnifiedLevelUpService:
     def __init__(self, db_path: str):
         self.db_path = db_path
+        from talekeeper.services.feature_registry import FeatureRegistry
+        self.feature_registry = FeatureRegistry(db_path)
 
     def get_available_classes(self) -> List[str]:
         """Get list of available classes for leveling."""
@@ -156,13 +158,20 @@ class UnifiedLevelUpService:
             if class_id == 'rogue':
                 self._handle_rogue_level_up(cursor, character_id, new_level)
 
-            if class_id == 'barbarian':
-                self._handle_barbarian_level_up(cursor, character_id, new_level)
-
             if class_id == 'paladin':
                 self._handle_paladin_level_up(cursor, character_id, new_level, subclass_id)
 
             conn.commit()
+
+        # Handle barbarian resources AFTER main transaction to avoid lock
+        if class_id == 'barbarian':
+            try:
+                from talekeeper.services.character_resources import CharacterResourceService
+                resource_service = CharacterResourceService(self.db_path)
+                result = resource_service.initialize_barbarian_resources(character_id, new_level)
+                print(f"[UnifiedLevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
+            except Exception as e:
+                print(f"[UnifiedLevelUp] Error in Barbarian resource initialization: {e}")
 
         try:
             from talekeeper.services.class_abilities_service import ClassAbilitiesService
@@ -736,16 +745,6 @@ class UnifiedLevelUpService:
         except Exception as e:
             print(f"[UnifiedLevelUp] Error in Rogue level-up: {e}")
 
-    def _handle_barbarian_level_up(self, cursor, character_id: str, level: int):
-        """Handle Barbarian-specific level-up updates"""
-        try:
-            from talekeeper.services.character_resources import CharacterResourceService
-            resource_service = CharacterResourceService(self.db_path)
-            result = resource_service.initialize_barbarian_resources(character_id, level)
-            print(f"[UnifiedLevelUp] Updated Barbarian resources: {result.get('resources_added', [])}")
-
-        except Exception as e:
-            print(f"[UnifiedLevelUp] Error in Barbarian level-up: {e}")
 
     def _handle_paladin_level_up(self, cursor, character_id: str, level: int, subclass_id: Optional[str]):
         """Handle Paladin-specific level-up updates"""

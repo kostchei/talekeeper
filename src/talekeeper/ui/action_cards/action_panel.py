@@ -1777,8 +1777,9 @@ class ActionPanel(QWidget):
                 from talekeeper.models.action_economy import ActionEconomyType
                 economy_type = self._map_action_to_economy_type(action_type)
 
-                # End turn after main actions or significant bonus actions
-                return economy_type in [ActionEconomyType.ACTION, ActionEconomyType.BONUS_ACTION]
+                # End turn ONLY after main actions, NOT bonus actions
+                # This allows bonus actions (Rage, Second Wind, etc.) to be used alongside main actions
+                return economy_type == ActionEconomyType.ACTION
             except:
                 pass
 
@@ -1786,8 +1787,8 @@ class ActionPanel(QWidget):
         turn_ending_actions = {
             ActionType.CAST_SPELL, ActionType.SPELL_ATTACK, ActionType.SPELL_UTILITY,
             ActionType.USE_ITEM, ActionType.DODGE,
-            ActionType.DASH, ActionType.SEARCH, ActionType.HIDE,
-            ActionType.USE_POTION, ActionType.SECOND_WIND  # Bonus actions that often end turn
+            ActionType.DASH, ActionType.SEARCH, ActionType.HIDE
+            # Note: Removed bonus actions like USE_POTION and SECOND_WIND from this set
         }
         return action_type in turn_ending_actions
     
