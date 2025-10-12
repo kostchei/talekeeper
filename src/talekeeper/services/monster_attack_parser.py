@@ -214,6 +214,11 @@ class MonsterAttackParser:
         if match:
             return int(match.group(1))
 
+        # Try "Attack Roll: +X" pattern (D&D 2024 format)
+        match = re.search(r'Attack Roll:\s*\+(\d+)', text)
+        if match:
+            return int(match.group(1))
+
         return 0
 
     def _extract_reach(self, text: str) -> int:

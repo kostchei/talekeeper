@@ -1018,6 +1018,12 @@ class GameEngineSQLite:
                     if not character_data.get('equipment_main_hand'):
                         character_data['equipment_main_hand'] = item_name_clean
                         print(f"[SQLite] Equipped '{item_name_clean}' as main hand weapon")
+
+                        # If weapon is two-handed, also occupy off-hand slot to prevent shield equipping
+                        weapon_props = item_data.get('weapon_properties', [])
+                        if 'two-handed' in weapon_props:
+                            character_data['equipment_off_hand'] = item_name_clean
+                            print(f"[SQLite] {item_name_clean} is two-handed - also occupying off-hand slot")
                     elif not character_data.get('equipment_off_hand') and 'light' in item_data.get('weapon_properties', []):
                         character_data['equipment_off_hand'] = item_name_clean
                         print(f"[SQLite] Equipped '{item_name_clean}' as off hand weapon")
@@ -1027,8 +1033,23 @@ class GameEngineSQLite:
                     print(f"[SQLite] Equipped '{item_name_clean}' as armor")
 
                 elif item_type == 'shield':
-                    character_data['equipment_off_hand'] = item_name_clean
-                    print(f"[SQLite] Equipped '{item_name_clean}' as shield")
+                    # Check if main hand has a two-handed weapon before equipping shield
+                    main_hand_weapon = character_data.get('equipment_main_hand')
+                    can_equip_shield = True
+
+                    if main_hand_weapon:
+                        # Get main hand weapon data to check if it's two-handed
+                        main_hand_data = equipment_service.get_item(main_hand_weapon)
+                        if main_hand_data:
+                            weapon_props = main_hand_data.get('weapon_properties', [])
+                            if 'two-handed' in weapon_props:
+                                print(f"[SQLite] Cannot equip shield - {main_hand_weapon} is two-handed (shield added to inventory)")
+                                can_equip_shield = False
+
+                    # Only equip shield if we haven't detected a two-handed weapon
+                    if can_equip_shield:
+                        character_data['equipment_off_hand'] = item_name_clean
+                        print(f"[SQLite] Equipped '{item_name_clean}' as shield")
 
                 elif item_type in ['spellcasting_focus', 'spellbook']:
                     # Add to inventory but don't auto-equip focuses/spellbooks

@@ -493,22 +493,40 @@ class EquipmentPanel(QWidget):
             self.slot_widgets[EquipmentSlot.OFF_HAND].set_item(item)
             
         elif slot == EquipmentSlot.OFF_HAND:
+            # Check if this is a weapon that cannot be equipped to off-hand
+            from talekeeper.services.equipment import equipment_service
+            db_item = equipment_service.get_item(item.get('name', ''))
+            item_is_weapon = db_item and db_item.get('item_type') == 'weapon'
+
+            if item_is_weapon:
+                # Weapons in off-hand must have the "light" property
+                weapon_props = db_item.get('weapon_properties', [])
+                if isinstance(weapon_props, str):
+                    import json
+                    weapon_props = json.loads(weapon_props)
+
+                if 'light' not in weapon_props:
+                    # Cannot equip non-light weapon to off-hand - put it back in inventory
+                    self.inventory_items.append(item)
+                    self._update_inventory_display()
+                    print(f"Cannot equip {item.get('name')} to off-hand - weapon must have the 'light' property")
+                    return
+
             # If equipping to off-hand, check if main hand has two-handed weapon
             main_hand_item = self.equipped_items.get(EquipmentSlot.MAIN_HAND)
             if main_hand_item and self._is_two_handed_weapon(main_hand_item):
-                # Can't equip to off-hand if main hand has two-handed weapon
-                # Unequip the two-handed weapon first
-                self.inventory_items.append(main_hand_item)
-                self.equipped_items.pop(EquipmentSlot.MAIN_HAND, None)
-                self.equipped_items.pop(EquipmentSlot.OFF_HAND, None)
-                self.slot_widgets[EquipmentSlot.MAIN_HAND].clear_item()
-                self.slot_widgets[EquipmentSlot.OFF_HAND].clear_item()
-            
+                # Can't equip ANYTHING to off-hand if main hand has two-handed weapon
+                # Return item to inventory - you don't have 3 hands!
+                self.inventory_items.append(item)
+                self._update_inventory_display()
+                print(f"Cannot equip {item.get('name')} to off-hand - {main_hand_item.get('name')} is two-handed (requires both hands)")
+                return
+
             # Unequip current off-hand item if any
             if slot in self.equipped_items:
                 old_item = self.equipped_items[slot]
                 self.inventory_items.append(old_item)
-            
+
             # Equip new item to off-hand
             self.equipped_items[slot] = item
             self.slot_widgets[slot].set_item(item)
@@ -539,11 +557,36 @@ class EquipmentPanel(QWidget):
         """Check if an item is a two-handed weapon."""
         try:
             from talekeeper.services.equipment import equipment_service
-            # Get full item data from database
-            db_item = equipment_service.get_item(item.get('name', ''))
+            import re
+
+            # Get item name and try to extract base weapon name from magical/silvered variants
+            item_name = item.get('name', '')
+
+            # Try exact match first
+            db_item = equipment_service.get_item(item_name)
+
+            # If no match and name has parentheses, extract base weapon name
+            # E.g., "Silvered Weapon (Greataxe)" -> "Greataxe"
+            # E.g., "Greataxe +1" -> "Greataxe"
+            if not db_item or not db_item.get('weapon_properties'):
+                # Try extracting base name from patterns like "Something (BaseName)"
+                paren_match = re.search(r'\(([^)]+)\)', item_name)
+                if paren_match:
+                    base_name = paren_match.group(1).strip()
+                    db_item = equipment_service.get_item(base_name)
+
+                # Try removing +1, +2, +3 modifiers
+                if not db_item or not db_item.get('weapon_properties'):
+                    base_name = re.sub(r'\s*\+\d+\s*$', '', item_name).strip()
+                    if base_name != item_name:
+                        db_item = equipment_service.get_item(base_name)
+
             if db_item and db_item.get('weapon_properties'):
-                import json
-                properties = json.loads(db_item['weapon_properties'])
+                properties = db_item['weapon_properties']
+                # Properties might be a JSON string or already parsed list
+                if isinstance(properties, str):
+                    import json
+                    properties = json.loads(properties)
                 return 'two-handed' in properties
             return False
         except Exception as e:
@@ -617,9 +660,15 @@ class EquipmentPanel(QWidget):
                             target_slot = EquipmentSlot.RING_2
 
                 elif item_type == 'weapon':
-                    target_slot = EquipmentSlot.MAIN_HAND
-                    if self.equipped_items.get(target_slot):
-                        target_slot = EquipmentSlot.OFF_HAND
+                    # Check if weapon is two-handed
+                    if self._is_two_handed_weapon(item):
+                        # Two-handed weapons ALWAYS go to main hand
+                        target_slot = EquipmentSlot.MAIN_HAND
+                    else:
+                        # Regular weapons: try main hand, then off-hand
+                        target_slot = EquipmentSlot.MAIN_HAND
+                        if self.equipped_items.get(target_slot):
+                            target_slot = EquipmentSlot.OFF_HAND
 
                 elif item_type == 'armor':
                     target_slot = EquipmentSlot.ARMOR
@@ -952,9 +1001,21 @@ class EquipmentPanel(QWidget):
             slot_widget.clear_item()
         
         # Then load new equipped items
+        # Check if main_hand and off_hand have the same weapon (two-handed)
+        main_hand_item = equipped_items.get('main_hand')
+        off_hand_item = equipped_items.get('off_hand')
+
         for slot_name, item in equipped_items.items():
             try:
                 slot = EquipmentSlot(slot_name)
+
+                # Skip off_hand if it's the same as main_hand (two-handed weapon)
+                if slot == EquipmentSlot.OFF_HAND and main_hand_item and off_hand_item:
+                    if main_hand_item.get('name') == off_hand_item.get('name'):
+                        # This is a two-handed weapon - skip showing in off-hand slot
+                        # The main hand will handle both slots
+                        continue
+
                 self.equipped_items[slot] = item
                 self.slot_widgets[slot].set_item(item)
             except ValueError:
