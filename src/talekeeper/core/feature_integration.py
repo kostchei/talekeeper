@@ -120,7 +120,7 @@ class FeatureSystemIntegration:
                     scaling_data = feature.scaling[lvl]
                     uses_max = scaling_data.get("uses", uses_max)
                     break
-        
+
         # Create configuration JSON
         config = {
             "description": feature.description,
@@ -129,14 +129,25 @@ class FeatureSystemIntegration:
             "recharge": feature.recharge,
             "level_acquired": feature.level_acquired
         }
-        
+
+        # Check if we have existing uses from character_resources table
+        uses_current = uses_max
+        if feature.feature_type == "resource":
+            cursor.execute("""
+                SELECT current_uses FROM character_resources
+                WHERE character_id = ? AND resource_name = ?
+            """, (character_id, feature.name))
+            resource_row = cursor.fetchone()
+            if resource_row and resource_row[0] is not None:
+                uses_current = resource_row[0]
+
         # Insert or update feature state
         cursor.execute("""
             INSERT OR REPLACE INTO feature_states
             (character_id, feature_name, feature_type, uses_current, uses_max, configuration)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (character_id, feature.name, feature.feature_type, 
-              uses_max, uses_max, json.dumps(config)))
+        """, (character_id, feature.name, feature.feature_type,
+              uses_current, uses_max, json.dumps(config)))
 
         if feature.feature_type == "resource":
             max_uses = uses_max if uses_max is not None else feature.mechanics.get("uses")

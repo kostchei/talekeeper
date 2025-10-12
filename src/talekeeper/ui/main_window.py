@@ -210,7 +210,7 @@ class MainWindow(QMainWindow):
             lambda action: self.log_panel.log_combat(f"Encounter action: {action}")
         )
         self.encounter_pane.exploration_action.connect(
-            lambda action: self.log_panel.log_info(f"Exploration: {action}")
+            lambda action: self._handle_exploration_action(action)
         )
         self.encounter_pane.monster_selected.connect(
             lambda monster_id: self._on_monster_selected(monster_id)
@@ -371,12 +371,19 @@ class MainWindow(QMainWindow):
         name = getattr(campaign_frame, "name", None)
         return str(name) if name else None
     
+    def _handle_exploration_action(self, action: str):
+        """Handle exploration actions like study, search, hide, etc."""
+        self.log_panel.log_info(f"Exploration: {action}")
+
+        if action == "study":
+            self.encounter_pane.perform_monster_study()
+
     def _on_monster_selected(self, monster_id: str):
         """Handle monster selection for targeting."""
         # Pass the selected monster to the action panel for targeting
         if hasattr(self.action_panel, 'set_target_monster'):
             self.action_panel.set_target_monster(monster_id)
-        
+
         # Get monster info for logging
         selected_monster = self.encounter_pane.get_selected_monster()
         if selected_monster:

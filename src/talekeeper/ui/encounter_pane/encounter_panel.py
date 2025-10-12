@@ -386,23 +386,28 @@ class EncounterInstance:
     """Simple dataclass to replace the IndexedDB model."""
     id: str = field(default_factory=lambda: str(uuid4()))
     encounter_id: str = ""
-    
+
     # Monster reference and current state
     monster_name: str = ""
     monster_cr: str = ""
     monster_type: str = ""
     monster_xp: int = 0
-    
+
     # HP tracking
     max_hit_points: int = 0
     current_hit_points: int = 0
     temporary_hit_points: int = 0
-    
+
     # Combat state
     is_alive: bool = True
     conditions: List[str] = field(default_factory=list)
     initiative: Optional[int] = None
-    
+
+    # Additional monster stats (for monster knowledge system)
+    size: str = "Medium"
+    armor_class: Optional[int] = None
+    monster_full_data: Optional[Dict[str, Any]] = None
+
     # Metadata
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: Optional[str] = None
@@ -423,7 +428,7 @@ class EncounterInstance:
         else:
             # Use average HP from SRD data
             max_hp = monster_data.get('average_hp', 8)  # Default fallback
-        
+
         return cls(
             encounter_id=encounter_id,
             monster_name=monster_data['name'],
@@ -435,7 +440,10 @@ class EncounterInstance:
             temporary_hit_points=0,
             is_alive=True,
             conditions=[],
-            initiative=None
+            initiative=None,
+            size=monster_data.get('size', 'Medium'),
+            armor_class=monster_data.get('armor_class', None),
+            monster_full_data=monster_data
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -5174,7 +5182,107 @@ class EncounterPanel(QWidget):
         if self.selected_monster_id and self.selected_monster_id in self.encounter_instances:
             return self.encounter_instances[self.selected_monster_id]
         return None
-    
+
+    def perform_monster_study(self):
+        """Perform a monster knowledge check when Study button is clicked."""
+        from talekeeper.services.monster_knowledge import monster_knowledge_service
+        import random
+
+        selected_monster = self.get_selected_monster()
+        if not selected_monster:
+            parent = self.parent()
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("No monster selected to study!")
+            return
+
+        parent = self.parent()
+        if not hasattr(parent, 'character_sheet') or not parent.character_sheet.character_data:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("No active character!")
+            return
+
+        character_data = parent.character_sheet.character_data
+
+        if selected_monster.monster_full_data:
+            monster_data = selected_monster.monster_full_data.copy()
+            monster_data['challenge_rating'] = selected_monster.monster_cr
+            monster_data['hit_points'] = selected_monster.max_hit_points
+        else:
+            monster_data = {
+                'name': selected_monster.monster_name,
+                'type': selected_monster.monster_type,
+                'challenge_rating': selected_monster.monster_cr,
+                'size': selected_monster.size,
+                'armor_class': selected_monster.armor_class,
+                'hit_points': selected_monster.max_hit_points,
+            }
+
+        monster_name = selected_monster.monster_name
+        monster_type = selected_monster.monster_type
+        monster_cr = selected_monster.monster_cr
+
+        applicable_skills = monster_knowledge_service.get_applicable_skills(monster_type)
+        dc = monster_knowledge_service.calculate_dc(monster_cr)
+
+        if not applicable_skills:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info(f"You don't know how to study a {monster_type}...")
+            return
+
+        skill = applicable_skills[0]
+        skill_abilities = {
+            'arcana': 'intelligence',
+            'nature': 'intelligence',
+            'religion': 'intelligence',
+            'history': 'intelligence',
+            'insight': 'wisdom',
+            'investigation': 'intelligence',
+            'survival': 'wisdom'
+        }
+
+        ability = skill_abilities.get(skill, 'intelligence')
+        ability_score = character_data.get(ability, 10)
+        modifier = (ability_score - 10) // 2
+
+        level = character_data.get('level', 1)
+        prof_bonus = 2 + ((level - 1) // 4)
+
+        roll = random.randint(1, 20)
+        total = roll + modifier + prof_bonus
+
+        knowledge = monster_knowledge_service.check_knowledge(
+            monster_data,
+            total,
+            skill
+        )
+
+        if hasattr(parent, 'log_panel'):
+            parent.log_panel.log_info(f"[STUDY] {skill.title()} check: d20({roll}) +{modifier} {ability[:3].upper()} +{prof_bonus} prof = {total} vs DC {dc}")
+
+            if knowledge.success:
+                parent.log_panel.log_combat(f"[STUDY] Success! You learn about the {monster_name}:")
+                for category, value in knowledge.revealed_info:
+                    parent.log_panel.log_info(f"  {category}: {value}")
+
+                self._update_monster_tooltip(selected_monster.id, knowledge, skill, total)
+            else:
+                parent.log_panel.log_info(f"[STUDY] Failed to identify the creature...")
+
+    def _update_monster_tooltip(self, monster_id: str, knowledge, skill: str, roll_result: int):
+        """Update a monster card's tooltip with revealed knowledge."""
+        from talekeeper.services.monster_knowledge import monster_knowledge_service
+
+        tooltip_html = monster_knowledge_service.format_tooltip_html(knowledge, skill, roll_result)
+
+        if hasattr(self, 'monsters_layout'):
+            for i in range(self.monsters_layout.count()):
+                item = self.monsters_layout.itemAt(i)
+                if item:
+                    widget = item.widget()
+                    if hasattr(widget, 'instance_id') and widget.instance_id == monster_id:
+                        widget.setToolTip(tooltip_html)
+                        break
+
     def _clear_monster_cards(self):
         """Clear all monster cards from the grid layout."""
         try:
@@ -5844,7 +5952,7 @@ class EncounterPanel(QWidget):
                                 print(f"[LOOT] Inserted new item: {item['name']}")
 
                             # Check if item should be auto-equipped
-                            self._auto_equip_if_better(cursor, character_id, character, item)
+                            # self._auto_equip_if_better(cursor, character_id, character, item)
 
                         conn.commit()
                         print(f"[LOOT] Database commit completed for {len(items)} items")
@@ -5869,124 +5977,124 @@ class EncounterPanel(QWidget):
             import traceback
             traceback.print_exc()
 
-    def _auto_equip_if_better(self, cursor, character_id: str, character: dict, item: dict):
-        """Auto-equip an item if it's better than what's currently equipped."""
-        try:
-            item_type = item.get('item_type', '')
-            item_name = item['name']
-
-            # Determine rarity ranking for comparison
-            rarity_rank = {
-                'Common': 1,
-                'Uncommon': 2,
-                'Rare': 3,
-                'Very Rare': 4,
-                'Legendary': 5
-            }
-
-            new_rarity = rarity_rank.get(item.get('rarity', 'Common'), 1)
-
-            # Check weapon types
-            if item_type == 'weapon':
-                # Check if it's a two-handed weapon
-                weapon_props = item.get('weapon_properties', '')
-                is_two_handed = 'two-handed' in weapon_props.lower() if weapon_props else False
-
-                # Get current main hand weapon
-                current_main_hand = character.get('equipment_main_hand', '')
-
-                if not current_main_hand:
-                    # No weapon equipped, equip this one
-                    cursor.execute("""
-                        UPDATE characters
-                        SET equipment_main_hand = ?
-                        WHERE id = ?
-                    """, (item_name, character_id))
-                    self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as main weapon")
-                    print(f"[LOOT] Auto-equipped {item_name} (no weapon equipped)")
-                else:
-                    # Check if new weapon is better
-                    cursor.execute("""
-                        SELECT rarity FROM equipment WHERE name = ?
-                    """, (current_main_hand,))
-                    result = cursor.fetchone()
-                    if result:
-                        current_rarity = rarity_rank.get(result[0], 1)
-                        if new_rarity > current_rarity:
-                            cursor.execute("""
-                                UPDATE characters
-                                SET equipment_main_hand = ?
-                                WHERE id = ?
-                            """, (item_name, character_id))
-                            self._log_monster_action(f"[AUTO-EQUIP] Upgraded weapon: {current_main_hand} → {item_name}")
-                            print(f"[LOOT] Auto-equipped {item_name} (better than {current_main_hand})")
-
-            # Check armor
-            elif item_type == 'armor':
-                current_armor = character.get('equipment_armor', '')
-
-                if not current_armor:
-                    cursor.execute("""
-                        UPDATE characters
-                        SET equipment_armor = ?
-                        WHERE id = ?
-                    """, (item_name, character_id))
-                    self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as armor")
-                    print(f"[LOOT] Auto-equipped {item_name} (no armor equipped)")
-                else:
-                    # Check if new armor is better (higher AC or better rarity)
-                    cursor.execute("""
-                        SELECT rarity, armor_class FROM equipment WHERE name = ?
-                    """, (current_armor,))
-                    result = cursor.fetchone()
-                    if result:
-                        current_rarity = rarity_rank.get(result[0], 1)
-                        current_ac = result[1] or 0
-                        new_ac = item.get('armor_class', 0) or 0
-
-                        # Upgrade if better rarity OR same rarity but higher AC
-                        if new_rarity > current_rarity or (new_rarity == current_rarity and new_ac > current_ac):
-                            cursor.execute("""
-                                UPDATE characters
-                                SET equipment_armor = ?
-                                WHERE id = ?
-                            """, (item_name, character_id))
-                            self._log_monster_action(f"[AUTO-EQUIP] Upgraded armor: {current_armor} → {item_name}")
-                            print(f"[LOOT] Auto-equipped {item_name} (better than {current_armor})")
-
-            # Check shield
-            elif item_type == 'shield':
-                current_shield = character.get('equipment_shield', '')
-
-                if not current_shield:
-                    cursor.execute("""
-                        UPDATE characters
-                        SET equipment_shield = ?
-                        WHERE id = ?
-                    """, (item_name, character_id))
-                    self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as shield")
-                    print(f"[LOOT] Auto-equipped {item_name} (no shield equipped)")
-                else:
-                    # Check if new shield is better
-                    cursor.execute("""
-                        SELECT rarity FROM equipment WHERE name = ?
-                    """, (current_shield,))
-                    result = cursor.fetchone()
-                    if result:
-                        current_rarity = rarity_rank.get(result[0], 1)
-                        if new_rarity > current_rarity:
-                            cursor.execute("""
-                                UPDATE characters
-                                SET equipment_shield = ?
-                                WHERE id = ?
-                            """, (item_name, character_id))
-                            self._log_monster_action(f"[AUTO-EQUIP] Upgraded shield: {current_shield} → {item_name}")
-                            print(f"[LOOT] Auto-equipped {item_name} (better than {current_shield})")
-
-        except Exception as e:
-            print(f"[LOOT] Error in auto-equip: {e}")
-            import traceback
-            traceback.print_exc()
+    # def _auto_equip_if_better(self, cursor, character_id: str, character: dict, item: dict):
+    #     """Auto-equip an item if it's better than what's currently equipped."""
+    #     try:
+    #         item_type = item.get('item_type', '')
+    #         item_name = item['name']
+    #
+    #         # Determine rarity ranking for comparison
+    #         rarity_rank = {
+    #             'Common': 1,
+    #             'Uncommon': 2,
+    #             'Rare': 3,
+    #             'Very Rare': 4,
+    #             'Legendary': 5
+    #         }
+    #
+    #         new_rarity = rarity_rank.get(item.get('rarity', 'Common'), 1)
+    #
+    #         # Check weapon types
+    #         if item_type == 'weapon':
+    #             # Check if it's a two-handed weapon
+    #             weapon_props = item.get('weapon_properties', '')
+    #             is_two_handed = 'two-handed' in weapon_props.lower() if weapon_props else False
+    #
+    #             # Get current main hand weapon
+    #             current_main_hand = character.get('equipment_main_hand', '')
+    #
+    #             if not current_main_hand:
+    #                 # No weapon equipped, equip this one
+    #                 cursor.execute("""
+    #                     UPDATE characters
+    #                     SET equipment_main_hand = ?
+    #                     WHERE id = ?
+    #                 """, (item_name, character_id))
+    #                 self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as main weapon")
+    #                 print(f"[LOOT] Auto-equipped {item_name} (no weapon equipped)")
+    #             else:
+    #                 # Check if new weapon is better
+    #                 cursor.execute("""
+    #                     SELECT rarity FROM equipment WHERE name = ?
+    #                 """, (current_main_hand,))
+    #                 result = cursor.fetchone()
+    #                 if result:
+    #                     current_rarity = rarity_rank.get(result[0], 1)
+    #                     if new_rarity > current_rarity:
+    #                         cursor.execute("""
+    #                             UPDATE characters
+    #                             SET equipment_main_hand = ?
+    #                             WHERE id = ?
+    #                         """, (item_name, character_id))
+    #                         self._log_monster_action(f"[AUTO-EQUIP] Upgraded weapon: {current_main_hand} → {item_name}")
+    #                         print(f"[LOOT] Auto-equipped {item_name} (better than {current_main_hand})")
+    #
+    #         # Check armor
+    #         elif item_type == 'armor':
+    #             current_armor = character.get('equipment_armor', '')
+    #
+    #             if not current_armor:
+    #                 cursor.execute("""
+    #                     UPDATE characters
+    #                     SET equipment_armor = ?
+    #                     WHERE id = ?
+    #                 """, (item_name, character_id))
+    #                 self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as armor")
+    #                 print(f"[LOOT] Auto-equipped {item_name} (no armor equipped)")
+    #             else:
+    #                 # Check if new armor is better (higher AC or better rarity)
+    #                 cursor.execute("""
+    #                     SELECT rarity, armor_class FROM equipment WHERE name = ?
+    #                 """, (current_armor,))
+    #                 result = cursor.fetchone()
+    #                 if result:
+    #                     current_rarity = rarity_rank.get(result[0], 1)
+    #                     current_ac = result[1] or 0
+    #                     new_ac = item.get('armor_class', 0) or 0
+    #
+    #                     # Upgrade if better rarity OR same rarity but higher AC
+    #                     if new_rarity > current_rarity or (new_rarity == current_rarity and new_ac > current_ac):
+    #                         cursor.execute("""
+    #                             UPDATE characters
+    #                             SET equipment_armor = ?
+    #                             WHERE id = ?
+    #                         """, (item_name, character_id))
+    #                         self._log_monster_action(f"[AUTO-EQUIP] Upgraded armor: {current_armor} → {item_name}")
+    #                         print(f"[LOOT] Auto-equipped {item_name} (better than {current_armor})")
+    #
+    #         # Check shield
+    #         elif item_type == 'shield':
+    #             current_shield = character.get('equipment_shield', '')
+    #
+    #             if not current_shield:
+    #                 cursor.execute("""
+    #                     UPDATE characters
+    #                     SET equipment_shield = ?
+    #                     WHERE id = ?
+    #                 """, (item_name, character_id))
+    #                 self._log_monster_action(f"[AUTO-EQUIP] Equipped {item_name} as shield")
+    #                 print(f"[LOOT] Auto-equipped {item_name} (no shield equipped)")
+    #             else:
+    #                 # Check if new shield is better
+    #                 cursor.execute("""
+    #                     SELECT rarity FROM equipment WHERE name = ?
+    #                 """, (current_shield,))
+    #                 result = cursor.fetchone()
+    #                 if result:
+    #                     current_rarity = rarity_rank.get(result[0], 1)
+    #                     if new_rarity > current_rarity:
+    #                         cursor.execute("""
+    #                             UPDATE characters
+    #                             SET equipment_shield = ?
+    #                             WHERE id = ?
+    #                         """, (item_name, character_id))
+    #                         self._log_monster_action(f"[AUTO-EQUIP] Upgraded shield: {current_shield} → {item_name}")
+    #                         print(f"[LOOT] Auto-equipped {item_name} (better than {current_shield})")
+    #
+    #     except Exception as e:
+    #         print(f"[LOOT] Error in auto-equip: {e}")
+    #         import traceback
+    #         traceback.print_exc()
 
     def _check_for_hoard(self, difficulty: str) -> str:
         """Check for hoard treasure based on encounter difficulty."""
