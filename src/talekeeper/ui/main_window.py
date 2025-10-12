@@ -19,13 +19,13 @@ from talekeeper.ui.layout_profiles import (
 from talekeeper.ui.menu.game_menu import GameMenu
 from talekeeper.ui.character_sheet.character_panel import CharacterPanel
 from talekeeper.ui.encounter_pane.encounter_panel import EncounterPanel
-from log.log_panel import LogPanel
+from talekeeper.ui.log.log_panel import LogPanel
 from talekeeper.ui.equipment_layout.equipment_panel import EquipmentPanel
 from talekeeper.ui.action_cards.action_panel import ActionPanel
 from talekeeper.core.game_engine_sqlite import GameEngineSQLite
 from talekeeper.ui.settings_dialog import SettingsDialog
 
-from audio import (
+from talekeeper.audio import (
     CampaignVoiceProfile,
     CampaignVoiceRegistry,
     LogNarrationPipeline,
@@ -1448,7 +1448,7 @@ class MainWindow(QMainWindow):
             layout.addLayout(content_layout)
 
             # Load available campaigns
-            campaign_dir = os.path.join(os.path.dirname(__file__), '..', 'encounter_pane', 'campaign')
+            campaign_dir = os.path.join(os.path.dirname(__file__), 'encounter_pane', 'campaign')
             campaigns = {}
 
             # Find all JSON files in campaign directory
