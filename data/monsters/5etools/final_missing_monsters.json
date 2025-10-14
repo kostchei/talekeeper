@@ -1,0 +1,484 @@
+{
+  "Manes Vaporspawn": [
+    {
+      "monster_data": {
+        "name": "Manes Vaporspawn",
+        "group": [
+          "Demons"
+        ],
+        "source": "XMM",
+        "page": 201,
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "fiend",
+          "tags": [
+            "demon"
+          ]
+        },
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          13
+        ],
+        "hp": {
+          "average": 19,
+          "formula": "3d8 + 6"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 14,
+        "dex": 12,
+        "con": 15,
+        "int": 5,
+        "wis": 8,
+        "cha": 3,
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 9,
+        "resist": [
+          "cold",
+          "fire",
+          "lightning"
+        ],
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "charmed",
+          "exhaustion",
+          "frightened",
+          "grappled",
+          "poisoned",
+          "restrained"
+        ],
+        "languages": [
+          "understands Abyssal but can't speak"
+        ],
+        "cr": "1",
+        "trait": [
+          {
+            "name": "Contortionist",
+            "entries": [
+              "The manes can move through a space as narrow as 1 inch without expending extra movement to do so."
+            ]
+          },
+          {
+            "name": "Sickening Vapors",
+            "entries": [
+              "{@actSave con} {@dc 12}, each creature in a 5-foot {@variantrule Emanation [Area of Effect]|XPHB|Emanation} originating from the manes at the end of the manes's turn. {@actSaveFail} The target has the {@condition Incapacitated|XPHB} condition until the end of its next turn. {@actSaveSuccess} The target is immune to this manes's Sickening Vapors for 24 hours."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Claw",
+            "entries": [
+              "{@atkr m} {@hit 4}, reach 5 ft. {@h}5 ({@damage 1d6 + 2}) Slashing damage plus 5 ({@damage 2d4}) Necrotic damage."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Shadow Stealth",
+            "entries": [
+              "While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the manes takes the Hide action."
+            ]
+          }
+        ],
+        "environment": [
+          "planar, abyss"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "languageTags": [
+          "AB",
+          "CS"
+        ],
+        "damageTags": [
+          "N",
+          "S"
+        ],
+        "miscTags": [
+          "MA"
+        ],
+        "conditionInflict": [
+          "incapacitated"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Yuan-ti Infiltrator": [
+    {
+      "monster_data": {
+        "name": "Yuan-ti Infiltrator",
+        "source": "XMM",
+        "page": 342,
+        "size": [
+          "M"
+        ],
+        "type": "monstrosity",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          11
+        ],
+        "hp": {
+          "average": 40,
+          "formula": "9d8"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 11,
+        "dex": 12,
+        "con": 11,
+        "int": 13,
+        "wis": 14,
+        "cha": 12,
+        "skill": {
+          "deception": "+5",
+          "perception": "+4",
+          "stealth": "+3"
+        },
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 14,
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "poisoned"
+        ],
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Draconic"
+        ],
+        "cr": "1",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti casts one of the following spells, requiring no Material components and using Wisdom as the spellcasting ability (spell save {@dc 12}):"
+            ],
+            "will": [
+              "{@spell Animal Friendship|XPHB} (snakes only)"
+            ],
+            "daily": {
+              "2": [
+                "{@spell Suggestion|XPHB}"
+              ]
+            },
+            "ability": "wis",
+            "displayAs": "action"
+          }
+        ],
+        "trait": [
+          {
+            "name": "Magic Resistance",
+            "entries": [
+              "The yuan-ti has {@variantrule Advantage|XPHB} on saving throws against spells and other magical effects."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The yuan-ti makes two Scimitar attacks."
+            ]
+          },
+          {
+            "name": "Scimitar",
+            "entries": [
+              "{@atkr m} {@hit 3}, reach 5 ft. {@h}4 ({@damage 1d6 + 1}) Slashing damage."
+            ]
+          },
+          {
+            "name": "Poison Ray",
+            "entries": [
+              "{@atkr r} {@hit 4}, range 120 ft. {@h}9 ({@damage 2d6 + 2}) Poison damage."
+            ]
+          }
+        ],
+        "environment": [
+          "desert",
+          "forest",
+          "swamp",
+          "urban"
+        ],
+        "treasure": [
+          "relics"
+        ],
+        "attachedItems": [
+          "scimitar|phb"
+        ],
+        "traitTags": [
+          "Magic Resistance"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "DR"
+        ],
+        "damageTags": [
+          "I",
+          "S"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA"
+        ],
+        "conditionInflictSpell": [
+          "charmed"
+        ],
+        "savingThrowForcedSpell": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Scout Captain": [
+    {
+      "monster_data": {
+        "name": "Scout Captain",
+        "source": "XMM",
+        "page": 270,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          15
+        ],
+        "hp": {
+          "average": 66,
+          "formula": "12d8 + 12"
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 11,
+        "dex": 16,
+        "con": 12,
+        "int": 14,
+        "wis": 15,
+        "cha": 11,
+        "save": {
+          "dex": "+5",
+          "int": "+4"
+        },
+        "skill": {
+          "perception": "+6",
+          "stealth": "+7",
+          "survival": "+6"
+        },
+        "passive": 16,
+        "languages": [
+          "Common plus one other language"
+        ],
+        "cr": "3",
+        "gear": [
+          "longbow|xphb",
+          "shortsword|xphb",
+          "studded leather armor|xphb"
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The scout makes two attacks, using Shortsword or Longbow in any combination."
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "entries": [
+              "{@atkr m} {@hit 5}, reach 5 ft. {@h}6 ({@damage 1d6 + 3}) Piercing damage, plus 10 ({@damage 3d6}) Piercing damage if the attack was made with {@variantrule Advantage|XPHB}."
+            ]
+          },
+          {
+            "name": "Longbow",
+            "entries": [
+              "{@atkr r} {@hit 5}, range 150/600 ft. {@h}7 ({@damage 1d8 + 3}) Piercing damage, plus 10 ({@damage 3d6}) Piercing damage if the attack was made with {@variantrule Advantage|XPHB}."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Aim",
+            "entries": [
+              "The scout has {@variantrule Advantage|XPHB} on the next attack roll it makes during the current turn."
+            ]
+          }
+        ],
+        "reaction": [
+          {
+            "name": "Uncanny Dodge",
+            "entries": [
+              "{@actTrigger} The scout is hit by an attack roll. {@actResponse} The scout halves the damage (round down) it takes from that attack."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "implements",
+          "individual"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA",
+          "RNG"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Giant Axe Beak": [
+    {
+      "monster_data": {
+        "name": "Giant Axe Beak",
+        "source": "XMM",
+        "page": 24,
+        "otherSources": [
+          {
+            "source": "DrDe"
+          }
+        ],
+        "size": [
+          "H"
+        ],
+        "type": "monstrosity",
+        "alignment": [
+          "U"
+        ],
+        "ac": [
+          15
+        ],
+        "hp": {
+          "average": 84,
+          "formula": "8d12 + 32"
+        },
+        "speed": {
+          "walk": 50
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 21,
+        "dex": 14,
+        "con": 19,
+        "int": 3,
+        "wis": 12,
+        "cha": 5,
+        "skill": {
+          "perception": "+4"
+        },
+        "passive": 14,
+        "cr": "5",
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The axe beak makes one Sharpened Beak attack and one Talons attack."
+            ]
+          },
+          {
+            "name": "Sharpened Beak",
+            "entries": [
+              "{@atkr m} {@hit 8}, reach 10 ft. {@h}18 ({@damage 2d12 + 5}) Slashing damage, and a creature within 5 feet of the target (axe beak's choice) takes 6 ({@damage 1d12}) Slashing damage."
+            ]
+          },
+          {
+            "name": "Talons",
+            "entries": [
+              "{@atkr m} {@hit 8}, reach 5 ft. {@h}14 ({@damage 2d8 + 5}) Piercing damage. If the target is a Large or smaller creature, it has the {@condition Prone|XPHB} condition."
+            ]
+          }
+        ],
+        "environment": [
+          "arctic",
+          "grassland",
+          "hill"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MA",
+          "RCH"
+        ],
+        "conditionInflict": [
+          "prone"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ]
+}

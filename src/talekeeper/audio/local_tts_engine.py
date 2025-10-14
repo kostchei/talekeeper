@@ -24,7 +24,16 @@ class LocalTTSEngine:
         device: str = "auto",
     ) -> None:
         self.model_path = Path(model_path)
+        if not self.model_path.exists():
+            raise RuntimeError(
+                f"TTS model not found at {self.model_path}\n"
+                f"Absolute path: {self.model_path.absolute()}\n"
+                f"Please ensure the model file exists."
+            )
         self.config_path = Path(config_path) if config_path else None
+        if self.config_path and not self.config_path.exists():
+            LOGGER.warning(f"TTS config not found at {self.config_path}, proceeding without it")
+            self.config_path = None
         self.device = device
         self.piper_executable = self._find_piper()
         self._verify_piper()
@@ -106,7 +115,15 @@ class LocalTTSEngine:
                 timeout=30,
             )
             if result.returncode != 0:
-                raise RuntimeError(f"Piper synthesis failed: {result.stderr}")
+                error_msg = result.stderr.strip() if result.stderr else "No error output"
+                stdout_msg = result.stdout.strip() if result.stdout else "No stdout"
+                raise RuntimeError(
+                    f"Piper synthesis failed (exit code {result.returncode})\n"
+                    f"Command: {' '.join(cmd)}\n"
+                    f"Stderr: {error_msg}\n"
+                    f"Stdout: {stdout_msg}\n"
+                    f"Text: {clean_text[:100]}..."
+                )
 
             if not output_path.exists() or output_path.stat().st_size == 0:
                 raise RuntimeError(f"Piper did not generate audio at {output_path}")

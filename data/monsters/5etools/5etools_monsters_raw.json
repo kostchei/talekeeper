@@ -1,0 +1,2775 @@
+{
+  "Specter": [
+    {
+      "monster_data": {
+        "name": "Specter",
+        "source": "MM",
+        "page": 279,
+        "srd": true,
+        "otherSources": [
+          {
+            "source": "CoS"
+          },
+          {
+            "source": "HotDQ"
+          },
+          {
+            "source": "PotA"
+          },
+          {
+            "source": "RoT"
+          },
+          {
+            "source": "SKT"
+          },
+          {
+            "source": "TftYP"
+          },
+          {
+            "source": "ToA"
+          },
+          {
+            "source": "WDH"
+          },
+          {
+            "source": "WDMM"
+          },
+          {
+            "source": "GoS"
+          },
+          {
+            "source": "DIP"
+          },
+          {
+            "source": "SLW"
+          },
+          {
+            "source": "SDW"
+          },
+          {
+            "source": "BGDIA"
+          },
+          {
+            "source": "EGW"
+          },
+          {
+            "source": "MOT"
+          },
+          {
+            "source": "IDRotF"
+          },
+          {
+            "source": "TCE"
+          },
+          {
+            "source": "CM"
+          },
+          {
+            "source": "JttRC"
+          },
+          {
+            "source": "KftGV"
+          },
+          {
+            "source": "PSI"
+          },
+          {
+            "source": "PaBTSO"
+          },
+          {
+            "source": "AATM"
+          },
+          {
+            "source": "SatO"
+          },
+          {
+            "source": "ToFW"
+          },
+          {
+            "source": "BMT"
+          },
+          {
+            "source": "VEoR"
+          },
+          {
+            "source": "QftIS"
+          }
+        ],
+        "reprintedAs": [
+          "Specter|XMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "undead",
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 22,
+          "formula": "5d8"
+        },
+        "speed": {
+          "walk": 0,
+          "fly": {
+            "number": 50,
+            "condition": "(hover)"
+          },
+          "canHover": true
+        },
+        "str": 1,
+        "dex": 14,
+        "con": 11,
+        "int": 10,
+        "wis": 10,
+        "cha": 11,
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "resist": [
+          "acid",
+          "cold",
+          "fire",
+          "lightning",
+          "thunder",
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks",
+            "cond": true
+          }
+        ],
+        "immune": [
+          "necrotic",
+          "poison"
+        ],
+        "conditionImmune": [
+          "charmed",
+          "exhaustion",
+          "grappled",
+          "paralyzed",
+          "petrified",
+          "poisoned",
+          "prone",
+          "restrained",
+          "unconscious"
+        ],
+        "languages": [
+          "understands all languages it knew in life but can't speak"
+        ],
+        "cr": "1",
+        "trait": [
+          {
+            "name": "Incorporeal Movement",
+            "entries": [
+              "The specter can move through other creatures and objects as if they were {@quickref difficult terrain||3}. It takes 5 ({@damage 1d10}) force damage if it ends its turn inside an object."
+            ]
+          },
+          {
+            "name": "Sunlight Sensitivity",
+            "entries": [
+              "While in sunlight, the specter has disadvantage on attack rolls, as well as on Wisdom ({@skill Perception}) checks that rely on sight."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Life Drain",
+            "entries": [
+              "{@atk ms} {@hit 4} to hit, reach 5 ft., one creature. {@h}10 ({@damage 3d6}) necrotic damage. The target must succeed on a {@dc 10} Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the creature finishes a long rest. The target dies if this effect reduces its hit point maximum to 0."
+            ]
+          }
+        ],
+        "environment": [
+          "underdark",
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/specter.mp3"
+        },
+        "traitTags": [
+          "Incorporeal Movement",
+          "Sunlight Sensitivity"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "languageTags": [
+          "CS",
+          "LF"
+        ],
+        "damageTags": [
+          "N",
+          "O"
+        ],
+        "miscTags": [
+          "HPR"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MM",
+      "sourcebook_full": "Monster Manual"
+    }
+  ],
+  "Shadow Demon": [
+    {
+      "monster_data": {
+        "name": "Shadow Demon",
+        "source": "MM",
+        "page": 64,
+        "otherSources": [
+          {
+            "source": "CoS"
+          },
+          {
+            "source": "PotA"
+          },
+          {
+            "source": "SKT"
+          },
+          {
+            "source": "ToA"
+          },
+          {
+            "source": "WDH"
+          },
+          {
+            "source": "WDMM"
+          },
+          {
+            "source": "BGDIA"
+          },
+          {
+            "source": "IMR"
+          },
+          {
+            "source": "MOT"
+          },
+          {
+            "source": "IDRotF"
+          },
+          {
+            "source": "CRCotN"
+          },
+          {
+            "source": "JttRC"
+          },
+          {
+            "source": "KftGV"
+          },
+          {
+            "source": "AATM"
+          },
+          {
+            "source": "SatO"
+          },
+          {
+            "source": "BMT"
+          },
+          {
+            "source": "CoA"
+          }
+        ],
+        "reprintedAs": [
+          "Shadow Demon|XMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "fiend",
+          "tags": [
+            "demon"
+          ]
+        },
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          13
+        ],
+        "hp": {
+          "average": 66,
+          "formula": "12d8 + 12"
+        },
+        "speed": {
+          "walk": 30,
+          "fly": 30
+        },
+        "str": 1,
+        "dex": 17,
+        "con": 12,
+        "int": 14,
+        "wis": 13,
+        "cha": 14,
+        "save": {
+          "dex": "+5",
+          "cha": "+4"
+        },
+        "skill": {
+          "stealth": "+7"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 11,
+        "resist": [
+          "acid",
+          "fire",
+          "necrotic",
+          "thunder",
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks",
+            "cond": true
+          }
+        ],
+        "immune": [
+          "cold",
+          "lightning",
+          "poison"
+        ],
+        "vulnerable": [
+          "radiant"
+        ],
+        "conditionImmune": [
+          "exhaustion",
+          "grappled",
+          "paralyzed",
+          "petrified",
+          "poisoned",
+          "prone",
+          "restrained"
+        ],
+        "languages": [
+          "Abyssal",
+          "telepathy 120 ft."
+        ],
+        "cr": "4",
+        "trait": [
+          {
+            "name": "Incorporeal Movement",
+            "entries": [
+              "The demon can move through other creatures and objects as if they were {@quickref difficult terrain||3}. It takes 5 ({@damage 1d10}) force damage if it ends its turn inside an object."
+            ]
+          },
+          {
+            "name": "Light Sensitivity",
+            "entries": [
+              "While in bright light, the demon has disadvantage on attack rolls, as well as on Wisdom ({@skill Perception}) checks that rely on sight."
+            ]
+          },
+          {
+            "name": "Shadow Stealth",
+            "entries": [
+              "While in dim light or darkness, the demon can take the Hide action as a bonus action."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Claws",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one creature. {@h}10 ({@damage 2d6 + 3}) psychic damage or, if the demon had advantage on the attack roll, 17 ({@damage 4d6 + 3}) psychic damage."
+            ]
+          }
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/shadow-demon.mp3"
+        },
+        "traitTags": [
+          "Incorporeal Movement",
+          "Light Sensitivity"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "languageTags": [
+          "AB",
+          "TP"
+        ],
+        "damageTags": [
+          "O",
+          "Y"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MM",
+      "sourcebook_full": "Monster Manual"
+    }
+  ],
+  "Shadow Mastiff": [
+    {
+      "monster_data": {
+        "name": "Shadow Mastiff",
+        "source": "VGM",
+        "page": 190,
+        "reprintedAs": [
+          "Shadow Mastiff Alpha|MPMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "monstrosity",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 33,
+          "formula": "6d8 + 6"
+        },
+        "speed": {
+          "walk": 40
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 5,
+        "wis": 12,
+        "cha": 5,
+        "skill": {
+          "perception": "+3",
+          "stealth": "+6"
+        },
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 13,
+        "resist": [
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks while in dim light or darkness",
+            "cond": true
+          }
+        ],
+        "cr": "2",
+        "trait": [
+          {
+            "name": "Ethereal Awareness",
+            "entries": [
+              "The shadow mastiff can see ethereal creatures and objects."
+            ]
+          },
+          {
+            "name": "Keen Hearing and Smell",
+            "entries": [
+              "The shadow mastiff has advantage on Wisdom ({@skill Perception}) checks that rely on hearing or smell."
+            ]
+          },
+          {
+            "name": "Shadow Blend",
+            "entries": [
+              "While in dim light or darkness, the shadow mastiff can use a bonus action to become {@condition invisible}, along with anything it is wearing or carrying. The invisibility lasts until the shadow mastiff uses a bonus action to end it or until the shadow mastiff attacks, is in bright light, or is {@condition incapacitated}."
+            ]
+          },
+          {
+            "name": "Sunlight Weakness",
+            "entries": [
+              "While in bright light created by sunlight, the shadow mastiff has disadvantage on attack rolls, ability checks, and saving throws."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}10 ({@damage 2d6 + 3}) piercing damage. If the target is a creature, it must succeed on a {@dc 13} Strength saving throw or be knocked {@condition prone}."
+            ]
+          }
+        ],
+        "variant": [
+          {
+            "type": "variant",
+            "name": "Shadow Mastiff Alpha",
+            "entries": [
+              "A shadow mastiff alpha has the statistics of a normal shadow mastiff, with the following modifications:",
+              {
+                "type": "list",
+                "items": [
+                  "The alpha has above average (42\u201354) hit points.",
+                  "It has an Intelligence of 6 (-2).",
+                  "It has the Terrifying Howl action option described below."
+                ]
+              },
+              {
+                "type": "entries",
+                "name": "Terrifying Howl",
+                "entries": [
+                  "The shadow mastiff howls. Any beast or humanoid within 300 feet of the mastiff and able to hear its howl must succeed on a {@dc 11} Wisdom saving throw or be {@condition frightened} for 1 minute. A {@condition frightened} target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a target's saving throw is successful or the effect ends for it, the target is immune to any shadow mastiff's Terrifying Howl for the next 24 hours."
+                ]
+              }
+            ]
+          }
+        ],
+        "environment": [
+          "forest",
+          "swamp",
+          "hill"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/shadow-mastiff.mp3"
+        },
+        "traitTags": [
+          "Keen Senses"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "damageTags": [
+          "P"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "conditionInflict": [
+          "frightened",
+          "prone"
+        ],
+        "savingThrowForced": [
+          "strength",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true,
+        "_versions": [
+          {
+            "name": "Shadow Mastiff Alpha",
+            "source": "VGM",
+            "_mod": {
+              "action": {
+                "mode": "appendArr",
+                "items": {
+                  "name": "Terrifying Howl",
+                  "entries": [
+                    "The shadow mastiff howls. Any beast or humanoid within 300 feet of the mastiff and able to hear its howl must succeed on a {@dc 11} Wisdom saving throw or be {@condition frightened} for 1 minute. A {@condition frightened} target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a target's saving throw is successful or the effect ends for it, the target is immune to any shadow mastiff's Terrifying Howl for the next 24 hours."
+                  ]
+                }
+              }
+            },
+            "hp": {
+              "average": 48,
+              "formula": "6d8 + 6"
+            },
+            "int": 6,
+            "variant": null
+          }
+        ]
+      },
+      "sourcebook": "VGM",
+      "sourcebook_full": "Volos Guide to Monsters"
+    },
+    {
+      "monster_data": {
+        "name": "Shadow Mastiff",
+        "source": "MPMM",
+        "page": 215,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 190
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "monstrosity",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "alignmentPrefix": "Typically ",
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 33,
+          "formula": "6d8 + 6"
+        },
+        "speed": {
+          "walk": 40
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 5,
+        "wis": 12,
+        "cha": 5,
+        "skill": {
+          "perception": "+5",
+          "stealth": "+6"
+        },
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 15,
+        "resist": [
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks while in dim light or darkness",
+            "cond": true
+          }
+        ],
+        "cr": "2",
+        "trait": [
+          {
+            "name": "Ethereal Awareness",
+            "entries": [
+              "The shadow mastiff can see ethereal creatures and objects."
+            ]
+          },
+          {
+            "name": "Sunlight Weakness",
+            "entries": [
+              "While in bright light created by sunlight, the shadow mastiff has disadvantage on attack rolls, ability checks, and saving throws."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}10 ({@damage 2d6 + 3}) piercing damage. If the target is a creature, it must succeed on a {@dc 13} Strength saving throw or be knocked {@condition prone}."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Shadow Blend",
+            "entries": [
+              "While in dim light or darkness, the shadow mastiff becomes {@condition invisible}, along with anything it is wearing or carrying. The invisibility lasts until the shadow mastiff uses a bonus action to end it or until the shadow mastiff attacks, is in bright light, or is {@condition incapacitated}."
+            ]
+          }
+        ],
+        "environment": [
+          "forest",
+          "hill",
+          "swamp"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/shadow-mastiff.mp3"
+        },
+        "senseTags": [
+          "D"
+        ],
+        "damageTags": [
+          "P"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "conditionInflict": [
+          "prone"
+        ],
+        "savingThrowForced": [
+          "strength"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    },
+    {
+      "monster_data": {
+        "name": "Shadow Mastiff Alpha",
+        "source": "MPMM",
+        "page": 215,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 190
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "monstrosity",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "alignmentPrefix": "Typically ",
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 44,
+          "formula": "8d8 + 8"
+        },
+        "speed": {
+          "walk": 40
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 6,
+        "wis": 12,
+        "cha": 5,
+        "skill": {
+          "perception": "+5",
+          "stealth": "+6"
+        },
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 15,
+        "resist": [
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks while in dim light or darkness",
+            "cond": true
+          }
+        ],
+        "cr": "3",
+        "trait": [
+          {
+            "name": "Ethereal Awareness",
+            "entries": [
+              "The shadow mastiff can see ethereal creatures and objects."
+            ]
+          },
+          {
+            "name": "Sunlight Weakness",
+            "entries": [
+              "While in bright light created by sunlight, the shadow mastiff has disadvantage on attack rolls, ability checks, and saving throws."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}10 ({@damage 2d6 + 3}) piercing damage. If the target is a creature, it must succeed on a {@dc 13} Strength saving throw or be knocked {@condition prone}."
+            ]
+          },
+          {
+            "name": "Terrifying Howl {@recharge}",
+            "entries": [
+              "The shadow mastiff howls. Any Beast or Humanoid within 300 feet of it must succeed on a {@dc 11} Wisdom saving throw or be {@condition frightened} of it for 1 minute. A {@condition frightened} target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a target's save is successful or the effect ends for it, the target is immune to any shadow mastiff's Terrifying Howl for the next 24 hours."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Shadow Blend",
+            "entries": [
+              "While in dim light or darkness, the shadow mastiff becomes {@condition invisible}, along with anything it is wearing or carrying. The invisibility lasts until the shadow mastiff uses a bonus action to end it or until the shadow mastiff attacks, is in bright light, or is {@condition incapacitated}."
+            ]
+          }
+        ],
+        "environment": [
+          "forest",
+          "hill",
+          "swamp"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/shadow-mastiff.mp3"
+        },
+        "senseTags": [
+          "D"
+        ],
+        "damageTags": [
+          "P"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "conditionInflict": [
+          "frightened",
+          "prone"
+        ],
+        "savingThrowForced": [
+          "strength",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    }
+  ],
+  "Champion": [
+    {
+      "monster_data": {
+        "name": "Champion",
+        "source": "VGM",
+        "page": 212,
+        "otherSources": [
+          {
+            "source": "WDMM"
+          },
+          {
+            "source": "TftYP"
+          },
+          {
+            "source": "ToA"
+          }
+        ],
+        "reprintedAs": [
+          "Champion|MPMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "any race"
+          ]
+        },
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          {
+            "ac": 18,
+            "from": [
+              "{@item plate armor|phb}"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 143,
+          "formula": "22d8 + 44"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 20,
+        "dex": 15,
+        "con": 14,
+        "int": 10,
+        "wis": 14,
+        "cha": 12,
+        "save": {
+          "str": "+9",
+          "con": "+6"
+        },
+        "skill": {
+          "athletics": "+9",
+          "intimidation": "+5",
+          "perception": "+6"
+        },
+        "passive": 16,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "9",
+        "trait": [
+          {
+            "name": "Indomitable (2/Day)",
+            "entries": [
+              "The champion rerolls a failed saving throw."
+            ]
+          },
+          {
+            "name": "Second Wind (Recharges after a Short or Long Rest)",
+            "entries": [
+              "As a bonus action, the champion can regain 20 hit points."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The champion makes three attacks with its greatsword or its shortbow."
+            ]
+          },
+          {
+            "name": "Greatsword",
+            "entries": [
+              "{@atk mw} {@hit 9} to hit, reach 5 ft., one target. {@h}12 ({@damage 2d6 + 5}) slashing damage, plus 7 ({@damage 2d6}) slashing damage if the champion has more than half of its total hit points remaining."
+            ]
+          },
+          {
+            "name": "Shortbow",
+            "entries": [
+              "{@atk rw} {@hit 6} to hit, range 80/320 ft., one target. {@h}5 ({@damage 1d6 + 2}) piercing damage, plus 7 ({@damage 2d6}) piercing damage if the champion has more than half of its total hit points remaining."
+            ]
+          }
+        ],
+        "environment": [
+          "desert",
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/champion.mp3"
+        },
+        "attachedItems": [
+          "greatsword|phb",
+          "shortbow|phb"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW",
+          "RNG",
+          "RW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "VGM",
+      "sourcebook_full": "Volos Guide to Monsters"
+    },
+    {
+      "monster_data": {
+        "name": "Champion",
+        "source": "MPMM",
+        "page": 74,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 212
+          },
+          {
+            "source": "WDMM",
+            "page": 312
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          {
+            "ac": 18,
+            "from": [
+              "{@item plate armor|PHB|plate}"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 143,
+          "formula": "22d8 + 44"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 20,
+        "dex": 15,
+        "con": 14,
+        "int": 10,
+        "wis": 14,
+        "cha": 12,
+        "save": {
+          "str": "+9",
+          "con": "+6"
+        },
+        "skill": {
+          "athletics": "+9",
+          "intimidation": "+5",
+          "perception": "+6"
+        },
+        "passive": 16,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "9",
+        "trait": [
+          {
+            "name": "Indomitable (2/Day)",
+            "entries": [
+              "The champion rerolls a failed saving throw."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The champion makes three Greatsword or Shortbow attacks."
+            ]
+          },
+          {
+            "name": "Greatsword",
+            "entries": [
+              "{@atk mw} {@hit 9} to hit, reach 5 ft., one target. {@h}12 ({@damage 2d6 + 5}) slashing damage, plus 7 ({@damage 2d6}) slashing damage if the champion has more than half of its total hit points remaining."
+            ]
+          },
+          {
+            "name": "Shortbow",
+            "entries": [
+              "{@atk rw} {@hit 6} to hit, range 80/320 ft., one target. {@h}5 ({@damage 1d6 + 2}) piercing damage, plus 7 ({@damage 2d6}) piercing damage if the champion has more than half of its total hit points remaining."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Second Wind (Recharges after a Short or Long Rest)",
+            "entries": [
+              "The champion regains 20 hit points."
+            ]
+          }
+        ],
+        "environment": [
+          "desert",
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/champion.mp3"
+        },
+        "attachedItems": [
+          "greatsword|phb",
+          "shortbow|phb"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW",
+          "RNG",
+          "RW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    },
+    {
+      "monster_data": {
+        "name": "Sahuagin Champion",
+        "source": "GoS",
+        "page": 249,
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "sahuagin"
+          ]
+        },
+        "alignment": [
+          "L",
+          "E"
+        ],
+        "ac": [
+          {
+            "ac": 16,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 71,
+          "formula": "13d8 + 13"
+        },
+        "speed": {
+          "walk": 30,
+          "swim": 40
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 12,
+        "int": 12,
+        "wis": 13,
+        "cha": 9,
+        "skill": {
+          "perception": "+5"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 15,
+        "languages": [
+          "Sahuagin"
+        ],
+        "cr": "3",
+        "trait": [
+          {
+            "name": "Blood Frenzy",
+            "entries": [
+              "The champion has advantage on melee attack rolls against any creature that doesn't have all its hit points."
+            ]
+          },
+          {
+            "name": "Limited Amphibiousness",
+            "entries": [
+              "The champion can breathe air and water, but it needs to be submerged at least once every 4 hours to avoid suffocating."
+            ]
+          },
+          {
+            "name": "Shark Telepathy",
+            "entries": [
+              "The champion can magically command any shark within 120 feet of it, using a limited telepathy."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The champion makes three attacks with its spear, or one attack with its bite and two with its claws."
+            ]
+          },
+          {
+            "name": "Spear",
+            "entries": [
+              "{@atk mw,rw} {@hit 5} to hit, reach 5 ft. or range 20/60 ft., one target. {@h}6 ({@damage 1d6 + 3}) piercing damage, or 7 ({@damage 1d8 + 3}) piercing damage if used with two hands to make a melee attack."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d4 + 3}) piercing damage."
+            ]
+          },
+          {
+            "name": "Claws",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d6 + 3}) slashing damage."
+            ]
+          }
+        ],
+        "attachedItems": [
+          "spear|phb"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "OTH"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW",
+          "RW",
+          "THW"
+        ],
+        "hasToken": true,
+        "hasFluff": true
+      },
+      "sourcebook": "GOS",
+      "sourcebook_full": "Ghosts of Saltmarsh"
+    },
+    {
+      "monster_data": {
+        "name": "Troglodyte Champion of Laogzed",
+        "source": "OotA",
+        "page": 229,
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "troglodyte"
+          ]
+        },
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 59,
+          "formula": "7d8 + 28"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 18,
+        "dex": 12,
+        "con": 18,
+        "int": 8,
+        "wis": 12,
+        "cha": 12,
+        "skill": {
+          "athletics": "+6",
+          "intimidation": "+3",
+          "stealth": "+3"
+        },
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 11,
+        "languages": [
+          "Troglodyte"
+        ],
+        "cr": "3",
+        "trait": [
+          {
+            "name": "Chameleon Skin",
+            "entries": [
+              "The troglodyte has advantage on Dexterity ({@skill Stealth}) checks made to hide."
+            ]
+          },
+          {
+            "name": "Stench",
+            "entries": [
+              "Any creature other than a troglodyte that starts its turn within 5 feet of the troglodyte must succeed on a {@dc 14} Constitution saving throw or be {@condition poisoned} until the start of the creature's next turn. On a successful saving throw, the creature is immune to the stench of all troglodytes for 1 hour."
+            ]
+          },
+          {
+            "name": "Sunlight Sensitivity",
+            "entries": [
+              "While in sunlight, the troglodyte has disadvantage on attack rolls, as well as on Wisdom ({@skill Perception}) checks that rely on sight."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The troglodyte makes three attacks: one with its bite and two with either its claws or its greatclub."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 6} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d4 + 4}) piercing damage."
+            ]
+          },
+          {
+            "name": "Claw",
+            "entries": [
+              "{@atk mw} {@hit 6} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d4 + 4}) slashing damage."
+            ]
+          },
+          {
+            "name": "Greatclub",
+            "entries": [
+              "{@atk mw} {@hit 6} to hit, reach 5 ft., one target. {@h}8 ({@damage 1d8 + 4}) bludgeoning damage."
+            ]
+          },
+          {
+            "name": "Acid Spray {@recharge}",
+            "entries": [
+              "The troglodyte spits acid in a line 15 feet long and 5 feet wide. Each creature in that line must make a {@dc 14} Dexterity saving throw, taking 10 ({@damage 3d6}) acid damage on a failed save, or half as much damage on a successful one."
+            ]
+          }
+        ],
+        "attachedItems": [
+          "greatclub|phb"
+        ],
+        "traitTags": [
+          "Sunlight Sensitivity"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "OTH"
+        ],
+        "damageTags": [
+          "A",
+          "B",
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW"
+        ],
+        "conditionInflict": [
+          "poisoned"
+        ],
+        "savingThrowForced": [
+          "constitution",
+          "dexterity"
+        ],
+        "hasToken": true,
+        "hasFluff": true
+      },
+      "sourcebook": "OOTA",
+      "sourcebook_full": "Out of the Abyss"
+    }
+  ],
+  "Apprentice Wizard": [
+    {
+      "monster_data": {
+        "name": "Apprentice Wizard",
+        "source": "VGM",
+        "page": 209,
+        "otherSources": [
+          {
+            "source": "WDH"
+          },
+          {
+            "source": "ToA"
+          },
+          {
+            "source": "DIP"
+          },
+          {
+            "source": "SLW"
+          },
+          {
+            "source": "ERLW"
+          }
+        ],
+        "reprintedAs": [
+          "Apprentice Wizard|MPMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "any race"
+          ]
+        },
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          10
+        ],
+        "hp": {
+          "average": 9,
+          "formula": "2d8"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 10,
+        "dex": 10,
+        "con": 10,
+        "int": 14,
+        "wis": 10,
+        "cha": 11,
+        "skill": {
+          "arcana": "+4",
+          "history": "+4"
+        },
+        "passive": 10,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "1/4",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The apprentice is a 1st-level spellcaster. Its spellcasting ability is Intelligence (spell save {@dc 12}, {@hit 4} to hit with spell attacks). It has the following wizard spells prepared:"
+            ],
+            "spells": {
+              "0": {
+                "spells": [
+                  "{@spell fire bolt}",
+                  "{@spell mending}",
+                  "{@spell prestidigitation}"
+                ]
+              },
+              "1": {
+                "slots": 2,
+                "spells": [
+                  "{@spell burning hands}",
+                  "{@spell disguise self}",
+                  "{@spell shield}"
+                ]
+              }
+            },
+            "ability": "int"
+          }
+        ],
+        "action": [
+          {
+            "name": "Dagger",
+            "entries": [
+              "{@atk mw,rw} {@hit 2} to hit, reach 5 ft. or range 20/60 ft., one target. {@h}2 ({@damage 1d4}) piercing damage."
+            ]
+          }
+        ],
+        "environment": [
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/apprentice-wizard.mp3"
+        },
+        "attachedItems": [
+          "dagger|phb"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P"
+        ],
+        "damageTagsSpell": [
+          "F"
+        ],
+        "spellcastingTags": [
+          "CW"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW",
+          "RW",
+          "THW"
+        ],
+        "savingThrowForcedSpell": [
+          "dexterity"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "VGM",
+      "sourcebook_full": "Volos Guide to Monsters"
+    },
+    {
+      "monster_data": {
+        "name": "Apprentice Wizard",
+        "source": "MPMM",
+        "page": 259,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 209
+          },
+          {
+            "source": "SjA"
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid"
+        },
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          10,
+          {
+            "ac": 13,
+            "condition": "with {@spell mage armor}",
+            "braces": true
+          }
+        ],
+        "hp": {
+          "average": 13,
+          "formula": "3d8"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 10,
+        "dex": 10,
+        "con": 10,
+        "int": 14,
+        "wis": 10,
+        "cha": 11,
+        "skill": {
+          "arcana": "+4",
+          "history": "+4"
+        },
+        "passive": 10,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "1/4",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The apprentice casts one of the following spells, using Intelligence as the spellcasting ability (spell save {@dc 12})"
+            ],
+            "will": [
+              "{@spell mage hand}",
+              "{@spell prestidigitation}"
+            ],
+            "daily": {
+              "1e": [
+                "{@spell burning hands}",
+                "{@spell disguise self}",
+                "{@spell mage armor}"
+              ]
+            },
+            "ability": "int",
+            "displayAs": "action"
+          }
+        ],
+        "action": [
+          {
+            "name": "Arcane Burst",
+            "entries": [
+              "{@atk ms,rs} {@hit 4} to hit, reach 5 ft. or range 120 ft., one target. {@h}7 ({@damage 1d10 + 2}) force damage."
+            ]
+          }
+        ],
+        "environment": [
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/apprentice-wizard.mp3"
+        },
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "O"
+        ],
+        "damageTagsSpell": [
+          "F"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "savingThrowForcedSpell": [
+          "dexterity"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    }
+  ],
+  "Yuan-ti Mind Whisperer": [
+    {
+      "monster_data": {
+        "name": "Yuan-ti Mind Whisperer",
+        "source": "VGM",
+        "page": 204,
+        "reprintedAs": [
+          "Yuan-ti Mind Whisperer|MPMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "monstrosity",
+          "tags": [
+            "shapechanger",
+            "yuan-ti"
+          ]
+        },
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 71,
+          "formula": "13d8 + 13"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 14,
+        "wis": 14,
+        "cha": 16,
+        "save": {
+          "wis": "+4",
+          "cha": "+5"
+        },
+        "skill": {
+          "deception": "+5",
+          "stealth": "+4"
+        },
+        "senses": [
+          "darkvision 120 ft. (penetrates magical darkness)"
+        ],
+        "passive": 12,
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "poisoned"
+        ],
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Draconic"
+        ],
+        "cr": "4",
+        "spellcasting": [
+          {
+            "name": "Innate Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti's innate spellcasting ability is Charisma (spell save {@dc 13}). The yuan-ti can innately cast the following spells, requiring no material components:"
+            ],
+            "will": [
+              "{@spell animal friendship} (snakes only)"
+            ],
+            "daily": {
+              "3": [
+                "{@spell suggestion}"
+              ]
+            },
+            "ability": "cha"
+          },
+          {
+            "name": "Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti is a 6th-level spellcaster. Its spellcasting ability is Charisma (spell save {@dc 13}, {@hit 5} to hit with spell attacks). It regains its expended spell slots when it finishes a short or long rest. It knows the following warlock spells:"
+            ],
+            "spells": {
+              "0": {
+                "spells": [
+                  "{@spell eldritch blast} (range 300 ft., +3 bonus to each damage roll)",
+                  "{@spell friends}",
+                  "{@spell message}",
+                  "{@spell minor illusion}",
+                  "{@spell poison spray}",
+                  "{@spell prestidigitation}"
+                ]
+              },
+              "3": {
+                "lower": 1,
+                "slots": 2,
+                "spells": [
+                  "{@spell charm person}",
+                  "{@spell crown of madness}",
+                  "{@spell detect thoughts}",
+                  "{@spell expeditious retreat}",
+                  "{@spell fly}",
+                  "{@spell hypnotic pattern}",
+                  "{@spell illusory script}"
+                ]
+              }
+            },
+            "ability": "cha"
+          }
+        ],
+        "trait": [
+          {
+            "name": "Shapechanger",
+            "entries": [
+              "The yuan-ti can use its action to polymorph into a Medium snake or back into its true form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. If it dies, it stays in its current form."
+            ]
+          },
+          {
+            "name": "Magic Resistance",
+            "entries": [
+              "The yuan-ti has advantage on saving throws against spells and other magical effects."
+            ]
+          },
+          {
+            "name": "Mind Fangs (2/Day)",
+            "entries": [
+              "The first time the yuan-ti hits with a melee attack on its turn, it can deal an extra 16 ({@damage 3d10}) psychic damage to the target."
+            ]
+          },
+          {
+            "name": "Sseth's Blessing",
+            "entries": [
+              "When the yuan-ti reduces an enemy to 0 hit points, the yuan-ti gains 9 temporary hit points."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack (Yuan-ti Form Only)",
+            "entries": [
+              "The yuan-ti makes one bite attack and one scimitar attack."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d4 + 3}) piercing damage plus 7 ({@damage 2d6}) poison damage."
+            ]
+          },
+          {
+            "name": "Scimitar (Yuan-ti Form Only)",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d6 + 3}) slashing damage."
+            ]
+          }
+        ],
+        "variant": [
+          {
+            "type": "variant",
+            "name": "Chameleon Skin",
+            "entries": [
+              "The yuan-ti has advantage on Dexterity ({@skill Stealth}) checks made to hide."
+            ],
+            "_version": {
+              "name": "Yuan-ti Mind Whisperer (Chameleon Skin)",
+              "addAs": "trait"
+            }
+          },
+          {
+            "type": "variant",
+            "name": "Shed Skin (1/Day)",
+            "entries": [
+              "The yuan-ti can shed its skin as a bonus action to free itself from a grapple, shackles, or other restraints. If the yuan-ti spends 1 minute eating its shed skin, it regains hit points equal to half its hit point maximum."
+            ],
+            "_version": {
+              "name": "Yuan-ti Mind Whisperer (Shed Skin)",
+              "addAs": "bonus"
+            }
+          }
+        ],
+        "environment": [
+          "underdark",
+          "forest",
+          "desert"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/yuan-ti-mind-whisperer.mp3"
+        },
+        "attachedItems": [
+          "scimitar|phb"
+        ],
+        "traitTags": [
+          "Magic Resistance",
+          "Shapechanger"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "DR"
+        ],
+        "damageTags": [
+          "I",
+          "P",
+          "S",
+          "Y"
+        ],
+        "damageTagsSpell": [
+          "I",
+          "O"
+        ],
+        "spellcastingTags": [
+          "CL",
+          "F",
+          "I"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW"
+        ],
+        "savingThrowForcedSpell": [
+          "constitution",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "VGM",
+      "sourcebook_full": "Volos Guide to Monsters"
+    },
+    {
+      "monster_data": {
+        "name": "Yuan-ti Mind Whisperer",
+        "source": "MPMM",
+        "page": 274,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 204
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "monstrosity",
+          "tags": [
+            "warlock"
+          ]
+        },
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "alignmentPrefix": "Typically ",
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 71,
+          "formula": "13d8 + 13"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 14,
+        "wis": 14,
+        "cha": 16,
+        "save": {
+          "wis": "+4",
+          "cha": "+5"
+        },
+        "skill": {
+          "deception": "+5",
+          "stealth": "+4"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 12,
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "poisoned"
+        ],
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Draconic"
+        ],
+        "cr": "4",
+        "spellcasting": [
+          {
+            "name": "Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti casts one of the following spells, requiring no material components and using Charisma as the spellcasting ability (spell save {@dc 13}):"
+            ],
+            "will": [
+              "{@spell animal friendship} (snakes only)",
+              "{@spell message}",
+              "{@spell minor illusion}",
+              "{@spell prestidigitation}"
+            ],
+            "daily": {
+              "3": [
+                "{@spell suggestion}"
+              ],
+              "2e": [
+                "{@spell detect thoughts}",
+                "{@spell hypnotic pattern}"
+              ]
+            },
+            "ability": "cha",
+            "displayAs": "action"
+          }
+        ],
+        "trait": [
+          {
+            "name": "Devil's Sight",
+            "entries": [
+              "Magical darkness doesn't impede the yuan-ti's {@sense darkvision}."
+            ]
+          },
+          {
+            "name": "Magic Resistance",
+            "entries": [
+              "The yuan-ti has advantage on saving throws against spells and other magical effects."
+            ]
+          },
+          {
+            "name": "Sseth's Blessing",
+            "entries": [
+              "When the yuan-ti reduces an enemy to 0 hit points, the yuan-ti gains 9 temporary hit points."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The yuan-ti makes two Bite attacks and one Scimitar attack, or it makes two Spectral Fangs attacks."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d4 + 3}) piercing damage plus 7 ({@damage 2d6}) poison damage."
+            ]
+          },
+          {
+            "name": "Scimitar (Yuan-ti Form Only)",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}6 ({@damage 1d6 + 3}) slashing damage."
+            ]
+          },
+          {
+            "name": "Spectral Fangs",
+            "entries": [
+              "{@atk rs} {@hit 5} to hit, range 120 ft., one target. {@h}16 ({@damage 3d8 + 3}) psychic damage."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Change Shape",
+            "entries": [
+              "The yuan-ti transforms into a Medium snake or back into its true form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. If it dies, it stays in its current form."
+            ]
+          }
+        ],
+        "environment": [
+          "desert",
+          "forest",
+          "underdark"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/yuan-ti-mind-whisperer.mp3"
+        },
+        "attachedItems": [
+          "scimitar|phb"
+        ],
+        "traitTags": [
+          "Devil's Sight",
+          "Magic Resistance"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack",
+          "Shapechanger"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "DR"
+        ],
+        "damageTags": [
+          "I",
+          "Y"
+        ],
+        "spellcastingTags": [
+          "F"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW"
+        ],
+        "conditionInflictSpell": [
+          "charmed",
+          "incapacitated"
+        ],
+        "savingThrowForcedSpell": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    }
+  ],
+  "Yuan-ti Pit Master": [
+    {
+      "monster_data": {
+        "name": "Yuan-ti Pit Master",
+        "source": "VGM",
+        "page": 206,
+        "reprintedAs": [
+          "Yuan-ti Pit Master|MPMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "monstrosity",
+          "tags": [
+            "shapechanger",
+            "yuan-ti"
+          ]
+        },
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 88,
+          "formula": "16d8 + 16"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 14,
+        "wis": 12,
+        "cha": 16,
+        "save": {
+          "wis": "+4",
+          "cha": "+6"
+        },
+        "skill": {
+          "deception": "+6",
+          "stealth": "+5"
+        },
+        "senses": [
+          "darkvision 120 ft. (penetrates magical darkness)"
+        ],
+        "passive": 11,
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "poisoned"
+        ],
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Draconic"
+        ],
+        "cr": "5",
+        "spellcasting": [
+          {
+            "name": "Innate Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti's innate spellcasting ability is Charisma (spell save {@dc 13}). The yuan-ti can innately cast the following spells, requiring no material components:"
+            ],
+            "will": [
+              "{@spell animal friendship} (snakes only)"
+            ],
+            "daily": {
+              "3": [
+                "{@spell suggestion}"
+              ]
+            },
+            "ability": "cha"
+          },
+          {
+            "name": "Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti is a 6th-level spellcaster. Its spellcasting ability is Charisma (spell save {@dc 13}, {@hit 5} to hit with spell attacks). It regains its expended spell slots when it finishes a short or long rest. It knows the following warlock spells:"
+            ],
+            "spells": {
+              "0": {
+                "spells": [
+                  "{@spell eldritch blast} (range 300 ft., +3 bonus to each damage roll)",
+                  "{@spell friends}",
+                  "{@spell guidance}",
+                  "{@spell mage hand}",
+                  "{@spell message}",
+                  "{@spell poison spray}"
+                ]
+              },
+              "3": {
+                "lower": 1,
+                "slots": 2,
+                "spells": [
+                  "{@spell command}",
+                  "{@spell counterspell}",
+                  "{@spell hellish rebuke}",
+                  "{@spell invisibility}",
+                  "{@spell misty step}",
+                  "{@spell unseen servant}",
+                  "{@spell vampiric touch}"
+                ]
+              }
+            },
+            "ability": "cha"
+          }
+        ],
+        "trait": [
+          {
+            "name": "Shapechanger",
+            "entries": [
+              "The yuan-ti can use its action to polymorph into a Medium snake or back into its true form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It doesn't change form if it dies."
+            ]
+          },
+          {
+            "name": "Magic Resistance",
+            "entries": [
+              "The yuan-ti has advantage on saving throws against spells and other magical effects."
+            ]
+          },
+          {
+            "name": "Poison's Disciple (2/Day)",
+            "entries": [
+              "The first time the yuan-ti hits with a melee attack on its turn, it can deal an extra 16 ({@damage 3d10}) poison damage to the target."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack (Yuan-ti Form Only)",
+            "entries": [
+              "The yuan-ti makes two bite attacks using its snake arms."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d4 + 3}) piercing damage plus 7 ({@damage 2d6}) poison damage."
+            ]
+          },
+          {
+            "name": "Merrshaulk's Slumber (1/Day)",
+            "entries": [
+              "The yuan-ti targets up to five creatures that it can see within 60 feet of it. Each target must succeed on a {@dc 13} Constitution saving throw or fall into a magical sleep and be {@condition unconscious} for 10 minutes. A sleeping target awakens if it takes damage or if someone uses an action to shake or slap it awake. This magical sleep has no effect on a creature immune to being {@condition charmed}."
+            ]
+          }
+        ],
+        "variant": [
+          {
+            "type": "variant",
+            "name": "Chameleon Skin",
+            "entries": [
+              "The yuan-ti has advantage on Dexterity ({@skill Stealth}) checks made to hide."
+            ],
+            "_version": {
+              "name": "Yuan-ti Pit Master (Chameleon Skin)",
+              "addAs": "trait"
+            }
+          },
+          {
+            "type": "variant",
+            "name": "Shed Skin (1/Day)",
+            "entries": [
+              "The yuan-ti can shed its skin as a bonus action to free itself from a grapple, shackles, or other restraints. If the yuan-ti spends 1 minute eating its shed skin, it regains hit points equal to half its hit point maximum."
+            ],
+            "_version": {
+              "name": "Yuan-ti Pit Master (Shed Skin)",
+              "addAs": "bonus"
+            }
+          }
+        ],
+        "environment": [
+          "underdark",
+          "forest",
+          "desert"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/yuan-ti-pit-master.mp3"
+        },
+        "traitTags": [
+          "Magic Resistance",
+          "Shapechanger"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "DR"
+        ],
+        "damageTags": [
+          "I",
+          "P"
+        ],
+        "damageTagsSpell": [
+          "F",
+          "I",
+          "N",
+          "O"
+        ],
+        "spellcastingTags": [
+          "CL",
+          "F",
+          "I"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "conditionInflict": [
+          "unconscious"
+        ],
+        "conditionInflictSpell": [
+          "charmed",
+          "invisible",
+          "prone"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "savingThrowForcedSpell": [
+          "constitution",
+          "dexterity",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "VGM",
+      "sourcebook_full": "Volos Guide to Monsters"
+    },
+    {
+      "monster_data": {
+        "name": "Yuan-ti Pit Master",
+        "source": "MPMM",
+        "page": 276,
+        "otherSources": [
+          {
+            "source": "VGM",
+            "page": 206
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "monstrosity",
+          "tags": [
+            "warlock"
+          ]
+        },
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "alignmentPrefix": "Typically ",
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 88,
+          "formula": "16d8 + 16"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 13,
+        "int": 14,
+        "wis": 12,
+        "cha": 16,
+        "save": {
+          "wis": "+4",
+          "cha": "+6"
+        },
+        "skill": {
+          "deception": "+6",
+          "stealth": "+5"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 11,
+        "immune": [
+          "poison"
+        ],
+        "conditionImmune": [
+          "poisoned"
+        ],
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Draconic"
+        ],
+        "cr": "5",
+        "spellcasting": [
+          {
+            "name": "Spellcasting (Yuan-ti Form Only)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The yuan-ti casts one of the following spells, requiring no material components and using Charisma as the spellcasting ability (spell save {@dc 14}):"
+            ],
+            "will": [
+              "{@spell animal friendship} (snakes only)",
+              "{@spell guidance}",
+              "{@spell mage hand}",
+              "{@spell message}"
+            ],
+            "daily": {
+              "3": [
+                "{@spell suggestion}"
+              ],
+              "2e": [
+                "{@spell hold person}",
+                "{@spell invisibility}"
+              ]
+            },
+            "ability": "cha",
+            "displayAs": "action"
+          }
+        ],
+        "trait": [
+          {
+            "name": "Devil's Sight",
+            "entries": [
+              "Magical darkness doesn't impede the yuan-ti's {@sense darkvision}."
+            ]
+          },
+          {
+            "name": "Magic Resistance",
+            "entries": [
+              "The yuan-ti has advantage on saving throws against spells and other magical effects."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The yuan-ti makes three Bite attacks or two Spectral Fangs attacks."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atk mw} {@hit 6} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d4 + 3}) piercing damage plus 7 ({@damage 2d6}) poison damage."
+            ]
+          },
+          {
+            "name": "Spectral Fangs",
+            "entries": [
+              "{@atk rs} {@hit 6} to hit, range 120 ft., one target. {@h}16 ({@damage 3d8 + 3}) poison damage."
+            ]
+          },
+          {
+            "name": "Merrshaulk's Slumber (1/Day)",
+            "entries": [
+              "The yuan-ti targets up to five creatures that it can see within 60 feet of it. Each target must succeed on a {@dc 13} Constitution saving throw or fall into a magical sleep and be {@condition unconscious} for 10 minutes. A sleeping target awakens if it takes damage or if someone uses an action to shake or slap it awake. This magical sleep has no effect on a creature immune to being {@condition charmed}."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Change Shape",
+            "entries": [
+              "The yuan-ti transforms into a Medium snake or back into its true form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It doesn't change form if it dies."
+            ]
+          }
+        ],
+        "environment": [
+          "desert",
+          "forest",
+          "underdark"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/yuan-ti-pit-master.mp3"
+        },
+        "traitTags": [
+          "Devil's Sight",
+          "Magic Resistance"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack",
+          "Shapechanger"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "DR"
+        ],
+        "damageTags": [
+          "I",
+          "P"
+        ],
+        "spellcastingTags": [
+          "F"
+        ],
+        "miscTags": [
+          "MW"
+        ],
+        "conditionInflict": [
+          "unconscious"
+        ],
+        "conditionInflictSpell": [
+          "charmed",
+          "invisible",
+          "paralyzed"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "savingThrowForcedSpell": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MPMM",
+      "sourcebook_full": "Mordenkainen Presents Monsters of the Multiverse"
+    }
+  ],
+  "Skum": [
+    {
+      "monster_data": {
+        "name": "Skum",
+        "source": "GoS",
+        "page": 254,
+        "size": [
+          "M"
+        ],
+        "type": "aberration",
+        "alignment": [
+          "L",
+          "E"
+        ],
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "natural armor"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 93,
+          "formula": "11d8 + 44"
+        },
+        "speed": {
+          "walk": 20,
+          "swim": 40
+        },
+        "str": 19,
+        "dex": 11,
+        "con": 18,
+        "int": 7,
+        "wis": 12,
+        "cha": 9,
+        "skill": {
+          "perception": "+4"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 14,
+        "resist": [
+          "psychic"
+        ],
+        "languages": [
+          "Common",
+          "Deep Speech",
+          "telepathy 60 ft."
+        ],
+        "cr": "5",
+        "trait": [
+          {
+            "name": "Abolethic Vassal",
+            "entries": [
+              "The skum is permanently {@condition charmed} by its aboleth master."
+            ]
+          },
+          {
+            "name": "Amphibious",
+            "entries": [
+              "The skum can breathe air and water."
+            ]
+          },
+          {
+            "name": "Psychic Conditioning",
+            "entries": [
+              "The skum is immune to the {@condition frightened} and {@condition charmed} conditions unless they are from effects created by an aboleth."
+            ]
+          },
+          {
+            "name": "Water Dependency",
+            "entries": [
+              "The skum takes 6 ({@damage 1d12}) acid damage every 10 minutes it goes without exposure to water."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The skum makes three attacks: two with its trident and one with its Mind-Breaking Touch."
+            ]
+          },
+          {
+            "name": "Trident",
+            "entries": [
+              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}7 ({@damage 1d6 + 4}) piercing damage."
+            ]
+          },
+          {
+            "name": "Mind-Breaking Touch",
+            "entries": [
+              "{@atk mw} {@hit 7} to hit, reach 5 ft., one target. {@h}18 ({@damage 4d8}) psychic damage, and the target has disadvantage on Wisdom saving throws until the end of the skum's next turn."
+            ]
+          }
+        ],
+        "attachedItems": [
+          "trident|phb"
+        ],
+        "traitTags": [
+          "Amphibious"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "DS",
+          "TP"
+        ],
+        "damageTags": [
+          "A",
+          "P",
+          "Y"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "GOS",
+      "sourcebook_full": "Ghosts of Saltmarsh"
+    }
+  ],
+  "Pirate Captain": [
+    {
+      "monster_data": {
+        "name": "Pirate Captain",
+        "source": "GoS",
+        "page": 247,
+        "reprintedAs": [
+          "Pirate Captain|XMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "any race"
+          ]
+        },
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          {
+            "ac": 14,
+            "from": [
+              "{@item studded leather armor|phb|studded leather}"
+            ]
+          }
+        ],
+        "hp": {
+          "average": 45,
+          "formula": "7d8 + 14"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 16,
+        "dex": 14,
+        "con": 14,
+        "int": 11,
+        "wis": 10,
+        "cha": 14,
+        "skill": {
+          "athletics": "+5",
+          "intimidation": "+4"
+        },
+        "passive": 10,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "2",
+        "trait": [
+          {
+            "name": "Flourish",
+            "entries": [
+              "The captain adds its Charisma modifier to the damage roll for its longsword attacks (included in the attack)."
+            ]
+          },
+          {
+            "name": "Sea Legs",
+            "entries": [
+              "The captain has advantage on ability checks and saving throws to resist being knocked {@condition prone}."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The captain makes two attacks: one with its hand crossbow and one with its longsword."
+            ]
+          },
+          {
+            "name": "Hand Crossbow",
+            "entries": [
+              "{@atk rw} {@hit 4} to hit, range 30/120 ft., one target. {@h}5 ({@damage 1d6 + 2}) piercing damage."
+            ]
+          },
+          {
+            "name": "Longsword",
+            "entries": [
+              "{@atk mw} {@hit 5} to hit, reach 5 ft., one target. {@h}9 ({@damage 1d8 + 5}) slashing damage, or 10 ({@damage 1d10 + 5}) slashing damage if used with two hands."
+            ]
+          }
+        ],
+        "reaction": [
+          {
+            "name": "Shape Up, Ye Dog (2/Day)",
+            "entries": [
+              "Whenever a friendly creature within 30 feet of the captain that can hear it misses with an attack, the captain can yell perilous threats to allow that creature to reroll the attack roll."
+            ]
+          }
+        ],
+        "attachedItems": [
+          "hand crossbow|phb",
+          "longsword|phb"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW",
+          "RNG",
+          "RW"
+        ],
+        "hasToken": true,
+        "hasFluff": true
+      },
+      "sourcebook": "GOS",
+      "sourcebook_full": "Ghosts of Saltmarsh"
+    }
+  ]
+}

@@ -49,7 +49,10 @@
       "Bash(tasklist)",
       "Bash(awk:*)",
       "Bash(python3:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(do echo \"Checking $book...\")",
+      "Bash(column:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

@@ -4082,11 +4082,19 @@ class ActionPanel(QWidget):
                             max_hp = 0
                     
                     new_hp = max(0, current_hp - damage)
-                    
+
                     # Update both field name variants for compatibility
                     character_data['current_hit_points'] = new_hp
                     character_data['hit_points_current'] = new_hp
-                    
+
+                    # Save HP to database to persist through rest
+                    game_parent = parent
+                    while game_parent:
+                        if hasattr(game_parent, 'game_engine'):
+                            game_parent.game_engine.update_character_hp_sync(new_hp, max_hp)
+                            break
+                        game_parent = game_parent.parent()
+
                     # Update character sheet display
                     parent.character_sheet.load_character_data(character_data)
 

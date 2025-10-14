@@ -245,12 +245,19 @@ class MainWindow(QMainWindow):
         if self.log_panel is None:
             return
 
+        from talekeeper.core.config import get_config
+        config = get_config()
+
+        if not config.narrative.enable_audio_narration:
+            LOGGER.info("Audio narration disabled in settings")
+            return
+
         try:
             registry = self._load_campaign_voice_registry()
         except FileNotFoundError:
             LOGGER.info("Narration voice profile file not found; narration disabled")
             self.log_panel.log_system(
-                "🎙️ Narration disabled: place voice_profiles.json in excess/narration to enable audio logs."
+                "Audio narration disabled (voice profiles not found). Enable in Settings if needed."
             )
             return
         except Exception as exc:

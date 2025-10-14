@@ -214,15 +214,23 @@ class LogNarrationPipeline:
         output_path = self.output_directory / f"{timestamp.strftime('%Y%m%d_%H%M%S_%f')}.wav"
         try:
             engine = self._get_engine(profile)
-        except Exception:
-            LOGGER.exception("Unable to initialize TTS engine for voice %s", profile.voice_id)
+        except Exception as e:
+            LOGGER.error(
+                f"Unable to initialize TTS engine for voice {profile.voice_id}: {e}\n"
+                f"Model path: {profile.model_path}\n"
+                f"Campaign style: {self._active_campaign_style}"
+            )
             return None
         style_overrides = self._derive_style_overrides(batch, profile)
         LOGGER.info(
             "Rendering narration clip",
             extra={"text": text, "output_path": str(output_path), "campaign_style": self._active_campaign_style},
         )
-        engine.synthesize(text, output_path, profile, style_overrides=style_overrides)
+        try:
+            engine.synthesize(text, output_path, profile, style_overrides=style_overrides)
+        except Exception as e:
+            LOGGER.error(f"TTS synthesis failed: {e}")
+            return None
 
         if self.audio_player and output_path.exists():
             self.audio_player.enqueue(output_path)

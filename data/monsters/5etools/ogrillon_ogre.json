@@ -1,0 +1,100 @@
+{
+  "Ogrillon Ogre": [
+    {
+      "monster_data": {
+        "name": "Ogrillon Ogre",
+        "source": "XMM",
+        "page": 231,
+        "size": [
+          "L"
+        ],
+        "type": "giant",
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 52,
+          "formula": "7d10 + 14"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 17,
+        "dex": 10,
+        "con": 14,
+        "int": 7,
+        "wis": 9,
+        "cha": 10,
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 9,
+        "languages": [
+          "Common",
+          "Giant"
+        ],
+        "cr": "1",
+        "gear": [
+          "battleaxe|xphb",
+          {
+            "item": "javelin|xphb",
+            "quantity": 3
+          }
+        ],
+        "action": [
+          {
+            "name": "Battleaxe",
+            "entries": [
+              "{@atkr m} {@hit 5}, reach 5 ft. {@h}7 ({@damage 1d8 + 3}) Slashing damage."
+            ]
+          },
+          {
+            "name": "Javelin",
+            "entries": [
+              "{@atkr m,r} {@hit 5}, reach 5 ft. or range 30/120 ft. {@h}6 ({@damage 1d6 + 3}) Piercing damage."
+            ]
+          }
+        ],
+        "environment": [
+          "arctic",
+          "desert",
+          "forest",
+          "grassland",
+          "hill",
+          "mountain",
+          "swamp",
+          "underdark"
+        ],
+        "treasure": [
+          "armaments"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "languageTags": [
+          "C",
+          "GI"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA",
+          "THW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ]
+}

@@ -77,6 +77,7 @@ class UIConfig:
 @dataclass
 class NarrativeConfig:
     """Narrative generation settings"""
+    enable_audio_narration: bool = False
     enable_combat_narratives: bool = True
     enable_round_summaries: bool = True
     enable_victory_narratives: bool = True

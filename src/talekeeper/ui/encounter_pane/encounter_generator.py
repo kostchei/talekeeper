@@ -41,13 +41,26 @@ CR_TO_XP = {
     "21": 33000, "22": 41000, "23": 50000, "24": 62000, "30": 155000
 }
 
-def load_monsters():
-    """Load monsters from database"""
+def load_monsters(campaign_id: Optional[str] = None):
+    """Load monsters from database, optionally filtered by campaign"""
     import sqlite3
     conn = sqlite3.connect("talekeeper.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM monsters")
-    monster_rows = cursor.fetchall()
+
+    if campaign_id:
+        cursor.execute("""
+            SELECT m.* FROM monsters m
+            JOIN campaign_monsters cm ON m.id = cm.monster_id
+            WHERE cm.campaign_id = ?
+        """, (campaign_id,))
+        monster_rows = cursor.fetchall()
+
+        if not monster_rows:
+            cursor.execute("SELECT * FROM monsters")
+            monster_rows = cursor.fetchall()
+    else:
+        cursor.execute("SELECT * FROM monsters")
+        monster_rows = cursor.fetchall()
 
     monsters = []
     for monster_row in monster_rows:
@@ -123,8 +136,6 @@ def load_monsters():
     conn.close()
     return monsters
 
-# Load monster database from JSON
-MONSTER_DB = load_monsters()
 
 
 def roll_monster_hp(hp_formula: str) -> int:
@@ -167,6 +178,7 @@ def roll_monster_hp(hp_formula: str) -> int:
 class CampaignFrame:
     """Simple data class to hold campaign frame data"""
     def __init__(self, data: Dict[str, Any]):
+        self.campaign_id = data.get('style', '')
         self.monster_type_weights = data.get('monster_type_weights', {})
         self.difficulty_distribution = data.get('difficulty_distribution', {})
         self.rest_rules = data.get('rest_rules', {})
@@ -194,6 +206,7 @@ class EncounterGenerator:
         self.frame = frame
         self.bags: Dict[int, RandomBag] = {}
         self.description_service = description_service
+        self.monster_db = load_monsters(frame.campaign_id) if frame.campaign_id else load_monsters()
 
     def _attach_monster_narrative(self, monsters: List[Dict[str, Any]], level: int, difficulty: str) -> List[Dict[str, Any]]:
         """Return copies of ``monsters`` with a unified encounter description."""
@@ -235,7 +248,7 @@ class EncounterGenerator:
         allowed = []
         is_aquatic_campaign = 'aquatic' in self.frame.tags
 
-        for m in MONSTER_DB:
+        for m in self.monster_db:
             if m["cr"] > cr_cap:
                 continue
 
@@ -254,7 +267,7 @@ class EncounterGenerator:
                     allowed.append(m)
                     continue
 
-        return allowed if allowed else [m for m in MONSTER_DB if m["cr"] <= cr_cap]
+        return allowed if allowed else [m for m in self.monster_db if m["cr"] <= cr_cap]
 
     def _can_pair_with_beast(self, monster: Dict[str, Any]) -> bool:
         """Check if a monster can be paired with a beast (both must have Int 6+)"""

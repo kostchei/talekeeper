@@ -7,6 +7,7 @@ class CampaignFrame:
         if isinstance(data, dict):
             # Initialize from dict (JSON loading)
             self.name = data.get('name', '')
+            self.campaign_id = data.get('style', '')
             self.monster_type_weights = data.get('monster_type_weights', {})
             self.difficulty_distribution = data.get('difficulty_distribution', {})
             self.rest_rules = data.get('rest_rules', {})
@@ -22,6 +23,7 @@ class CampaignFrame:
         else:
             # Initialize from individual parameters
             self.name = name or data or ''
+            self.campaign_id = style
             self.monster_type_weights = monster_type_weights or {}
             self.difficulty_distribution = difficulty_distribution or {}
             self.rest_rules = rest_rules or {}
@@ -38,6 +40,7 @@ class CampaignFrame:
     def to_dict(self):
         return {
             "name": self.name,
+            "campaign_id": self.campaign_id,
             "monster_type_weights": self.monster_type_weights,
             "difficulty_distribution": self.difficulty_distribution,
             "rest_rules": self.rest_rules,

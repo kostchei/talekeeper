@@ -1,0 +1,2111 @@
+{
+  "Acolyte": [
+    {
+      "monster_data": {
+        "name": "Acolyte",
+        "source": "MM",
+        "page": 342,
+        "srd": true,
+        "basicRules": true,
+        "otherSources": [
+          {
+            "source": "CoS"
+          },
+          {
+            "source": "HotDQ"
+          },
+          {
+            "source": "PotA"
+          },
+          {
+            "source": "SKT"
+          },
+          {
+            "source": "ToA"
+          },
+          {
+            "source": "WDH"
+          },
+          {
+            "source": "GoS"
+          },
+          {
+            "source": "BGDIA"
+          },
+          {
+            "source": "ERLW"
+          },
+          {
+            "source": "EGW"
+          },
+          {
+            "source": "MOT"
+          },
+          {
+            "source": "IDRotF"
+          },
+          {
+            "source": "CM"
+          },
+          {
+            "source": "CRCotN"
+          },
+          {
+            "source": "JttRC"
+          },
+          {
+            "source": "SjA"
+          },
+          {
+            "source": "DSotDQ"
+          },
+          {
+            "source": "PSI"
+          },
+          {
+            "source": "PaBTSO"
+          },
+          {
+            "source": "QftIS"
+          }
+        ],
+        "reprintedAs": [
+          "Priest Acolyte|XMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "any race"
+          ]
+        },
+        "alignment": [
+          "A"
+        ],
+        "ac": [
+          10
+        ],
+        "hp": {
+          "average": 9,
+          "formula": "2d8"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 10,
+        "dex": 10,
+        "con": 10,
+        "int": 10,
+        "wis": 14,
+        "cha": 11,
+        "skill": {
+          "medicine": "+4",
+          "religion": "+2"
+        },
+        "passive": 12,
+        "languages": [
+          "any one language (usually Common)"
+        ],
+        "cr": "1/4",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The acolyte is a 1st-level spellcaster. Its spellcasting ability is Wisdom (spell save {@dc 12}, {@hit 4} to hit with spell attacks). The acolyte has following cleric spells prepared:"
+            ],
+            "spells": {
+              "0": {
+                "spells": [
+                  "{@spell light}",
+                  "{@spell sacred flame}",
+                  "{@spell thaumaturgy}"
+                ]
+              },
+              "1": {
+                "slots": 3,
+                "spells": [
+                  "{@spell bless}",
+                  "{@spell cure wounds}",
+                  "{@spell sanctuary}"
+                ]
+              }
+            },
+            "ability": "wis"
+          }
+        ],
+        "action": [
+          {
+            "name": "Club",
+            "entries": [
+              "{@atk mw} {@hit 2} to hit, reach 5 ft., one target. {@h}2 ({@damage 1d4}) bludgeoning damage."
+            ]
+          }
+        ],
+        "environment": [
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/acolyte.mp3"
+        },
+        "attachedItems": [
+          "club|phb"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "B"
+        ],
+        "damageTagsSpell": [
+          "R"
+        ],
+        "spellcastingTags": [
+          "CC"
+        ],
+        "miscTags": [
+          "MLW",
+          "MW"
+        ],
+        "savingThrowForcedSpell": [
+          "dexterity",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true
+      },
+      "sourcebook": "MM",
+      "sourcebook_full": "Monster Manual"
+    },
+    {
+      "monster_data": {
+        "name": "Priest Acolyte",
+        "source": "XMM",
+        "page": 247,
+        "srd52": true,
+        "basicRules2024": true,
+        "otherSources": [
+          {
+            "source": "DrDe"
+          }
+        ],
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": {
+          "type": "humanoid",
+          "tags": [
+            "cleric"
+          ]
+        },
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          13
+        ],
+        "hp": {
+          "average": 11,
+          "formula": "2d8 + 2"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "str": 14,
+        "dex": 10,
+        "con": 12,
+        "int": 10,
+        "wis": 14,
+        "cha": 11,
+        "skill": {
+          "medicine": "+4",
+          "religion": "+2"
+        },
+        "passive": 12,
+        "languages": [
+          "Common"
+        ],
+        "cr": "1/4",
+        "gear": [
+          "chain shirt|xphb",
+          "holy symbol|xphb",
+          "mace|xphb"
+        ],
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The priest casts one of the following spells, using Wisdom as the spellcasting ability:"
+            ],
+            "will": [
+              "{@spell Light|XPHB}",
+              "{@spell Thaumaturgy|XPHB}"
+            ],
+            "ability": "wis",
+            "displayAs": "action"
+          },
+          {
+            "name": "Divine Aid (1/Day)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The priest casts {@spell Bless|XPHB}, {@spell Healing Word|XPHB}, or {@spell Sanctuary|XPHB}, using the same spellcasting ability as Spellcasting."
+            ],
+            "daily": {
+              "1": [
+                "{@spell Bless|XPHB}",
+                "{@spell Healing Word|XPHB}",
+                "{@spell Sanctuary|XPHB}"
+              ]
+            },
+            "ability": "wis",
+            "displayAs": "bonus",
+            "hidden": [
+              "daily"
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Mace",
+            "entries": [
+              "{@atkr m} {@hit 4}, reach 5 ft. {@h}5 ({@damage 1d6 + 2}) Bludgeoning damage plus 2 ({@damage 1d4}) Radiant damage."
+            ]
+          },
+          {
+            "name": "Radiant Flame",
+            "entries": [
+              "{@atkr r} {@hit 4}, range 60 ft. {@h}7 ({@damage 2d6}) Radiant damage."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual",
+          "relics"
+        ],
+        "languageTags": [
+          "C"
+        ],
+        "damageTags": [
+          "B",
+          "R"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA"
+        ],
+        "savingThrowForcedSpell": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    },
+    {
+      "monster_data": {
+        "name": "Drow Acolyte",
+        "source": "OotA",
+        "page": 201,
+        "_copy": {
+          "name": "Acolyte",
+          "source": "MM",
+          "_templates": [
+            {
+              "name": "Drow",
+              "source": "PHB"
+            }
+          ]
+        },
+        "traitTags": [
+          "Fey Ancestry",
+          "Sunlight Sensitivity"
+        ],
+        "spellcastingTags": [
+          "CC",
+          "I"
+        ],
+        "hasToken": true
+      },
+      "sourcebook": "OOTA",
+      "sourcebook_full": "Out of the Abyss"
+    }
+  ],
+  "Specter": [
+    {
+      "monster_data": {
+        "name": "Specter",
+        "source": "MM",
+        "page": 279,
+        "srd": true,
+        "otherSources": [
+          {
+            "source": "CoS"
+          },
+          {
+            "source": "HotDQ"
+          },
+          {
+            "source": "PotA"
+          },
+          {
+            "source": "RoT"
+          },
+          {
+            "source": "SKT"
+          },
+          {
+            "source": "TftYP"
+          },
+          {
+            "source": "ToA"
+          },
+          {
+            "source": "WDH"
+          },
+          {
+            "source": "WDMM"
+          },
+          {
+            "source": "GoS"
+          },
+          {
+            "source": "DIP"
+          },
+          {
+            "source": "SLW"
+          },
+          {
+            "source": "SDW"
+          },
+          {
+            "source": "BGDIA"
+          },
+          {
+            "source": "EGW"
+          },
+          {
+            "source": "MOT"
+          },
+          {
+            "source": "IDRotF"
+          },
+          {
+            "source": "TCE"
+          },
+          {
+            "source": "CM"
+          },
+          {
+            "source": "JttRC"
+          },
+          {
+            "source": "KftGV"
+          },
+          {
+            "source": "PSI"
+          },
+          {
+            "source": "PaBTSO"
+          },
+          {
+            "source": "AATM"
+          },
+          {
+            "source": "SatO"
+          },
+          {
+            "source": "ToFW"
+          },
+          {
+            "source": "BMT"
+          },
+          {
+            "source": "VEoR"
+          },
+          {
+            "source": "QftIS"
+          }
+        ],
+        "reprintedAs": [
+          "Specter|XMM"
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "undead",
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 22,
+          "formula": "5d8"
+        },
+        "speed": {
+          "walk": 0,
+          "fly": {
+            "number": 50,
+            "condition": "(hover)"
+          },
+          "canHover": true
+        },
+        "str": 1,
+        "dex": 14,
+        "con": 11,
+        "int": 10,
+        "wis": 10,
+        "cha": 11,
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "resist": [
+          "acid",
+          "cold",
+          "fire",
+          "lightning",
+          "thunder",
+          {
+            "resist": [
+              "bludgeoning",
+              "piercing",
+              "slashing"
+            ],
+            "note": "from nonmagical attacks",
+            "cond": true
+          }
+        ],
+        "immune": [
+          "necrotic",
+          "poison"
+        ],
+        "conditionImmune": [
+          "charmed",
+          "exhaustion",
+          "grappled",
+          "paralyzed",
+          "petrified",
+          "poisoned",
+          "prone",
+          "restrained",
+          "unconscious"
+        ],
+        "languages": [
+          "understands all languages it knew in life but can't speak"
+        ],
+        "cr": "1",
+        "trait": [
+          {
+            "name": "Incorporeal Movement",
+            "entries": [
+              "The specter can move through other creatures and objects as if they were {@quickref difficult terrain||3}. It takes 5 ({@damage 1d10}) force damage if it ends its turn inside an object."
+            ]
+          },
+          {
+            "name": "Sunlight Sensitivity",
+            "entries": [
+              "While in sunlight, the specter has disadvantage on attack rolls, as well as on Wisdom ({@skill Perception}) checks that rely on sight."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Life Drain",
+            "entries": [
+              "{@atk ms} {@hit 4} to hit, reach 5 ft., one creature. {@h}10 ({@damage 3d6}) necrotic damage. The target must succeed on a {@dc 10} Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken. This reduction lasts until the creature finishes a long rest. The target dies if this effect reduces its hit point maximum to 0."
+            ]
+          }
+        ],
+        "environment": [
+          "underdark",
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/specter.mp3"
+        },
+        "traitTags": [
+          "Incorporeal Movement",
+          "Sunlight Sensitivity"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "languageTags": [
+          "CS",
+          "LF"
+        ],
+        "damageTags": [
+          "N",
+          "O"
+        ],
+        "miscTags": [
+          "HPR"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "MM",
+      "sourcebook_full": "Monster Manual"
+    },
+    {
+      "monster_data": {
+        "name": "Specter",
+        "source": "XMM",
+        "page": 290,
+        "srd52": true,
+        "basicRules2024": true,
+        "otherSources": [
+          {
+            "source": "HBTD"
+          },
+          {
+            "source": "DrDe"
+          }
+        ],
+        "size": [
+          "M"
+        ],
+        "type": "undead",
+        "alignment": [
+          "C",
+          "E"
+        ],
+        "ac": [
+          12
+        ],
+        "hp": {
+          "average": 22,
+          "formula": "5d8"
+        },
+        "speed": {
+          "walk": 30,
+          "fly": {
+            "number": 50,
+            "condition": "(hover)"
+          },
+          "canHover": true
+        },
+        "str": 1,
+        "dex": 14,
+        "con": 11,
+        "int": 10,
+        "wis": 10,
+        "cha": 11,
+        "senses": [
+          "darkvision 60 ft."
+        ],
+        "passive": 10,
+        "resist": [
+          "acid",
+          "bludgeoning",
+          "cold",
+          "fire",
+          "lightning",
+          "piercing",
+          "slashing",
+          "thunder"
+        ],
+        "immune": [
+          "necrotic",
+          "poison"
+        ],
+        "conditionImmune": [
+          "charmed",
+          "exhaustion",
+          "grappled",
+          "paralyzed",
+          "petrified",
+          "poisoned",
+          "prone",
+          "restrained",
+          "unconscious"
+        ],
+        "languages": [
+          "understands Common plus one other language but can't speak"
+        ],
+        "cr": "1",
+        "trait": [
+          {
+            "name": "Incorporeal Movement",
+            "entries": [
+              "The specter can move through other creatures and objects as if they were {@variantrule Difficult Terrain|XPHB}. It takes 5 ({@damage 1d10}) Force damage if it ends its turn inside an object."
+            ]
+          },
+          {
+            "name": "Sunlight Sensitivity",
+            "entries": [
+              "While in sunlight, the specter has {@variantrule Disadvantage|XPHB} on ability checks and attack rolls."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Life Drain",
+            "entries": [
+              "{@atkr m} {@hit 4}, reach 5 ft. {@h}7 ({@damage 2d6}) Necrotic damage. If the target is a creature, its {@variantrule Hit Points|XPHB|Hit Point} maximum decreases by an amount equal to the damage taken."
+            ]
+          }
+        ],
+        "environment": [
+          "underdark",
+          "urban"
+        ],
+        "soundClip": {
+          "type": "internal",
+          "path": "bestiary/specter.mp3"
+        },
+        "traitTags": [
+          "Incorporeal Movement",
+          "Sunlight Sensitivity"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "languageTags": [
+          "C",
+          "CS",
+          "X"
+        ],
+        "damageTags": [
+          "N",
+          "O"
+        ],
+        "miscTags": [
+          "MA"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Bandit Deceiver": [
+    {
+      "monster_data": {
+        "name": "Bandit Deceiver",
+        "source": "XMM",
+        "page": 28,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 130,
+          "formula": "20d8 + 40"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 8,
+        "dex": 16,
+        "con": 14,
+        "int": 17,
+        "wis": 12,
+        "cha": 16,
+        "save": {
+          "dex": "+6",
+          "int": "+6"
+        },
+        "skill": {
+          "acrobatics": "+6",
+          "perception": "+4",
+          "stealth": "+9"
+        },
+        "passive": 14,
+        "languages": [
+          "Common",
+          "Thieves' cant"
+        ],
+        "cr": "7",
+        "gear": [
+          {
+            "item": "dagger|xphb",
+            "quantity": 6
+          },
+          "wand|xphb"
+        ],
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The bandit casts one of the following spells, using Intelligence as the spellcasting ability (spell save {@dc 14}):"
+            ],
+            "will": [
+              "{@spell Disguise Self|XPHB}",
+              "{@spell Mage Hand|XPHB}",
+              "{@spell Minor Illusion|XPHB}"
+            ],
+            "daily": {
+              "1e": [
+                "{@spell Hold Person|XPHB} (level 4 version)",
+                "{@spell Mage Armor|XPHB} (included in AC)",
+                "{@spell Major Image|XPHB}"
+              ]
+            },
+            "ability": "int",
+            "displayAs": "action"
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The bandit makes three Dagger attacks."
+            ]
+          },
+          {
+            "name": "Dagger",
+            "entries": [
+              "{@atkr m,r} {@hit 6}, reach 5 ft. or range 20/60 ft. {@h}8 ({@damage 2d4 + 3}) Piercing damage plus 10 ({@damage 3d6}) Poison damage."
+            ]
+          },
+          {
+            "name": "Blinding Flash {@recharge 4}",
+            "entries": [
+              "{@actSave con} {@dc 14}, each creature in a 10-foot-radius {@variantrule Sphere [Area of Effect]|XPHB|Sphere} centered on a point the bandit can see within 120 feet. {@actSaveFail} 13 ({@damage 3d6 + 3}) Radiant damage, and the target has the {@condition Blinded|XPHB} condition until the start of the bandit's next turn. {@actSaveSuccess} Half damage only."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "any"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "TC"
+        ],
+        "damageTags": [
+          "I",
+          "P",
+          "R"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "AOE",
+          "MA",
+          "MLW",
+          "RA",
+          "THW"
+        ],
+        "conditionInflict": [
+          "blinded"
+        ],
+        "conditionInflictSpell": [
+          "paralyzed"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "savingThrowForcedSpell": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Cultist Hierophant": [
+    {
+      "monster_data": {
+        "name": "Cultist Hierophant",
+        "source": "XMM",
+        "page": 85,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 144,
+          "formula": "17d8 + 68"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 14,
+        "dex": 18,
+        "con": 18,
+        "int": 13,
+        "wis": 16,
+        "cha": 20,
+        "save": {
+          "wis": "+7",
+          "cha": "+9"
+        },
+        "skill": {
+          "perception": "+7",
+          "persuasion": "+9",
+          "religion": "+5"
+        },
+        "passive": 17,
+        "languages": [
+          "Celestial",
+          "Common"
+        ],
+        "cr": "10",
+        "gear": [
+          "breastplate|xphb",
+          "holy symbol|xphb"
+        ],
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts one of the following spells, using Charisma as the spellcasting ability (spell save {@dc 17}):"
+            ],
+            "will": [
+              "{@spell Thaumaturgy|XPHB}"
+            ],
+            "daily": {
+              "1e": [
+                "{@spell Jallarzi's Storm of Radiance|XPHB} (level 7 version)",
+                "{@spell Mass Suggestion|XPHB}"
+              ]
+            },
+            "ability": "cha",
+            "displayAs": "action"
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The cultist makes three attacks, using Pact Blade or Radiant Ray in any combination."
+            ]
+          },
+          {
+            "name": "Pact Blade",
+            "entries": [
+              "{@atkr m} {@hit 9}, reach 5 ft. {@h}12 ({@damage 2d6 + 5}) Slashing damage plus 18 ({@damage 4d8}) Radiant damage."
+            ]
+          },
+          {
+            "name": "Radiant Ray",
+            "entries": [
+              "{@atkr r} {@hit 9}, range 120 ft. {@h}31 ({@damage 4d12 + 5}) Radiant damage."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual",
+          "relics"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "CE"
+        ],
+        "damageTags": [
+          "R",
+          "S"
+        ],
+        "damageTagsSpell": [
+          "R",
+          "T"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "RA"
+        ],
+        "conditionInflictSpell": [
+          "blinded",
+          "charmed",
+          "deafened"
+        ],
+        "savingThrowForcedSpell": [
+          "constitution",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Noble Prodigy": [
+    {
+      "monster_data": {
+        "name": "Noble Prodigy",
+        "source": "XMM",
+        "page": 227,
+        "otherSources": [
+          {
+            "source": "DrDe"
+          }
+        ],
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 148,
+          "formula": "27d8 + 27"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 8,
+        "dex": 16,
+        "con": 12,
+        "int": 15,
+        "wis": 14,
+        "cha": 19,
+        "save": {
+          "dex": "+7",
+          "con": "+5",
+          "wis": "+6",
+          "cha": "+8"
+        },
+        "skill": {
+          "perception": "+6",
+          "persuasion": "+8"
+        },
+        "passive": 16,
+        "languages": [
+          "Common plus two other languages"
+        ],
+        "cr": "10",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The noble casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save {@dc 16}):"
+            ],
+            "will": [
+              "{@spell Mage Armor|XPHB} (included in AC)",
+              "{@spell Mage Hand|XPHB}",
+              "{@spell Minor Illusion|XPHB}"
+            ],
+            "daily": {
+              "1e": [
+                "{@spell Befuddlement|XPHB}",
+                "{@spell Detect Thoughts|XPHB}",
+                "{@spell Fly|XPHB}",
+                "{@spell Scrying|XPHB}",
+                "{@spell Shatter|XPHB} (level 7 version)"
+              ]
+            },
+            "ability": "cha",
+            "displayAs": "action"
+          },
+          {
+            "name": "Shield (2/Day)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The noble casts {@spell Shield|XPHB} in response to that spell's trigger, using the same spellcasting ability as Spellcasting."
+            ],
+            "daily": {
+              "2": [
+                "{@spell Shield|XPHB}"
+              ]
+            },
+            "ability": "cha",
+            "displayAs": "reaction",
+            "hidden": [
+              "daily"
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The noble makes three Beguiling Strike attacks."
+            ]
+          },
+          {
+            "name": "Beguiling Strike",
+            "entries": [
+              "{@atkr m,r} {@hit 8}, reach 5 ft. or range 60 ft. {@h}18 ({@damage 4d6 + 4}) Psychic damage, and the target has the {@condition Charmed|XPHB} condition until the start of the noble's next turn."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "Y"
+        ],
+        "damageTagsSpell": [
+          "T",
+          "Y"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "RA"
+        ],
+        "conditionInflict": [
+          "charmed"
+        ],
+        "savingThrowForcedSpell": [
+          "constitution",
+          "intelligence",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Spy Master": [
+    {
+      "monster_data": {
+        "name": "Spy Master",
+        "source": "XMM",
+        "page": 295,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          19
+        ],
+        "hp": {
+          "average": 137,
+          "formula": "25d8 + 25"
+        },
+        "speed": {
+          "walk": 30,
+          "climb": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 10,
+        "dex": 20,
+        "con": 12,
+        "int": 18,
+        "wis": 16,
+        "cha": 16,
+        "save": {
+          "dex": "+9",
+          "con": "+5",
+          "int": "+8",
+          "wis": "+7"
+        },
+        "skill": {
+          "deception": "+7",
+          "insight": "+7",
+          "investigation": "+8",
+          "perception": "+11",
+          "sleight of hand": "+9",
+          "stealth": "+13"
+        },
+        "passive": 21,
+        "languages": [
+          "Common plus two other languages"
+        ],
+        "cr": "10",
+        "gear": [
+          "hand crossbow|xphb",
+          "rapier|xphb",
+          "thieves' tools|xphb"
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The spy makes three attacks, using Rapier or Hand Crossbow in any combination."
+            ]
+          },
+          {
+            "name": "Rapier",
+            "entries": [
+              "{@atkr m} {@hit 9}, reach 5 ft. {@h}14 ({@damage 2d8 + 5}) Piercing damage plus 7 ({@damage 2d6}) Poison damage."
+            ]
+          },
+          {
+            "name": "Hand Crossbow",
+            "entries": [
+              "{@atkr r} {@hit 9}, range 30/120 ft. {@h}12 ({@damage 2d6 + 5}) Piercing damage plus 9 ({@damage 2d8}) Poison damage."
+            ]
+          },
+          {
+            "name": "Smoke Bomb (1/Day)",
+            "entries": [
+              "The spy throws a bomb to a point it can see within 30 feet of itself. {@actSave con} {@dc 16}, each creature in a 20-foot-radius {@variantrule Sphere [Area of Effect]|XPHB|Sphere} centered on that point. {@actSaveFail} 28 ({@damage 8d6}) Poison damage, and the target has the {@condition Blinded|XPHB} condition until the end of the spy's next turn. {@actSaveSuccess} Half damage only."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Cunning Action",
+            "entries": [
+              "The spy takes the Dash, Disengage, or Hide action."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "implements",
+          "individual"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "I",
+          "P"
+        ],
+        "miscTags": [
+          "AOE",
+          "MA",
+          "MLW",
+          "RA",
+          "RNG"
+        ],
+        "conditionInflict": [
+          "blinded"
+        ],
+        "savingThrowForced": [
+          "constitution"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Warrior Commander": [
+    {
+      "monster_data": {
+        "name": "Warrior Commander",
+        "source": "XMM",
+        "page": 321,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          18
+        ],
+        "hp": {
+          "average": 161,
+          "formula": "19d8 + 76"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 21,
+        "dex": 20,
+        "con": 18,
+        "int": 14,
+        "wis": 16,
+        "cha": 14,
+        "save": {
+          "str": "+9",
+          "dex": "+9",
+          "con": "+8",
+          "wis": "+7"
+        },
+        "skill": {
+          "athletics": "+9",
+          "insight": "+7",
+          "perception": "+7"
+        },
+        "passive": 17,
+        "languages": [
+          "Common plus one other language"
+        ],
+        "cr": "10",
+        "gear": [
+          "greatsword|xphb",
+          "longbow|xphb",
+          "plate armor|xphb"
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The warrior makes three attacks, using Greatsword or Longbow in any combination."
+            ]
+          },
+          {
+            "name": "Greatsword",
+            "entries": [
+              "{@atkr m} {@hit 9}, reach 5 ft. {@h}19 ({@damage 4d6 + 5}) Slashing damage. The warrior also creates one of the following effects:",
+              {
+                "type": "list",
+                "style": "list-hang-notitle",
+                "items": [
+                  {
+                    "type": "item",
+                    "name": "Sap",
+                    "entries": [
+                      "The target has {@variantrule Disadvantage|XPHB} on its next attack roll before the start of the warrior's next turn."
+                    ]
+                  },
+                  {
+                    "type": "item",
+                    "name": "Maneuver",
+                    "entries": [
+                      "One ally who can see or hear the warrior can take a {@variantrule Reaction|XPHB} to move up to half the ally's {@variantrule Speed|XPHB} without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}."
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Longbow",
+            "entries": [
+              "{@atkr r} {@hit 9}, range 150/600 ft. {@h}18 ({@damage 3d8 + 5}) Piercing damage, and the target's {@variantrule Speed|XPHB} decreases by 10 feet until the end of the target's next turn."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Tactical Charge",
+            "entries": [
+              "The warrior moves up to half its {@variantrule Speed|XPHB} straight toward an enemy it can see without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}."
+            ]
+          }
+        ],
+        "reaction": [
+          {
+            "name": "Counterattack",
+            "entries": [
+              "{@actTrigger} The warrior is hit by an attack roll. {@actResponse} The warrior adds 4 to its AC against that attack, possibly causing it to miss. On a miss, the warrior can make one Greatsword or Longbow attack against the attacker."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "armaments"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "P",
+          "S"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA",
+          "RNG"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Berserker Commander": [
+    {
+      "monster_data": {
+        "name": "Berserker Commander",
+        "source": "XMM",
+        "page": 37,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 136,
+          "formula": "16d8 + 64"
+        },
+        "speed": {
+          "walk": 40
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 19,
+        "dex": 14,
+        "con": 19,
+        "int": 10,
+        "wis": 14,
+        "cha": 9,
+        "save": {
+          "str": "+7",
+          "con": "+7"
+        },
+        "skill": {
+          "athletics": "+7",
+          "perception": "+5"
+        },
+        "passive": 15,
+        "conditionImmune": [
+          "charmed",
+          "frightened"
+        ],
+        "languages": [
+          "Common"
+        ],
+        "cr": "8",
+        "gear": [
+          "greataxe|xphb",
+          {
+            "item": "javelin|xphb",
+            "quantity": 6
+          }
+        ],
+        "trait": [
+          {
+            "name": "Bloodied Frenzy",
+            "entries": [
+              "While {@status Bloodied|XPHB}, the berserker has {@variantrule Advantage|XPHB} on attack rolls and saving throws."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The berserker makes three attacks, using Greataxe or Javelin in any combination."
+            ]
+          },
+          {
+            "name": "Greataxe",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 5 ft. {@h}10 ({@damage 1d12 + 4}) Slashing damage, plus 10 ({@damage 3d6}) Thunder damage to the target or another creature within 5 feet of the target."
+            ]
+          },
+          {
+            "name": "Javelin",
+            "entries": [
+              "{@atkr m,r} {@hit 7}, reach 5 ft. or range 30/120 ft. {@h}18 ({@damage 4d6 + 4}) Piercing damage, and the target's {@variantrule Speed|XPHB} decreases by 5 feet until the start of the berserker's next turn."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Frenzied Rush",
+            "entries": [
+              "Each ally within 30 feet of the berserker can take a {@variantrule Reaction|XPHB} to move up to half the ally's {@variantrule Speed|XPHB} without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}. The berserker can also move up to half its {@variantrule Speed|XPHB} without provoking {@action Opportunity Attack|XPHB|Opportunity Attacks}."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "armaments",
+          "individual"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C"
+        ],
+        "damageTags": [
+          "P",
+          "S",
+          "T"
+        ],
+        "miscTags": [
+          "MA",
+          "MLW",
+          "RA",
+          "THW"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Aberrant Cultist": [
+    {
+      "monster_data": {
+        "name": "Aberrant Cultist",
+        "source": "XMM",
+        "page": 86,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          14
+        ],
+        "hp": {
+          "average": 137,
+          "formula": "25d8 + 25"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 10,
+        "dex": 19,
+        "con": 12,
+        "int": 16,
+        "wis": 18,
+        "cha": 15,
+        "save": {
+          "int": "+6",
+          "wis": "+7"
+        },
+        "skill": {
+          "arcana": "+6",
+          "perception": "+7",
+          "religion": "+6"
+        },
+        "senses": [
+          "darkvision 90 ft."
+        ],
+        "passive": 17,
+        "languages": [
+          "Common",
+          "Deep Speech; telepathy 30 ft."
+        ],
+        "cr": "8",
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts one of the following spells, using Wisdom as the spellcasting ability (spell save {@dc 15}):"
+            ],
+            "will": [
+              "{@spell Detect Thoughts|XPHB}",
+              "{@spell Minor Illusion|XPHB}"
+            ],
+            "ability": "wis",
+            "displayAs": "action"
+          },
+          {
+            "name": "Counterspell (2/Day)",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts {@spell Counterspell|XPHB} in response to that spell's trigger, using the same spellcasting ability as Spellcasting."
+            ],
+            "daily": {
+              "2": [
+                "{@spell Counterspell|XPHB}"
+              ]
+            },
+            "ability": "wis",
+            "displayAs": "reaction",
+            "hidden": [
+              "daily"
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The cultist makes two Tentacle Lash attacks. It can replace any attack with a use of Mind Rot."
+            ]
+          },
+          {
+            "name": "Tentacle Lash",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 10 ft. {@h}7 ({@damage 1d6 + 4}) Slashing damage plus 14 ({@damage 4d6}) Psychic damage. If the target is a Large or smaller creature, it has the {@condition Grappled|XPHB} condition (escape {@dc 14}) from one of two tentacles, and it has the {@condition Restrained|XPHB} condition until the grapple ends."
+            ]
+          },
+          {
+            "name": "Mind Rot",
+            "entries": [
+              "{@actSave wis} {@dc 15}, one creature the cultist can see within 90 feet. {@actSaveFail} 27 ({@damage 6d8}) Psychic damage, and the target has the {@condition Poisoned|XPHB} condition until the start of the cultist's next turn. {@actSaveSuccess} Half damage only."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual",
+          "relics"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "DS",
+          "TP"
+        ],
+        "damageTags": [
+          "S",
+          "Y"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "RCH"
+        ],
+        "conditionInflict": [
+          "grappled",
+          "poisoned",
+          "restrained"
+        ],
+        "savingThrowForced": [
+          "wisdom"
+        ],
+        "savingThrowForcedSpell": [
+          "constitution",
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Death Cultist": [
+    {
+      "monster_data": {
+        "name": "Death Cultist",
+        "source": "XMM",
+        "page": 86,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          17
+        ],
+        "hp": {
+          "average": 127,
+          "formula": "15d8 + 60"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 19,
+        "dex": 12,
+        "con": 18,
+        "int": 12,
+        "wis": 16,
+        "cha": 14,
+        "save": {
+          "con": "+7",
+          "wis": "+6"
+        },
+        "skill": {
+          "insight": "+6",
+          "perception": "+6",
+          "religion": "+4"
+        },
+        "passive": 16,
+        "languages": [
+          "Common"
+        ],
+        "cr": "8",
+        "gear": [
+          "splint armor|xphb"
+        ],
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts one of the following spells, using Wisdom as the spellcasting ability (spell save {@dc 14}):"
+            ],
+            "will": [
+              "{@spell Speak with Dead|XPHB}",
+              "{@spell Thaumaturgy|XPHB}"
+            ],
+            "ability": "wis",
+            "displayAs": "action"
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The cultist makes three attacks, using Dread Scythe or Deathly Ray in any combination."
+            ]
+          },
+          {
+            "name": "Dread Scythe",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 10 ft. {@h}9 ({@damage 1d10 + 4}) Slashing damage plus 11 ({@damage 2d10}) Necrotic damage, and the target can't regain {@variantrule Hit Points|XPHB} until the end of its next turn."
+            ]
+          },
+          {
+            "name": "Deathly Ray",
+            "entries": [
+              "{@atkr r} {@hit 6}, range 120 ft. {@h}22 ({@damage 4d10}) Necrotic damage."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Spirit Wail {@recharge 5}",
+            "entries": [
+              "{@actSave wis} {@dc 14}, each creature in a 20-foot {@variantrule Emanation [Area of Effect]|XPHB|Emanation} originating from the cultist. {@actSaveFail} 14 ({@damage 4d6}) Psychic damage, and the target has the {@condition Frightened|XPHB} condition until the end of its next turn. {@actSaveSuccess} Half damage only."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual",
+          "relics"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C"
+        ],
+        "damageTags": [
+          "N",
+          "S",
+          "Y"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA",
+          "RA",
+          "RCH"
+        ],
+        "conditionInflict": [
+          "frightened"
+        ],
+        "savingThrowForced": [
+          "wisdom"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Fiend Cultist": [
+    {
+      "monster_data": {
+        "name": "Fiend Cultist",
+        "source": "XMM",
+        "page": 87,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "humanoid",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 127,
+          "formula": "17d8 + 51"
+        },
+        "speed": {
+          "walk": 30
+        },
+        "initiative": {
+          "proficiency": 1
+        },
+        "str": 19,
+        "dex": 15,
+        "con": 16,
+        "int": 12,
+        "wis": 18,
+        "cha": 10,
+        "save": {
+          "con": "+6",
+          "wis": "+7"
+        },
+        "skill": {
+          "perception": "+7",
+          "religion": "+4"
+        },
+        "senses": [
+          "darkvision 90 ft. (unimpeded by magical {@variantrule Darkness|XPHB})"
+        ],
+        "passive": 17,
+        "languages": [
+          "Abyssal",
+          "Common",
+          "Infernal"
+        ],
+        "cr": "8",
+        "gear": [
+          "breastplate|xphb"
+        ],
+        "spellcasting": [
+          {
+            "name": "Spellcasting",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts one of the following spells, using Wisdom as the spellcasting ability (spell save {@dc 15}, {@hit 7} to hit with spell attacks):"
+            ],
+            "will": [
+              "{@spell Scorching Ray|XPHB} (level 5 version)",
+              "{@spell Thaumaturgy|XPHB}"
+            ],
+            "daily": {
+              "2": [
+                "{@spell Fireball|XPHB} (level 6 version)"
+              ]
+            },
+            "ability": "wis",
+            "displayAs": "action"
+          },
+          {
+            "name": "Hellish Rebuke",
+            "type": "spellcasting",
+            "headerEntries": [
+              "The cultist casts {@spell Hellish Rebuke|XPHB} in response to that spell's trigger, using the same spellcasting ability as Spellcasting."
+            ],
+            "will": [
+              "{@spell Hellish Rebuke|XPHB}"
+            ],
+            "ability": "wis",
+            "displayAs": "reaction",
+            "hidden": [
+              "will"
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The cultist makes three Pact Axe attacks."
+            ]
+          },
+          {
+            "name": "Pact Axe",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 5 ft. {@h}10 ({@damage 1d12 + 4}) Slashing damage plus 13 ({@damage 3d8}) Fire damage."
+            ]
+          }
+        ],
+        "environment": [
+          "any"
+        ],
+        "treasure": [
+          "individual",
+          "relics"
+        ],
+        "traitTags": [
+          "Devil's Sight"
+        ],
+        "senseTags": [
+          "D"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "AB",
+          "C",
+          "I"
+        ],
+        "damageTags": [
+          "F",
+          "S"
+        ],
+        "damageTagsSpell": [
+          "F"
+        ],
+        "spellcastingTags": [
+          "O"
+        ],
+        "miscTags": [
+          "MA"
+        ],
+        "savingThrowForcedSpell": [
+          "dexterity"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ],
+  "Vampire Nightbringer": [
+    {
+      "monster_data": {
+        "name": "Vampire Nightbringer",
+        "source": "XMM",
+        "page": 316,
+        "size": [
+          "S",
+          "M"
+        ],
+        "type": "undead",
+        "alignment": [
+          "N",
+          "E"
+        ],
+        "ac": [
+          16
+        ],
+        "hp": {
+          "average": 142,
+          "formula": "19d8 + 57"
+        },
+        "speed": {
+          "walk": 30,
+          "fly": {
+            "number": 30,
+            "condition": "(hover)"
+          },
+          "canHover": true
+        },
+        "str": 16,
+        "dex": 18,
+        "con": 16,
+        "int": 13,
+        "wis": 14,
+        "cha": 15,
+        "save": {
+          "dex": "+7",
+          "wis": "+5"
+        },
+        "skill": {
+          "perception": "+5",
+          "stealth": "+7"
+        },
+        "senses": [
+          "darkvision 120 ft."
+        ],
+        "passive": 15,
+        "immune": [
+          "cold",
+          "necrotic"
+        ],
+        "conditionImmune": [
+          "charmed",
+          "exhaustion",
+          "frightened"
+        ],
+        "languages": [
+          "Common plus one other language"
+        ],
+        "cr": "8",
+        "trait": [
+          {
+            "name": "Sunlight Hypersensitivity",
+            "entries": [
+              "The vampire takes 10 Radiant damage if it starts its turn in sunlight. While in sunlight, it has {@variantrule Disadvantage|XPHB} on attack rolls and ability checks."
+            ]
+          }
+        ],
+        "action": [
+          {
+            "name": "Multiattack",
+            "entries": [
+              "The vampire makes one Bite attack and one Shadow Strike attack."
+            ]
+          },
+          {
+            "name": "Bite",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 5 ft. {@h}7 ({@damage 1d6 + 4}) Piercing damage plus 10 ({@damage 3d6}) Necrotic damage. The target's {@variantrule Hit Points|XPHB|Hit Point} maximum decreases by an amount equal to the Necrotic damage taken, and the vampire regains {@variantrule Hit Points|XPHB} equal to that amount."
+            ]
+          },
+          {
+            "name": "Shadow Strike",
+            "entries": [
+              "{@atkr m} {@hit 7}, reach 5 ft. {@h}7 ({@damage 1d6 + 4}) Slashing damage plus 14 ({@damage 4d6}) Cold damage."
+            ]
+          }
+        ],
+        "bonus": [
+          {
+            "name": "Shadow Stealth",
+            "entries": [
+              "While in {@variantrule Dim Light|XPHB} or {@variantrule Darkness|XPHB}, the vampire takes the Hide action."
+            ]
+          }
+        ],
+        "environment": [
+          "underdark",
+          "urban"
+        ],
+        "treasure": [
+          "any"
+        ],
+        "traitTags": [
+          "Sunlight Sensitivity"
+        ],
+        "senseTags": [
+          "SD"
+        ],
+        "actionTags": [
+          "Multiattack"
+        ],
+        "languageTags": [
+          "C",
+          "X"
+        ],
+        "damageTags": [
+          "C",
+          "N",
+          "P",
+          "R",
+          "S"
+        ],
+        "miscTags": [
+          "MA"
+        ],
+        "hasToken": true,
+        "hasFluff": true,
+        "hasFluffImages": true
+      },
+      "sourcebook": "XMM",
+      "sourcebook_full": "Expanded Monster Manual"
+    }
+  ]
+}

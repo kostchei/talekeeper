@@ -35,6 +35,14 @@ class NarrativeSettingsWidget(QWidget):
         desc.setStyleSheet("color: #888; font-size: 11px;")
         layout.addWidget(desc)
 
+        self.enable_audio_narration_cb = QCheckBox("Enable Audio Narration")
+        self.enable_audio_narration_cb.setChecked(self.config.narrative.enable_audio_narration)
+        self.enable_audio_narration_cb.setToolTip(
+            "Enable text-to-speech narration of combat events (requires Piper TTS setup)"
+        )
+        self.enable_audio_narration_cb.stateChanged.connect(self._on_settings_changed)
+        layout.addWidget(self.enable_audio_narration_cb)
+
         self.enable_combat_narratives_cb = QCheckBox("Enable Combat Narratives")
         self.enable_combat_narratives_cb.setChecked(self.config.narrative.enable_combat_narratives)
         self.enable_combat_narratives_cb.setToolTip(
@@ -83,6 +91,7 @@ class NarrativeSettingsWidget(QWidget):
 
     def apply_settings(self):
         """Apply current settings to config."""
+        self.config.narrative.enable_audio_narration = self.enable_audio_narration_cb.isChecked()
         self.config.narrative.enable_combat_narratives = self.enable_combat_narratives_cb.isChecked()
         self.config.narrative.enable_round_summaries = self.enable_round_summaries_cb.isChecked()
         self.config.narrative.enable_victory_narratives = self.enable_victory_narratives_cb.isChecked()

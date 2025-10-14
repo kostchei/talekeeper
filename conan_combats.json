@@ -1,0 +1,2579 @@
+{
+  "collection": "Conan the Cimmerian - Combat Encounters",
+  "author": "Robert E. Howard",
+  "stories": [
+    {
+      "title": "The Phoenix on the Sword",
+      "publication_year": 1932,
+      "combats": [
+        {
+          "name": "Assassination Attempt in Royal Chamber",
+          "flavor_quote": "He was like a tiger among baboons as he leaped, side-stepped and spun, offering an ever-moving target",
+          "combatant_count": 21,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator or Champion (CR 5)",
+            "Conspirators": "Knight (CR 3) for Gromel, Bandit Captain (CR 2) for leaders",
+            "Hired Assassins": "Assassin (CR 8) or Bandit (CR 1/8) depending on skill"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "King of Aquilonia (defender)",
+              "count": 1,
+              "weapons": "Sword (breaks on Gromel's helm), ancient battle-axe",
+              "armor": "Partial plate armor (cuirass missing helmet and side-pieces)"
+            },
+            {
+              "name": "Conspirators",
+              "role": "Leaders of assassination plot",
+              "count": 4,
+              "members": ["Gromel", "Volmana", "Rinaldo", "Ascalante"],
+              "weapons": "Swords, daggers",
+              "armor": "Gromel in full armor, others mostly unarmored"
+            },
+            {
+              "name": "Hired Assassins",
+              "role": "Mercenary killers",
+              "count": 16,
+              "weapons": "Daggers, swords, axes",
+              "armor": "Mostly unarmored"
+            }
+          ],
+          "setting": "Royal palace chamber at night, Conan awakened from prophetic dream",
+          "outcome": "Conan kills at least 9 attackers including Volmana and Rinaldo; receives multiple wounds and lacerations; sword breaks on Gromel's helm"
+        },
+        {
+          "name": "Battle with Summoned Demon",
+          "flavor_quote": "Conan felt his soul shrivel and begin to be drawn out of his body, to drown in the yellow wells of cosmic horror",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Demon Beast": "Glabrezu (CR 9) or Nalfeshnee (CR 13)",
+            "Ascalante": "Bandit Captain (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Wounded king (defender)",
+              "count": 1,
+              "weapons": "Broken sword shard marked with mystical phoenix symbol",
+              "armor": "Partial plate armor, heavily wounded"
+            },
+            {
+              "name": "Demon Beast",
+              "role": "Supernatural creature summoned by Thoth-Amon",
+              "count": 1,
+              "weapons": "Claws, fangs, soul-draining supernatural powers",
+              "armor": "Supernatural resilience"
+            },
+            {
+              "name": "Ascalante",
+              "role": "Conspiracy leader attempting final strike",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Unarmored"
+            }
+          ],
+          "setting": "Same royal chamber, immediately after first battle, surrounded by corpses and blood",
+          "outcome": "Demon kills Ascalante before reaching Conan; Conan slays demon with enchanted broken sword; only blood stain remains of creature"
+        }
+      ]
+    },
+    {
+      "title": "The Scarlet Citadel",
+      "publication_year": 1933,
+      "combats": [
+        {
+          "name": "Battle on the Plains of Shamu",
+          "flavor_quote": "Like gay-hued leaves after an autumn storm, the fallen littered the plain",
+          "combatant_count": 10000,
+          "suggested_dnd_monsters": {
+            "Aquilonian Army": "Knight (CR 3), Veteran (CR 3), Guard (CR 1/8)",
+            "Kothian/Ophirean Armies": "Knight (CR 3), Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Tsotha-lanti": "Archmage (CR 12)"
+          },
+          "combatants": [
+            {
+              "name": "Conan's Aquilonian Army",
+              "role": "Attackers (betrayed)",
+              "count": 5000,
+              "weapons": "Swords, lances, bows",
+              "armor": "Burnished helmets, gilt-worked mail, silver breastplates"
+            },
+            {
+              "name": "Strabonus's Kothian Army",
+              "role": "Defenders (allied with Ophir)",
+              "count": "Unknown thousands",
+              "weapons": "Swords, spears, bows",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Amalrus's Ophirean Army",
+              "role": "Treacherous allies",
+              "count": "Unknown thousands",
+              "weapons": "Swords, spears",
+              "armor": "Mail"
+            },
+            {
+              "name": "Tsotha-lanti",
+              "role": "Kothian wizard",
+              "count": 1,
+              "weapons": "Poisoned needle (paralyzing magic)",
+              "armor": "Sorcerous protection"
+            }
+          ],
+          "setting": "Plains of Shamu, open battlefield with pools of curdling crimson blood",
+          "outcome": "Conan's army slaughtered through treachery; Conan paralyzed and captured by Tsotha-lanti's magic"
+        },
+        {
+          "name": "Conan vs. Satha the Giant Serpent",
+          "flavor_quote": "A drop of its venom felt like a white-hot dagger driven into his flesh",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Satha": "Giant Constrictor Snake (CR 2) with Purple Worm (CR 15) size/venom"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Prisoner attempting survival",
+              "count": 1,
+              "weapons": "None (weaponless)",
+              "armor": "None"
+            },
+            {
+              "name": "Satha",
+              "role": "Giant serpent guardian",
+              "count": 1,
+              "weapons": "Venomous fangs (80-foot serpent)",
+              "armor": "Scales white as hoar-frost"
+            }
+          ],
+          "setting": "Dark dungeon chamber beneath the Scarlet Citadel, complete darkness",
+          "outcome": "Conan survives by standing motionless; venom burns his thigh but does not kill him"
+        },
+        {
+          "name": "Dungeon Monster Encounters",
+          "flavor_quote": "The creature made obscene high-pitched tittering sounds",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Shukeli": "Bandit (CR 1/8)",
+            "Dungeon Horrors": "Gibbering Mouther (CR 2), Otyugh (CR 5)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Escaping prisoner",
+              "count": 1,
+              "weapons": "Sword (after recovering it)",
+              "armor": "None initially"
+            },
+            {
+              "name": "Shukeli the Pirate",
+              "role": "Vengeful fellow prisoner",
+              "count": 1,
+              "weapons": "Unknown",
+              "armor": "None"
+            },
+            {
+              "name": "Dungeon Horrors",
+              "role": "Supernatural guardians",
+              "count": "Multiple",
+              "weapons": "Tentacles, crushing limbs",
+              "armor": "Amorphous jelly-like bodies, frog-like heads"
+            }
+          ],
+          "setting": "Underground tunnels and chambers of the Scarlet Citadel, filled with supernatural horrors",
+          "outcome": "Conan stabs Shukeli through prison bars; fights past dungeon creatures to escape"
+        },
+        {
+          "name": "Final Battle at Shamar",
+          "flavor_quote": "The combat was a steel maelstrom where plumes tossed high among the flashing swords",
+          "combatant_count": 10000,
+          "suggested_dnd_monsters": {
+            "Aquilonian Army": "Knight (CR 3), Veteran (CR 3), Scout (CR 1/2) for archers",
+            "Strabonus & Amalrus": "Knight (CR 3) or Warlord (CR 12)",
+            "Enemy Forces": "Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Tsotha-lanti": "Archmage (CR 12)"
+          },
+          "combatants": [
+            {
+              "name": "Conan's Aquilonian Army",
+              "role": "Attacking force",
+              "count": "Thousands (outnumbered)",
+              "weapons": "Swords, Bossonian longbows (superior archery)",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Strabonus",
+              "role": "Emperor of Koth",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Full plate armor"
+            },
+            {
+              "name": "Amalrus",
+              "role": "King of Ophir",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Full plate armor"
+            },
+            {
+              "name": "Combined Kothian-Ophirean Forces",
+              "role": "Defending army (larger force)",
+              "count": "Thousands",
+              "weapons": "Swords, spears, bows",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Tsotha-lanti",
+              "role": "Kothian wizard",
+              "count": 1,
+              "weapons": "Sorcery",
+              "armor": "Magical protections"
+            }
+          ],
+          "setting": "Near the city of Shamar, open battlefield",
+          "outcome": "Conan's forces triumph despite being outnumbered (superior Bossonian archers); Conan personally kills Strabonus by crushing his skull with a five-foot blade; Amalrus trampled in the charge; Conan decapitates Tsotha-lanti"
+        }
+      ]
+    },
+    {
+      "title": "The Tower of the Elephant",
+      "publication_year": 1933,
+      "combats": [
+        {
+          "name": "Tavern Brawl",
+          "flavor_quote": "Steel flashed and the throng surged wildly back out of the way",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Tavern Patrons": "Bandit (CR 1/8) or Thug (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Young thief",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Tavern Patrons",
+              "role": "Hostile locals",
+              "count": 2,
+              "weapons": "Swords, daggers",
+              "armor": "None"
+            }
+          ],
+          "setting": "Tavern in the Maul district of Zamora's City of Thieves",
+          "outcome": "Brief violent exchange, crowd backs away from the fighting"
+        },
+        {
+          "name": "Garden Guard Assassination",
+          "flavor_quote": "A quick look to right and left showed him no enemy in sight at least",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Tower Guard": "Guard (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Infiltrator",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Tower Guard",
+              "role": "Sentry",
+              "count": 1,
+              "weapons": "Spear",
+              "armor": "Light armor"
+            }
+          ],
+          "setting": "Outer gardens of the Tower of the Elephant, nighttime",
+          "outcome": "Conan silently kills the guard to gain entry"
+        },
+        {
+          "name": "Lions in the Garden",
+          "flavor_quote": "A long jet of yellowish powder shot from the tube and billowed out in a thick green-yellow cloud",
+          "combatant_count": 4,
+          "suggested_dnd_monsters": {
+            "Guardian Lions": "Lion (CR 1)",
+            "Taurus": "Spy (CR 1) or Assassin (CR 8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Tower infiltrator",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Taurus of Nemedia",
+              "role": "Master thief and rival",
+              "count": 1,
+              "weapons": "Black lotus powder (poison gas), climbing rope",
+              "armor": "Thief's garb"
+            },
+            {
+              "name": "Guardian Lions",
+              "role": "Magical guardians of the tower",
+              "count": "Multiple",
+              "weapons": "Claws, fangs",
+              "armor": "Natural hide"
+            }
+          ],
+          "setting": "Gardens surrounding the jewel-encrusted silver Tower of the Elephant",
+          "outcome": "Taurus kills several lions with black lotus powder; Conan kills one lion with his sword when it attacks Taurus"
+        },
+        {
+          "name": "Battle with the Giant Spider",
+          "flavor_quote": "Full in the midst of the branching black legs the massive missile struck, smashing against the wall",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Giant Spider": "Giant Spider (CR 1) or Phase Spider (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Trapped thief",
+              "count": 1,
+              "weapons": "Sword, treasure chest (improvised)",
+              "armor": "None"
+            },
+            {
+              "name": "Giant Spider",
+              "role": "Supernatural guardian",
+              "count": 1,
+              "weapons": "Venomous bite, sticky webs",
+              "armor": "Chitinous exoskeleton"
+            }
+          ],
+          "setting": "Upper chamber of the Tower of the Elephant, treasure vault, eerie ghostly atmosphere",
+          "outcome": "Spider kills Taurus with venomous bite; Conan crushes spider with thrown treasure chest and cuts himself free from webs"
+        },
+        {
+          "name": "Confrontation with Yara",
+          "flavor_quote": "He had an eery feeling that he was alone in a tower occupied only by ghosts and phantoms",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Yara": "Mage (CR 6) or Archmage (CR 12)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Bearer of the enchanted gem",
+              "count": 1,
+              "weapons": "Heart of the Elephant (magical gem)",
+              "armor": "None"
+            },
+            {
+              "name": "Yara",
+              "role": "Evil sorcerer lord of the tower",
+              "count": 1,
+              "weapons": "Sorcery",
+              "armor": "Magical protections"
+            }
+          ],
+          "setting": "Topmost chamber of the Tower of the Elephant, mystical and otherworldly",
+          "outcome": "No physical combat; Yara is magically drawn into the gem and shrunk, trapped within by the power of Yag-kosha's dying curse"
+        }
+      ]
+    },
+    {
+      "title": "Black Colossus",
+      "publication_year": 1933,
+      "combats": [
+        {
+          "name": "Shevatas vs. Guardian Serpent",
+          "flavor_quote": "A serpent twenty feet long, with shimmering, iridescent scales",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Shevatas": "Spy (CR 1) or Assassin (CR 8)",
+            "Guardian Serpent": "Giant Constrictor Snake (CR 2) with magical properties"
+          },
+          "combatants": [
+            {
+              "name": "Shevatas",
+              "role": "Master thief",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light thief's garb"
+            },
+            {
+              "name": "Guardian Serpent",
+              "role": "Ancient magical guardian",
+              "count": 1,
+              "weapons": "Fangs, constriction",
+              "armor": "Iridescent scales"
+            }
+          ],
+          "setting": "Ancient ruins of Kuthchemes, dark tomb chamber",
+          "outcome": "Shevatas defeats serpent with lucky sword thrust; later mysteriously killed by awakened sorcerer"
+        },
+        {
+          "name": "Battle of the Pass of Shamla",
+          "flavor_quote": "Wave after wave of glaring faces and flashing spears surged up the slope, a red sea with each wave a straggling line of corpses",
+          "combatant_count": 13000,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9) or Warlord (CR 12)",
+            "Khorajan Army": "Knight (CR 3), Veteran (CR 3), Scout (CR 1/2) for archers",
+            "Desert Horde": "Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Prince Kutamun": "Knight (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Commander of Khorajan forces",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Commander's plate armor"
+            },
+            {
+              "name": "Khorajan Army",
+              "role": "Defenders",
+              "count": 3000,
+              "members": ["General Amalric's mercenaries", "Mounted Shupras archers", "Hillmen troops"],
+              "weapons": "Spears, swords, bows, lances",
+              "armor": "Mix of mail, leather, and shields"
+            },
+            {
+              "name": "Natohk's Desert Horde",
+              "role": "Attackers (supernaturally driven)",
+              "count": 10000,
+              "weapons": "Spears, scimitars, bows",
+              "armor": "Light desert garb, shields"
+            },
+            {
+              "name": "Prince Kutamun of Stygia",
+              "role": "Natohk's champion",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Stygian armor"
+            }
+          ],
+          "setting": "Pass of Shamla, steep slopes initially shrouded in magical fog, narrow mountain pass",
+          "outcome": "Conan uses pincer tactics; leads desperate cavalry charge down impossible slope; routs Natohk's army despite being outnumbered 3-to-1"
+        },
+        {
+          "name": "Infantry Melee at the Pass",
+          "flavor_quote": "Shields crashed against shields, and between them spears drove in and blood spurted",
+          "combatant_count": 8000,
+          "suggested_dnd_monsters": {
+            "Khorajan Infantry": "Guard (CR 1/8), Veteran (CR 3)",
+            "Desert Tribesmen": "Berserker (CR 2), Tribal Warrior (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Khorajan Infantry",
+              "role": "Defenders in shield wall",
+              "count": 2000,
+              "weapons": "Spears, short swords, shields",
+              "armor": "Mail, shields"
+            },
+            {
+              "name": "Desert Tribesmen",
+              "role": "Frenzied attackers",
+              "count": 6000,
+              "weapons": "Spears, scimitars",
+              "armor": "Minimal armor, shields"
+            }
+          ],
+          "setting": "Slopes of the Pass of Shamla, grinding close combat",
+          "outcome": "Brutal grinding combat with blind gasping ferocity; tribesmen fight with supernatural courage, rushing on like madmen"
+        },
+        {
+          "name": "Conan's Cavalry Charge",
+          "flavor_quote": "Five hundred footmen on half-wild Shemite horses, charging an army down a slope where no cavalry had ever dared charge before, ripped through them as an avalanche cuts through a forest of saplings",
+          "combatant_count": 2500,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9)",
+            "Improvised Cavalry": "Guard (CR 1/8), Veteran (CR 3)",
+            "Desert Warriors": "Tribal Warrior (CR 1/8), Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Leading the charge",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Plate armor"
+            },
+            {
+              "name": "Improvised Cavalry",
+              "role": "Infantry mounted on captured horses",
+              "count": 500,
+              "weapons": "Spears, swords",
+              "armor": "Mail, shields"
+            },
+            {
+              "name": "Desert Warriors",
+              "role": "Surprised flank",
+              "count": 2000,
+              "weapons": "Spears, scimitars",
+              "armor": "Light armor"
+            }
+          ],
+          "setting": "Steep mountainside in the Pass of Shamla, impossible cavalry terrain",
+          "outcome": "Surprise flank attack shatters Natohk's forces; impossible cavalry charge succeeds and breaks enemy morale"
+        },
+        {
+          "name": "Conan vs. Natohk (Thugra Khotan)",
+          "flavor_quote": "The lurid desolate splendor of sunset",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9)",
+            "Thugra Khotan": "Archmage (CR 12) or Lich (CR 21)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Victor pursuing fleeing sorcerer",
+              "count": 1,
+              "weapons": "Thrown sword",
+              "armor": "Battle-worn plate armor"
+            },
+            {
+              "name": "Natohk/Thugra Khotan",
+              "role": "Ancient sorcerer revealed",
+              "count": 1,
+              "weapons": "Sorcery",
+              "armor": "Mystical protections (failing)"
+            }
+          ],
+          "setting": "Battlefield littered with corpses at sunset, Pass of Shamla",
+          "outcome": "Conan throws his sword, striking Thugra Khotan beneath the heart; sorcerer's power fails and he dies, army collapses"
+        }
+      ]
+    },
+    {
+      "title": "The Slithering Shadow (Xuthal of the Dusk)",
+      "publication_year": 1933,
+      "combats": [
+        {
+          "name": "Conan vs. Xuthal Citizens",
+          "flavor_quote": "The citizens were brave but no match for Conan",
+          "combatant_count": 6,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Xuthal Citizens": "Commoner (CR 0) or Bandit (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Desert survivor and intruder",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Male Citizens of Xuthal",
+              "role": "Defenders of the city",
+              "count": 5,
+              "weapons": "Swords, daggers",
+              "armor": "None or light robes"
+            }
+          ],
+          "setting": "Xuthal, a decadent dying city in the desert, drug-addled inhabitants",
+          "outcome": "Conan systematically defeats the male citizens despite their numbers"
+        },
+        {
+          "name": "Conan vs. Thog the Ancient Horror",
+          "flavor_quote": "He was tossed to and fro in the violence of that awful battle, and had a dazed feeling that he was fighting not one, but an aggregation of lethal creatures",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Thog": "Star Spawn Hulk (CR 10) or Shoggoth (CR 10)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Desperate fighter",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Thog",
+              "role": "Lovecraftian demon-god summoned from darkness between stars",
+              "count": 1,
+              "weapons": "Dark tentacles/pseudopods, crushing coils, supernatural resilience",
+              "armor": "Shadowy form with wavering unstable outline, nearly invulnerable to physical damage"
+            }
+          ],
+          "setting": "Dark chambers of Xuthal, mysterious phosphorescent glow, chasm/well nearby",
+          "outcome": "Most brutal battle in all Conan stories; closest Conan ever comes to death; receives hideous mortal wounds from tentacles; sword thrusts barely harm Thog; Conan pierces creature's toad-like head and throws it into chasm; mortally wounded Conan miraculously healed by golden life-giving elixir"
+        }
+      ]
+    },
+    {
+      "title": "The Pool of the Black One",
+      "publication_year": 1933,
+      "combats": [
+        {
+          "name": "Conan vs. Captain Zaporavo",
+          "flavor_quote": "Against his fighting-craft was matched blinding speed and strength impossible to a civilized man",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Captain Zaporavo": "Bandit Captain (CR 2) or Veteran (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Challenger for ship command",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None"
+            },
+            {
+              "name": "Captain Zaporavo",
+              "role": "Pirate captain of the Wastrel",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Pirate garb"
+            }
+          ],
+          "setting": "Jungle on mysterious island, dreamy silence like an enchantment",
+          "outcome": "Brief but savage duel; Conan kills Zaporavo and becomes new captain"
+        },
+        {
+          "name": "Conan vs. Black Humanoid Creatures",
+          "flavor_quote": "Like a tiger leaps and strikes among his prey, Conan leaped and struck: thrice his blade flickered before any could lift a hand in defense",
+          "combatant_count": 20,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Pirates": "Bandit (CR 1/8), Thug (CR 1/2)",
+            "Black Humanoids": "Cultist (CR 1/8) or Gray Slaad (CR 9) for alien nature"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Infiltrator and rescuer",
+              "count": 1,
+              "weapons": "Sword, improvised club",
+              "armor": "None"
+            },
+            {
+              "name": "Pirate Crew",
+              "role": "Captured sailors",
+              "count": 10,
+              "weapons": "Swords, cutlasses",
+              "armor": "None"
+            },
+            {
+              "name": "Black Humanoids",
+              "role": "Alien creatures guarding the pool",
+              "count": 9,
+              "weapons": "Clawed hands, sorcery, transmutation pool",
+              "armor": "Unnatural resilience, jet-black skin"
+            }
+          ],
+          "setting": "Green fortress courtyard on remote island, mysterious jade-colored pool with faint luminosity",
+          "outcome": "Conan clubs three creatures to death before they react; pirates join battle; heavy pirate casualties but black humanoids slain"
+        },
+        {
+          "name": "Battle with the Black Ones",
+          "flavor_quote": "The sound of the hacking swords was like that of butchers' cleavers, and the shrieks, yells and curses were appalling",
+          "combatant_count": 18,
+          "suggested_dnd_monsters": {
+            "Conan and Pirates": "Gladiator (CR 5) for Conan, Bandit (CR 1/8) for pirates",
+            "Black Humanoid Leader": "Mage (CR 6) or Archmage (CR 12)",
+            "Black Ones": "Gray Slaad (CR 9) or Gibbering Mouther (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan and Pirates",
+              "role": "Desperate fighters",
+              "count": 10,
+              "weapons": "Swords, cutlasses",
+              "armor": "None"
+            },
+            {
+              "name": "Black Humanoid Leader",
+              "role": "Ancient sorcerer commanding the creatures",
+              "count": 1,
+              "weapons": "Sorcery, ancient formulas",
+              "armor": "Mystical protections"
+            },
+            {
+              "name": "Remaining Black Ones",
+              "role": "Growth of Life from pits of blasphemous creation",
+              "count": 7,
+              "weapons": "Claws, unnatural strength",
+              "armor": "Alien physiology"
+            }
+          ],
+          "setting": "Fortress courtyard, mysterious pool glowing with jade-colored depths",
+          "outcome": "Brutal melee with heavy losses; Conan slays leader who utters death-curse; pool erupts into geyser and chases survivors as they flee the island"
+        }
+      ]
+    },
+    {
+      "title": "Rogues in the House",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Prison Escape",
+          "flavor_quote": "Conan brained him with the beef bone, took his poniard and his keys, and made a leisurely departure",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Thug (CR 1/2)",
+            "Jailer": "Guard (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Imprisoned thief",
+              "count": 1,
+              "weapons": "Beef bone (improvised club)",
+              "armor": "None"
+            },
+            {
+              "name": "Jailer",
+              "role": "Prison guard",
+              "count": 1,
+              "weapons": "Poniard, keys",
+              "armor": "Light guard armor"
+            }
+          ],
+          "setting": "Prison cell in city-state",
+          "outcome": "Conan kills jailer with improvised weapon; takes poniard and keys; escapes"
+        },
+        {
+          "name": "Conan and Murilo vs. Thak",
+          "flavor_quote": "He was like a crimson and black nightmare as he rushed across the chamber, fangs bared",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Murilo": "Noble (CR 1/8)",
+            "Thak": "Ape (CR 1/2) with Wereraven intelligence (CR 2) or Ogre (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Barbarian fighter",
+              "count": 1,
+              "weapons": "Poniard, sword",
+              "armor": "None"
+            },
+            {
+              "name": "Murilo",
+              "role": "Noble ally",
+              "count": 1,
+              "weapons": "Chair (improvised)",
+              "armor": "Noble's clothing"
+            },
+            {
+              "name": "Thak",
+              "role": "Intelligent ape-man who overthrew Nabonidus",
+              "count": 1,
+              "weapons": "Fangs, claws, superhuman strength",
+              "armor": "Thick hide, slanted black skull"
+            }
+          ],
+          "setting": "Red Priest's house of death traps, elaborate mechanisms and glass barriers",
+          "outcome": "Epic battle; Conan locks legs around Thak's torso, butchering with poniard; Murilo strikes Thak with chair, stunning him; Conan plunges poniard to the hilt in Thak's heart; Conan streaming blood and gasping"
+        },
+        {
+          "name": "Conan vs. Nabonidus",
+          "flavor_quote": "Conan swiftly throws a stool at the priest's head",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Murilo": "Noble (CR 1/8)",
+            "Nabonidus": "Priest (CR 2) or Cult Fanatic (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Victor over Thak",
+              "count": 1,
+              "weapons": "Thrown stool (improvised)",
+              "armor": "None, wounded from Thak battle"
+            },
+            {
+              "name": "Murilo",
+              "role": "Noble ally",
+              "count": 1,
+              "weapons": "None",
+              "armor": "Noble's clothing"
+            },
+            {
+              "name": "Nabonidus",
+              "role": "Red Priest attempting to trigger poison gas trap",
+              "count": 1,
+              "weapons": "Poison gas trap mechanism",
+              "armor": "Priest's robes"
+            }
+          ],
+          "setting": "Chamber with poison gas trap controls in Red Priest's house",
+          "outcome": "Conan throws stool at Nabonidus's head, killing the priest before he can activate the death trap"
+        }
+      ]
+    },
+    {
+      "title": "Queen of the Black Coast",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Naval Battle: Argus vs. Tigress",
+          "flavor_quote": "By Crom, man, if you don't get under way, I'll drench this galley in the blood of its crew!",
+          "combatant_count": 100,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Argosean Sailors": "Guard (CR 1/8), Bandit (CR 1/8)",
+            "Belit": "Bandit Captain (CR 2) or Veteran (CR 3)",
+            "Black Pirates": "Bandit (CR 1/8), Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Argosean mercenary defending ship",
+              "count": 1,
+              "weapons": "Bow, sword",
+              "armor": "Mail armor"
+            },
+            {
+              "name": "Argosean Sailors",
+              "role": "Merchant vessel crew",
+              "count": 30,
+              "weapons": "Swords, spears",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Belit",
+              "role": "Queen of the Black Coast",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Minimal pirate garb"
+            },
+            {
+              "name": "Belit's Black Pirates",
+              "role": "Feathered and painted corsairs",
+              "count": 70,
+              "weapons": "Spears, swords, bows",
+              "armor": "Minimal, painted bodies"
+            }
+          ],
+          "setting": "Open seas off the Black Coast, ship-to-ship combat",
+          "outcome": "Conan dispatches several pirates with bow and sword; Argosean sailors overrun and killed; Belit orders crew to spare Conan; Conan joins Belit as her mate and co-leader"
+        },
+        {
+          "name": "Conan Fighting on the Argus",
+          "flavor_quote": "He moved in a blinding blur of steel. Spears bent on his armor or swished empty air",
+          "combatant_count": 20,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Black Pirates": "Bandit (CR 1/8), Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Last defender standing",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail armor"
+            },
+            {
+              "name": "Black Pirates",
+              "role": "Boarding party",
+              "count": 20,
+              "weapons": "Spears, swords",
+              "armor": "Minimal"
+            }
+          ],
+          "setting": "Deck of the Argus during boarding action",
+          "outcome": "Conan fights like a blur of steel, spears bend on his armor; multiple pirates killed before Belit intervenes"
+        },
+        {
+          "name": "Ambush in Ancient Ruins",
+          "flavor_quote": "With herculean labor they did so, and lifted out the mangled bodies of the four men",
+          "combatant_count": 40,
+          "suggested_dnd_monsters": {
+            "Pirates": "Bandit (CR 1/8), Berserker (CR 2)",
+            "Ancient Trap": "Mechanical trap (DMG pg 121-123)"
+          },
+          "combatants": [
+            {
+              "name": "Belit's Pirate Crew",
+              "role": "Explorers of ancient temple",
+              "count": 40,
+              "weapons": "Swords, spears",
+              "armor": "Minimal"
+            },
+            {
+              "name": "Ancient Trap",
+              "role": "Collapsing stone mechanism",
+              "count": 1,
+              "weapons": "Crushing stones",
+              "armor": "N/A"
+            }
+          ],
+          "setting": "Ancient ruined city and temple on the Black Coast, mysterious and foreboding",
+          "outcome": "Trap collapses, four men mangled to death; crew decimated by supernatural attacks; water supply destroyed"
+        },
+        {
+          "name": "Conan vs. Apelike Creatures",
+          "flavor_quote": "He crushed a narrow skull with the pommel of his hilt, feeling the bone splinter",
+          "combatant_count": 6,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Apelike Creatures": "Ape (CR 1/2) or Baboon (CR 0) with supernatural traits"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Lone survivor defending ship",
+              "count": 1,
+              "weapons": "Bow, sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Apelike Creatures",
+              "role": "Supernatural guardians of ruins",
+              "count": 5,
+              "weapons": "Claws, teeth",
+              "armor": "Thick hide"
+            }
+          ],
+          "setting": "Deck of the Tigress near ancient ruins",
+          "outcome": "Conan kills one with bow, crushes skull of another with sword pommel, fights remaining creatures"
+        },
+        {
+          "name": "Final Battle with Winged Horror",
+          "flavor_quote": "Just above the hips it caught the hurtling shape, and the knotted legs fell one way",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) in berserker rage",
+            "Winged Monstrosity": "Vrock (CR 6), Chasme (CR 6), or Gargoyle (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Berserker avenger",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail, rage-fueled"
+            },
+            {
+              "name": "Winged Monstrosity",
+              "role": "Ancient demon that killed Belit",
+              "count": 1,
+              "weapons": "Wings, claws, supernatural strength",
+              "armor": "Preternatural resilience"
+            }
+          ],
+          "setting": "Ancient ruins under moonlight, Belit's body hanging from tree",
+          "outcome": "Conan on verge of death; Belit's ghost intervenes; Conan cuts winged horror in half with massive sword stroke; avenges Belit's death"
+        }
+      ]
+    },
+    {
+      "title": "Red Nails",
+      "publication_year": 1936,
+      "combats": [
+        {
+          "name": "Conan and Valeria vs. T-rex",
+          "flavor_quote": "Conan killed the Tyrannosaurus Rex with a spear dipped in the poisonous juice of Derketa's Apples",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Valeria": "Veteran (CR 3)",
+            "Tyrannosaurus Rex": "Tyrannosaurus Rex (CR 8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Barbarian pursuing Valeria",
+              "count": 1,
+              "weapons": "Poisoned spear",
+              "armor": "Mail"
+            },
+            {
+              "name": "Valeria",
+              "role": "Red Brotherhood pirate fleeing persecution",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Tyrannosaurus Rex",
+              "role": "Massive reptilian predator",
+              "count": 1,
+              "weapons": "Teeth, claws, tail",
+              "armor": "Thick scales, characteristics of Stegosaurus and Allosaurus"
+            }
+          ],
+          "setting": "Dense jungle far south of civilized lands",
+          "outcome": "Tyrannosaurus Rex mauls their horses; Conan throws poisoned spear into Tyrannosaurus Rex's lower jaw; blinded beast pursues by scent; dies from poison seconds before devouring Conan"
+        },
+        {
+          "name": "Xotalanc Raid on Tecuhltli",
+          "flavor_quote": "Five dead dogs! Five crimson nails for the black pillar!",
+          "combatant_count": 50,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Valeria": "Veteran (CR 3)",
+            "Tecuhltli Warriors": "Guard (CR 1/8), Tribal Warrior (CR 1/8)",
+            "Xotalanc Raiders": "Bandit (CR 1/8), Cult Fanatic (CR 2) for magic pipe user"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Allied with Tecuhltli",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Valeria",
+              "role": "Allied with Tecuhltli",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Tecuhltli Warriors",
+              "role": "Defenders of their stronghold",
+              "count": 20,
+              "weapons": "Swords, spears",
+              "armor": "Light jade city armor"
+            },
+            {
+              "name": "Xotalanc Raiders",
+              "role": "Attackers using magical pipe",
+              "count": 25,
+              "weapons": "Scimitars, magical pipe that drives guards insane",
+              "armor": "Light jade city armor"
+            }
+          ],
+          "setting": "Corridors and halls of Xuchotl, jade city with floors of red stone that smolder like flame, lighted by burning jewels",
+          "outcome": "Xotalancas use magical pipe to madden guards; Conan and Valeria help repel attack; five Xotalancas killed; five red nails painted on black pillar to mark deaths"
+        },
+        {
+          "name": "Corridor Ambushes",
+          "flavor_quote": "She killed the first who came within reach before he could strike a blow",
+          "combatant_count": 10,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Valeria": "Veteran (CR 3)",
+            "Xotalanc Warriors": "Bandit (CR 1/8), Thug (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan and Valeria",
+              "role": "Fighting as pair in maze-like halls",
+              "count": 2,
+              "weapons": "Swords",
+              "armor": "Mail and light armor"
+            },
+            {
+              "name": "Xotalanc Warriors",
+              "role": "Ambushers in corridors",
+              "count": 8,
+              "weapons": "Scimitars, daggers",
+              "armor": "Light armor"
+            }
+          ],
+          "setting": "Claustrophobic jade corridors of Xuchotl, labyrinthine passages",
+          "outcome": "Valeria kills first attacker before he can strike; Conan and Valeria dispatch several enemies quickly in close-quarters combat"
+        },
+        {
+          "name": "Battle with Tolkemec",
+          "flavor_quote": "Conan kills Tolkemec with a thrown dagger",
+          "combatant_count": 4,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Valeria": "Veteran (CR 3)",
+            "Tolkemec": "Mage (CR 6) with Staff of Power",
+            "Tascela": "Priest (CR 2) or Mage (CR 6)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Desperate fighter",
+              "count": 1,
+              "weapons": "Thrown dagger, sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Valeria",
+              "role": "Fighting alongside Conan",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Tolkemec",
+              "role": "Mad wizard with ancient weapon",
+              "count": 1,
+              "weapons": "Magical wand that drains life force",
+              "armor": "Sorcerous protections"
+            },
+            {
+              "name": "Tascela",
+              "role": "Queen attempting ritual",
+              "count": 1,
+              "weapons": "Life-stealing magic",
+              "armor": "Mystical defenses"
+            }
+          ],
+          "setting": "Inner chambers of Xuchotl, ritual chamber",
+          "outcome": "Tolkemec interrupts Tascela's ritual with life-draining wand; Conan throws dagger, killing Tolkemec"
+        },
+        {
+          "name": "Final Confrontation with Tascela",
+          "flavor_quote": "Valeria ultimately kills Tascela by stabbing her in the back",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Valeria": "Veteran (CR 3)",
+            "Conan": "Gladiator (CR 5)",
+            "Tascela": "Mage (CR 6) or Vampire (CR 13) for life-draining"
+          },
+          "combatants": [
+            {
+              "name": "Valeria",
+              "role": "Intended sacrifice turned avenger",
+              "count": 1,
+              "weapons": "Dagger",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Conan",
+              "role": "Rescuer",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Tascela",
+              "role": "Ancient queen attempting to steal Valeria's life force",
+              "count": 1,
+              "weapons": "Life-stealing ritual magic",
+              "armor": "Mystical protections"
+            }
+          ],
+          "setting": "Ritual chamber in Xuchotl's depths, mystical atmosphere",
+          "outcome": "After Tolkemec's death, Valeria stabs Tascela in the back, ending the ancient queen's reign and the blood feud"
+        }
+      ]
+    },
+    {
+      "title": "The Hour of the Dragon",
+      "publication_year": 1935,
+      "combats": [
+        {
+          "name": "Battle at Valkia",
+          "flavor_quote": "The cliffs suddenly collapse, killing thousands in an avalanche of stone and earth",
+          "combatant_count": 20000,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9) or Warlord (CR 12)",
+            "Aquilonian Army": "Knight (CR 3), Veteran (CR 3), Guard (CR 1/8)",
+            "Nemedian Forces": "Knight (CR 3), Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Xaltotun": "Archmage (CR 12) or Lich (CR 21)",
+            "Child of Darkness": "Shadow Demon (CR 4) or Wraith (CR 5)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "King of Aquilonia (paralyzed early in battle)",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Royal plate armor"
+            },
+            {
+              "name": "Aquilonian Army",
+              "role": "Royal forces defending kingdom",
+              "count": 10000,
+              "weapons": "Swords, spears, lances, Bossonian longbows",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Valannus",
+              "role": "Captain wearing Conan's armor as decoy",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Conan's royal plate armor"
+            },
+            {
+              "name": "Nemedian Army",
+              "role": "Invading forces with sorcerous support",
+              "count": 10000,
+              "weapons": "Swords, spears, siege equipment",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Xaltotun",
+              "role": "Resurrected Acheronian sorcerer",
+              "count": 1,
+              "weapons": "Ancient necromancy, summoned demons",
+              "armor": "Mystical protections from ancient Acheron"
+            }
+          ],
+          "setting": "Plains near Valkia, open battlefield with deadly cliffs",
+          "outcome": "Conan paralyzed by summoned demon; Valannus killed in avalanche trap along with thousands; Aquilonian army routed; Conan captured and imprisoned"
+        },
+        {
+          "name": "Escape from the Iron Tower",
+          "flavor_quote": "Even in chains, Conan remained more dangerous than ten armed men",
+          "combatant_count": 8,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Prison Guards": "Guard (CR 1/8), Veteran (CR 3)",
+            "Zenobia": "Noble (CR 1/8) or Spy (CR 1)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Imprisoned and chained king",
+              "count": 1,
+              "weapons": "None initially, then improvised weapons",
+              "armor": "None"
+            },
+            {
+              "name": "Zenobia",
+              "role": "Slave girl aiding escape",
+              "count": 1,
+              "weapons": "Key to unlock chains",
+              "armor": "None"
+            },
+            {
+              "name": "Prison Guards",
+              "role": "Tower sentries",
+              "count": 6,
+              "weapons": "Swords, spears",
+              "armor": "Light to medium armor"
+            }
+          ],
+          "setting": "Iron Tower dungeon in occupied Aquilonia",
+          "outcome": "Conan escapes with Zenobia's help; kills or evades guards; begins quest to find Heart of Ahriman"
+        },
+        {
+          "name": "Battle in the Catacombs",
+          "flavor_quote": "In the darkness beneath the earth, ancient horrors still dwell",
+          "combatant_count": 10,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Ancient Undead": "Wight (CR 3), Ghoul (CR 1), Skeleton (CR 1/4)",
+            "Tomb Guardians": "Animated Armor (CR 1)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Treasure hunter seeking Heart of Ahriman",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Found armor"
+            },
+            {
+              "name": "Ancient Undead",
+              "role": "Guardians of Acheronian tombs",
+              "count": 8,
+              "weapons": "Claws, ancient weapons, life-draining touch",
+              "armor": "Decayed armor, supernatural resilience"
+            }
+          ],
+          "setting": "Ancient catacombs beneath ruins of Acheron, pitch darkness and ancient evil",
+          "outcome": "Conan fights through undead horrors; retrieves the Heart of Ahriman"
+        },
+        {
+          "name": "Final Battle for Aquilonia",
+          "flavor_quote": "The armies clash while sorcery rends the sky above",
+          "combatant_count": 25000,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9) or Warlord (CR 12)",
+            "Aquilonian Forces": "Knight (CR 3), Veteran (CR 3), Guard (CR 1/8)",
+            "Nemedian Army": "Knight (CR 3), Berserker (CR 2)",
+            "Xaltotun": "Archmage (CR 12) or Lich (CR 21)",
+            "Prince Almaric": "Knight (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Rightful king reclaiming throne",
+              "count": 1,
+              "weapons": "Sword, Heart of Ahriman",
+              "armor": "Royal plate armor"
+            },
+            {
+              "name": "Conan's Loyalist Army",
+              "role": "Forces rallying to rightful king",
+              "count": 12000,
+              "weapons": "Swords, spears, lances, bows",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Prince Almaric",
+              "role": "Nemedian commander",
+              "count": 1,
+              "weapons": "Sword, lance",
+              "armor": "Nemedian plate armor"
+            },
+            {
+              "name": "Nemedian-Valerius Coalition",
+              "role": "Usurper forces",
+              "count": 13000,
+              "weapons": "Swords, spears, crossbows",
+              "armor": "Mail and plate"
+            },
+            {
+              "name": "Xaltotun",
+              "role": "Ancient sorcerer watching from King's Altar",
+              "count": 1,
+              "weapons": "Devastating sorcery, necromancy",
+              "armor": "Mystical protections"
+            }
+          ],
+          "setting": "Plains of Aquilonia, with Xaltotun observing from the King's Altar hill",
+          "outcome": "Almaric killed by Pallantides; Aquilonians sweep the field; Conan uses Heart of Ahriman to destroy Xaltotun; throne reclaimed"
+        }
+      ]
+    },
+    {
+      "title": "Iron Shadows in the Moon (Shadows in the Moonlight)",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Conan vs. Shah Amurath",
+          "flavor_quote": "The kozaki had been treacherously cut down to a man, but Conan survived to take his revenge",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Berserker (CR 2)",
+            "Shah Amurath": "Knight (CR 3) or Bandit Captain (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Lone survivor of betrayed Free Companions",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail (battle-worn)"
+            },
+            {
+              "name": "Shah Amurath",
+              "role": "Turanian commander who betrayed Conan's allies",
+              "count": 1,
+              "weapons": "Scimitar",
+              "armor": "Turanian armor"
+            }
+          ],
+          "setting": "Marshlands near the Vilayet Sea, after the massacre of the kozaki",
+          "outcome": "Conan slays Shah Amurath; rescues Olivia from his clutches"
+        },
+        {
+          "name": "Conan vs. Giant Man-Ape",
+          "flavor_quote": "The dark figure that pursued Olivia was a nightmare made flesh, fanged and terrible",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Giant Man-Ape": "Ape (CR 1/2) scaled to Large size, or Ogre (CR 2) or Hill Giant (CR 5)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Defender of Olivia",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Giant Fanged Man-Ape",
+              "role": "Island creature hunting humans",
+              "count": 1,
+              "weapons": "Fangs, claws, thrown boulders",
+              "armor": "Thick hide"
+            }
+          ],
+          "setting": "Mysterious island in the Vilayet Sea, ancient ruins",
+          "outcome": "Conan slays the creature that had been hurling boulders and stalking them"
+        },
+        {
+          "name": "Conan vs. Pirate Captain",
+          "flavor_quote": "He slays the pirate captain, an old rival, but is struck down by a stone from another pirate's sling",
+          "combatant_count": 15,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Pirate Captain": "Bandit Captain (CR 2)",
+            "Red Brotherhood Pirates": "Bandit (CR 1/8), Thug (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Challenger for ship command",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Pirate Captain",
+              "role": "Commander of Red Brotherhood corsairs",
+              "count": 1,
+              "weapons": "Cutlass",
+              "armor": "Light pirate armor"
+            },
+            {
+              "name": "Red Brotherhood Pirates",
+              "role": "Crew watching the duel",
+              "count": 13,
+              "weapons": "Cutlasses, slings, daggers",
+              "armor": "Minimal pirate garb"
+            }
+          ],
+          "setting": "Island ruins near the Vilayet Sea",
+          "outcome": "Conan kills the captain but is knocked unconscious by a sling stone; pirates capture him and drag him to ruins"
+        },
+        {
+          "name": "The Iron Shadows Attack",
+          "flavor_quote": "Under the full moon, the statues came alive and slaughtered most of the crew",
+          "combatant_count": 14,
+          "suggested_dnd_monsters": {
+            "Iron Statues": "Iron Golem (CR 16) reduced power, or Animated Armor (CR 1)",
+            "Pirates": "Bandit (CR 1/8), Thug (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan and Olivia",
+              "role": "Survivors fleeing supernatural terror",
+              "count": 2,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Red Brotherhood Pirates",
+              "role": "Drunken victims of ancient curse",
+              "count": 10,
+              "weapons": "Cutlasses, daggers",
+              "armor": "Minimal"
+            },
+            {
+              "name": "Iron Statues",
+              "role": "Ancient automatons animated by moonlight",
+              "count": "Multiple",
+              "weapons": "Iron fists, supernatural strength",
+              "armor": "Impervious iron bodies"
+            }
+          ],
+          "setting": "Ancient ruins on island under full moon, cyclopean architecture",
+          "outcome": "Iron statues massacre most of the pirate crew; Conan and survivors flee to the ship; statues return to dormancy"
+        }
+      ]
+    },
+    {
+      "title": "The Devil in Iron",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Conan vs. Giant Python",
+          "flavor_quote": "The serpent of Xapur, cyclopean and ancient, guarded the resurrected fortress",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Giant Python": "Giant Constrictor Snake (CR 2) scaled up"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Infiltrator of fortress island",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Giant Python",
+              "role": "Guardian of the resurrected fortress",
+              "count": 1,
+              "weapons": "Constriction, venomous fangs",
+              "armor": "Thick scales"
+            }
+          ],
+          "setting": "Island of Xapur, within the mysteriously resurrected green fortress",
+          "outcome": "Conan slays the serpent after brutal combat"
+        },
+        {
+          "name": "Conan vs. Jehungir's Mercenaries",
+          "flavor_quote": "The trap was set, but Conan was no easy prey",
+          "combatant_count": 25,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Turanian Mercenaries": "Guard (CR 1/8), Veteran (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Lured target fighting his way through",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Jehungir Agha's Mercenaries",
+              "role": "Hired soldiers in ambush",
+              "count": 24,
+              "weapons": "Scimitars, spears, bows",
+              "armor": "Light Turanian armor"
+            }
+          ],
+          "setting": "Fortress of Xapur, within cyclopean walls and towers",
+          "outcome": "Conan fights through mercenaries; heavy casualties on both sides"
+        },
+        {
+          "name": "Conan vs. Khosatral Khel (First Encounter)",
+          "flavor_quote": "His sword rebounded from the iron muscle of Khosatral's belly",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Khosatral Khel": "Iron Golem (CR 16) or Stone Golem (CR 10)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Desperate fighter",
+              "count": 1,
+              "weapons": "Sword (ineffective), improvised heavy objects",
+              "armor": "Mail"
+            },
+            {
+              "name": "Khosatral Khel",
+              "role": "Resurrected ancient demon with iron flesh",
+              "count": 1,
+              "weapons": "Supernatural strength, iron fists",
+              "armor": "Iron-hard flesh that repels steel"
+            }
+          ],
+          "setting": "Within the fortress chambers of Xapur",
+          "outcome": "Conan faster but unable to harm demon; uses tapestry to entangle Khel; escapes to plan new approach"
+        },
+        {
+          "name": "Conan vs. Khosatral Khel (Final Battle)",
+          "flavor_quote": "Only the sacred dagger could pierce the devil's iron hide",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Princess Octavia": "Noble (CR 1/8)",
+            "Khosatral Khel": "Iron Golem (CR 16)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Wielder of the sacred dagger",
+              "count": 1,
+              "weapons": "Sacred dagger (only weapon effective against Khel)",
+              "armor": "Mail"
+            },
+            {
+              "name": "Princess Octavia",
+              "role": "Rescued captive",
+              "count": 1,
+              "weapons": "None",
+              "armor": "None"
+            },
+            {
+              "name": "Khosatral Khel",
+              "role": "Ancient demon in final confrontation",
+              "count": 1,
+              "weapons": "Iron fists, supernatural power",
+              "armor": "Impervious iron flesh (vulnerable only to sacred dagger)"
+            }
+          ],
+          "setting": "Fortress of Xapur, climactic chamber",
+          "outcome": "Conan obtains sacred dagger; pierces Khosatral Khel's iron hide; demon vanquished; rescues Princess Octavia; fortress crumbles"
+        }
+      ]
+    },
+    {
+      "title": "The People of the Black Circle",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Conan's Raid on Vendhyan Soldiers",
+          "flavor_quote": "The Afghulis swept down from the mountain passes like wolves",
+          "combatant_count": 100,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Champion (CR 9)",
+            "Afghulis Tribesmen": "Tribal Warrior (CR 1/8), Berserker (CR 2)",
+            "Vendhyan Soldiers": "Guard (CR 1/8), Veteran (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Warchief of the Afghulis",
+              "count": 1,
+              "weapons": "Sword, captured weapons",
+              "armor": "Mail"
+            },
+            {
+              "name": "Afghulis Mountain Warriors",
+              "role": "Savage hillmen raiders",
+              "count": 50,
+              "weapons": "Scimitars, spears, knives",
+              "armor": "Light leather and shields"
+            },
+            {
+              "name": "Vendhyan Border Patrol",
+              "role": "Soldiers guarding frontier",
+              "count": 50,
+              "weapons": "Spears, swords, bows",
+              "armor": "Mail and shields"
+            }
+          ],
+          "setting": "Foothills of the Himelian Mountains, northwestern Vendhya frontier",
+          "outcome": "Conan's raiders overwhelm the patrol; Conan kidnaps Princess Yasmina"
+        },
+        {
+          "name": "Ambush in the Mountain Pass",
+          "flavor_quote": "The rocks themselves seemed to come alive with screaming tribesmen",
+          "combatant_count": 200,
+          "suggested_dnd_monsters": {
+            "Conan and Afghulis": "Gladiator (CR 5) for Conan, Tribal Warrior (CR 1/8)",
+            "Wazulis and Irakzai": "Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Vendhyan Cavalry": "Knight (CR 3), Guard (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan and Afghulis",
+              "role": "Mountain warriors in defensive position",
+              "count": 60,
+              "weapons": "Scimitars, spears, rocks, bows",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Rival Tribal Forces (Wazulis, Irakzai)",
+              "role": "Competing clans attempting to capture princess",
+              "count": 80,
+              "weapons": "Scimitars, javelins, knives",
+              "armor": "Minimal armor"
+            },
+            {
+              "name": "Vendhyan Cavalry Pursuit",
+              "role": "Royal forces attempting rescue",
+              "count": 60,
+              "weapons": "Lances, swords, bows",
+              "armor": "Heavy cavalry armor"
+            }
+          ],
+          "setting": "Narrow mountain pass in the Himelians, steep cliffs and treacherous terrain",
+          "outcome": "Chaos as three factions clash; Conan escapes with Yasmina through treacherous mountain routes"
+        },
+        {
+          "name": "Battle Against the Black Circle Disciples",
+          "flavor_quote": "The wizards sent their servants, but flesh and steel met sorcery",
+          "combatant_count": 30,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Black Circle Disciples": "Cult Fanatic (CR 2), Cultist (CR 1/8)",
+            "Hypnotized Warriors": "Guard (CR 1/8) with disadvantage"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Invader of the Black Circle's mountain stronghold",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "Princess Yasmina",
+              "role": "Ally with royal training",
+              "count": 1,
+              "weapons": "Dagger",
+              "armor": "None"
+            },
+            {
+              "name": "Black Circle Disciples",
+              "role": "Sorcerous servants and guards",
+              "count": 12,
+              "weapons": "Curved daggers, minor magic",
+              "armor": "Robes with mystical symbols"
+            },
+            {
+              "name": "Hypnotized Warriors",
+              "role": "Ensorcelled guards",
+              "count": 16,
+              "weapons": "Swords, spears",
+              "armor": "Various"
+            }
+          ],
+          "setting": "Fortress peak of Yimsha, desolate mountain stronghold in the clouds",
+          "outcome": "Conan and Yasmina fight through disciples and mind-controlled guards"
+        },
+        {
+          "name": "Three-Way Battle for the Princess",
+          "flavor_quote": "Afghuli, Vendhyan, and Turanian steel clashed in the mountain pass",
+          "combatant_count": 500,
+          "suggested_dnd_monsters": {
+            "Conan's Afghulis": "Tribal Warrior (CR 1/8), Berserker (CR 2)",
+            "Yasmina's Vendhyan Cavalry": "Knight (CR 3), Veteran (CR 3)",
+            "Turanian Army": "Guard (CR 1/8), Knight (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan and Afghulis",
+              "role": "Mountain warriors allied with Yasmina",
+              "count": 150,
+              "weapons": "Scimitars, spears, bows",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Princess Yasmina's Vendhyan Cavalry",
+              "role": "Royal rescue force now allied with Conan",
+              "count": 200,
+              "weapons": "Lances, swords, composite bows",
+              "armor": "Heavy cavalry armor"
+            },
+            {
+              "name": "Turanian Invasion Force",
+              "role": "Opportunistic invaders",
+              "count": 150,
+              "weapons": "Scimitars, spears, bows",
+              "armor": "Mail and leather"
+            }
+          ],
+          "setting": "Mountain pass leading from Yimsha, strategic chokepoint",
+          "outcome": "Conan and Yasmina's combined forces defeat the Turanian army; uneasy alliance solidified"
+        }
+      ]
+    },
+    {
+      "title": "A Witch Shall Be Born",
+      "publication_year": 1934,
+      "combats": [
+        {
+          "name": "Conan's Crucifixion and Survival",
+          "flavor_quote": "He killed an overeager vulture with his teeth while hanging on the cross",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) with extraordinary Constitution",
+            "Giant Vulture": "Giant Vulture (CR 1)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Crucified captain of the guard",
+              "count": 1,
+              "weapons": "Teeth (killing vulture)",
+              "armor": "None"
+            },
+            {
+              "name": "Constantius",
+              "role": "Mercenary commander who crucified Conan",
+              "count": 1,
+              "weapons": "None (ordered crucifixion)",
+              "armor": "Commander's armor"
+            }
+          ],
+          "setting": "Desert crossroads, Tree of Death, brutal sun and vultures",
+          "outcome": "Conan survives a day of crucifixion through sheer endurance; rescued by Olgerd Vladislav and his Kozak outlaws"
+        },
+        {
+          "name": "Conan's Ten-Mile Test",
+          "flavor_quote": "Ride ten miles through the desert without water or die on the cross",
+          "combatant_count": 1,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Crucifixion survivor proving his worth",
+              "count": 1,
+              "weapons": "None",
+              "armor": "None"
+            }
+          ],
+          "setting": "Ten miles of burning desert between cross and Kozak camp",
+          "outcome": "Conan completes the impossible ride; earns respect and eventual leadership of Kozak band"
+        },
+        {
+          "name": "Kozak Raid on Khaurani Patrols",
+          "flavor_quote": "Under Conan's leadership, the outlaws became an army",
+          "combatant_count": 150,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9)",
+            "Kozak Raiders": "Bandit (CR 1/8), Berserker (CR 2)",
+            "Khaurani Patrols": "Guard (CR 1/8), Veteran (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "New leader of Kozak band",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Captured mail"
+            },
+            {
+              "name": "Kozak Outlaws",
+              "role": "Desert raiders under Conan",
+              "count": 80,
+              "weapons": "Scimitars, spears, bows",
+              "armor": "Light leather and shields"
+            },
+            {
+              "name": "Khaurani Border Patrols",
+              "role": "Forces of the false queen",
+              "count": 70,
+              "weapons": "Spears, swords",
+              "armor": "Mail"
+            }
+          ],
+          "setting": "Desert borderlands of Khauraun",
+          "outcome": "Conan transforms raiders into disciplined force; multiple victories against patrols"
+        },
+        {
+          "name": "Battle Outside Khaurani",
+          "flavor_quote": "The mercenaries expected lightly armed Zaugirs, but met Khaurani heavy cavalry instead",
+          "combatant_count": 2000,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9) or Warlord (CR 12)",
+            "Kozak-Khaurani Forces": "Knight (CR 3), Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Constantius Mercenaries": "Veteran (CR 3), Guard (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Commander of combined forces",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Heavy mail"
+            },
+            {
+              "name": "Kozak Light Cavalry",
+              "role": "Desert raiders as shock troops",
+              "count": 500,
+              "weapons": "Scimitars, bows, lances",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Khaurani Heavy Cavalry (Hidden)",
+              "role": "Loyal nobles returning to save kingdom",
+              "count": 300,
+              "weapons": "Lances, swords",
+              "armor": "Full plate barding and heavy armor"
+            },
+            {
+              "name": "Constantius Mercenary Army",
+              "role": "Professional soldiers of false queen",
+              "count": 1200,
+              "weapons": "Swords, spears, crossbows",
+              "armor": "Mail and plate"
+            }
+          ],
+          "setting": "Plains outside the city of Khaurani, open battlefield",
+          "outcome": "Conan's tactical deception succeeds; hidden heavy cavalry devastates mercenaries; Constantius forces routed"
+        },
+        {
+          "name": "Conan's Revenge on Constantius",
+          "flavor_quote": "The Tree of Death would bear new fruit",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9)",
+            "Constantius": "Knight (CR 3) or Veteran (CR 3)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Victor exacting justice",
+              "count": 1,
+              "weapons": "Sword, crucifixion cross",
+              "armor": "Mail"
+            },
+            {
+              "name": "Constantius",
+              "role": "Defeated mercenary commander",
+              "count": 1,
+              "weapons": "None (captured)",
+              "armor": "None"
+            }
+          ],
+          "setting": "The same crossroads where Conan was crucified",
+          "outcome": "Conan crucifies Constantius on the same cross; perfect revenge achieved"
+        }
+      ]
+    },
+    {
+      "title": "Jewels of Gwahlur (The Servants of Bit-Yakin)",
+      "publication_year": 1935,
+      "combats": [
+        {
+          "name": "Infiltration of Temple Guardians",
+          "flavor_quote": "The ancient temple held more than jewels in its shadows",
+          "combatant_count": 8,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Temple Priests": "Priest (CR 2), Cultist (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Treasure hunter infiltrating temple",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Temple Priests and Guards",
+              "role": "Protectors of the oracle",
+              "count": 7,
+              "weapons": "Ceremonial daggers, spears",
+              "armor": "Robes and light armor"
+            }
+          ],
+          "setting": "Ancient temple of Alkmeenon in Keshan, mysterious and trap-filled",
+          "outcome": "Conan stealthily eliminates several guards; discovers the oracle is a fraud"
+        },
+        {
+          "name": "Conan vs. Gray Apes (Servants of Bit-Yakin)",
+          "flavor_quote": "They were gray-haired and massive, the true guardians of the ancient jewels",
+          "combatant_count": 12,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Gray Apes": "Ape (CR 1/2) with Pack Tactics, Large size",
+            "Gorulga's Priests": "Priest (CR 2), Cultist (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Caught in trap with deadly guardians",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Gorulga and Priests",
+              "role": "Treasure seekers attacked by guardians",
+              "count": 5,
+              "weapons": "Daggers, ceremonial weapons",
+              "armor": "Robes"
+            },
+            {
+              "name": "Gray-Haired Apes",
+              "role": "Ancient servants of Bit-Yakin, true guardians",
+              "count": 6,
+              "weapons": "Massive fists, teeth, supernatural strength",
+              "armor": "Thick hide"
+            }
+          ],
+          "setting": "Inner chambers of temple, secret vaults beneath Alkmeenon",
+          "outcome": "Gray apes massacre Gorulga's party; Conan barely escapes; treasure remains guarded"
+        },
+        {
+          "name": "Escape with Muriela",
+          "flavor_quote": "He had seconds to choose between the girl and the priceless gems",
+          "combatant_count": 10,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Muriela": "Noble (CR 1/8)",
+            "Temple Guardians": "Guard (CR 1/8), Cultist (CR 1/8)",
+            "Gray Apes": "Ape (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Rescuer choosing chivalry over greed",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Muriela",
+              "role": "Oracle impostor needing rescue",
+              "count": 1,
+              "weapons": "None",
+              "armor": "None"
+            },
+            {
+              "name": "Pursuing Temple Forces",
+              "role": "Guards and priests chasing thieves",
+              "count": 5,
+              "weapons": "Spears, daggers",
+              "armor": "Light armor"
+            },
+            {
+              "name": "Gray Apes",
+              "role": "Guardians pursuing intruders",
+              "count": 3,
+              "weapons": "Fists, teeth",
+              "armor": "Thick hide"
+            }
+          ],
+          "setting": "Collapsing temple passages, narrow escape routes",
+          "outcome": "Conan abandons treasure chest to save Muriela; escapes temple; demonstrates his honor"
+        }
+      ]
+    },
+    {
+      "title": "Beyond the Black River",
+      "publication_year": 1935,
+      "combats": [
+        {
+          "name": "Pict Ambush on Patrol",
+          "flavor_quote": "We never heard them till they were on us. How can anything move so silently?",
+          "combatant_count": 25,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Scout (CR 1/2) with Ranger abilities",
+            "Aquilonian Soldiers": "Guard (CR 1/8), Scout (CR 1/2)",
+            "Picts": "Tribal Warrior (CR 1/8) with Stealth expertise"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Frontier scout and guide",
+              "count": 1,
+              "weapons": "Sword, bow",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Aquilonian Patrol",
+              "role": "Border soldiers",
+              "count": 10,
+              "weapons": "Spears, swords, Bossonian longbows",
+              "armor": "Mail and shields"
+            },
+            {
+              "name": "Pict Warriors",
+              "role": "Silent forest ambushers",
+              "count": 14,
+              "weapons": "Tomahawks, stone knives, bows",
+              "armor": "None (painted bodies)"
+            }
+          ],
+          "setting": "Dark primeval forest beyond the Black River, thick underbrush",
+          "outcome": "Most of patrol slaughtered in surprise attack; Conan and few survivors escape"
+        },
+        {
+          "name": "Race to Warn the Fort",
+          "flavor_quote": "The Picts were at their heels, silent death in the shadows",
+          "combatant_count": 15,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Balthus": "Scout (CR 1/2)",
+            "Pict Hunters": "Tribal Warrior (CR 1/8), Scout (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Protector of young settler",
+              "count": 1,
+              "weapons": "Sword, knife",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Balthus",
+              "role": "Young settler learning frontier survival",
+              "count": 1,
+              "weapons": "Hatchet, knife",
+              "armor": "None"
+            },
+            {
+              "name": "Pict Pursuit Force",
+              "role": "Hunters tracking escapees",
+              "count": 13,
+              "weapons": "Tomahawks, bows, knives",
+              "armor": "None"
+            }
+          ],
+          "setting": "Dense forest trails, swamps, and undergrowth",
+          "outcome": "Conan and Balthus fight running battle; several Picts killed; warning delivered"
+        },
+        {
+          "name": "Battle Against Zogar Sag's Beast",
+          "flavor_quote": "It was no natural creature that the wizard sent",
+          "combatant_count": 5,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Summoned Beast": "Shadow Mastiff (CR 2)",
+            "Settlers": "Commoner (CR 0)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Defender against supernatural threat",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Fort Defenders",
+              "role": "Settlers and soldiers",
+              "count": 3,
+              "weapons": "Spears, axes",
+              "armor": "Minimal"
+            },
+            {
+              "name": "Zogar Sag's Beast",
+              "role": "Magically summoned predator",
+              "count": 1,
+              "weapons": "Fangs, claws, supernatural ferocity",
+              "armor": "Unnatural resilience"
+            }
+          ],
+          "setting": "Fort Tuscelan at night, wooden palisade walls",
+          "outcome": "Conan slays beast; realizes wizard Zogar Sag commands Pict forces"
+        },
+        {
+          "name": "Siege of Fort Tuscelan",
+          "flavor_quote": "The Picts surrounded the fort in numbers that would ensure its fall",
+          "combatant_count": 500,
+          "suggested_dnd_monsters": {
+            "Conan": "Champion (CR 9)",
+            "Fort Defenders": "Guard (CR 1/8), Veteran (CR 3), Commoner (CR 0)",
+            "Pict Horde": "Tribal Warrior (CR 1/8), Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Commander of desperate defense",
+              "count": 1,
+              "weapons": "Sword, bow",
+              "armor": "Mail"
+            },
+            {
+              "name": "Fort Defenders",
+              "role": "Soldiers and armed settlers",
+              "count": 80,
+              "weapons": "Bossonian longbows, spears, axes",
+              "armor": "Mixed mail and leather"
+            },
+            {
+              "name": "Zogar Sag",
+              "role": "Pict wizard leading war",
+              "count": 1,
+              "weapons": "Druidic magic, beast summoning",
+              "armor": "Mystical protections"
+            },
+            {
+              "name": "Pict War Party",
+              "role": "Massed tribal warriors",
+              "count": 420,
+              "weapons": "Tomahawks, bows, spears, fire arrows",
+              "armor": "None (war paint)"
+            }
+          ],
+          "setting": "Fort Tuscelan on the frontier, wooden walls and limited supplies",
+          "outcome": "Fort holds but at great cost; Conan leads survivors in fighting withdrawal; frontier abandoned; Picts driven back across Black River"
+        }
+      ]
+    },
+    {
+      "title": "Shadows in Zamboula (The Man-Eaters of Zamboula)",
+      "publication_year": 1935,
+      "combats": [
+        {
+          "name": "Conan vs. Cannibal in the Inn",
+          "flavor_quote": "The unfortunate cannibal attempted to prey on a fully aware Conan and paid with his life",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Darfarian Cannibal": "Thug (CR 1/2) or Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Alert traveler in trap room",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "None (sleeping)"
+            },
+            {
+              "name": "Darfarian Cannibal",
+              "role": "Night hunter from trap-door",
+              "count": 1,
+              "weapons": "Knife, teeth",
+              "armor": "None"
+            }
+          ],
+          "setting": "Cheap inn owned by Aram Baksh, Zamboula at night",
+          "outcome": "Conan kills cannibal; discovers room is trap for travelers"
+        },
+        {
+          "name": "Street Fight with Cannibals",
+          "flavor_quote": "Conan intervened, slaying the three blacks attacking the naked woman",
+          "combatant_count": 5,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Darfarian Cannibals": "Thug (CR 1/2)",
+            "Zabibi": "Noble (CR 1/8) or Spy (CR 1)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Rescuer in cannibal-infested streets",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Zabibi",
+              "role": "Woman fleeing cannibals",
+              "count": 1,
+              "weapons": "None",
+              "armor": "None"
+            },
+            {
+              "name": "Roaming Cannibals",
+              "role": "Night hunters of Zamboula",
+              "count": 3,
+              "weapons": "Knives, clubs",
+              "armor": "None"
+            }
+          ],
+          "setting": "Dark streets of Zamboula, city where cannibals roam freely at night",
+          "outcome": "Conan kills three cannibals; rescues Zabibi; learns of city's dark secret"
+        },
+        {
+          "name": "Conan vs. Baal-Pteor the Strangler",
+          "flavor_quote": "One of the few humans in the Conan stories to be a physical challenge for the main character",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Baal-Pteor": "Assassin (CR 8) or Thug (CR 1/2) with high Strength"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Fighter meeting his match",
+              "count": 1,
+              "weapons": "Sword, bare hands",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Baal-Pteor",
+              "role": "Professional strangler and enforcer",
+              "count": 1,
+              "weapons": "Bare hands (strangling), knife",
+              "armor": "None"
+            }
+          ],
+          "setting": "Temple or building interior in Zamboula",
+          "outcome": "Brutal close-quarters combat; Conan barely victorious against physically superior opponent"
+        },
+        {
+          "name": "Conan's Revenge on Aram Baksh",
+          "flavor_quote": "He cut out Baksh's tongue and sliced off his beard, then turned him over to the hungry cannibals",
+          "combatant_count": 8,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Aram Baksh": "Bandit Captain (CR 2)",
+            "Cannibals": "Thug (CR 1/2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Avenger with ironic sense of humor",
+              "count": 1,
+              "weapons": "Sword, knife",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Aram Baksh",
+              "role": "Inn owner who fed travelers to cannibals",
+              "count": 1,
+              "weapons": "None",
+              "armor": "None"
+            },
+            {
+              "name": "Darfarian Cannibals",
+              "role": "Unwitting instruments of justice",
+              "count": 6,
+              "weapons": "Knives, teeth",
+              "armor": "None"
+            }
+          ],
+          "setting": "Streets of Zamboula at night",
+          "outcome": "Conan mutilates Baksh; delivers him to cannibals he employed; poetic justice served"
+        }
+      ]
+    },
+    {
+      "title": "The Black Stranger",
+      "publication_year": 1935,
+      "combats": [
+        {
+          "name": "Pirate Siege of Valenso's Fort",
+          "flavor_quote": "Their mantlet rams the gates, and steel meets steel at the walls",
+          "combatant_count": 150,
+          "suggested_dnd_monsters": {
+            "Count Valenso": "Knight (CR 3) or Noble (CR 1/8)",
+            "Fort Defenders": "Guard (CR 1/8), Veteran (CR 3)",
+            "Strombanni Pirates": "Bandit (CR 1/8), Bandit Captain (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Count Valenso of Korzetta",
+              "role": "Exiled Zingaran noble defending fort",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Plate armor"
+            },
+            {
+              "name": "Fort Defenders",
+              "role": "Valenso's soldiers and retainers",
+              "count": 40,
+              "weapons": "Crossbows, swords, spears",
+              "armor": "Mail and leather"
+            },
+            {
+              "name": "Strombanni the Pirate",
+              "role": "Red-handed corsair captain",
+              "count": 1,
+              "weapons": "Cutlass",
+              "armor": "Light pirate armor"
+            },
+            {
+              "name": "Pirate Crew",
+              "role": "Corsair assault force",
+              "count": 110,
+              "weapons": "Cutlasses, axes, grappling hooks",
+              "armor": "Minimal leather"
+            }
+          ],
+          "setting": "Remote coastal fort on the Pictish shore, wooden palisade",
+          "outcome": "Fort defenders drive back pirates with arrows; siege equipment deployed; Zingaran ship spotted on horizon; pirates withdraw"
+        },
+        {
+          "name": "Three-Way Battle at the Fort",
+          "flavor_quote": "Pirates, Zingarans, and Picts converged on the fortress treasure",
+          "combatant_count": 200,
+          "suggested_dnd_monsters": {
+            "Multiple Factions": "Knight (CR 3), Bandit (CR 1/8), Tribal Warrior (CR 1/8)",
+            "Count Valenso": "Knight (CR 3)",
+            "Zarono": "Bandit Captain (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Valenso's Defenders",
+              "role": "Fort garrison",
+              "count": 35,
+              "weapons": "Swords, crossbows",
+              "armor": "Mail"
+            },
+            {
+              "name": "Strombanni's Pirates",
+              "role": "Renewed assault force",
+              "count": 80,
+              "weapons": "Cutlasses, axes",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Zarono's Zingarans",
+              "role": "Rival treasure hunters",
+              "count": 50,
+              "weapons": "Swords, crossbows",
+              "armor": "Mail"
+            },
+            {
+              "name": "Pict War Party",
+              "role": "Opportunistic raiders",
+              "count": 35,
+              "weapons": "Tomahawks, bows, knives",
+              "armor": "None (war paint)"
+            }
+          ],
+          "setting": "Coastal fort under multi-faction assault",
+          "outcome": "Chaos erupts; Strombanni and Zarono both killed; fort falls to Picts"
+        },
+        {
+          "name": "Conan vs. The Black Stranger",
+          "flavor_quote": "The demon from the sea brought death, but Conan brought steel",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Black Stranger": "Shadow Demon (CR 4) or Specter (CR 1)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Wanderer facing supernatural evil",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            },
+            {
+              "name": "The Black Stranger",
+              "role": "Demon emerging from the sea",
+              "count": 1,
+              "weapons": "Life-draining touch, supernatural terror",
+              "armor": "Incorporeal form"
+            }
+          ],
+          "setting": "Fort interior during the chaos, dark chambers",
+          "outcome": "Conan vanquishes the demon; saves Belesa and Tina; escapes over fort walls as Picts overrun fortress"
+        }
+      ]
+    },
+    {
+      "title": "The God in the Bowl",
+      "publication_year": 1952,
+      "combats": [
+        {
+          "name": "Conan vs. Temple Guards",
+          "flavor_quote": "Conan swiftly draws his sword and cuts off a noble's head",
+          "combatant_count": 8,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Thug (CR 1/2)",
+            "Temple Guards": "Guard (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Thief caught in museum burglary",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Temple Guards and Soldiers",
+              "role": "Museum security investigating murder",
+              "count": 7,
+              "weapons": "Spears, swords",
+              "armor": "Mail"
+            }
+          ],
+          "setting": "Temple museum in civilized city, murder scene with locked doors",
+          "outcome": "Conan beheads attacking noble; soldiers attack but flee when scream pierces corridor"
+        },
+        {
+          "name": "Conan vs. Giant Serpent",
+          "flavor_quote": "Conan lunges, swinging wildly with his sword and slicing off the head",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5)",
+            "Giant Serpent": "Giant Constrictor Snake (CR 2) with supernatural origin"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Lone fighter against true murderer",
+              "count": 1,
+              "weapons": "Long sword",
+              "armor": "Light leather"
+            },
+            {
+              "name": "Giant Serpent",
+              "role": "Creature from opened sarcophagus, real killer",
+              "count": 1,
+              "weapons": "Constriction, venomous fangs",
+              "armor": "Thick scales, ancient and cunning"
+            }
+          ],
+          "setting": "Museum chamber with sarcophagus, curtained areas",
+          "outcome": "Conan decapitates serpent; proves his innocence; reveals true murderer"
+        }
+      ]
+    },
+    {
+      "title": "The Frost-Giant's Daughter",
+      "publication_year": 1953,
+      "combats": [
+        {
+          "name": "Battlefield Survival: Aesir vs. Vanir",
+          "flavor_quote": "Eighty men have perished in bloody combat, and Conan alone survives",
+          "combatant_count": 80,
+          "suggested_dnd_monsters": {
+            "Aesir Reavers": "Berserker (CR 2), Tribal Warrior (CR 1/8)",
+            "Vanir Wolves": "Berserker (CR 2), Tribal Warrior (CR 1/8)"
+          },
+          "combatants": [
+            {
+              "name": "Wulfhere's Aesir Reavers",
+              "role": "Red-haired Norse raiders",
+              "count": 40,
+              "weapons": "Swords, axes, spears",
+              "armor": "Mail and shields"
+            },
+            {
+              "name": "Bragi's Vanir Wolves",
+              "role": "Rival Norse warriors",
+              "count": 40,
+              "weapons": "Swords, axes, spears",
+              "armor": "Mail and shields"
+            }
+          ],
+          "setting": "Frozen battlefield in Nordheim, snow and ice, corpse-ridden",
+          "outcome": "All warriors dead except Conan and one Vanir; mutual massacre in the snow"
+        },
+        {
+          "name": "Conan vs. Heimdul",
+          "flavor_quote": "The two clash, and though Conan is struck hard on the helmet, he thrusts his sword into Heimdul's chest",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) or Berserker (CR 2)",
+            "Heimdul": "Berserker (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Sole Aesir survivor",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail, dented helmet"
+            },
+            {
+              "name": "Heimdul",
+              "role": "Last Vanir warrior standing",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Mail"
+            }
+          ],
+          "setting": "Frozen battlefield among the dead",
+          "outcome": "Brief duel; Conan struck on helmet; thrusts sword through Heimdul's chest; last man standing"
+        },
+        {
+          "name": "Conan vs. Frost Giants",
+          "flavor_quote": "Her two frost giant brothers rise from the snow, but Conan's primordial ferocity prevails",
+          "combatant_count": 3,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) with exhaustion",
+            "Frost Giants": "Frost Giant (CR 8) reduced power, or Ogre (CR 2)"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Exhausted warrior lured into trap",
+              "count": 1,
+              "weapons": "Sword",
+              "armor": "Battle-damaged mail"
+            },
+            {
+              "name": "Atali's Frost Giant Brothers",
+              "role": "Supernatural guardians of Ymir's daughter",
+              "count": 2,
+              "weapons": "Massive clubs, fists, supernatural cold",
+              "armor": "Icy flesh, enormous size"
+            }
+          ],
+          "setting": "Frozen wasteland, hours from battlefield, ambush site",
+          "outcome": "Despite exhaustion, Conan's barbarian ferocity allows him to swiftly cut down both giants"
+        },
+        {
+          "name": "Encounter with Atali",
+          "flavor_quote": "She calls on her father Ymir and vanishes in blue flame, leaving only her gossamer garment",
+          "combatant_count": 2,
+          "suggested_dnd_monsters": {
+            "Conan": "Gladiator (CR 5) exhausted",
+            "Atali": "Succubus (CR 4) or celestial being"
+          },
+          "combatants": [
+            {
+              "name": "Conan",
+              "role": "Warrior pursuing beautiful apparition",
+              "count": 1,
+              "weapons": "None (chase)",
+              "armor": "Mail"
+            },
+            {
+              "name": "Atali, Daughter of Ymir",
+              "role": "Supernatural temptress who lures dying warriors",
+              "count": 1,
+              "weapons": "Supernatural beauty, divine escape",
+              "armor": "None (near-naked, gossamer garment)"
+            }
+          ],
+          "setting": "Frozen wastelands of Nordheim, snow and ice",
+          "outcome": "Conan catches her but she escapes by divine intervention; enveloped in blue flame; vanishes; Conan found by Aesir comrades holding only her garment"
+        }
+      ]
+    }
+  ]
+}

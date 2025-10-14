@@ -6810,21 +6810,32 @@ class EncounterPanel(QWidget):
             
             # End rage if active (rage ends on any rest)
             self._end_rage_on_rest()
-            
+
+            # Save current HP to database BEFORE reloading character
+            parent_for_hp = self.parent()
+            while parent_for_hp:
+                if hasattr(parent_for_hp, 'character_sheet') and parent_for_hp.character_sheet.character_data:
+                    char_data = parent_for_hp.character_sheet.character_data
+                    current_hp = char_data.get('current_hit_points', char_data.get('hit_points_current', 0))
+                    max_hp = char_data.get('max_hit_points', char_data.get('hit_points_max', 0))
+                    game_engine.update_character_hp_sync(current_hp, max_hp)
+                    break
+                parent_for_hp = parent_for_hp.parent()
+
             # Recover short rest abilities (instant)
             recovered_abilities = []
-            
+
             # Universal resource restoration system
             try:
                 from talekeeper.services.character_resources import CharacterResourceService
                 resource_service = CharacterResourceService('talekeeper.db')
-                
+
                 # Restore all short rest resources
                 result = resource_service.restore_resources_by_rest_type(character['id'], 'short_rest')
                 if result.get('success', False):
                     for resource in result.get('restored_resources', []):
                         recovered_abilities.append(resource['resource_name'])
-                
+
                 # Refresh the character object with updated resource values
                 character = game_engine.get_character_by_id_sync(character['id'])
                 game_engine.current_character = character
@@ -7130,14 +7141,17 @@ class EncounterPanel(QWidget):
             self._log_monster_action("[MOON] Beginning long rest...")
             
             # === D&D 5e LONG REST BENEFITS ===
-            
+
             # 1. Restore all hit points to maximum
             old_hp = character['hit_points_current']
             max_hp = character['hit_points_max']
             character['hit_points_current'] = max_hp
             character['current_hit_points'] = max_hp  # Alternative field
             self._log_monster_action(f"[HEAL] HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
-            
+
+            # Save HP to database immediately to persist through character reload
+            game_engine.update_character_hp_sync(max_hp, max_hp)
+
             # 2. Restore spent hit dice (up to half maximum, minimum 1)
             old_hit_dice = character.get('hit_dice_current', 0)
             new_hit_dice, restored = restore_hit_dice_on_long_rest(character)
