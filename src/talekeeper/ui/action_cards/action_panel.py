@@ -8553,9 +8553,11 @@ class ActionPanel(QWidget):
                         parent.log_panel.log_combat(f"❌ Failed to restore short rest resources: {result.get('error', 'Unknown error')}")
                     break
                 parent = parent.parent()
-                    
+            
         except Exception as e:
             print(f"Error restoring short rest abilities: {e}")
+        finally:
+            self._refresh_advantage_resources()
     
     def _restore_all_abilities(self):
         """Restore all abilities (long rest)."""
@@ -8606,12 +8608,83 @@ class ActionPanel(QWidget):
                     if total_restored == 0:
                         parent.log_panel.log_combat("🌙 Long rest completed (no resources to restore)")
                     break
-                parent = parent.parent()
+                    parent = parent.parent()
             
             # TODO: Implement spell slot restoration when spellcasting is added
+            self._refresh_advantage_resources()
             
         except Exception as e:
             print(f"Error restoring all abilities: {e}")
+    
+    def _refresh_advantage_resources(self):
+        """Sync Lucky/Inspiration counts from the database after rests."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+
+        try:
+            import sqlite3
+            db_path = self._resolve_db_path()
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT 
+                        COALESCE(lucky_uses_current, 0),
+                        COALESCE(lucky_uses_max, 0),
+                        COALESCE(inspiration_uses_current, 0),
+                        COALESCE(inspiration_uses_max, 0)
+                    FROM characters
+                    WHERE id = ?
+                    """,
+                    (character_id,),
+                )
+                row = cursor.fetchone()
+
+            if not row:
+                print("[ACTION PANEL] Advantage refresh skipped (no DB row)")
+                return
+
+            lucky_current, lucky_max, inspiration_current, inspiration_max = row
+            payload = {
+                "lucky_uses_current": lucky_current,
+                "lucky_uses_max": lucky_max,
+                "inspiration_uses_current": inspiration_current,
+                "inspiration_uses_max": inspiration_max,
+            }
+
+            if isinstance(self.character_context, dict):
+                self.character_context.update(payload)
+
+            parent = self.parent()
+            while parent:
+                game_engine = getattr(parent, "game_engine", None)
+                if game_engine and getattr(game_engine, "current_character", None):
+                    game_engine.current_character.update(payload)
+                    break
+                parent = parent.parent()
+
+            resource_manager = getattr(self, "resource_manager", None)
+            if resource_manager is None:
+                base_data = {}
+                if isinstance(self.character_context, dict):
+                    base_data.update(self.character_context)
+                else:
+                    base_data.update(payload)
+                base_data.update(payload)
+                resource_manager = AdvantageResourceManager(base_data)
+                self.resource_manager = resource_manager
+                for card in self.action_cards.values():
+                    if hasattr(card, "set_resource_manager"):
+                        card.set_resource_manager(resource_manager)
+            else:
+                resource_manager.update_from_character(payload)
+                if getattr(resource_manager, "character_data", None):
+                    if isinstance(resource_manager.character_data, dict):
+                        resource_manager.character_data.update(payload)
+
+        except Exception as exc:
+            print(f"[ACTION PANEL] Failed to refresh advantage resources: {exc}")
     
     def _short_rest_healing(self):
         """Allow hit die healing during short rest."""
@@ -9097,6 +9170,7 @@ class ActionCard(QWidget):
             
         if self.resource_manager.has_resources():
             counts = self.resource_manager.get_resource_counts()
+            print(f"[ACTION CARD] Halo update counts: {counts}")
             self.advantage_halo.update_resources(
                 counts['lucky_current'],
                 counts['lucky_max'],
@@ -9110,7 +9184,40 @@ class ActionCard(QWidget):
             self.advantage_halo.raise_()  # Ensure it's on top
             self.advantage_halo.show()
         else:
+            print("[ACTION CARD] Halo update skipped - no resources")
             self.advantage_halo.hide()
+    
+    def _persist_advantage_counts(self, lucky_current: int, lucky_max: int,
+                                  inspiration_current: int, inspiration_max: int):
+        """Persist advantage counts to the characters table."""
+        character_id = self._resolve_character_id()
+        if not character_id:
+            return
+        try:
+            import sqlite3
+            db_path = self._resolve_db_path()
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE characters
+                    SET lucky_uses_current = ?,
+                        lucky_uses_max = ?,
+                        inspiration_uses_current = ?,
+                        inspiration_uses_max = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        lucky_current,
+                        max(lucky_max, lucky_current),
+                        inspiration_current,
+                        max(inspiration_max, inspiration_current),
+                        character_id,
+                    ),
+                )
+                conn.commit()
+        except Exception as exc:
+            print(f"[ACTION PANEL] Failed to persist advantage resources: {exc}")
     
     def _is_attack_action(self):
         """Check if this action card represents an attack that can benefit from advantage."""
@@ -9164,6 +9271,36 @@ class ActionCard(QWidget):
             
             # Hide halo immediately to prevent multiple clicks
             self.advantage_halo.hide()
+            
+            counts = self.resource_manager.get_resource_counts()
+            payload = {
+                "lucky_uses_current": counts['lucky_current'],
+                "lucky_uses_max": counts['lucky_max'],
+                "inspiration_uses_current": counts['inspiration_current'],
+                "inspiration_uses_max": counts['inspiration_max'],
+            }
+
+            if isinstance(self.character_context, dict):
+                self.character_context.update(payload)
+
+            parent = self.parent()
+            while parent:
+                game_engine = getattr(parent, "game_engine", None)
+                if game_engine and getattr(game_engine, "current_character", None):
+                    game_engine.current_character.update(payload)
+                    break
+                parent = parent.parent()
+
+            if getattr(self.resource_manager, "character_data", None):
+                if isinstance(self.resource_manager.character_data, dict):
+                    self.resource_manager.character_data.update(payload)
+
+            self._persist_advantage_counts(
+                payload['lucky_uses_current'],
+                payload['lucky_uses_max'],
+                payload['inspiration_uses_current'],
+                payload['inspiration_uses_max'],
+            )
             
     def set_resource_manager(self, resource_manager):
         """Set the advantage resource manager."""

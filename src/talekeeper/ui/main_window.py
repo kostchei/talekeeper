@@ -22,6 +22,7 @@ from talekeeper.ui.encounter_pane.encounter_panel import EncounterPanel
 from talekeeper.ui.log.log_panel import LogPanel
 from talekeeper.ui.equipment_layout.equipment_panel import EquipmentPanel
 from talekeeper.ui.action_cards.action_panel import ActionPanel
+from talekeeper.ui.hex_map.hex_map_widget import HexMapWidget
 from talekeeper.core.game_engine_sqlite import GameEngineSQLite
 from talekeeper.ui.settings_dialog import SettingsDialog
 
@@ -52,6 +53,9 @@ class MainWindow(QMainWindow):
 
         # Theme management
         self.current_theme = "light"  # Default to light theme
+
+        # Hex map (lazy initialization)
+        self.hex_map_widget: Optional[HexMapWidget] = None
 
         # Audio narration pipeline (lazy initialization)
         self.voice_registry: Optional[CampaignVoiceRegistry] = None
@@ -1831,6 +1835,43 @@ class MainWindow(QMainWindow):
             'feats': character_dict['feats'],  # Include feats from SQLite migration!
             'speed': 30  # Default speed for now
         }
+
+    def keyPressEvent(self, event):
+        """Handle global keyboard shortcuts."""
+        if event.key() == Qt.Key.Key_M:
+            self._toggle_hex_map()
+        elif event.key() == Qt.Key.Key_T and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+            self._toggle_theme()
+        else:
+            super().keyPressEvent(event)
+
+    def _toggle_hex_map(self):
+        """Toggle hex map display."""
+        if not self.game_engine.current_character:
+            self.log_panel.log_info("Load or create a character to use the hex map")
+            return
+
+        if self.hex_map_widget is None:
+            self.hex_map_widget = HexMapWidget('talekeeper.db', self)
+            self.hex_map_widget.closed.connect(self._on_hex_map_closed)
+            self.hex_map_widget.travel_requested.connect(self._on_hex_travel)
+
+        if self.hex_map_widget.isVisible():
+            self.hex_map_widget.hide()
+        else:
+            character = self.game_engine.current_character
+            self.hex_map_widget.set_character(character['id'], character['name'])
+            self.hex_map_widget.show()
+            self.hex_map_widget.raise_()
+            self.log_panel.log_system(f"Hex map opened for {character['name']}")
+
+    def _on_hex_map_closed(self):
+        """Handle hex map being closed."""
+        self.log_panel.log_system("Hex map closed")
+
+    def _on_hex_travel(self, q: int, r: int):
+        """Handle player traveling to a new hex."""
+        self.log_panel.log_info(f"Traveled to hex ({q}, {r})")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Ensure background workers are stopped when window closes."""

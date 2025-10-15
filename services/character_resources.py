@@ -150,6 +150,56 @@ class CharacterResourceService:
             print(f"Error using resource {resource_name}: {e}")
             return {'success': False, 'error': str(e)}
     
+    def _grant_human_long_rest_inspiration(self, cursor, character_id: str) -> Optional[Dict[str, Any]]:
+        """Ensure humans regain Heroic Inspiration on long rest."""
+        try:
+            cursor.execute(
+                """
+                SELECT race_id, 
+                       COALESCE(inspiration_uses_current, 0),
+                       COALESCE(inspiration_uses_max, 0)
+                FROM characters
+                WHERE id = ?
+                """,
+                (character_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            race_id, current_uses, max_uses = row
+            if not race_id or "human" not in str(race_id).lower():
+                return None
+
+            # Humans always wake from a long rest with at least one inspiration.
+            desired_max = max(max_uses, 1)
+            desired_current = max(current_uses, desired_max)
+            desired_max = max(desired_max, desired_current)
+
+            if desired_current == current_uses and desired_max == max_uses:
+                return None
+
+            cursor.execute(
+                """
+                UPDATE characters
+                SET inspiration_uses_current = ?, inspiration_uses_max = ?
+                WHERE id = ?
+                """,
+                (desired_current, desired_max, character_id),
+            )
+
+            gained = max(0, desired_current - current_uses)
+            return {
+                "resource_name": "Heroic Inspiration",
+                "old_uses": current_uses,
+                "new_uses": desired_current,
+                "gained": gained,
+                "max_uses": desired_max,
+            }
+        except Exception as exc:
+            print(f"[CharacterResources] Failed to grant human inspiration: {exc}")
+            return None
+
     def restore_resources_by_rest_type(self, character_id: str, rest_type: str) -> Dict[str, Any]:
         """Restore all resources of a specific rest type (short_rest or long_rest)."""
         try:
@@ -180,6 +230,12 @@ class CharacterResourceService:
                     'new_uses': max_uses,
                     'gained': max_uses - current_uses
                 })
+            
+            # Species-specific benefits on long rest (e.g., human inspiration)
+            if rest_type == 'long_rest':
+                bonus = self._grant_human_long_rest_inspiration(cursor, character_id)
+                if bonus:
+                    restored_resources.append(bonus)
             
             conn.commit()
             conn.close()

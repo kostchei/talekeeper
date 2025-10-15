@@ -52,7 +52,8 @@
       "Bash(cd:*)",
       "Bash(do echo \"Checking $book...\")",
       "Bash(column:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []
