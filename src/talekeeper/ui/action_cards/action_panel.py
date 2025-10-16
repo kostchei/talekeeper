@@ -363,6 +363,7 @@ class ActionPanel(QWidget):
             card.weapon_data = main_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
+            self._attach_resource_manager(card)
             self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
 
         # Create off-hand weapon card
@@ -378,6 +379,7 @@ class ActionPanel(QWidget):
             card.weapon_data = off_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
+            self._attach_resource_manager(card)
             self.action_cards[ActionType.ATTACK_OFF_HAND] = card
 
     def _prepare_equipped_item(self, item: Any) -> Any:
@@ -6061,6 +6063,12 @@ class ActionPanel(QWidget):
         # Refresh visible cards
         self._update_visible_cards()
     
+    def _attach_resource_manager(self, card):
+        """Ensure a newly created card is wired to the current advantage manager."""
+        resource_manager = getattr(self, 'resource_manager', None)
+        if resource_manager and hasattr(card, 'set_resource_manager'):
+            card.set_resource_manager(resource_manager)
+
     def _clear_feature_cards(self):
         """Clear all feature-based action cards (like Second Wind)."""
         feature_action_types = [ActionType.SECOND_WIND, ActionType.ACTION_SURGE]
@@ -9268,10 +9276,10 @@ class ActionCard(QWidget):
         """Handle advantage resource usage."""
         if self.resource_manager and self.resource_manager.consume_resource(resource_type):
             print(f"[DEBUG] Applied {resource_type} offensive advantage for next attack (stored in resource manager)")
-            
+
             # Hide halo immediately to prevent multiple clicks
             self.advantage_halo.hide()
-            
+
             counts = self.resource_manager.get_resource_counts()
             payload = {
                 "lucky_uses_current": counts['lucky_current'],
@@ -9280,8 +9288,12 @@ class ActionCard(QWidget):
                 "inspiration_uses_max": counts['inspiration_max'],
             }
 
-            if isinstance(self.character_context, dict):
-                self.character_context.update(payload)
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'character_context') and isinstance(parent.character_context, dict):
+                    parent.character_context.update(payload)
+                    break
+                parent = parent.parent()
 
             parent = self.parent()
             while parent:
@@ -9295,12 +9307,17 @@ class ActionCard(QWidget):
                 if isinstance(self.resource_manager.character_data, dict):
                     self.resource_manager.character_data.update(payload)
 
-            self._persist_advantage_counts(
-                payload['lucky_uses_current'],
-                payload['lucky_uses_max'],
-                payload['inspiration_uses_current'],
-                payload['inspiration_uses_max'],
-            )
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, '_persist_advantage_counts'):
+                    parent._persist_advantage_counts(
+                        payload['lucky_uses_current'],
+                        payload['lucky_uses_max'],
+                        payload['inspiration_uses_current'],
+                        payload['inspiration_uses_max'],
+                    )
+                    break
+                parent = parent.parent()
             
     def set_resource_manager(self, resource_manager):
         """Set the advantage resource manager."""

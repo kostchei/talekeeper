@@ -359,41 +359,40 @@ class UnifiedLevelUpService:
 
             character = self._get_character_data(cursor, character_id)
             current_level = character['level']
-
-            subclass_features_gained = []
-            for level in range(1, current_level + 1):
-                subclass_features = self.feature_registry.get_subclass_features_for_level(subclass_id, level)
-                for feature in subclass_features:
-                    mechanics = feature['mechanics']
-                    max_uses = 0
-                    recharge_type = 'permanent'
-
-                    if 'uses_per_short_rest' in mechanics:
-                        max_uses = mechanics['uses_per_short_rest']
-                        recharge_type = 'short_rest'
-                    elif 'uses_per_long_rest' in mechanics:
-                        max_uses = mechanics['uses_per_long_rest']
-                        recharge_type = 'long_rest'
-
-                    self.feature_registry.grant_feature_to_character(
-                        character_id=character_id,
-                        feature_source='subclass',
-                        feature_id=feature['id'],
-                        feature_name=feature['feature_name'],
-                        level_gained=level,
-                        max_uses=max_uses,
-                        recharge_type=recharge_type
-                    )
-
-                    subclass_features_gained.append(feature['feature_name'])
-
             conn.commit()
 
-            return {
-                "success": True,
-                "subclass_id": subclass_id,
-                "features_gained": subclass_features_gained
-            }
+        subclass_features_gained = []
+        for level in range(1, current_level + 1):
+            subclass_features = self.feature_registry.get_subclass_features_for_level(subclass_id, level)
+            for feature in subclass_features:
+                mechanics = feature['mechanics']
+                max_uses = 0
+                recharge_type = 'permanent'
+
+                if 'uses_per_short_rest' in mechanics:
+                    max_uses = mechanics['uses_per_short_rest']
+                    recharge_type = 'short_rest'
+                elif 'uses_per_long_rest' in mechanics:
+                    max_uses = mechanics['uses_per_long_rest']
+                    recharge_type = 'long_rest'
+
+                self.feature_registry.grant_feature_to_character(
+                    character_id=character_id,
+                    feature_source='subclass',
+                    feature_id=feature['id'],
+                    feature_name=feature['feature_name'],
+                    level_gained=level,
+                    max_uses=max_uses,
+                    recharge_type=recharge_type
+                )
+
+                subclass_features_gained.append(feature['feature_name'])
+
+        return {
+            "success": True,
+            "subclass_id": subclass_id,
+            "features_gained": subclass_features_gained
+        }
 
     def apply_feature_choice(self, character_id: str, feature_instance_id: int,
                            choice: str) -> Dict[str, Any]:

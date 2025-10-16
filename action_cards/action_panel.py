@@ -363,6 +363,7 @@ class ActionPanel(QWidget):
             card.weapon_data = main_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
+            self._attach_resource_manager(card)
             self.action_cards[ActionType.ATTACK_MAIN_HAND] = card
 
         # Create off-hand weapon card
@@ -378,6 +379,7 @@ class ActionPanel(QWidget):
             card.weapon_data = off_hand
             card.action_triggered.connect(self._trigger_action)
             card.action_hovered.connect(self._action_hovered)
+            self._attach_resource_manager(card)
             self.action_cards[ActionType.ATTACK_OFF_HAND] = card
 
     def _prepare_equipped_item(self, item: Any) -> Any:
@@ -5653,6 +5655,12 @@ class ActionPanel(QWidget):
         
         # Refresh visible cards
         self._update_visible_cards()
+    
+    def _attach_resource_manager(self, card):
+        """Ensure a newly created card is wired to the active advantage manager."""
+        resource_manager = getattr(self, 'resource_manager', None)
+        if resource_manager and hasattr(card, 'set_resource_manager'):
+            card.set_resource_manager(resource_manager)
     
     def _clear_feature_cards(self):
         """Clear all feature-based action cards (like Second Wind)."""
