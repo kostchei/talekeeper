@@ -1,0 +1,26 @@
+{
+  "name": "random",
+  "species": "Human",
+  "class": "Barbarian",
+  "background": "Soldier",
+  "feats": ["Great Weapon Master"],
+  "weapon_masteries": ["greataxe", "handaxe", "javelin"],
+  "ability_scores": {
+    "strength": 16,
+    "dexterity": 13,
+    "constitution": 15,
+    "intelligence": 8,
+    "wisdom": 12,
+    "charisma": 10
+  },
+  "class_skills": ["Athletics", "Survival"],
+  "species_skills": [],
+  "equipment_choices": {
+    "martial_weapon": "Greataxe",
+    "simple_weapon": "Handaxe",
+    "pack": "Explorer's Pack"
+  },
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Raging greataxe barbarian build - high damage, unarmored defense"
+}

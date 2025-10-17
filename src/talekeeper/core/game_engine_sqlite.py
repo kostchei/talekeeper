@@ -976,11 +976,13 @@ class GameEngineSQLite:
     
     def apply_equipment_choices_sync(self, character_data, equipment_choices):
         """Apply equipment choices made during character creation."""
+        from talekeeper.services.equipment import equipment_service
+
         print(f"[SQLite] apply_equipment_choices_sync called with: {equipment_choices}")
         if not equipment_choices:
             print("[SQLite] No equipment choices provided")
             return
-        
+
         # Initialize inventory if not exists
         if 'inventory' not in character_data:
             character_data['inventory'] = []
@@ -1058,6 +1060,33 @@ class GameEngineSQLite:
                 elif item_type == 'helmet':
                     character_data['equipment_helmet'] = item_name_clean
                     print(f"[SQLite] Equipped '{item_name_clean}' as helmet")
+
+        # UPDATE DATABASE with equipped items
+        character_id = character_data.get('id')
+        if character_id:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE characters SET
+                    equipment_main_hand = ?,
+                    equipment_off_hand = ?,
+                    equipment_armor = ?,
+                    equipment_shield = ?,
+                    equipment_helmet = ?
+                WHERE id = ?
+            """, (
+                character_data.get('equipment_main_hand'),
+                character_data.get('equipment_off_hand'),
+                character_data.get('equipment_armor'),
+                character_data.get('equipment_shield') or character_data.get('equipment_off_hand') if character_data.get('equipment_off_hand') and 'Shield' in str(character_data.get('equipment_off_hand', '')) else None,
+                character_data.get('equipment_helmet'),
+                character_id
+            ))
+
+            conn.commit()
+            conn.close()
+            print(f"[SQLite] Updated equipment slots in database for character {character_id}")
 
     def _parse_equipment_choice(self, choice_string: str) -> List[Dict[str, any]]:
         """Parse equipment choice strings like 'Scimitar + Shortsword' or '2 Shortswords' into individual items."""
@@ -1393,14 +1422,26 @@ class GameEngineSQLite:
     def _initialize_fighter_features(self, cursor, character_id: str, character_data: Dict):
         """Initialize Fighter-specific features."""
         level = character_data.get('level', 1)
-        
-        # Extract fighting style from feats (fighting styles are stored as feats during character creation)
-        selected_feats = character_data.get('selected_feats', [])
+
+        # Extract fighting style from class_features or feats
         fighting_style = None
-        for feat in selected_feats:
-            if feat in ['Archery', 'Defense', 'Dueling', 'Great Weapon Fighting', 'Protection', 'Two-Weapon Fighting']:
-                fighting_style = feat.lower()
-                break
+
+        # First check class_features dict (programmatic creation)
+        class_features = character_data.get('class_features', {})
+        if isinstance(class_features, dict) and 'fighting_style' in class_features:
+            fs_data = class_features['fighting_style']
+            if isinstance(fs_data, dict):
+                fighting_style = fs_data.get('name', '').lower()
+            elif isinstance(fs_data, str):
+                fighting_style = fs_data.lower()
+
+        # Fall back to checking feats list (UI creation)
+        if not fighting_style:
+            selected_feats = character_data.get('selected_feats', [])
+            for feat in selected_feats:
+                if feat in ['Archery', 'Defense', 'Dueling', 'Great Weapon Fighting', 'Protection', 'Two-Weapon Fighting']:
+                    fighting_style = feat.lower()
+                    break
         
         cursor.execute("""
             INSERT INTO fighter_features (
@@ -1884,17 +1925,12 @@ class GameEngineSQLite:
                 print(f"[SQLite] Added shield {equipped_shield}: +{shield_bonus} AC")
             
             # Apply Defense fighting style bonus (+1 AC when wearing armor)
-            if equipped_armor:  # Only applies when wearing armor
+            if equipped_armor and class_id in ['fighter', 'paladin', 'ranger']:
                 print(f"[SQLite] Checking for Defense fighting style for character {character_id}")
-                with self._get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        SELECT feat_name FROM character_feats
-                        WHERE character_id = ? AND feat_name = 'Defense'
-                    """, (character_id,))
-                    has_defense = cursor.fetchone()
+                fighting_styles = self.get_character_fighting_styles(character_id)
+                has_defense = any(style.lower() == 'defense' for style in fighting_styles)
 
-                print(f"[SQLite] Defense check result: {has_defense}")
+                print(f"[SQLite] Fighting styles found: {fighting_styles}")
                 if has_defense:
                     ac += 1
                     print(f"[SQLite] Defense fighting style: +1 AC (total now {ac})")

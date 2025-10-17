@@ -1,0 +1,28 @@
+{
+  "name": "random",
+  "species": "Human",
+  "class": "Paladin",
+  "background": "Acolyte",
+  "feats": ["Heavy Armor Master"],
+  "fighting_style": "Defense",
+  "weapon_masteries": ["longsword", "shield", "warhammer"],
+  "ability_scores": {
+    "strength": 16,
+    "dexterity": 10,
+    "constitution": 14,
+    "intelligence": 8,
+    "wisdom": 12,
+    "charisma": 15
+  },
+  "class_skills": ["Religion", "Persuasion"],
+  "species_skills": [],
+  "equipment_choices": {
+    "martial_weapon": "Longsword",
+    "shield": "Shield",
+    "armor": "Chain Mail",
+    "holy_symbol": "Amulet"
+  },
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Sword and board paladin - high AC, Divine Smite, healing"
+}

@@ -1,0 +1,28 @@
+{
+  "name": "random",
+  "species": "Dwarf",
+  "class": "Cleric",
+  "background": "Acolyte",
+  "feats": ["War Caster"],
+  "cantrips": ["sacred_flame", "guidance", "light"],
+  "spells_prepared": ["cure_wounds", "bless", "shield_of_faith", "healing_word"],
+  "ability_scores": {
+    "strength": 14,
+    "dexterity": 10,
+    "constitution": 15,
+    "intelligence": 10,
+    "wisdom": 16,
+    "charisma": 12
+  },
+  "class_skills": ["Religion", "Medicine"],
+  "species_skills": [],
+  "equipment_choices": {
+    "weapon": "Warhammer",
+    "shield": "Shield",
+    "armor": "Chain Mail",
+    "holy_symbol": "Amulet"
+  },
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Support healer - heavy armor, healing spells, blessed strikes"
+}
