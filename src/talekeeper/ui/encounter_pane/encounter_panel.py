@@ -2700,14 +2700,14 @@ class EncounterPanel(QWidget):
             for race_row in races_rows:
                 race_data = {
                     'id': race_row[0],
-                    'name': race_row[1], 
+                    'name': race_row[1],
                     'description': race_row[2],
                     'size': race_row[3],
                     'speed': race_row[4],
-                    'ability_score_increases': json.loads(race_row[5]),
-                    'traits': json.loads(race_row[6]),
-                    'languages': json.loads(race_row[7]),
-                    'subraces': json.loads(race_row[8])
+                    'ability_score_increases': json.loads(race_row[5]) if race_row[5] else {},
+                    'traits': json.loads(race_row[6]) if race_row[6] else [],
+                    'languages': json.loads(race_row[7]) if race_row[7] else [],
+                    'subraces': json.loads(race_row[8]) if race_row[8] else []
                 }
                 item = QListWidgetItem(race_data['name'])
                 item.setData(Qt.ItemDataRole.UserRole, race_data)
@@ -5742,7 +5742,7 @@ class EncounterPanel(QWidget):
         # Add treasure to character's inventory/gold
         total_treasure = total_individual_gp + hoard_gp
         if total_treasure > 0:
-            self._add_gold_to_character(total_treasure)
+            self._add_treasure_with_conversion(total_treasure, monster_cr if self.defeated_monsters else 1.0)
         
         # Add item drops to character's inventory
         if all_item_drops:
@@ -6748,39 +6748,76 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"Error adding magic items to character: {e}")
     
-    def _add_gold_to_character(self, gold_amount: int):
-        """Add gold to the current character."""
+    def _add_treasure_with_conversion(self, gold_amount: int, monster_cr: float = 1.0):
+        """Add treasure with automatic conversion to gems/art for large amounts."""
+        from talekeeper.services.treasure_generator import TreasureGenerator
+
         try:
-            # Get game engine from parent for character update
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'game_engine'):
                     game_engine = parent.game_engine
                     character = game_engine.current_character
-                    
+
                     if character:
-                        # Add gold to character inventory
-                        try:
-                            # Update gold in inventory database
-                            success = game_engine.add_gold_to_character_sync(character['id'], gold_amount)
+                        character_id = character['id']
+                        treasure_items = []
+                        coins_to_add = gold_amount
+
+                        if TreasureGenerator.should_use_treasure_conversion(gold_amount):
+                            avg_cr = monster_cr
+                            if isinstance(self.defeated_monsters, list) and len(self.defeated_monsters) > 0:
+                                cr_values = []
+                                for _, cr in self.defeated_monsters:
+                                    if isinstance(cr, str):
+                                        if '/' in cr:
+                                            num, denom = cr.split('/')
+                                            cr_values.append(float(num) / float(denom))
+                                        else:
+                                            cr_values.append(float(cr))
+                                    else:
+                                        cr_values.append(float(cr))
+                                avg_cr = sum(cr_values) / len(cr_values) if cr_values else 1.0
+
+                            treasure_items, remaining_coins = TreasureGenerator.convert_gold_to_treasure(
+                                gold_amount, avg_cr
+                            )
+                            coins_to_add = remaining_coins
+
+                            if treasure_items:
+                                self._log_monster_action(f"[TREASURE] Large treasure hoard converted to valuable items!")
+                                for item in treasure_items:
+                                    success = game_engine.add_treasure_to_character_sync(character_id, item)
+                                    if success:
+                                        item_desc = f"{item['name']} ({item['value_gp']} GP, {item['weight_lb']:.2f} lb)"
+                                        self._log_monster_action(f"  - {item_desc}")
+
+                        if coins_to_add > 0:
+                            success = game_engine.add_gold_to_character_sync(character_id, coins_to_add)
                             if success:
-                                self._log_monster_action(f"[GOLD] Gained {gold_amount} gold pieces!")
-                                print(f"[TREASURE] Successfully added {gold_amount} GP to character {character['id']}")
-                                
-                                # Refresh the equipment panel to show updated gold
-                                self._refresh_equipment_panel(game_engine, character['id'])
+                                weight_lb = coins_to_add / 50.0
+                                has_bag = game_engine.character_has_bag_of_holding(character_id)
+                                location = "Bag of Holding" if (has_bag and weight_lb > 10) else "pouch"
+                                self._log_monster_action(f"[GOLD] Gained {coins_to_add} gold pieces ({weight_lb:.1f} lb) stored in {location}!")
+                                print(f"[TREASURE] Successfully added {coins_to_add} GP to character {character_id}")
+
+                                self._refresh_equipment_panel(game_engine, character_id)
                             else:
-                                self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
-                                print(f"[TREASURE] Failed to add {gold_amount} GP to character inventory")
-                        except Exception as e:
-                            self._log_monster_action(f"[GOLD] Found {gold_amount} gold pieces, but couldn't add to inventory!")
-                            print(f"[TREASURE] Error adding gold: {e}")
+                                self._log_monster_action(f"[GOLD] Found {coins_to_add} gold pieces, but couldn't add to inventory!")
+                                print(f"[TREASURE] Failed to add {coins_to_add} GP to character inventory")
+
                         return
                     break
                 parent = parent.parent()
-                
+
         except Exception as e:
-            print(f"Error adding gold to character: {e}")
+            print(f"Error adding treasure to character: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _add_gold_to_character(self, gold_amount: int):
+        """Add gold to the current character."""
+        self._add_treasure_with_conversion(gold_amount, 1.0)
     
     def _handle_short_rest_action(self):
         """Handle clicking the Short Rest action card."""
@@ -7188,26 +7225,51 @@ class EncounterPanel(QWidget):
             try:
                 from talekeeper.services.character_resources import CharacterResourceService
                 resource_service = CharacterResourceService('talekeeper.db')
-                
+
                 # Restore all short rest resources (long rest includes short rest benefits)
                 short_result = resource_service.restore_resources_by_rest_type(character['id'], 'short_rest')
                 if short_result.get('success', False):
                     for resource in short_result.get('restored_resources', []):
                         abilities_restored.append(resource['resource_name'])
-                
+
                 # Restore all long rest resources
                 long_result = resource_service.restore_resources_by_rest_type(character['id'], 'long_rest')
                 if long_result.get('success', False):
                     for resource in long_result.get('restored_resources', []):
                         abilities_restored.append(resource['resource_name'])
-                
+
                 # Refresh the character object with updated resource values
                 character = game_engine.get_character_by_id_sync(character['id'])
                 game_engine.current_character = character
-                        
+
             except Exception as e:
                 print(f"Error restoring long rest resources: {e}")
-            
+
+            # Class-specific state cleanup (not resource restoration)
+            try:
+                from talekeeper.services.barbarian_abilities import BarbarianAbilitiesService
+                if character.get('class_id', '').lower() == 'barbarian':
+                    barbarian_service = BarbarianAbilitiesService('talekeeper.db')
+                    conn = barbarian_service._get_connection()
+                    cursor = conn.cursor()
+
+                    # Clear combat state (rage active state, not uses)
+                    cursor.execute("""
+                        UPDATE barbarian_features SET
+                            is_raging = FALSE,
+                            rage_turns_remaining = 0,
+                            frenzy_active = FALSE,
+                            brutal_strike_uses_current = brutal_strike_uses_max,
+                            relentless_rage_uses_current = relentless_rage_uses_max,
+                            intimidating_presence_uses_current = intimidating_presence_uses_max
+                        WHERE character_id = ?
+                    """, (character['id'],))
+
+                    conn.commit()
+                    conn.close()
+            except Exception as e:
+                print(f"Error clearing barbarian combat state: {e}")
+
             # Generic ability restoration (fallback for other systems)
             for ability in ["Healing Potion"]:  # Non-class specific abilities
                 if ability in character.get('ability_uses', {}):
@@ -7268,9 +7330,22 @@ class EncounterPanel(QWidget):
             
             # Update character sheet display
             self._update_character_sheet_hp(max_hp, max_hp)
-            
+
             self._log_monster_action("🌅 Long rest completed! All resources restored.")
-            
+
+            # Refresh action cards to show restored resources
+            try:
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'action_panel'):
+                        print("[LONG REST] Refreshing action cards after rest")
+                        parent.action_panel._create_feature_cards()
+                        parent.action_panel._update_visible_cards()
+                        break
+                    parent = parent.parent()
+            except Exception as e:
+                print(f"Error refreshing action cards after rest: {e}")
+
             # Log to parent log panel
             try:
                 parent = self.parent()

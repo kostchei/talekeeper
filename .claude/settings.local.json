@@ -53,7 +53,10 @@
       "Bash(do echo \"Checking $book...\")",
       "Bash(column:*)",
       "Bash(test:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git log:*)",
+      "Bash(taskkill:*)",
+      "Bash(xargs kill:*)"
     ],
     "deny": [],
     "ask": []

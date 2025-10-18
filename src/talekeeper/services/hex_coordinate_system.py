@@ -57,14 +57,16 @@ class HexCoordinateSystem:
 
     @staticmethod
     def hex_to_pixel(q: int, r: int, hex_size: float) -> Tuple[float, float]:
-        x = hex_size * (3/2 * q)
-        y = hex_size * (math.sqrt(3)/2 * q + math.sqrt(3) * r)
+        # Pointy-top axial layout: convert cube coordinates to pixel space
+        x = hex_size * (math.sqrt(3) * q + math.sqrt(3) / 2 * r)
+        y = hex_size * (3 / 2 * r)
         return (x, y)
 
     @staticmethod
     def pixel_to_hex(x: float, y: float, hex_size: float) -> Tuple[int, int]:
-        q = (2/3 * x) / hex_size
-        r = (-1/3 * x + math.sqrt(3)/3 * y) / hex_size
+        # Inverse transform for pointy-top axial layout
+        q = (math.sqrt(3) / 3 * x - 1 / 3 * y) / hex_size
+        r = (2 / 3 * y) / hex_size
 
         return HexCoordinateSystem.hex_round(q, r)
 

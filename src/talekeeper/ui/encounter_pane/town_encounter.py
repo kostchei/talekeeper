@@ -1884,6 +1884,11 @@ class TownEncounterPanel(QWidget):
         quest_card = TownEncounterCard("quests", "📋", "Quest Board", "Available jobs\nand adventures", False)
         quest_card.card_activated.connect(self._handle_card_activation)
         cards_layout.addWidget(quest_card, 1, 1)
+
+        # Downtime Activities Card
+        downtime_card = TownEncounterCard("downtime", "⏳", "Downtime Activities", "Carousing, prayer,\nand more", True)
+        downtime_card.card_activated.connect(self._handle_card_activation)
+        cards_layout.addWidget(downtime_card, 2, 0)
         
         scroll_area.setWidget(scroll_widget)
         scroll_area.setWidgetResizable(True)
@@ -1918,6 +1923,8 @@ class TownEncounterPanel(QWidget):
             self._show_training_hall()
         elif card_type == "shop":
             self._show_shop()
+        elif card_type == "downtime":
+            self._show_downtime_activities()
         elif card_type == "inn":
             QMessageBox.information(self, "Coming Soon", "The inn services are not yet implemented.")
         elif card_type == "quests":
@@ -1940,6 +1947,23 @@ class TownEncounterPanel(QWidget):
         
         layout.addWidget(training_widget)
     
+    def _show_downtime_activities(self):
+        """Show downtime activities dialog"""
+        from talekeeper.ui.dialogs.downtime_dialog import DowntimeDialog
+        from PyQt6.QtWidgets import QDialog
+
+        dialog = DowntimeDialog(self.character_data, parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, '_force_reload_character'):
+                    parent._force_reload_character()
+                    self.character_data = parent.game_engine.current_character
+                    break
+                parent = parent.parent()
+
+            self._shopping_completed()
+
     def _show_shop(self):
         """Show shop size selection dialog, then shop interface"""
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QRadioButton, QButtonGroup

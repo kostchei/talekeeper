@@ -499,14 +499,21 @@ class ActionPanel(QWidget):
             self.action_cards[ActionType.ACTION_SURGE] = card
 
         rage_feature = self._get_feature_data('Rage')
-        if (rage_feature and self.character_context
-                and self.character_context.get('class_id', '').lower() == 'barbarian'
-                and self._has_rage_uses()):
-            card = ActionCard(ActionType.RAGE, "[RAGE]", rage_feature.get('name', 'Rage'), "Enter barbarian rage (+2 damage, resistance to physical)")
-            card.feature_data = rage_feature
-            card.action_triggered.connect(self._trigger_action)
-            card.action_hovered.connect(self._action_hovered)
-            self.action_cards[ActionType.RAGE] = card
+        print(f"[RAGE CARD] rage_feature={bool(rage_feature)}, context={bool(self.character_context)}, class={self.character_context.get('class_id') if self.character_context else None}")
+        if rage_feature and self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
+            has_uses = self._has_rage_uses()
+            print(f"[RAGE CARD] _has_rage_uses() returned: {has_uses}")
+            if has_uses:
+                print(f"[RAGE CARD] Creating Rage action card!")
+                card = ActionCard(ActionType.RAGE, "[RAGE]", rage_feature.get('name', 'Rage'), "Enter barbarian rage (+2 damage, resistance to physical)")
+                card.feature_data = rage_feature
+                card.action_triggered.connect(self._trigger_action)
+                card.action_hovered.connect(self._action_hovered)
+                self.action_cards[ActionType.RAGE] = card
+            else:
+                print(f"[RAGE CARD] NOT creating card - no rage uses available")
+        else:
+            print(f"[RAGE CARD] NOT creating card - prerequisites not met")
 
         reckless_feature = self._get_feature_data('Reckless Attack')
         if reckless_feature and self.character_context and self.character_context.get('class_id', '').lower() == 'barbarian':
@@ -1848,9 +1855,25 @@ class ActionPanel(QWidget):
             
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, damage_total)
-            
+
+            monster_instance = encounter_panel.encounter_instances.get(target_id)
+            if monster_instance and monster_instance.is_alive and monster_instance.current_hit_points > 0:
+                service = self._get_weapon_attack_service()
+                fires_burn_result = service.apply_fires_burn_if_eligible(
+                    self.character_context.get('id'),
+                    self.character_context.get('race_id'),
+                    monster_instance.current_hit_points
+                )
+                if fires_burn_result:
+                    fires_burn_damage = fires_burn_result['damage']
+                    encounter_panel._apply_damage_to_monster(target_id, fires_burn_damage)
+                    self._log_to_parent(
+                        f"[FIRES BURN] {fires_burn_result['trait_name']} +{fires_burn_damage} {fires_burn_result['damage_type']} damage "
+                        f"({fires_burn_result['uses_remaining']} uses remaining)"
+                    )
+
             # Log the attack with detailed breakdown
-            self._log_attack_result(True, weapon_name, target_monster.monster_name, 
+            self._log_attack_result(True, weapon_name, target_monster.monster_name,
                                   attack_breakdown, target_ac, damage_breakdown)
             
             # Log weapon mastery effects
@@ -2387,7 +2410,23 @@ class ActionPanel(QWidget):
 
             # Apply damage to monster
             encounter_panel._apply_damage_to_monster(target_id, total_damage)
-            
+
+            monster_instance = encounter_panel.encounter_instances.get(target_id)
+            if monster_instance and monster_instance.is_alive and monster_instance.current_hit_points > 0:
+                service = self._get_weapon_attack_service()
+                fires_burn_result = service.apply_fires_burn_if_eligible(
+                    self.character_context.get('id'),
+                    self.character_context.get('race_id'),
+                    monster_instance.current_hit_points
+                )
+                if fires_burn_result:
+                    fires_burn_damage = fires_burn_result['damage']
+                    encounter_panel._apply_damage_to_monster(target_id, fires_burn_damage)
+                    self._log_to_parent(
+                        f"[FIRES BURN] {fires_burn_result['trait_name']} +{fires_burn_damage} {fires_burn_result['damage_type']} damage "
+                        f"({fires_burn_result['uses_remaining']} uses remaining)"
+                    )
+
             # Apply weapon mastery effects on hit
             mastery_effects = self._apply_weapon_mastery_effects(weapon_name, attack_total, target_ac, hit=True, damage_total=total_damage, context=context)
             
@@ -6005,6 +6044,11 @@ class ActionPanel(QWidget):
         print(f"ACTION PANEL: Setting character context with keys: {list(context.keys())}")
         print(f"ACTION PANEL: class_id = {context.get('class_id', 'NOT_FOUND')}")
         self.character_context = context
+
+        # Recreate class-specific action cards when character loads
+        print(f"ACTION PANEL: Recreating class action cards for {context.get('class_id', 'unknown')}")
+        self._create_feature_cards()
+
         self._update_card_availability()
         # Update potion card to show count
         self._update_potion_card()
@@ -7738,14 +7782,11 @@ class ActionPanel(QWidget):
             return
         
         remaining_uses = use_result.get('current_uses', 0)
-        if remaining_uses <= 0 and ActionType.RAGE in self.action_cards:
-            card = self.action_cards.pop(ActionType.RAGE)
-            try:
-                card.setParent(None)
-                card.deleteLater()
-            except Exception:
-                pass
-            self._update_visible_cards()
+
+        # Recreate class action cards to reflect updated resource uses
+        print(f"[RAGE] Consumed rage. Remaining: {remaining_uses}. Recreating action cards...")
+        self._create_feature_cards()
+        self._update_visible_cards()
 
         level = self.character_context.get('level', 1) if isinstance(self.character_context, dict) else 1
         rage_damage = 4 if level >= 16 else (3 if level >= 9 else 2)

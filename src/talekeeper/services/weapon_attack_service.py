@@ -1180,3 +1180,16 @@ class WeaponAttackService:
             prof_bonus = 2 + ((level - 1) // 4)  # Standard D&D proficiency progression
 
             return 8 + dex_mod + prof_bonus
+
+    def apply_fires_burn_if_eligible(self, character_id: str, character_race: str, target_hp_after_hit: int) -> Optional[Dict[str, Any]]:
+        try:
+            from talekeeper.services.racial_trait_effects import RacialTraitEffectsProcessor
+            racial_processor = RacialTraitEffectsProcessor(self.db_path)
+            return racial_processor.get_racial_damage_bonus(
+                character_id,
+                character_race,
+                target_hp_after_hit
+            )
+        except Exception as e:
+            print(f"[WeaponAttackService] Error applying Fire's Burn: {e}")
+            return None

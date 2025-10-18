@@ -81,6 +81,7 @@ class Combatant:
     character_features: Optional[Any] = None
     initiative_breakdown: Optional[Dict[str, Any]] = None
     has_remarkable_athlete: Optional[bool] = None
+    race_id: Optional[str] = None
 
 @dataclass 
 class CombatRound:
@@ -146,7 +147,8 @@ class CombatManager:
             subclass_name=subclass_name,
             feature_flags=feature_flags,
             character_features=character_features,
-            has_remarkable_athlete=has_ra_flag
+            has_remarkable_athlete=has_ra_flag,
+            race_id=character_data.get('race_id')
         )
         
         self.combatants[character_id] = combatant
@@ -632,22 +634,40 @@ class CombatManager:
             damage = self._roll_damage(damage_dice)
             damage_bonus = weapon_data.get('damage_bonus', 0)
             total_damage = damage + damage_bonus
+            base_damage = total_damage
+            fires_burn_result: Optional[Dict[str, Any]] = None
             
             # Apply damage
             target.hit_points -= total_damage
             if target.hit_points <= 0:
                 target.hit_points = 0
                 target.is_alive = False
+            else:
+                fires_burn_result = self._trigger_fires_burn(attacker, target)
+                if fires_burn_result:
+                    fire_damage = max(0, fires_burn_result.get('damage', 0))
+                    if fire_damage:
+                        total_damage += fire_damage
+                        target.hit_points -= fire_damage
+                        if target.hit_points <= 0:
+                            target.hit_points = 0
+                            target.is_alive = False
+                        uses_remaining = fires_burn_result.get('uses_remaining')
+                        uses_text = f" ({uses_remaining} uses remaining)" if uses_remaining is not None else ""
+                        self.log(f"[COMBAT] [FIRES BURN] {attacker.name} deals +{fire_damage} fire damage to {target.name}{uses_text}")
             
             self.log(f"[COMBAT] [ATTACK] {weapon_data.get('name', 'Weapon')} hits {target.name}! Attack: d20({d20_roll}) + {attack_bonus} = {total_attack} vs AC {target.armor_class}")
-            self.log(f"[COMBAT] [DAMAGE] Damage: {damage_dice} = {damage} + {damage_bonus} = {total_damage} damage")
-            self.log(f"[COMBAT] {target.name} takes {total_damage} damage! ({target.hit_points}/{target.max_hit_points} HP)")
+            self.log(f"[COMBAT] [DAMAGE] Damage: {damage_dice} = {damage} + {damage_bonus} = {base_damage} damage")
+            if fires_burn_result and fires_burn_result.get('damage'):
+                self.log(f"[COMBAT] [DAMAGE] Fire's Burn adds {fires_burn_result['damage']} fire damage")
+            self.log(f"[COMBAT] {target.name} takes {total_damage} total damage! ({target.hit_points}/{target.max_hit_points} HP)")
             
             return {
                 'hit': True,
                 'attack_roll': total_attack,
                 'damage': total_damage,
-                'target_hp': target.hit_points
+                'target_hp': target.hit_points,
+                'fires_burn': fires_burn_result
             }
         else:
             self.log(f"[COMBAT] [ATTACK] {weapon_data.get('name', 'Weapon')} misses {target.name}! Attack: d20({d20_roll}) + {attack_bonus} = {total_attack} vs AC {target.armor_class}")
@@ -772,6 +792,29 @@ class CombatManager:
             
         except (ValueError, IndexError):
             return 1
+
+    def _trigger_fires_burn(self, attacker: Combatant, target: Combatant) -> Optional[Dict[str, Any]]:
+        """
+        Attempt to trigger Fire's Burn if the attacker qualifies and the target is still standing.
+        Returns the racial damage result dict when extra damage is awarded.
+        """
+        if attacker.type != CombatantType.PLAYER:
+            return None
+
+        if target.hit_points <= 0:
+            return None
+
+        race_id = getattr(attacker, 'race_id', None)
+        if race_id != "goliath_fire":
+            return None
+
+        try:
+            from services.racial_trait_effects import RacialTraitEffectsProcessor
+            processor = RacialTraitEffectsProcessor(self.db_path)
+            return processor.get_racial_damage_bonus(attacker.id, race_id, target.hit_points)
+        except Exception as exc:
+            self.log(f"[ERROR] Fire's Burn failed for {attacker.name}: {exc}")
+            return None
     
     def _process_attack_effects(self, standardized_attack, target: Combatant, attacker: Combatant) -> List[str]:
         """Process standardized attack effects (saves, conditions, etc.)"""

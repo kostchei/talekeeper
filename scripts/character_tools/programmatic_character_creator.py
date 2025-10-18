@@ -659,7 +659,9 @@ class ProgrammaticCharacterCreator:
             'weapon_masteries': payload['class_features'].get('weapon_masteries', []),
 
             'ability_uses': self._get_class_ability_uses(class_data['id'], payload['class_features']),
-            'ability_uses_max': self._get_class_ability_uses(class_data['id'], payload['class_features'])
+            'ability_uses_max': self._get_class_ability_uses(class_data['id'], payload['class_features']),
+
+            'skip_automatic_equipment': True
         }
 
         save_data = self.feat_processor.apply_feat_effects_to_character(save_data, save_data['feats'])
@@ -674,7 +676,7 @@ class ProgrammaticCharacterCreator:
         Step 11: Persist to database and verify.
 
         Calls create_new_character_sync, applies equipment choices,
-        updates mastery resources, and loads back to verify.
+        updates mastery resources, adds starting inventory, and loads back to verify.
         """
         print("\n[Step 11] Persisting to database...")
 
@@ -689,12 +691,67 @@ class ProgrammaticCharacterCreator:
 
         self.weapon_service.update_character_mastery_resources(character_id)
 
+        if template.get('starting_inventory'):
+            self._add_starting_inventory(character_id, template['starting_inventory'])
+
         final_character = self.game_engine.load_character_sync(save_slot)
 
         print(f"  [OK] Saved to slot {save_slot}")
         print(f"  [OK] Character ID: {character_id}")
 
         return final_character
+
+    def _add_starting_inventory(self, character_id: str, starting_items: List[Dict[str, Any]]):
+        """
+        Add starting inventory items to character.
+
+        Args:
+            character_id: Character UUID
+            starting_items: List of items with 'name' and 'quantity' fields
+        """
+        print("\n[Step 11b] Adding starting inventory...")
+
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        for item in starting_items:
+            item_name = item['name']
+            quantity = item.get('quantity', 1)
+
+            cursor.execute("""
+                SELECT id, name, item_type, weight_lb
+                FROM equipment
+                WHERE name = ?
+            """, (item_name,))
+
+            equipment_row = cursor.fetchone()
+
+            if equipment_row:
+                cursor.execute("""
+                    INSERT INTO character_inventory (
+                        id, character_id, item_name, item_type, quantity,
+                        weight_lb, description, value_gp, equipped
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    str(uuid4()),
+                    character_id,
+                    equipment_row['name'],
+                    equipment_row['item_type'],
+                    quantity,
+                    equipment_row['weight_lb'],
+                    '',
+                    0,
+                    0
+                ))
+
+                print(f"  [OK] Added {quantity}x {item_name}")
+            else:
+                print(f"  [WARNING] Item '{item_name}' not found in equipment database, skipping")
+
+        conn.commit()
+        conn.close()
 
     def _find_available_slot(self) -> int:
         """Find the next available save slot."""

@@ -1,0 +1,31 @@
+{
+  "name": "Corey Barbarian",
+  "species": "Goliath (Fire Giant)",
+  "class": "Barbarian",
+  "background": "Soldier",
+  "feats": ["Savage Attacker"],
+  "weapon_masteries": ["greatsword"],
+  "ability_scores": {
+    "strength": 17,
+    "dexterity": 14,
+    "constitution": 16,
+    "intelligence": 8,
+    "wisdom": 12,
+    "charisma": 10
+  },
+  "class_skills": ["Survival", "Intimidation"],
+  "species_skills": ["Stealth", "Perception"],
+  "equipment_choices": {
+    "armor": "Scale Mail",
+    "martial_weapon": "Greatsword",
+    "simple_weapon": "Handaxe"
+  },
+  "starting_inventory": [
+    {"name": "Potion of Healing", "quantity": 1},
+    {"name": "Blanket", "quantity": 1},
+    {"name": "Rations (1 day)", "quantity": 10}
+  ],
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Goliath Fire Barbarian - Corey build with Greatsword (Graze mastery), Scale Mail armor, Savage Attacker feat, and skills in Stealth, Survival, Intimidation, and Perception"
+}

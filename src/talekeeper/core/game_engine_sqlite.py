@@ -217,6 +217,20 @@ class GameEngineSQLite:
                     conn.commit()
                     print(f"[SQLite] Updated speed for {character_row['name']}: {stored_speed} -> {current_speed}")
 
+                # Ensure all characters have at least 1 inspiration
+                stored_inspiration_current = self._safe_get_row_value(character_row, 'inspiration_uses_current', 0)
+                stored_inspiration_max = self._safe_get_row_value(character_row, 'inspiration_uses_max', 0)
+                if stored_inspiration_current < 1 or stored_inspiration_max < 1:
+                    cursor.execute("""
+                        UPDATE characters
+                        SET inspiration_uses_current = MAX(1, COALESCE(inspiration_uses_current, 1)),
+                            inspiration_uses_max = MAX(1, COALESCE(inspiration_uses_max, 1)),
+                            updated_at = ?
+                        WHERE id = ?
+                    """, (datetime.now().isoformat(), character_id))
+                    conn.commit()
+                    print(f"[SQLite] Initialized inspiration for {character_row['name']}: 1/1")
+
                 # Parse datetime fields
                 created_at = datetime.fromisoformat(character_row['created_at']) if character_row['created_at'] else datetime.now()
                 updated_at = datetime.fromisoformat(character_row['updated_at']) if character_row['updated_at'] else None
@@ -290,8 +304,8 @@ class GameEngineSQLite:
                     # Lucky/Inspiration resources (new advantage system)
                     'lucky_uses_current': self._safe_get_row_value(character_row, 'lucky_uses_current', 0),
                     'lucky_uses_max': self._safe_get_row_value(character_row, 'lucky_uses_max', 0),
-                    'inspiration_uses_current': self._safe_get_row_value(character_row, 'inspiration_uses_current', 0),
-                    'inspiration_uses_max': self._safe_get_row_value(character_row, 'inspiration_uses_max', 0),
+                    'inspiration_uses_current': max(1, self._safe_get_row_value(character_row, 'inspiration_uses_current', 1)),
+                    'inspiration_uses_max': max(1, self._safe_get_row_value(character_row, 'inspiration_uses_max', 1)),
                     
                     # Rest tracking
                     'last_short_rest': character_row['last_short_rest'],
@@ -633,6 +647,14 @@ class GameEngineSQLite:
                             WHERE id = ?
                         """, (character_id,))
                         print(f"[SQLite] Initialized Lucky feat resources (3/3) for character")
+
+                # Initialize all characters with 1 inspiration (Heroic Inspiration)
+                cursor.execute("""
+                    UPDATE characters
+                    SET inspiration_uses_current = 1, inspiration_uses_max = 1
+                    WHERE id = ?
+                """, (character_id,))
+                print(f"[SQLite] Initialized Heroic Inspiration (1/1) for new character")
                 
                 # Initialize proficiencies using the proficiency system (pass the connection)
                 selected_class_skills = character_data.get('selected_class_skills', [])
@@ -708,7 +730,10 @@ class GameEngineSQLite:
 
                 # Initialize class-specific features table (old system)
                 self._initialize_class_features(cursor, character_id, character_data)
-                
+
+                # Commit transaction before initializing systems that open their own connections
+                conn.commit()
+
                 # Initialize features using new feature system
                 try:
                     from talekeeper.core.feature_integration import FeatureSystemIntegration
@@ -717,12 +742,12 @@ class GameEngineSQLite:
                     print(f"[SQLite] Initialized new feature system for character {character_id}")
                 except Exception as e:
                     print(f"[SQLite] Warning: Failed to initialize new feature system: {e}")
-                
+
                 # Initialize character resources (Second Wind, Action Surge, etc.)
                 try:
                     from talekeeper.services.character_resources import CharacterResourceService
                     resource_service = CharacterResourceService(self.db_path)
-                    
+
                     # Initialize resources based on class
                     if character_data['class_id'] == 'fighter':
                         result = resource_service.initialize_fighter_resources(character_id, character_data.get('level', 1))
@@ -731,9 +756,14 @@ class GameEngineSQLite:
                         result = resource_service.initialize_barbarian_resources(character_id, character_data.get('level', 1))
                         print(f"[SQLite] Initialized Barbarian resources: {result['resources_added']}")
                     # Add other class resource initialization here as needed
-                    
+
                 except Exception as e:
                     print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
+
+                # Re-open transaction for remaining operations
+                conn = sqlite3.connect(self.db_path)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
 
                 # Save selected spells and cantrips for spellcasting classes
                 selected_cantrips = character_data.get('selected_cantrips', [])
@@ -772,15 +802,24 @@ class GameEngineSQLite:
 
                 conn.commit()
                 print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
-            
+
             # Load and return the created character (with a fresh connection after commit)
             import time
             time.sleep(0.1)  # Brief delay to ensure transaction is fully committed
-            
+
             created_character = self.load_character_sync(save_slot)
             if created_character is None:
                 raise RuntimeError(f"Failed to load character after creation in slot {save_slot}")
-            
+
+            # TODO: Validate action cards for features with activations
+            # Disabled for now - needs more work to not break existing functionality
+            # try:
+            #     from talekeeper.services.action_card_validator import validate_character_on_creation
+            #     print(f"[SQLite] Validating action cards for {character_data['name']}...")
+            #     validate_character_on_creation(character_id)
+            # except Exception as e:
+            #     print(f"[SQLite] ACTION CARD VALIDATION WARNING: {e}")
+
             return created_character
                 
         except Exception as e:
@@ -840,19 +879,17 @@ class GameEngineSQLite:
             return False
     
     def _get_race_name(self, race_id: str) -> str:
-        """Get display name for race."""
-        # Map race IDs to display names
-        race_names = {
-            'Human': 'Human',
-            'human': 'Human',
-            'Elf': 'Elf',
-            'elf': 'Elf',
-            'Dwarf': 'Dwarf',
-            'dwarf': 'Dwarf',
-            'Halfling': 'Halfling',
-            'halfling': 'Halfling'
-        }
-        return race_names.get(race_id, race_id)
+        """Get display name for race from database."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM races WHERE id = ?", (race_id,))
+                result = cursor.fetchone()
+                if result:
+                    return result['name']
+        except Exception as e:
+            print(f"[SQLite] Error getting race name for {race_id}: {e}")
+        return race_id
     
     def _get_class_name(self, class_id: str) -> str:
         """Get display name for class."""
@@ -1206,20 +1243,24 @@ class GameEngineSQLite:
     def _add_starting_equipment(self, cursor, character_id: str, character_data: Dict):
         """Add starting equipment based on class and background."""
         import uuid
-        
+
         # Check if character already has equipment
         cursor.execute("SELECT COUNT(*) FROM character_inventory WHERE character_id = ?", (character_id,))
         existing_items = cursor.fetchone()[0]
-        
+
         if existing_items > 0:
             print(f"[SQLite] Character already has {existing_items} items in inventory, skipping starting equipment")
             return
-        
+
         class_id = character_data.get('class_id', '').lower()
         background_id = character_data.get('background_id', '').lower()
         equipment_choices = character_data.get('equipment_choices', {})
-        
-        print(f"[SQLite] Adding starting equipment for class '{class_id}' background '{background_id}'")
+        skip_automatic = character_data.get('skip_automatic_equipment', False)
+
+        if skip_automatic:
+            print(f"[SQLite] Programmatic creation mode - only adding template equipment choices")
+        else:
+            print(f"[SQLite] Adding starting equipment for class '{class_id}' background '{background_id}'")
         
         # First, add equipment from character creation choices
         if equipment_choices:
@@ -1269,7 +1310,12 @@ class GameEngineSQLite:
                                 print(f"[SQLite] Also added Shield from {item_name_clean}")
                     else:
                         print(f"[SQLite] Warning: Equipment '{item_name_clean}' not found in database")
-        
+
+        # Skip automatic class and background equipment if flag is set
+        if skip_automatic:
+            print(f"[SQLite] Skipping automatic class/background equipment additions")
+            return
+
         # Fighter Class Starting Equipment
         if class_id in ['fighter']:
             equipment_items = [
@@ -1486,11 +1532,11 @@ class GameEngineSQLite:
         
         cursor.execute("""
             INSERT INTO barbarian_features (
-                character_id, level, rage_uses_max, rage_damage_bonus, 
+                character_id, level, rage_uses_max, rage_uses_current, rage_damage_bonus,
                 unarmored_defense_active, reckless_attack_available, danger_sense_active
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            character_id, level, rage_uses, rage_damage,
+            character_id, level, rage_uses, rage_uses, rage_damage,
             True,  # Unarmored Defense always available
             level >= 2,  # Reckless Attack at level 2
             level >= 2   # Danger Sense at level 2
@@ -2360,46 +2406,153 @@ class GameEngineSQLite:
             print(f"[SQLite] Error updating character XP: {e}")
             return False
     
-    def add_gold_to_character_sync(self, character_id: str, gold_amount: int) -> bool:
-        """Add gold to character's inventory in the database."""
+    def character_has_bag_of_holding(self, character_id: str) -> bool:
+        """Check if character has a Bag of Holding in inventory."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                
-                # Check if character already has gold in inventory
                 cursor.execute("""
-                    SELECT quantity FROM character_inventory 
-                    WHERE character_id = ? AND item_name = 'Gold Pieces'
+                    SELECT COUNT(*) FROM character_inventory
+                    WHERE character_id = ? AND item_name = 'Bag of Holding'
                 """, (character_id,))
-                
                 result = cursor.fetchone()
-                
+                return result[0] > 0 if result else False
+        except Exception as e:
+            print(f"[SQLite] Error checking for Bag of Holding: {e}")
+            return False
+
+    def get_bag_of_holding_weight(self, character_id: str) -> float:
+        """Calculate total weight stored in Bag of Holding."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT item_name, treasure_type, quantity, weight_lb
+                    FROM character_inventory
+                    WHERE character_id = ? AND stored_in_bag = 1
+                """, (character_id,))
+
+                total_weight = 0.0
+                for row in cursor.fetchall():
+                    item_name, treasure_type, quantity, weight_lb = row
+                    if treasure_type == 'coins':
+                        total_weight += weight_lb
+                    else:
+                        total_weight += weight_lb * quantity
+
+                return total_weight
+        except Exception as e:
+            print(f"[SQLite] Error calculating bag weight: {e}")
+            return 0.0
+
+    def add_gold_to_character_sync(self, character_id: str, gold_amount: int, store_in_bag: bool = None) -> bool:
+        """Add gold to character's inventory in the database.
+
+        Args:
+            character_id: Character ID
+            gold_amount: Amount of gold to add
+            store_in_bag: True to store in bag, False for character, None for auto (bag if available and heavy)
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                if store_in_bag is None:
+                    has_bag = self.character_has_bag_of_holding(character_id)
+                    gold_weight = gold_amount / 50.0
+                    store_in_bag = has_bag and gold_weight > 10
+
+                stored_in_bag = 1 if store_in_bag else 0
+
+                cursor.execute("""
+                    SELECT quantity FROM character_inventory
+                    WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = ?
+                """, (character_id, stored_in_bag))
+
+                result = cursor.fetchone()
+
                 if result:
-                    # Update existing gold quantity
                     old_quantity = result[0]
                     new_quantity = old_quantity + gold_amount
-                    
+                    new_weight = new_quantity / 50.0
+
                     cursor.execute("""
-                        UPDATE character_inventory 
-                        SET quantity = ?
-                        WHERE character_id = ? AND item_name = 'Gold Pieces'
-                    """, (new_quantity, character_id))
-                    
-                    print(f"[SQLite] Updated character {character_id} gold: {old_quantity} -> {new_quantity} (+{gold_amount})")
+                        UPDATE character_inventory
+                        SET quantity = ?, weight_lb = ?
+                        WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = ?
+                    """, (new_quantity, new_weight, character_id, stored_in_bag))
+
+                    location = "Bag of Holding" if stored_in_bag else "person"
+                    print(f"[SQLite] Updated character {character_id} gold ({location}): {old_quantity} -> {new_quantity} (+{gold_amount})")
                 else:
-                    # Create new gold entry
+                    gold_weight = gold_amount / 50.0
+
+                    import uuid
+                    item_id = str(uuid.uuid4())
+
                     cursor.execute("""
-                        INSERT INTO character_inventory 
-                        (id, character_id, item_name, item_type, quantity, weight_lb, value_gp) 
-                        VALUES (?, ?, 'Gold Pieces', 'currency', ?, 0.0, 1.0)
-                    """, (f"{character_id}_gold", character_id, gold_amount))
-                    
-                    print(f"[SQLite] Added {gold_amount} gold pieces to character {character_id}")
-                
+                        INSERT INTO character_inventory
+                        (id, character_id, item_name, item_type, quantity, weight_lb, treasure_type, stored_in_bag)
+                        VALUES (?, ?, 'Gold Pieces', 'currency', ?, ?, 'coins', ?)
+                    """, (item_id, character_id, gold_amount, gold_weight, stored_in_bag))
+
+                    location = "Bag of Holding" if stored_in_bag else "inventory"
+                    print(f"[SQLite] Added {gold_amount} gold pieces to character {character_id} ({location})")
+
                 return cursor.rowcount > 0
-                
+
         except Exception as e:
             print(f"[SQLite] Error adding gold to character: {e}")
+            return False
+
+    def add_treasure_to_character_sync(self, character_id: str, treasure_item: Dict, store_in_bag: bool = None) -> bool:
+        """Add treasure item (gem, art object, etc.) to character's inventory.
+
+        Args:
+            character_id: Character ID
+            treasure_item: Dict with keys: name, item_type, treasure_type, value_gp, weight_lb, etc.
+            store_in_bag: True to store in bag, False for character, None for auto
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                if store_in_bag is None:
+                    has_bag = self.character_has_bag_of_holding(character_id)
+                    store_in_bag = has_bag
+
+                stored_in_bag = 1 if store_in_bag else 0
+
+                import uuid
+                item_id = str(uuid.uuid4())
+
+                cursor.execute("""
+                    INSERT INTO character_inventory
+                    (id, character_id, item_name, item_type, quantity, weight_lb,
+                     description, treasure_type, unit_value_gp, stored_in_bag)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    item_id,
+                    character_id,
+                    treasure_item.get('name', 'Unknown Treasure'),
+                    treasure_item.get('item_type', 'treasure'),
+                    treasure_item.get('quantity', 1),
+                    treasure_item.get('weight_lb', 0.0),
+                    treasure_item.get('description', ''),
+                    treasure_item.get('treasure_type', 'standard'),
+                    treasure_item.get('unit_value_gp', treasure_item.get('value_gp', 0)),
+                    stored_in_bag
+                ))
+
+                location = "Bag of Holding" if stored_in_bag else "inventory"
+                print(f"[SQLite] Added {treasure_item.get('name')} to character {character_id} ({location})")
+
+                return cursor.rowcount > 0
+
+        except Exception as e:
+            print(f"[SQLite] Error adding treasure to character: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def save_character_sync(self, character_id: str = None) -> bool:

@@ -764,6 +764,18 @@ class MainWindow(QMainWindow):
             weapon_service = WeaponAttackService('talekeeper.db')
             weapon_service.update_character_mastery_resources(saved_character['id'])
 
+            # Initialize racial trait resources
+            try:
+                from talekeeper.services.racial_trait_effects import RacialTraitEffectsProcessor
+                racial_processor = RacialTraitEffectsProcessor('talekeeper.db')
+                racial_processor.initialize_racial_resources(
+                    saved_character['id'],
+                    saved_character.get('race_id', 'human'),
+                    saved_character['level']
+                )
+            except Exception as e:
+                print(f"[DEBUG] Error initializing racial resources: {e}")
+
             # Apply Skilled feat skill selections if present
             skilled_feat_skills = character_data.get('skilled_feat_skills', {})
             if skilled_feat_skills and 'Skilled' in selected_feats:
@@ -1171,8 +1183,19 @@ class MainWindow(QMainWindow):
                 print(f"[DEBUG] No features found, initializing for {character['class_id']} level {character['level']}")
                 feature_system.initialize_character_features(character['id'])
                 available_features = feature_system.get_available_features(character['id'])
-            
-            
+
+            # Initialize racial trait resources if missing (for existing characters)
+            try:
+                from talekeeper.services.racial_trait_effects import RacialTraitEffectsProcessor
+                racial_processor = RacialTraitEffectsProcessor('talekeeper.db')
+                racial_processor.initialize_racial_resources(
+                    character['id'],
+                    character.get('race_id', 'human'),
+                    character['level']
+                )
+            except Exception as e:
+                print(f"[DEBUG] Error initializing racial resources: {e}")
+
             # Convert feature list to dictionary format expected by action panel
             class_features = {}
             for feature_data in available_features:
@@ -1739,12 +1762,21 @@ class MainWindow(QMainWindow):
             # Second Wind - available at level 1
             save_data['ability_uses']['Second Wind'] = 1  # Start with 1 use
             save_data['ability_uses_max']['Second Wind'] = 1  # 1 use per short rest
-            
+
             # Action Surge - available at level 2+
             if level >= 2:
                 save_data['ability_uses']['Action Surge'] = 1  # Start with 1 use
                 save_data['ability_uses_max']['Action Surge'] = 1  # 1 use per short rest
-        
+
+        # Initialize racial trait abilities
+        prof_bonus = 2 + ((level - 1) // 4)
+        if race_id == 'goliath_fire':
+            save_data['ability_uses']['Fires Burn'] = prof_bonus
+            save_data['ability_uses_max']['Fires Burn'] = prof_bonus
+            if level >= 5:
+                save_data['ability_uses']['Large Form'] = 1
+                save_data['ability_uses_max']['Large Form'] = 1
+
         # Apply feat effects to character stats
         if selected_feats:
             save_data = self._apply_feat_effects(save_data, selected_feats)

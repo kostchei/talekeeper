@@ -189,9 +189,9 @@ class BarbarianAbilitiesService:
         with self._get_connection() as conn:
             cursor = conn.cursor()
 
-            # Get current rage state and uses
+            # Get current rage state from barbarian_features (state tracking only)
             cursor.execute("""
-                SELECT rage_uses_current, rage_uses_max, rage_damage_bonus, is_raging, level
+                SELECT rage_damage_bonus, is_raging, level
                 FROM barbarian_features WHERE character_id = ?
             """, (character_id,))
             row = cursor.fetchone()
@@ -202,29 +202,38 @@ class BarbarianAbilitiesService:
             if row['is_raging']:
                 return {'success': False, 'error': 'Already raging'}
 
-            if row['rage_uses_current'] <= 0:
+            # Check rage uses from character_resources (resource tracking)
+            cursor.execute("""
+                SELECT current_uses, max_uses
+                FROM character_resources
+                WHERE character_id = ? AND resource_name = 'Rage'
+            """, (character_id,))
+            resource_row = cursor.fetchone()
+
+            if not resource_row:
+                return {'success': False, 'error': 'Rage resource not found'}
+
+            if resource_row['current_uses'] <= 0:
                 return {'success': False, 'error': 'No Rage uses remaining'}
 
             # Start rage
             rage_damage_bonus = row['rage_damage_bonus']
             rage_turns = 10  # Rage lasts 10 rounds (60 seconds)
 
+            # Consume rage use from character_resources
+            cursor.execute("""
+                UPDATE character_resources SET
+                    current_uses = current_uses - 1
+                WHERE character_id = ? AND resource_name = 'Rage'
+            """, (character_id,))
+
+            # Update state in barbarian_features
             cursor.execute("""
                 UPDATE barbarian_features SET
-                    rage_uses_current = rage_uses_current - 1,
                     is_raging = TRUE,
                     rage_turns_remaining = ?
                 WHERE character_id = ?
             """, (rage_turns, character_id))
-
-            # Update character combat state
-            cursor.execute("""
-                INSERT INTO character_combat_state (character_id, raging, rage_damage_bonus)
-                VALUES (?, TRUE, ?)
-                ON CONFLICT(character_id) DO UPDATE SET
-                    raging = TRUE,
-                    rage_damage_bonus = ?
-            """, (character_id, rage_damage_bonus, rage_damage_bonus))
 
             conn.commit()
 
@@ -232,7 +241,7 @@ class BarbarianAbilitiesService:
                 'success': True,
                 'rage_damage_bonus': rage_damage_bonus,
                 'rage_turns_remaining': rage_turns,
-                'uses_remaining': row['rage_uses_current'] - 1,
+                'uses_remaining': resource_row['current_uses'] - 1,
                 'effects': [
                     'Resistance to bludgeoning, piercing, slashing damage',
                     f'+{rage_damage_bonus} damage on Strength-based melee attacks',
@@ -250,14 +259,6 @@ class BarbarianAbilitiesService:
                 UPDATE barbarian_features SET
                     is_raging = FALSE,
                     rage_turns_remaining = 0
-                WHERE character_id = ?
-            """, (character_id,))
-
-            # Update character combat state
-            cursor.execute("""
-                UPDATE character_combat_state SET
-                    raging = FALSE,
-                    rage_damage_bonus = 0
                 WHERE character_id = ?
             """, (character_id,))
 
