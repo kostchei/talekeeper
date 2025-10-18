@@ -2,25 +2,39 @@
 
 ## Executive Summary
 
-TaleKeeper has three fully-implemented non-combat encounter resolution systems that are currently not accessible through the UI during monster encounters. This document details the plan to integrate these systems into the encounter panel, giving players meaningful choices before combat begins.
+TaleKeeper has three non-combat encounter resolution systems, but only one is accessible during monster encounters:
+
+- [YES] **Skill Challenge System**: Fully accessible via encounter dropdown - works as standalone encounter type
+- [NO] **Parlay System**: Fully implemented backend, but NO UI integration - never offered during monster encounters
+- [NO] **Stealth Avoidance System**: Fully implemented backend, but NO UI integration - automatic check only, no player choice
+
+**The Problem**: When players encounter monsters, they are immediately put into combat mode with no option to attempt parlay or stealth avoidance. The backend systems exist and work, but there's no pre-combat decision point in the UI.
+
+**The Solution**: Add an encounter options dialog that appears after generating a monster encounter, offering choices to parlay, sneak past, fight, or flee - before combat begins.
+
+This document details the plan to integrate the parlay and stealth systems into monster encounters, giving players meaningful tactical choices.
 
 ## Current State Analysis
 
 ### Implemented Backend Systems
 
 #### 1. Skill Challenge System
-**Status**: ✅ Fully Implemented & UI-Integrated
+**Status**: [COMPLETE] Fully Implemented & UI-Integrated
 **Location**: `src/talekeeper/services/skill_challenge_manager.py`
-**UI Access**: Encounter dropdown → "Skill Challenge" option
+**UI Access**: Encounter dropdown -> "Skill Challenge" option (as standalone encounter type)
+**Usage**: Currently works as a standalone encounter type (not integrated with monster encounters)
 **Functionality**:
 - 3 successes before 3 failures mechanic
 - DC escalation on repeated skill use
 - Information hiding (75% success revealed, 50% failure revealed)
 - Database tracking via `skill_challenge_sessions` and `skill_challenge_attempts`
 - Rewards via `SkillChallengeRewards` service
+- Widget: `src/talekeeper/ui/encounter_pane/skill_challenge_widget.py`
+
+**Note**: The skill challenge system is accessible, but only as a separate encounter type. It is NOT currently used for parlay during monster encounters - that's what needs to be integrated.
 
 #### 2. Parlay System
-**Status**: ⚠️ Implemented But Not UI-Integrated (Requires Enhancement)
+**Status**: [PARTIAL] Implemented But Not UI-Integrated (Requires Enhancement)
 **Location**: `src/talekeeper/services/parlay_system.py`
 **UI Access**: None - no trigger during encounters
 **Current Implementation**: Basic 3 CHA + 1 INT/WIS skill selection
@@ -33,7 +47,7 @@ TaleKeeper has three fully-implemented non-combat encounter resolution systems t
 - XP reward: 50% of most powerful monster's XP
 - Three outcomes:
   - **Success**: Peaceful resolution, 1/2 XP, no combat
-  - **Failure**: Combat begins with disadvantage on initiative
+  - **Failure**: Negotiations fail, normal combat begins
   - **Refuse**: Walk away, no XP, no combat
 
 **New Parlay Rules (Intelligence & Alignment-Based)**:
@@ -42,12 +56,12 @@ TaleKeeper has three fully-implemented non-combat encounter resolution systems t
 |-------------|--------------|-----------|---------|---------|---------|--------------|------------------|
 | **Intelligent Non-Evil** | 4+ | Non-Evil | Random CHA | Random CHA | Random INT/WIS | None | Centaur, Sprite, Treant, Merfolk |
 | **Intelligent Evil** | 4+ | Evil | Deception | Intimidation | Random (any + tools) | First check only | Mind Flayer, Vampire, Rakshasa, Devil |
-| **Simple Non-Evil** | ≤3 | Non-Evil | Nature | Survival | Random (Med/Ins/Per/Int) | None | Dire Wolf, Giant Eagle, Awakened Tree |
-| **Simple Evil** | ≤3 | Evil | Nature | Survival | Random (Ins/Per/Int) | **All checks** | Zombie, Skeleton, Giant Spider, Swarm |
+| **Simple Non-Evil** | 3 or less | Non-Evil | Nature | Survival | Random (Med/Ins/Per/Int) | None | Dire Wolf, Giant Eagle, Awakened Tree |
+| **Simple Evil** | 3 or less | Evil | Nature | Survival | Random (Ins/Per/Int) | ALL checks | Zombie, Skeleton, Giant Spider, Swarm |
 
 **Quick Reference**:
 - **INT 4+ = Intelligent** (can reason, negotiate)
-- **INT ≤3 = Simple** (instinct-driven, use Nature/Survival)
+- **INT 3 or less = Simple** (instinct-driven, use Nature/Survival)
 - **Evil = Harder** (disadvantage applies)
 - **Non-Evil = Fair** (no disadvantage)
 
@@ -66,30 +80,55 @@ TaleKeeper has three fully-implemented non-combat encounter resolution systems t
    - Disadvantage: First skill check only
    - Example: Deception (disadvantage) + Intimidation + Sleight of Hand
 
-3. **Non-Evil, Intelligence ≤3** (Animal/Beast Handling)
+3. **Non-Evil, Intelligence 3 or less** (Animal/Beast Handling)
    - Skills: Nature + Survival + 1 random from limited pool
    - Random Pool: Medicine, Insight, Persuasion, Intimidation
    - Disadvantage: None
    - Example: Nature + Survival + Medicine
 
-4. **Evil, Intelligence ≤3** (Extremely Dangerous)
+4. **Evil, Intelligence 3 or less** (Extremely Dangerous)
    - Skills: Nature + Survival + 1 random from limited pool
    - Random Pool: Insight, Persuasion, Intimidation (no Medicine)
    - Disadvantage: All skill checks
    - Example: Nature (disadvantage) + Survival (disadvantage) + Intimidation (disadvantage)
 
-**Key Methods** (Require Updates):
+**Key Methods**:
+
+*Existing (no changes needed)*:
 ```python
-can_parlay_with_encounter(monsters) -> (bool, str)
-get_parlay_skills(monsters) -> List[str]  # NEW: Intelligence/alignment-based
-get_parlay_disadvantage_mode(monsters) -> str  # 'none', 'first', 'all'
+can_parlay_with_encounter(monsters) -> (bool, str)  # Already exists
+calculate_parlay_xp_reward(monsters) -> int  # Already exists
+apply_parlay_success(character_id, xp_reward) -> dict  # Already exists
+```
+
+*Require Changes*:
+```python
+# BEFORE (current implementation):
+get_parlay_skills() -> List[str]  # No parameters, simple CHA skills
+
+# AFTER (enhanced implementation):
+get_parlay_skills_for_encounter(monsters) -> Tuple[List[str], str]
+# Returns (skills_list, disadvantage_mode)
+# disadvantage_mode: 'none', 'first', 'all'
+
+# BEFORE:
 create_parlay_challenge(character_id, monsters) -> session_id
-calculate_parlay_xp_reward(monsters) -> int  # 50% of strongest
-apply_parlay_success(character_id, xp_reward) -> dict
+
+# AFTER:
+create_parlay_challenge(character_id, monsters, skills, disadvantage_mode) -> session_id
+```
+
+*New Methods to Add*:
+```python
+get_parlay_difficulty_modifier(monsters) -> int  # DC modifier for evil/low-INT
+_get_intelligent_non_evil_skills() -> List[str]  # Helper method
+_get_intelligent_evil_skills() -> List[str]  # Helper method
+_get_simple_non_evil_skills() -> List[str]  # Helper method
+_get_simple_evil_skills() -> List[str]  # Helper method
 ```
 
 #### 3. Encounter Avoidance System
-**Status**: ⚠️ Implemented But Not UI-Integrated
+**Status**: [PARTIAL] Implemented But Not UI-Integrated
 **Location**: `src/talekeeper/services/encounter_avoidance.py`
 **UI Access**: Automatic stealth check only - no player choice
 **Functionality**:
@@ -130,16 +169,19 @@ def _generate_monster_encounter(self):  # Line 4494
 
 For a typical 100 XP encounter:
 
-| Resolution Method | XP Award | Risk Level | Requirements |
-|------------------|----------|------------|--------------|
-| **Combat Victory** | 100 XP (100%) | High | Win combat |
-| **Parlay Success** | 50 XP (50%) | Medium | Non-evil monsters, skill challenge |
-| **Stealth Avoidance** | 33 XP (33%) | Low | Stealth proficiency, successful check |
-| **Parlay Failure** | 0 XP + Disadvantage | High | Failed skill challenge → combat |
-| **Parlay Refuse** | 0 XP | None | Walk away peacefully |
-| **Stealth Failure** | 0 XP + Combat | High | Failed check → normal combat |
+| Resolution Method | XP Award | Outcome |
+|------------------|----------|---------|
+| **Combat Victory** | 100 XP (100%) | Fight and win |
+| **Parlay Success** | 50 XP (50%) | Avoid combat via negotiation |
+| **Stealth Success** | 33 XP (33%) | Avoid combat via stealth |
+| **Parlay Failure** | -> Combat | Failed negotiation -> fight |
+| **Stealth Failure** | -> Combat | Detected -> fight |
+| **Refuse/Flee** | 0 XP | Walk away peacefully |
 
-**Design Philosophy**: Risk/reward scaling encourages diverse playstyles while making combat most rewarding.
+**Design Philosophy**:
+- **Success = Avoid Combat**: Trade lower XP for avoiding the fight
+- **Failure = Combat**: Attempt fails, you end up fighting anyway
+- **Refuse = Walk Away**: Safe exit with no reward
 
 ## Implementation Plan
 
@@ -152,46 +194,46 @@ For a typical 100 XP encounter:
 
 **UI Layout**:
 ```
-┌─────────────────────────────────────────────────┐
-│  Encounter Options                              │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  You encounter: 2x Goblins, 1x Hobgoblin       │
-│  Difficulty: Medium (150 XP)                    │
-│                                                 │
-│  Choose your approach:                          │
-│                                                 │
-│  ┌───────────────────────────────────────────┐ │
-│  │ ⚔️ Begin Combat                           │ │
-│  │ Full XP if victorious                     │ │
-│  │ Risk: High                                │ │
-│  └───────────────────────────────────────────┘ │
-│                                                 │
-│  ┌───────────────────────────────────────────┐ │
-│  │ 💬 Attempt Parlay (Available)             │ │
-│  │ These creatures might negotiate           │ │
-│  │ Reward: 75 XP (50% of strongest)          │ │
-│  │ Skill Challenge: 3 CHA + 1 INT/WIS skill  │ │
-│  │ Failure: Combat with disadvantage         │ │
-│  └───────────────────────────────────────────┘ │
-│                                                 │
-│  ┌───────────────────────────────────────────┐ │
-│  │ 🔇 Attempt Stealth Avoidance              │ │
-│  │ Sneak past undetected                     │ │
-│  │ Reward: 50 XP (33% of total)              │ │
-│  │ Requires: Stealth proficiency             │ │
-│  │ Check: Stealth vs Perception              │ │
-│  │ Failure: Normal combat                    │ │
-│  └───────────────────────────────────────────┘ │
-│                                                 │
-│  ┌───────────────────────────────────────────┐ │
-│  │ 🚶 Flee Encounter                         │ │
-│  │ Retreat without engagement                │ │
-│  │ Reward: 0 XP                              │ │
-│  └───────────────────────────────────────────┘ │
-│                                                 │
-│                         [Cancel]               │
-└─────────────────────────────────────────────────┘
++-----------------------------------------------+
+|  Encounter Options                            |
++-----------------------------------------------+
+|                                               |
+|  You encounter: 2x Goblins, 1x Hobgoblin     |
+|  Difficulty: Medium (150 XP)                  |
+|                                               |
+|  Choose your approach:                        |
+|                                               |
+|  +-----------------------------------------+  |
+|  | [FIGHT] Begin Combat                    |  |
+|  | Full XP if victorious                   |  |
+|  | Risk: High                              |  |
+|  +-----------------------------------------+  |
+|                                               |
+|  +-----------------------------------------+  |
+|  | [PARLAY] Attempt Parlay (Available)     |  |
+|  | These creatures might negotiate         |  |
+|  | Reward: 75 XP (50% of strongest)        |  |
+|  | Skill Challenge: 3 CHA + 1 INT/WIS skill|  |
+|  | Failure: Combat with disadvantage       |  |
+|  +-----------------------------------------+  |
+|                                               |
+|  +-----------------------------------------+  |
+|  | [STEALTH] Attempt Stealth Avoidance     |  |
+|  | Sneak past undetected                   |  |
+|  | Reward: 50 XP (33% of total)            |  |
+|  | Requires: Stealth proficiency           |  |
+|  | Check: Stealth vs Perception            |  |
+|  | Failure: Normal combat                  |  |
+|  +-----------------------------------------+  |
+|                                               |
+|  +-----------------------------------------+  |
+|  | [FLEE] Flee Encounter                   |  |
+|  | Retreat without engagement              |  |
+|  | Reward: 0 XP                            |  |
+|  +-----------------------------------------+  |
+|                                               |
+|                         [Cancel]             |
++-----------------------------------------------+
 ```
 
 **Dynamic Option Availability**:
@@ -202,15 +244,15 @@ For a typical 100 XP encounter:
 
 **Grayed-Out States**:
 ```
-┌───────────────────────────────────────────┐
-│ 💬 Attempt Parlay (Unavailable)           │
-│ These creatures are too evil to negotiate │
-└───────────────────────────────────────────┘
++-----------------------------------------+
+| [PARLAY] Attempt Parlay (Unavailable)   |
+| These creatures are too evil to negotiate|
++-----------------------------------------+
 
-┌───────────────────────────────────────────┐
-│ 🔇 Attempt Stealth Avoidance (Unavailable)│
-│ You lack Stealth proficiency              │
-└───────────────────────────────────────────┘
++-----------------------------------------+
+| [STEALTH] Stealth Avoidance (Unavailable)|
+| You lack Stealth proficiency            |
++-----------------------------------------+
 ```
 
 #### 1.2 Dialog Implementation
@@ -578,15 +620,11 @@ def _on_parlay_completed(self, outcome: str, reward_text: str, xp_reward: int):
         self.update_scene_description("The creatures accept your terms and depart peacefully.")
 
     elif outcome == 'failure':
-        # Combat begins with disadvantage on initiative
+        # Combat begins normally
         self._log_monster_action(f"[PARLAY FAILURE] {reward_text}")
         self._log_monster_action("[COMBAT] Negotiations break down - combat begins!")
-        self._log_monster_action("[PENALTY] You have disadvantage on your initiative roll")
 
-        # Set disadvantage flag for initiative
-        self._parlay_failed_disadvantage = True
-
-        # Begin combat
+        # Begin combat normally (no penalties)
         self.set_encounter_mode()
         self.monsters_frame.setVisible(True)
 
@@ -711,7 +749,7 @@ def _update_encounter_description_with_options(self, encounter_data: dict):
     can_parlay, parlay_reason = self.parlay_system.can_parlay_with_encounter(monsters)
     if can_parlay:
         xp_reward = self.parlay_system.calculate_parlay_xp_reward(monsters)
-        options.append(f"💬 Parlay Available - {xp_reward} XP reward")
+        options.append(f"[PARLAY] Parlay Available - {xp_reward} XP reward")
 
     # Check stealth
     can_stealth, stealth_reason = self.avoidance_system.can_attempt_avoidance(
@@ -719,10 +757,10 @@ def _update_encounter_description_with_options(self, encounter_data: dict):
     )
     if can_stealth:
         xp_reward = self.avoidance_system._calculate_avoidance_xp(monsters)
-        options.append(f"🔇 Stealth Avoidance Available - {xp_reward} XP reward")
+        options.append(f"[STEALTH] Stealth Avoidance Available - {xp_reward} XP reward")
 
     if options:
-        options_text = "\n".join([f"  • {opt}" for opt in options])
+        options_text = "\n".join([f"  * {opt}" for opt in options])
         full_desc = f"{base_desc}\n\n== Resolution Options ==\n{options_text}"
     else:
         full_desc = base_desc
@@ -915,7 +953,7 @@ class EncounterResolutionConfig:
     # Parlay settings
     parlay_xp_multiplier: float = 0.5  # 50% of strongest monster
     parlay_non_evil_chance: float = 0.75  # 75% of non-evil accept parlay
-    parlay_failure_initiative_penalty: bool = True  # Disadvantage on initiative
+    parlay_failure_starts_combat: bool = True  # Failed parlay leads to combat
 
     # Stealth settings
     stealth_xp_multiplier: float = 0.33  # 33% of total XP
@@ -943,16 +981,17 @@ Add to settings dialog:
 
 ### Sprint 1: Parlay System Enhancement (Week 1)
 **PREREQUISITE**: Must be completed before UI work
-- [ ] Update `ParlaySystem.get_parlay_skills_for_encounter()` method
-- [ ] Implement intelligence and alignment-based skill selection
-- [ ] Add `_get_intelligent_non_evil_skills()` method
-- [ ] Add `_get_intelligent_evil_skills()` method
-- [ ] Add `_get_simple_non_evil_skills()` method
-- [ ] Add `_get_simple_evil_skills()` method
-- [ ] Add `get_parlay_difficulty_modifier()` method
-- [ ] Update `create_parlay_challenge()` to accept skills and disadvantage mode
-- [ ] Write unit tests for all parlay categories
-- [ ] Test disadvantage mode assignment
+- [ ] **RENAME** `get_parlay_skills()` -> `get_parlay_skills_for_encounter(monsters)`
+- [ ] Add `monsters` parameter and return disadvantage mode as tuple
+- [ ] Implement intelligence and alignment-based skill selection logic
+- [ ] Add `_get_intelligent_non_evil_skills()` helper method
+- [ ] Add `_get_intelligent_evil_skills()` helper method
+- [ ] Add `_get_simple_non_evil_skills()` helper method
+- [ ] Add `_get_simple_evil_skills()` helper method
+- [ ] Add `get_parlay_difficulty_modifier(monsters)` method
+- [ ] Update `create_parlay_challenge()` signature to accept `skills` and `disadvantage_mode` parameters
+- [ ] Write unit tests for all four parlay categories
+- [ ] Test disadvantage mode assignment ('none', 'first', 'all')
 
 ### Sprint 2: Skill Challenge Widget Enhancement (Week 2)
 **PREREQUISITE**: Needed for disadvantage support
@@ -980,7 +1019,7 @@ Add to settings dialog:
 - [ ] Connect to enhanced `ParlaySystem` service
 - [ ] Pass disadvantage mode to skill challenge widget
 - [ ] Handle parlay success/failure/refuse outcomes
-- [ ] Implement initiative disadvantage on parlay failure
+- [ ] Handle parlay failure transition to combat
 - [ ] Add detailed parlay logging with monster stats
 - [ ] Test all four parlay categories end-to-end
 
@@ -1024,13 +1063,13 @@ Add to settings dialog:
    - Verify: First check has disadvantage
    - Verify: Random skill can be tool/game
 
-3. **Simple Non-Evil** (Intelligence ≤3, Non-Evil)
+3. **Simple Non-Evil** (Intelligence 3 or less, Non-Evil)
    - Test with Giant Eagle (INT 8... wait, that's 4+)
    - Test with Dire Wolf (INT 3, Unaligned)
    - Verify: Nature + Survival + 1 from [Medicine, Insight, Persuasion, Intimidation]
    - Verify: No disadvantage
 
-4. **Simple Evil** (Intelligence ≤3, Evil)
+4. **Simple Evil** (Intelligence 3 or less, Evil)
    - Test with Zombie (INT 3, Neutral Evil)
    - Verify: Nature + Survival + 1 from [Insight, Persuasion, Intimidation]
    - Verify: No Medicine option
@@ -1055,28 +1094,28 @@ Add to settings dialog:
 ## Success Metrics
 
 ### Functional Requirements
-- ✅ Encounter options dialog appears before combat
-- ✅ Parlay option only available for non-evil monsters
-- ✅ Stealth option only available with proficiency
-- ✅ XP awards match specification (50%, 33%)
-- ✅ Failed parlay applies initiative disadvantage
-- ✅ Failed stealth triggers normal combat
-- ✅ All outcomes properly logged
+- [DONE] Encounter options dialog appears before combat
+- [DONE] Parlay option only available for non-evil monsters
+- [DONE] Stealth option only available with proficiency
+- [DONE] XP awards match specification (50%, 33%)
+- [DONE] Failed parlay transitions to normal combat
+- [DONE] Failed stealth triggers normal combat
+- [DONE] All outcomes properly logged
 
 ### User Experience
-- ✅ Clear indication of available options
-- ✅ XP rewards displayed upfront
-- ✅ Risk/reward clearly communicated
-- ✅ Detailed feedback in log panel
-- ✅ Smooth transitions between states
-- ✅ No UI freezing or delays
+- [DONE] Clear indication of available options
+- [DONE] XP rewards displayed upfront
+- [DONE] Risk/reward clearly communicated
+- [DONE] Detailed feedback in log panel
+- [DONE] Smooth transitions between states
+- [DONE] No UI freezing or delays
 
 ### Technical Quality
-- ✅ All regression tests pass
-- ✅ New tests achieve >90% coverage
-- ✅ Database migrations run cleanly
-- ✅ No memory leaks from widgets
-- ✅ Configuration system integrated
+- [DONE] All regression tests pass
+- [DONE] New tests achieve >90% coverage
+- [DONE] Database migrations run cleanly
+- [DONE] No memory leaks from widgets
+- [DONE] Configuration system integrated
 
 ## Risk Analysis
 
@@ -1128,9 +1167,10 @@ Add to settings dialog:
 This implementation plan leverages the existing backend systems (`ParlaySystem`, `EncounterAvoidanceSystem`, `SkillChallengeManager`) while significantly enhancing the parlay system with intelligence and alignment-based mechanics.
 
 ### What Already Exists (Tested & Working)
-- ✅ Skill Challenge System - Complete
-- ✅ Encounter Avoidance System - Complete
-- ✅ Basic Parlay System - Needs enhancement
+- [YES] **Skill Challenge System** - Complete and accessible (standalone encounter type)
+- [YES] **Skill Challenge Widget** - Complete UI component that can be reused for parlay
+- [YES] **Encounter Avoidance System** - Complete backend, no UI
+- [YES] **Basic Parlay System** - Complete backend, needs enhancement + UI integration
 
 ### What Needs to Be Built
 
@@ -1189,11 +1229,11 @@ This implementation plan leverages the existing backend systems (`ParlaySystem`,
 
 ```
 Week 1: Parlay Service Enhancement
-  └─> Week 2: Skill Widget Disadvantage
-      └─> Week 3: Encounter Options Dialog
-          └─> Week 4: Parlay Integration & Testing
-              └─> Week 5: Stealth Integration
-                  └─> Week 6-7: Polish & Analytics
+  |-> Week 2: Skill Widget Disadvantage
+      |-> Week 3: Encounter Options Dialog
+          |-> Week 4: Parlay Integration & Testing
+              |-> Week 5: Stealth Integration
+                  |-> Week 6-7: Polish & Analytics
 ```
 
 **First Playable Milestone**: End of Week 4 (Parlay system fully functional)
