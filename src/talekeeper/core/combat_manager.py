@@ -17,6 +17,8 @@ from talekeeper.services.proficiency_bonus import get_proficiency_bonus
 from talekeeper.services.advantage_system import advantage_system, RollType
 from talekeeper.services.fighter_abilities import FighterAbilitiesService
 from talekeeper.services.standardized_attack_processor import StandardizedAttackProcessor
+from talekeeper.services.morale_manager import MoraleManager
+from talekeeper.services.beast_loot_service import BeastLootService
 
 class ActionType(Enum):
     ACTION = "action"
@@ -60,6 +62,7 @@ class Combatant:
     
     # Status
     is_alive: bool = True
+    has_fled: bool = False
     conditions: List[str] = field(default_factory=list)
     
     # Actions
@@ -110,6 +113,10 @@ class CombatManager:
         self.proficiency_system = ProficiencySystem(db_path)
         self.fighter_service = FighterAbilitiesService(db_path)
         self.attack_processor = StandardizedAttackProcessor()
+        self.morale_manager = MoraleManager(db_path)
+        self.beast_loot_service = BeastLootService(db_path)
+        self.encounter_id: Optional[str] = None
+        self.morale_triggered_groups: set = set()
         
     def add_player_combatant(self, character_data: Dict[str, Any]) -> Combatant:
         """Add player character to combat"""
@@ -224,6 +231,9 @@ class CombatManager:
         if not self.combatants:
             raise ValueError("No combatants added to combat")
 
+        self.encounter_id = f"combat_{random.randint(1000, 9999)}_{int(random.random() * 10000)}"
+        self.morale_triggered_groups = set()
+
         self.log("[COMBAT] ==================================================")
         self.log("[COMBAT] [DICE] ROLLING INITIATIVE FOR COMBAT!")
         self.log("[COMBAT] ==================================================")
@@ -232,6 +242,26 @@ class CombatManager:
         self.log(f"[DEBUG] Starting combat with {len(self.combatants)} combatants:")
         for cid, c in self.combatants.items():
             self.log(f"[DEBUG]   - {c.name} (ID: {cid}, type: {c.type.value}, alive: {c.is_alive}, HP: {c.hit_points}/{c.max_hit_points})")
+
+        # Track initial morale status for monsters
+        monster_groups = {}
+        for combatant in self.combatants.values():
+            if combatant.type == CombatantType.MONSTER and combatant.is_alive:
+                if combatant.name not in monster_groups:
+                    monster_groups[combatant.name] = []
+                monster_groups[combatant.name].append(combatant)
+
+        for monster_name, monsters in monster_groups.items():
+            count = len(monsters)
+            avg_hp = sum(m.hit_points for m in monsters) // count if count > 0 else 0
+            for monster in monsters:
+                self.morale_manager.track_combat_start(
+                    self.encounter_id,
+                    monster.id,
+                    monster.name,
+                    count,
+                    avg_hp
+                )
 
         # Roll initiative for all combatants
         for combatant in self.combatants.values():
@@ -345,21 +375,59 @@ class CombatManager:
             
             attack_result = self._execute_single_attack(combatant, target, weapon_data, attack_num + 1, num_attacks)
             results['attacks'].append(attack_result)
-            
+
             if attack_result.get('hit'):
                 results['total_damage'] += attack_result.get('damage', 0)
                 if target_id not in results['targets_hit']:
                     results['targets_hit'].append(target_id)
-                
+
                 if not target.is_alive:
                     results['targets_killed'].append(target_id)
                     self.log(f"[COMBAT] {target.name} has been defeated!")
-                    
+
                     # Award XP
                     xp = self._calculate_xp_reward(target_id)
                     if xp > 0:
-                        results['xp_gained'] = xp
+                        results['xp_gained'] = results.get('xp_gained', 0) + xp
                         self.log(f"[XP] Gained {xp} XP for defeating {target.name}")
+
+                    # Award loot
+                    loot = self._calculate_loot_reward(target_id)
+                    if loot:
+                        if 'loot' not in results:
+                            results['loot'] = []
+                        results['loot'].extend(loot)
+
+                    # Update morale count
+                    living_count = len(self._get_living_monsters_by_name(target.name))
+                    if living_count > 0:
+                        self.morale_manager.update_monster_count(
+                            self.encounter_id, target_id, living_count
+                        )
+                else:
+                    # Check morale for wounded monsters
+                    morale_event = self._check_and_handle_morale(target, combatant)
+                    if morale_event and not morale_event.get('final_attack_executed'):
+                        results['morale_event'] = morale_event
+
+                        # Execute final attack on fleeing enemies
+                        fleeing_combatants = morale_event.get('fleeing_combatants', [])
+                        if fleeing_combatants:
+                            final_attack = self._execute_final_attack_on_fleeing(
+                                combatant, fleeing_combatants, weapon_data
+                            )
+                            morale_event['final_attack_executed'] = True
+                            morale_event['final_attack_result'] = final_attack
+
+                            # Add loot from final attack
+                            if 'loot' not in results:
+                                results['loot'] = []
+                            results['loot'].extend(final_attack.get('loot', []))
+
+                        # Add XP from all fleeing enemies
+                        if 'xp_gained' not in results:
+                            results['xp_gained'] = 0
+                        results['xp_gained'] += morale_event.get('xp_gained', 0)
         
         return results
     
@@ -377,6 +445,18 @@ class CombatManager:
 
         if combatant.has_taken_action:
             return {'error': 'Monster already took action this turn'}
+
+        # Check morale at the START of monster's turn (before they attack)
+        morale_event = self._check_and_handle_morale(combatant, None)
+        if morale_event:
+            # Monster's group has failed morale and is fleeing
+            # Return special result indicating morale break
+            return {
+                'morale_broken': True,
+                'monster_name': combatant.name,
+                'xp_gained': morale_event.get('xp_gained', 0),
+                'fled': True
+            }
 
         # Mark action as taken
         combatant.has_taken_action = True
@@ -517,24 +597,35 @@ class CombatManager:
 
     def is_combat_ended(self) -> bool:
         """Check if combat should end (one side defeated)"""
-        living_players = sum(1 for c in self.combatants.values() 
+        living_players = sum(1 for c in self.combatants.values()
                            if c.type == CombatantType.PLAYER and c.is_alive)
-        living_monsters = sum(1 for c in self.combatants.values() 
-                            if c.type == CombatantType.MONSTER and c.is_alive)
-        
+        living_monsters = sum(1 for c in self.combatants.values()
+                            if c.type == CombatantType.MONSTER and c.is_alive and not c.has_fled)
+
         return living_players == 0 or living_monsters == 0
     
     def end_combat(self) -> Dict[str, Any]:
         """End combat and return summary"""
         self.combat_active = False
-        
-        living_players = [c for c in self.combatants.values() 
+
+        if self.encounter_id:
+            self.morale_manager.clear_encounter_morale(self.encounter_id)
+            self.encounter_id = None
+
+        self.morale_triggered_groups.clear()
+
+        living_players = [c for c in self.combatants.values()
                          if c.type == CombatantType.PLAYER and c.is_alive]
-        living_monsters = [c for c in self.combatants.values() 
-                          if c.type == CombatantType.MONSTER and c.is_alive]
-        
+        living_monsters = [c for c in self.combatants.values()
+                          if c.type == CombatantType.MONSTER and c.is_alive and not c.has_fled]
+        fled_monsters = [c for c in self.combatants.values()
+                        if c.type == CombatantType.MONSTER and c.has_fled]
+
         if living_players and not living_monsters:
-            self.log("[COMBAT] Combat victory! All enemies defeated.")
+            if fled_monsters:
+                self.log(f"[COMBAT] Combat victory! {len(fled_monsters)} enemies fled, the rest defeated.")
+            else:
+                self.log("[COMBAT] Combat victory! All enemies defeated.")
             result = "victory"
         elif living_monsters and not living_players:
             self.log("[COMBAT] Combat defeat! Player character defeated.")
@@ -542,12 +633,13 @@ class CombatManager:
         else:
             self.log("[COMBAT] Combat ended in a draw.")
             result = "draw"
-        
+
         return {
             'result': result,
             'rounds': self.current_round.number if self.current_round else 0,
             'living_players': len(living_players),
-            'living_monsters': len(living_monsters)
+            'living_monsters': len(living_monsters),
+            'fled_monsters': len(fled_monsters)
         }
     
     def log(self, message: str):
@@ -997,6 +1089,133 @@ class CombatManager:
             if conn:
                 conn.close()
     
+    def _get_living_monsters_by_name(self, monster_name: str) -> List[Combatant]:
+        """Get all living monsters with the same name"""
+        return [c for c in self.combatants.values()
+                if c.type == CombatantType.MONSTER
+                and c.name == monster_name
+                and c.is_alive]
+
+    def _get_monster_ids_by_name(self, monster_name: str) -> List[str]:
+        """Get IDs of all living monsters with the same name"""
+        return [c.id for c in self._get_living_monsters_by_name(monster_name)]
+
+    def _check_and_handle_morale(self, target: Combatant, damage_dealer: Optional[Combatant] = None) -> Optional[Dict[str, Any]]:
+        """
+        Check if morale should be triggered and handle fleeing.
+
+        Returns:
+            Morale event dict if triggered, None otherwise
+        """
+        if target.type != CombatantType.MONSTER:
+            return None
+
+        if not self.encounter_id:
+            return None
+
+        if target.name in self.morale_triggered_groups:
+            return None
+
+        living_group = self._get_living_monsters_by_name(target.name)
+        group_size = len(living_group)
+
+        is_solo = group_size == 1
+
+        morale_triggered = self.morale_manager.check_morale_trigger(
+            self.encounter_id,
+            target.id,
+            target.hit_points,
+            is_solo
+        )
+
+        if not morale_triggered:
+            return None
+
+        self.morale_triggered_groups.add(target.name)
+
+        group_ids = self._get_monster_ids_by_name(target.name)
+        morale_check = self.morale_manager.roll_morale_check(
+            self.encounter_id,
+            target.id,
+            group_ids
+        )
+
+        self.log(f"[MORALE] {target.name} group below 50% strength!")
+        self.log(f"[MORALE] DC {morale_check['dc']} Wisdom save: d20({morale_check['roll']}) + {morale_check['modifier']} = {morale_check['total']}")
+
+        if morale_check['passed']:
+            self.log(f"[MORALE] {target.name} group holds their ground!")
+            return None
+
+        self.log(f"[MORALE] {target.name} group FAILS morale check and flees!")
+        self.log(f"[MORALE] You get one final attack as they flee!")
+
+        xp_total = 0
+        loot_items = []
+
+        for fleeing in living_group:
+            xp = self._calculate_xp_reward(fleeing.id)
+            xp_total += xp
+
+        return {
+            'morale_broken': True,
+            'monster_name': target.name,
+            'fleeing_combatants': living_group,
+            'xp_gained': xp_total,
+            'loot': loot_items,
+            'final_attack_executed': False
+        }
+
+    def _execute_final_attack_on_fleeing(self, attacker: Combatant, fleeing_combatants: List[Combatant],
+                                         weapon_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute one final attack against fleeing enemies.
+
+        Returns:
+            Dict with attack results, killed enemies, and loot
+        """
+        if not fleeing_combatants:
+            return {'attacks': [], 'loot': [], 'killed': []}
+
+        target = fleeing_combatants[0]
+
+        self.log(f"[MORALE] [FINAL ATTACK] {attacker.name} strikes at the fleeing {target.name}!")
+
+        attack_result = self._execute_single_attack(attacker, target, weapon_data, 1, 1)
+
+        loot_items = []
+        killed = []
+
+        if not target.is_alive:
+            killed.append(target.id)
+            loot = self._calculate_loot_reward(target.id)
+            loot_items.extend(loot)
+            self.log(f"[MORALE] [FINAL ATTACK] {target.name} is cut down while fleeing!")
+
+        for fleeing in fleeing_combatants:
+            if fleeing.is_alive:
+                fleeing.has_fled = True
+                fleeing.is_alive = False
+                self.log(f"[MORALE] {fleeing.name} escapes from combat!")
+
+        return {
+            'attack': attack_result,
+            'loot': loot_items,
+            'killed': killed
+        }
+
+    def _calculate_loot_reward(self, monster_id: str) -> List[Dict[str, Any]]:
+        """Calculate loot drops from defeated monster"""
+        if self.beast_loot_service.is_beast(monster_id):
+            loot = self.beast_loot_service.generate_beast_loot(monster_id)
+            if loot:
+                ration_count = loot[0].get('quantity', 0)
+                monster_name = self.beast_loot_service.get_monster_name(monster_id)
+                self.log(f"[LOOT] Harvested {ration_count} rations from {monster_name}")
+            return loot
+        else:
+            return []
+
     def _start_new_round(self):
         """Start a new combat round"""
         if not self.current_round:

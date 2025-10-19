@@ -3876,7 +3876,20 @@ class EncounterPanel(QWidget):
 
 
     def _format_trap_summary(self, trap: dict, extra: Optional[str] = None) -> str:
-        lines = [f"Trap Type: {trap['type']}"]
+        label = trap.get('label')
+        if label:
+            lines = [f"Trap: {label} ({trap['type']})"]
+        else:
+            lines = [f"Trap Type: {trap['type']}"]
+
+        trigger = trap.get('trigger')
+        if trigger:
+            lines.append(f"Trigger: {trigger}")
+
+        trigger_detail = trap.get('trigger_description')
+        if trigger_detail:
+            if not trigger or trigger_detail.lower() != trigger.lower():
+                lines.append(f"Trigger Detail: {trigger_detail}")
 
         narrative = trap.get('narrative_description')
         if narrative:
@@ -3886,12 +3899,23 @@ class EncounterPanel(QWidget):
         if base_description:
             lines.append(f"Description: {base_description}")
 
-        lines.extend([
-            f"DC {trap['dc']} / Attack Bonus +{trap['toHit']}",
-            f"Damage: {trap['damage']}",
-            f"Effects: {trap['effects']}",
-            f"XP: {trap['xp']}",
-        ])
+        lines.append(f"DC {trap['dc']} / Attack Bonus +{trap['toHit']}")
+
+        variant_damage = trap.get('variant_damage')
+        if variant_damage:
+            lines.append(f"Thematic Damage: {variant_damage}")
+
+        lines.append(f"Damage: {trap['damage']}")
+
+        status = trap.get('variant_status')
+        if status:
+            lines.append(f"Status Effect: {status.title()}")
+
+        effects = trap.get('effects')
+        if effects:
+            lines.append(f"Effects: {effects}")
+
+        lines.append(f"XP: {trap['xp']}")
         if extra:
             lines.append('')
             lines.append(extra)
@@ -3917,13 +3941,17 @@ class EncounterPanel(QWidget):
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        title = QLabel(f"{trap['type']} Trap")
+        title_text = trap.get('label') or f"{trap['type']} Trap"
+        title = QLabel(title_text)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight: bold; color: #ffcc66;")
         layout.addWidget(title)
 
         narrative = trap.get('narrative_description')
-        description_text = narrative or "This setback springs without warning if unnoticed."
+        description_text = narrative or trap.get('description') or "This setback springs without warning if unnoticed."
+        trigger_text = trap.get('trigger')
+        if trigger_text:
+            description_text = f"{description_text}\nTrigger: {trigger_text}"
         description = QLabel(description_text)
         description.setWordWrap(True)
         layout.addWidget(description)
@@ -3997,13 +4025,17 @@ class EncounterPanel(QWidget):
         layout.setSpacing(6)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        title = QLabel("Dangerous Trap")
+        title_text = trap.get('label') or "Dangerous Trap"
+        title = QLabel(title_text)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-weight: bold; color: #ff9955;")
         layout.addWidget(title)
 
         narrative = trap.get('narrative_description')
-        warning_text = narrative or "You see a dangerous area - surely treasure is nearby."
+        warning_text = narrative or trap.get('description') or "You see a dangerous area - surely treasure is nearby."
+        trigger_text = trap.get('trigger')
+        if trigger_text:
+            warning_text = f"{warning_text}\nTrigger: {trigger_text}"
         warning = QLabel(warning_text)
         warning.setWordWrap(True)
         layout.addWidget(warning)
@@ -5919,15 +5951,34 @@ class EncounterPanel(QWidget):
         total_individual_gp = 0
         treasure_details = []
         all_item_drops = []
-        
+
         for monster_name, monster_cr in self.defeated_monsters:
-            individual_gp = self._roll_individual_treasure(monster_cr)
+            # Check if this is a beast (should drop rations instead of gold)
+            is_beast = self._check_if_beast(monster_name)
+            print(f"[DEBUG] {monster_name} is_beast: {is_beast}")
+
+            if is_beast:
+                # Beasts drop rations instead of gold
+                individual_gp = self._roll_individual_treasure(monster_cr)
+                ration_count = max(1, int(individual_gp / 0.5))
+                treasure_details.append(f"{monster_name}: {ration_count} rations")
+
+                # Add rations to item drops
+                all_item_drops.append({
+                    'name': 'Beast Rations',
+                    'quantity': ration_count,
+                    'value_gp': ration_count * 0.5
+                })
+            else:
+                # Non-beasts drop gold normally
+                individual_gp = self._roll_individual_treasure(monster_cr)
+
+                if individual_gp > 0:
+                    total_individual_gp += individual_gp
+                    treasure_details.append(f"{monster_name}: {individual_gp} GP")
+
+            # Check for equipment drops
             item_drops = self._roll_equipment_drops(monster_name, monster_cr)
-            
-            if individual_gp > 0:
-                total_individual_gp += individual_gp
-                treasure_details.append(f"{monster_name}: {individual_gp} GP")
-            
             if item_drops:
                 all_item_drops.extend(item_drops)
                 item_names = [item['name'] for item in item_drops]
@@ -5970,7 +6021,34 @@ class EncounterPanel(QWidget):
 
         # Mark loot as collected
         self._loot_already_collected = True
-    
+
+    def _check_if_beast(self, monster_name: str) -> bool:
+        """Check if a monster is a beast type (should drop rations instead of gold)."""
+        try:
+            import sqlite3
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT type, drops_rations
+                FROM monsters
+                WHERE name = ?
+                LIMIT 1
+            """, (monster_name,))
+
+            result = cursor.fetchone()
+            conn.close()
+
+            if result:
+                monster_type, drops_rations = result
+                return monster_type == 'beast' or drops_rations == 1
+
+            return False
+
+        except Exception as e:
+            print(f"[ERROR] Failed to check if {monster_name} is a beast: {e}")
+            return False
+
     def _roll_individual_treasure(self, monster_cr) -> int:
         """Roll individual treasure based on monster CR."""
         import random

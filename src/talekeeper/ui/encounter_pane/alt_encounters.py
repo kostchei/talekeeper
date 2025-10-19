@@ -53,6 +53,138 @@ TRAP_DETAILS = {
     }
 }
 
+STATUS_DESCRIPTIONS = {
+    'sleep': 'Victims who fail their save fall into an enchanted sleep',
+    'paralyze': 'Potent toxins can paralyze muscles',
+    'blind': 'Barbed cords can leave creatures blinded until freed',
+    'confuse': 'Bewildering sigils can sow short-lived confusion',
+    'unconscious': 'A crushing impact can knock creatures unconscious',
+    'petrify': 'A lingering curse seeks to petrify intruders',
+}
+
+TRAP_VARIANTS = [
+    {
+        'name': 'Crossbow',
+        'trigger': 'Tripwire',
+        'trigger_text': 'a hidden tripwire is disturbed',
+        'category': 'Setback',
+        'min_level': 1,
+        'damage_roll': '1d6 piercing',
+        'status': None,
+        'flavor': 'A hidden crossbow snaps a bolt down the passage toward the triggering creature.'
+    },
+    {
+        'name': 'Hail of needles',
+        'trigger': 'Pressure plate',
+        'trigger_text': 'weight settles onto a pressure plate',
+        'category': 'Setback',
+        'min_level': 1,
+        'damage_roll': '1d6 piercing',
+        'status': 'sleep',
+        'flavor': 'Spring-loaded tubes unleash a flurry of soporific needles.'
+    },
+    {
+        'name': 'Toxic gas',
+        'trigger': 'Opening a door',
+        'trigger_text': 'an old door is opened without disarming the vents',
+        'category': 'Setback',
+        'min_level': 1,
+        'damage_roll': '1d6 poison',
+        'status': 'paralyze',
+        'flavor': 'Hidden reservoirs erupt in a cloud of paralytic vapor.'
+    },
+    {
+        'name': 'Barbed net',
+        'trigger': 'Switch or button',
+        'trigger_text': 'an obvious switch or button is pressed',
+        'category': 'Setback',
+        'min_level': 1,
+        'damage_roll': '1d6 slashing',
+        'status': 'blind',
+        'flavor': 'Razor-edged cords erupt, entangling limbs and faces.'
+    },
+    {
+        'name': 'Rolling boulder',
+        'trigger': 'False step on stairs',
+        'trigger_text': 'a false stair collapses inward',
+        'category': 'Dangerous',
+        'min_level': 5,
+        'damage_roll': '2d8 bludgeoning',
+        'status': None,
+        'flavor': 'A massive stone boulder thunders down the steps toward intruders.'
+    },
+    {
+        'name': 'Slicing blade',
+        'trigger': 'Closing a door',
+        'trigger_text': 'a heavy door swings shut behind the party',
+        'category': 'Dangerous',
+        'min_level': 5,
+        'damage_roll': '2d8 slashing',
+        'status': 'sleep',
+        'flavor': 'Hidden blades scissor across the doorway, dripping with soporific venom.'
+    },
+    {
+        'name': 'Spiked pit',
+        'trigger': 'Breaking a light beam',
+        'trigger_text': 'an invisible beam of light is broken',
+        'category': 'Dangerous',
+        'min_level': 5,
+        'damage_roll': '2d8 piercing',
+        'status': 'paralyze',
+        'flavor': 'Floor panels drop away into a pit lined with numbing spikes.'
+    },
+    {
+        'name': 'Javelin',
+        'trigger': 'Pulling a lever',
+        'trigger_text': 'a control lever is yanked without caution',
+        'category': 'Dangerous',
+        'min_level': 5,
+        'damage_roll': '2d8 piercing',
+        'status': 'confuse',
+        'flavor': 'Concealed ballistae launch barbed javelins etched with disorienting sigils.'
+    },
+    {
+        'name': 'Magical glyph',
+        'trigger': 'A word is spoken',
+        'trigger_text': 'a forgotten command word is spoken aloud',
+        'category': 'Dangerous',
+        'min_level': 11,
+        'damage_roll': '3d10 force',
+        'status': None,
+        'flavor': 'Arcane sigils flare and detonate in a blast of force.'
+    },
+    {
+        'name': 'Blast of fire',
+        'trigger': 'Hook on a thread',
+        'trigger_text': 'a dangling hook is tugged or cut free',
+        'category': 'Dangerous',
+        'min_level': 11,
+        'damage_roll': '3d10 fire',
+        'status': 'paralyze',
+        'flavor': 'Sealed vents erupt in a column of searing fire that locks muscles rigid.'
+    },
+    {
+        'name': 'Falling block',
+        'trigger': 'Removing an object',
+        'trigger_text': 'an idol or treasure is lifted from its resting place',
+        'category': 'Dangerous',
+        'min_level': 11,
+        'damage_roll': '3d10 bludgeoning',
+        'status': 'unconscious',
+        'flavor': 'Counterweights release a slab of stone from the ceiling.'
+    },
+    {
+        'name': 'Cursed statue',
+        'trigger': 'Casting a spell',
+        'trigger_text': "spellcasting is attempted in the statue's presence",
+        'category': 'Dangerous',
+        'min_level': 11,
+        'damage_roll': '3d10 necrotic',
+        'status': 'petrify',
+        'flavor': "The statue's eyes ignite as a petrifying curse lashes outward."
+    },
+]
+
 HAZARDS = [
     {'name': 'Quicksand', 'dc': 15,
      'effect': 'Creature is restrained and sinks 1d4 feet per round.'},
@@ -328,11 +460,92 @@ def _trap_level_range(level: int) -> str:
     return '17-20'
 
 
+def _article_for(word: str) -> str:
+    if not word:
+        return 'a'
+    return 'an' if word[0].lower() in 'aeiou' else 'a'
+
+
+def _choose_trap_variant(trap_type: str, level: int):
+    level_filtered = [
+        variant for variant in TRAP_VARIANTS
+        if variant['category'] == trap_type and level >= variant['min_level']
+    ]
+    if level_filtered:
+        return random.choice(level_filtered)
+
+    fallback = [variant for variant in TRAP_VARIANTS if variant['category'] == trap_type]
+    return random.choice(fallback) if fallback else None
+
+
+def _format_variant_effect(variant: dict) -> str:
+    phrases = []
+    damage_roll = variant.get('damage_roll')
+    if damage_roll:
+        phrases.append(f"Delivers roughly {damage_roll} damage")
+
+    status = variant.get('status')
+    if status:
+        phrases.append(STATUS_DESCRIPTIONS.get(status, f"May inflict {status}"))
+
+    return '. '.join(phrases)
+
+
+def _build_effect_text(base_effect: str, variant: dict) -> str:
+    parts = []
+    if base_effect:
+        parts.append(base_effect.strip().rstrip('.'))
+
+    variant_text = _format_variant_effect(variant)
+    if variant_text:
+        parts.append(variant_text.strip().rstrip('.'))
+
+    if not parts:
+        return ''
+
+    return '. '.join(parts) + '.'
+
+
+def _build_variant_description(variant: dict, base_description: str) -> str:
+    article = _article_for(variant.get('name', 'trap'))
+    trigger_text = variant.get('trigger_text') or variant.get('trigger') or 'it is disturbed'
+    sentences = [
+        f"{article.capitalize()} {variant.get('name', 'trap')} trap is triggered when {trigger_text}."
+    ]
+
+    flavor = variant.get('flavor')
+    if flavor:
+        sentences.append(flavor.strip())
+
+    base = base_description.strip()
+    if base:
+        sentences.append(f"Common variants include {base}.")
+
+    return ' '.join(sentences)
+
+
 def generate_trap(level: int) -> dict:
     trap_type = random.choice(TRAP_TYPES)
+    variant = _choose_trap_variant(trap_type, level)
     level_range = _trap_level_range(level)
     details = TRAP_DETAILS[level_range][trap_type]
-    return {'type': trap_type, **details}
+    trap = {'type': trap_type, **details}
+
+    if variant:
+        trap['label'] = f"{variant['name']} Trap"
+        trap['name'] = variant['name']
+        trap['trigger'] = variant['trigger']
+        trigger_text = variant.get('trigger_text')
+        if trigger_text:
+            trap['trigger_description'] = trigger_text
+        trap['variant_damage'] = variant.get('damage_roll')
+        status = variant.get('status')
+        if status:
+            trap['variant_status'] = status
+        trap['description'] = _build_variant_description(variant, details.get('description', ''))
+        trap['effects'] = _build_effect_text(details.get('effects', ''), variant)
+
+    return trap
 
 
 def generate_hazard(level: int = 1) -> dict:
