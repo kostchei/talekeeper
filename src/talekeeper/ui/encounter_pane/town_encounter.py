@@ -1303,23 +1303,6 @@ class ShopInterface(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
         
-        # Title with shop size
-        shop_size_names = {
-            ShopSize.SMALL: "Small Shop",
-            ShopSize.MEDIUM: "General Store",
-            ShopSize.LARGE: "Grand Emporium"
-        }
-        title_text = f"🏪 {shop_size_names.get(self.shop_size, 'SHOP')}"
-        title_label = QLabel(title_text)
-        title_label.setObjectName("shopTitle")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
-
-        # Shop info label
-        info_label = QLabel(f"Max item price: {self.shop_size.gold_limit} GP | {len(self.shop_inventory)} items in stock")
-        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_label.setStyleSheet("color: #888; font-size: 11px;")
-        layout.addWidget(info_label)
 
         # Gold display
         self.gold_label = QLabel()
@@ -1336,18 +1319,6 @@ class ShopInterface(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(4)
 
-        # Category filter
-        category_label = QLabel("Category:")
-        left_layout.addWidget(category_label)
-        
-        self.category_combo = QComboBox()
-        self.category_combo.addItem("All Items")
-        self.category_combo.addItem("Weapons")
-        self.category_combo.addItem("Armor")
-        self.category_combo.addItem("Adventuring Gear")
-        self.category_combo.currentTextChanged.connect(self._filter_items)
-        left_layout.addWidget(self.category_combo)
-        
         # Items list
         items_label = QLabel("Available Items:")
         items_label.setObjectName("itemsLabel")
@@ -1444,21 +1415,19 @@ class ShopInterface(QWidget):
         # Update button states
         self.buy_button.setChecked(mode == "buy")
         self.sell_button.setChecked(mode == "sell")
-        
+
         # Update interface labels
         if mode == "buy":
-            self.category_combo.setVisible(True)
             self.purchase_button.setText("Purchase Item")
-            items_label = self.findChild(QLabel, "itemsLabel") 
+            items_label = self.findChild(QLabel, "itemsLabel")
             if items_label:
                 items_label.setText("Available Items:")
         else:
-            self.category_combo.setVisible(False)
             self.purchase_button.setText("Sell Item")
             items_label = self.findChild(QLabel, "itemsLabel")
             if items_label:
                 items_label.setText("Your Items:")
-        
+
         # Refresh items list
         self._populate_items_list()
         
@@ -1496,8 +1465,8 @@ class ShopInterface(QWidget):
             print(f"Error getting character gold: {e}")
             return 0
     
-    def _populate_items_list(self, category_filter="All Items"):
-        """Populate items list based on mode and category filter"""
+    def _populate_items_list(self):
+        """Populate items list based on mode"""
         self.items_list.clear()
 
         if self.shop_mode == "buy":
@@ -1508,17 +1477,6 @@ class ShopInterface(QWidget):
             price_key = 'sell_price_display'
 
         for item in items_to_show:
-            # Apply category filter (only in buy mode)
-            if self.shop_mode == "buy" and category_filter != "All Items":
-                item_type = item.get('item_type', '').lower()
-                if category_filter == "Weapons" and item_type != "weapon":
-                    continue
-                elif category_filter == "Armor" and item_type != "armor":
-                    continue
-                elif category_filter == "Adventuring Gear" and item_type not in ["gear", "tool", "adventuring_gear"]:
-                    continue
-
-            # Create list item
             name = item['name']
             price = item[price_key]
 
@@ -1530,12 +1488,6 @@ class ShopInterface(QWidget):
 
             item_widget.setData(Qt.ItemDataRole.UserRole, item)
             self.items_list.addItem(item_widget)
-    
-    def _filter_items(self, category: str):
-        """Filter items by category"""
-        self._populate_items_list(category)
-        self.item_details.setText("Select an item to see details")
-        self.purchase_button.setEnabled(False)
     
     def _item_selected(self, row: int):
         """Handle item selection"""

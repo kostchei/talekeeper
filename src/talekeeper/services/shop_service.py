@@ -184,12 +184,12 @@ class ShopService:
         return mapping.get(settlement_type, ShopSize.MEDIUM)
 
     def _determine_population_tier(self, settlement_type: str, seed: int) -> int:
-        random.seed(seed)
+        rng = random.Random(seed)
 
         if settlement_type == 'hamlet':
-            return random.choice([25, 75, 150, 200])
+            return rng.choice([25, 75, 150, 200])
         elif settlement_type == 'village':
-            return random.choice([200, 500, 1000, 1500])
+            return rng.choice([200, 500, 1000, 1500])
         elif settlement_type == 'town_small':
             return 2000
         elif settlement_type == 'town_medium':
@@ -215,28 +215,48 @@ class ShopService:
         population = self._determine_population_tier(settlement_type, hex_seed)
         economy_tier = self.ECONOMY_TIERS.get(population, {'base_pool': 100, 'base_cap': 100})
 
-        random.seed(hex_seed + 1)
-        pool_variance = random.randint(1, 200) / 100.0
-        cap_variance = random.randint(1, 200) / 100.0
+        import time
+        variance_rng = random.Random(int(time.time() * 1000000))
+        pool_variance = variance_rng.randint(1, 200) / 100.0
+        cap_variance = variance_rng.randint(1, 200) / 100.0
 
         actual_pool = economy_tier['base_pool'] * pool_variance
         actual_cap = economy_tier['base_cap'] * cap_variance
 
-        all_equipment = self.equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
-        eligible_items = [item for item in all_equipment if 0.01 <= item.get('cost_gp', 0) <= actual_cap]
+        rarity_list = ['common', 'uncommon']
+        if settlement_type in ['town_medium', 'town_large']:
+            rarity_list.append('rare')
+
+        markup = max(0, 25 - buy_discount)
+        markup_multiplier = 1 + markup / 100.0
+
+        all_equipment = self.equipment_db.get_equipment_by_rarity(rarity_list)
+        eligible_items = []
+        for item in all_equipment:
+            base_cost = item.get('cost_gp', 0)
+            final_price = base_cost * markup_multiplier
+            if 0.01 <= final_price <= actual_cap:
+                eligible_items.append(item)
 
         if not eligible_items:
-            eligible_items = [item for item in all_equipment if item.get('cost_gp', 0) >= 0.01]
+            eligible_items = []
 
-        premium_items = [item for item in eligible_items if item.get('cost_gp', 0) >= actual_cap * 0.5]
-        high_value_items = [item for item in eligible_items if actual_cap * 0.5 <= item.get('cost_gp', 0) <= actual_cap]
+        cheap_items = []
+        high_value_items = []
+        for item in eligible_items:
+            base_cost = item.get('cost_gp', 0)
+            final_price = base_cost * markup_multiplier
+            if final_price <= actual_cap * 0.5:
+                cheap_items.append(item)
+            elif final_price <= actual_cap:
+                high_value_items.append(item)
 
-        num_premium = random.randint(1, 8)
-        num_high_value = random.randint(1, 8)
+        num_cheap = random.randint(1, 8) + 2
+        num_high_value = random.randint(1, 8) + 2
 
         inventory = []
-        if premium_items:
-            inventory.extend(random.sample(premium_items, min(num_premium, len(premium_items))))
+        if cheap_items:
+            inventory.extend(random.sample(cheap_items, min(num_cheap, len(cheap_items))))
         if high_value_items:
             inventory.extend(random.sample(high_value_items, min(num_high_value, len(high_value_items))))
 
@@ -249,13 +269,22 @@ class ShopService:
 
         for item in unique_inventory:
             base_cost = item.get('cost_gp', 0)
-            markup = max(0, 25 - buy_discount)
-            buy_price = base_cost * (1 + markup / 100.0)
+            buy_price = base_cost * markup_multiplier
             item['buy_price_gp'] = buy_price
             item['buy_price_display'], _ = format_currency(buy_price)
             item['buy_discount_applied'] = buy_discount
 
         unique_inventory.sort(key=lambda x: x.get('cost_gp', 0))
+
+        shop_size_map = {
+            'hamlet': 'small',
+            'village': 'medium',
+            'town_small': 'large',
+            'town_medium': 'large',
+            'town_large': 'large',
+            'empty': 'small'
+        }
+        shop_size = shop_size_map.get(settlement_type, 'medium')
 
         return {
             'inventory': unique_inventory,
@@ -268,7 +297,8 @@ class ShopService:
             'base_pool': economy_tier['base_pool'],
             'base_cap': economy_tier['base_cap'],
             'actual_pool': actual_pool,
-            'actual_cap': actual_cap
+            'actual_cap': actual_cap,
+            'shop_size': shop_size
         }
 
     def calculate_sell_price_with_character(self, item_cost: float, character_data: Dict[str, Any]) -> Tuple[float, str, int]:

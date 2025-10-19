@@ -4469,7 +4469,6 @@ class EncounterPanel(QWidget):
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
 
-        from talekeeper.services.shop_service import ShopService, ShopSize
         import random
 
         settlement_roll = random.randint(1, 100)
@@ -4483,38 +4482,35 @@ class EncounterPanel(QWidget):
 
         elif settlement_roll <= 31:
             settlement_type = 'hamlet'
-            shop_size = ShopSize.SMALL
             description_prefix = "You encounter a humble peddler from a nearby hamlet"
         elif settlement_roll <= 99:
             settlement_type = 'village'
-            shop_size = ShopSize.MEDIUM
             description_prefix = "A traveling merchant from a village has set up camp"
         else:
             town_roll = random.randint(1, 6)
             if town_roll <= 3:
                 settlement_type = 'town_small'
-                shop_size = ShopSize.LARGE
                 description_prefix = "A well-stocked caravan from a nearby town offers goods"
             elif town_roll <= 5:
                 settlement_type = 'town_medium'
-                shop_size = ShopSize.LARGE
                 description_prefix = "A prosperous merchant caravan has traveled from a medium town"
             else:
                 settlement_type = 'town_large'
-                shop_size = ShopSize.LARGE
                 description_prefix = "An impressive merchant guild from a large city has goods for sale"
 
-        shop_service = ShopService()
+        from talekeeper.ui.encounter_pane.hex_shop_interface import HexShopInterface
         encounter_seed = random.randint(1, 1000000)
 
-        shop_data = shop_service.generate_hex_shop_inventory(
-            settlement_type, character_data, encounter_seed
+        self.vendor_widget = HexShopInterface(
+            character_data=character_data,
+            settlement_type=settlement_type,
+            hex_seed=encounter_seed,
+            hex_coords=(0, 0),
+            parent=self
         )
-
-        self.vendor_widget = ShopInterface(character_data, shop_size, self)
-        self.vendor_widget.shop_inventory = shop_data['inventory']
         self.encounters_layout.addWidget(self.vendor_widget)
 
+        shop_data = self.vendor_widget.shop_data
         charisma_roll = shop_data['charisma_roll']
         has_crafter = shop_data['has_crafter']
 
@@ -4536,7 +4532,7 @@ class EncounterPanel(QWidget):
             vendor_context = {
                 "name": "Travelling Vendor",
                 "settlement_type": settlement_type,
-                "shop_size": shop_size.size_name,
+                "shop_size": shop_data['shop_size'],
                 "inventory_count": len(inventory),
                 "charisma_roll": charisma_roll,
                 "has_crafter": has_crafter,

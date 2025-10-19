@@ -1914,6 +1914,7 @@ class MainWindow(QMainWindow):
         from PyQt6.QtWidgets import QDialog, QVBoxLayout
         from talekeeper.services.hex_map_service import HexMapService
         from talekeeper.ui.encounter_pane.hex_shop_interface import HexShopInterface
+        import time
 
         hex_service = HexMapService('talekeeper.db')
         hex_data = hex_service.get_hex(self.game_engine.current_character['id'], q, r)

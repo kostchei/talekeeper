@@ -23,8 +23,28 @@ class HexShopInterface(ShopInterface):
         super().__init__(character_data, shop_size, parent)
 
         self.shop_inventory = self.shop_data['inventory']
+        self.remaining_pool = self.shop_data['actual_pool']
 
-        self._add_negotiation_info()
+    def _load_shop_inventory(self):
+        settlement_name = self._settlement_display_name(self.settlement_type)
+        population = self.shop_data.get('population', 0)
+        base_cap = self.shop_data.get('base_cap', 0)
+        actual_cap = self.shop_data.get('actual_cap', 0)
+        cap_variance = self.shop_data.get('cap_variance', 1.0)
+        max_item_price = max([item.get('cost_gp', 0) for item in self.shop_data['inventory']]) if self.shop_data['inventory'] else 0
+        charisma_roll = self.shop_data['charisma_roll']
+        has_crafter = self.shop_data['has_crafter']
+
+        discount = charisma_roll + (20 if has_crafter else 0)
+        final_markup = max(0, 25 - discount)
+        sell_rate = min(100, 40 + charisma_roll)
+
+        print(f"[Vendor] {settlement_name} (Pop: {population}) | Hex ({self.hex_coords[0]}, {self.hex_coords[1]})")
+        print(f"[Vendor] Economic Tier: Base Cap {base_cap} gp × {cap_variance:.0%} = {actual_cap:.0f} gp max")
+        print(f"[Vendor] Max Item Price: {max_item_price:.2f} gp | {len(self.shop_data['inventory'])} items in stock")
+        print(f"[Vendor] Negotiation Roll: {charisma_roll}{' (+20 Crafter)' if has_crafter else ''}")
+        print(f"[Vendor] Buy Markup: {final_markup}% | Sell Rate: {sell_rate}%")
+        pass
 
     def _get_shop_size(self, settlement_type: str) -> ShopSize:
         mapping = {
@@ -64,11 +84,15 @@ class HexShopInterface(ShopInterface):
         actual_cap = self.shop_data.get('actual_cap', 0)
         cap_variance = self.shop_data.get('cap_variance', 1.0)
 
+        max_item_price = max([item.get('cost_gp', 0) for item in self.shop_data['inventory']]) if self.shop_data['inventory'] else 0
+        max_buy_price = max([item.get('buy_price_gp', 0) for item in self.shop_data['inventory']]) if self.shop_data['inventory'] else 0
+
         discount = charisma_roll + (20 if has_crafter else 0)
         final_markup = max(0, 25 - discount)
 
         summary = f"Settlement: {settlement_name} (Pop: {population}) | Hex ({self.hex_coords[0]}, {self.hex_coords[1]})\n"
         summary += f"Economic Tier: Base Cap {base_cap} gp × {cap_variance:.0%} = {actual_cap:.0f} gp max\n"
+        summary += f"Max Item Price: {max_item_price:.2f} gp (after markup: {max_buy_price:.2f} gp) | {len(self.shop_data['inventory'])} items in stock\n"
         summary += f"Negotiation Roll: {charisma_roll}"
 
         if has_crafter:
@@ -92,7 +116,47 @@ class HexShopInterface(ShopInterface):
         }
         return names.get(settlement_type, 'Unknown')
 
-    def _populate_items_list(self, category_filter="All Items"):
+    def _load_character_inventory(self):
+        from talekeeper.services.equipment_database import EquipmentDatabase
+        equipment_db = EquipmentDatabase()
+        shop_service = ShopService()
+
+        all_equipment = equipment_db.get_all_equipment()
+        equipment_lookup = {item['name']: item for item in all_equipment}
+
+        try:
+            import sqlite3
+            conn = sqlite3.connect('talekeeper.db')
+            cursor = conn.cursor()
+
+            character_id = self.character_data.get('id')
+            cursor.execute('''
+                SELECT item_name, item_type, quantity
+                FROM character_inventory
+                WHERE character_id = ?
+            ''', (character_id,))
+
+            inventory_items = cursor.fetchall()
+            conn.close()
+
+            self.character_inventory = []
+            for item_name, item_type, quantity in inventory_items:
+                if item_name in equipment_lookup:
+                    item_data = equipment_lookup[item_name].copy()
+                    item_data['quantity'] = quantity
+                    sell_price_gp, sell_price_display, charisma_roll = shop_service.calculate_sell_price_with_character(
+                        item_data.get('cost_gp', 0), self.character_data
+                    )
+                    item_data['sell_price_gp'] = sell_price_gp
+                    item_data['sell_price_display'] = sell_price_display
+                    item_data['sell_charisma_roll'] = charisma_roll
+                    self.character_inventory.append(item_data)
+
+        except Exception as e:
+            print(f"Error loading character inventory: {e}")
+            self.character_inventory = []
+
+    def _populate_items_list(self):
         self.items_list.clear()
 
         if self.shop_mode == "buy":
@@ -103,15 +167,6 @@ class HexShopInterface(ShopInterface):
             price_key = 'sell_price_display'
 
         for item in items_to_show:
-            if self.shop_mode == "buy" and category_filter != "All Items":
-                item_type = item.get('item_type', '').lower()
-                if category_filter == "Weapons" and item_type != "weapon":
-                    continue
-                elif category_filter == "Armor" and item_type != "armor":
-                    continue
-                elif category_filter == "Adventuring Gear" and item_type not in ["gear", "tool", "adventuring_gear"]:
-                    continue
-
             name = item['name']
             price = item[price_key]
 
@@ -195,14 +250,31 @@ class HexShopInterface(ShopInterface):
             total_value_gp = sell_price_gp * quantity
             total_value_display, _ = format_currency(total_value_gp)
 
+            if total_value_gp > self.remaining_pool:
+                max_quantity = int(self.remaining_pool / sell_price_gp)
+                pool_display, _ = format_currency(self.remaining_pool)
+                if max_quantity == 0:
+                    QMessageBox.warning(self, "Vendor Cannot Afford",
+                                      f"This vendor only has {pool_display} remaining to spend.\n"
+                                      f"They cannot afford even 1x {item_name} ({sell_price_display}).")
+                    return
+                else:
+                    QMessageBox.warning(self, "Vendor Cannot Afford All",
+                                      f"This vendor only has {pool_display} remaining to spend.\n"
+                                      f"They can only buy {max_quantity}x {item_name}.")
+                    return
+
             reply = QMessageBox.question(self, "Confirm Sale",
-                                       f"Sell {quantity}x {item_name} for {total_value_display}?\n(Negotiation roll: {charisma_roll})",
+                                       f"Sell {quantity}x {item_name} for {total_value_display}?\n"
+                                       f"(Negotiation roll: {charisma_roll})\n"
+                                       f"Vendor pool remaining after sale: {format_currency(self.remaining_pool - total_value_gp)[0]}",
                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
 
             if reply == QMessageBox.StandardButton.Yes:
                 success = self._remove_item_from_inventory(item_data, quantity)
                 if success:
                     self._add_gold(total_value_gp)
+                    self.remaining_pool -= total_value_gp
                     self._load_character_inventory()
                     self._update_character_gold()
                     self._populate_items_list()
