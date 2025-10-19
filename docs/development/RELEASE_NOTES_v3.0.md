@@ -286,10 +286,10 @@ python -c "from core.config import config; config.enable_performance_mode()"
 - `examples/enhanced_systems_examples.py` - Usage examples
 
 ### Testing
-- `test/test_stage_1_4_integration.py` - Condition system tests
-- `test/test_scalable_subclass_architecture.py` - Subclass tests
-- `test/test_action_economy_enforcement.py` - Action economy tests
-- `test/test_barbarian_level_progression.py` - Level validation
+- `tests/test_stage_1_4_integration.py` - Condition system tests
+- `tests/test_scalable_subclass_architecture.py` - Subclass tests
+- `tests/test_action_economy_enforcement.py` - Action economy tests
+- `tests/test_barbarian_level_progression.py` - Level validation
 
 ### Support
 - GitHub Issues: Report bugs and request features

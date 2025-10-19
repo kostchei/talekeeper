@@ -5088,12 +5088,12 @@ Total functions documented: 6842
 
 - `test_narrative_log()` - Inferred from name: test narrative log.
 
-## test - `test/action_cards/test_action_panel_weapon_mastery.py`
+## test - `tests/action_cards/test_action_panel_weapon_mastery.py`
 
 - `mastery_db(tmp_path)` - Inferred from name: mastery db.
 - `test_variant_weapon_hydrates_and_applies_mastery(qtbot, mastery_db)` - Inferred from name: test variant weapon hydrates and applies mastery.
 
-## test - `test/core/test_features.py`
+## test - `tests/core/test_features.py`
 
 - `fighter_feature_db()` - Inferred from name: fighter feature db.
 - `integration_db()` - Inferred from name: integration db.
@@ -5103,7 +5103,7 @@ Total functions documented: 6842
 - `test_feature_manager_loads_fighter_progression(fighter_feature_db)` - Inferred from name: test feature manager loads fighter progression.
 - `test_initialize_character_features_seeds_resources(integration_db)` - Inferred from name: test initialize character features seeds resources.
 
-## test - `test/features/test_champion_subclass.py`
+## test - `tests/features/test_champion_subclass.py`
 
 - `combat_manager(self, fighter_db)` - Create CombatManager with test database.
 - `fighter_db(self)` - Create Fighter test database.
@@ -5140,7 +5140,7 @@ Total functions documented: 6842
 - `test_survivor_level_requirement(self, fighter_service)` - Test Survivor requires Champion level 18.
 - `test_survivor_no_healing_when_healthy(self, fighter_service, fighter_db)` - Test Survivor doesn't heal when above half HP.
 
-## test - `test/features/test_fighter_action_surge.py`
+## test - `tests/features/test_fighter_action_surge.py`
 
 - `fighter_db(self)` - Create Fighter test database.
 - `test_action_surge_level_scaling_persistence(self, fighter_db)` - Test Action Surge max uses scale correctly with level.
@@ -5167,7 +5167,7 @@ Total functions documented: 6842
 - `test_action_surge_turn_end_cleanup(self, fighter_service, combat_manager)` - Test Action Surge effects end at the end of the turn.
 - `test_action_surge_unconscious_character(self, fighter_service, fighter_db)` - Test Action Surge cannot be used when unconscious.
 
-## test - `test/features/test_fighter_combat_flow.py`
+## test - `tests/features/test_fighter_combat_flow.py`
 
 - `fighter_db(self)` - Create Fighter test database.
 - `test_attack_roll_natural_1_always_misses(self, weapon_service)` - Test natural 1 always misses regardless of bonuses.
@@ -5196,7 +5196,7 @@ Total functions documented: 6842
 - `test_two_weapon_fighting_offhand_modifier(self, weapon_service, fighter_db)` - Test Two-Weapon Fighting adds ability modifier to off-hand damage.
 - `weapon_service(self, fighter_db)` - Create WeaponAttackService with test database.
 
-## test - `test/features/test_fighter_indomitable.py`
+## test - `tests/features/test_fighter_indomitable.py`
 
 - `fighter_db(self)` - Create Fighter test database.
 - `test_indomitable_with_advantage(self, fighter_db)` - Test Indomitable interaction with advantage on saves.
@@ -5223,7 +5223,7 @@ Total functions documented: 6842
 - `test_indomitable_reroll_mechanic(self, fighter_service)` - Test Indomitable allows rerolling a failed saving throw.
 - `test_indomitable_resource_consumption(self, fighter_service)` - Test Indomitable consumes one use per long rest.
 
-## test - `test/features/test_fighter_second_wind.py`
+## test - `tests/features/test_fighter_second_wind.py`
 
 - `fighter_db(self)` - Create Fighter test database.
 - `test_multiple_characters_independent_tracking(self, fighter_db)` - Test Second Wind tracking is independent per character.
@@ -5242,7 +5242,7 @@ Total functions documented: 6842
 - `test_second_wind_unconscious_character(self, fighter_service, fighter_db)` - Test Second Wind cannot be used when unconscious.
 - `test_second_wind_wont_heal_at_max_hp(self, fighter_service)` - Test Second Wind cannot be used at maximum HP.
 
-## test - `test/features/test_fighter_weapon_mastery.py`
+## test - `tests/features/test_fighter_weapon_mastery.py`
 
 - `fighter_db(self)` - Create Fighter test database.
 - `fighter_service(self, fighter_db)` - Create FighterAbilitiesService with test database.
@@ -5278,7 +5278,7 @@ Total functions documented: 6842
 - `test_mastery_substitution_ui_indication(self, fighter_db)` - Test UI indicates when masteries are substituted.
 - `test_mastery_tooltip_display(self, fighter_db)` - Test weapon tooltips show correct mastery information.
 
-## test - `test/features/test_paladin_action_integration.py`
+## test - `tests/features/test_paladin_action_integration.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `print_summary(self)` - Print test results summary.
@@ -5296,7 +5296,7 @@ Total functions documented: 6842
 - `test_use_lay_on_hands_method_exists(self)` - Test that _use_lay_on_hands method exists.
 - `main()` - Run the paladin action integration test suite.
 
-## test - `test/features/test_paladin_auras.py`
+## test - `tests/features/test_paladin_auras.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `create_test_paladin(self, character_id: str, level: int, charisma: int, subclass: str='devotion')` - Create a test paladin character in the database.
@@ -5316,7 +5316,7 @@ Total functions documented: 6842
 - `test_non_paladin_no_auras(self)` - Test that non-paladins don't get auras.
 - `main()` - Run the paladin aura test suite.
 
-## test - `test/features/test_paladin_channel_divinity.py`
+## test - `tests/features/test_paladin_channel_divinity.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `print_summary(self)` - Print test results summary.
@@ -5334,7 +5334,7 @@ Total functions documented: 6842
 - `test_uses_tracking(self)` - Test Channel Divinity uses tracking.
 - `main()` - Run the Channel Divinity test suite.
 
-## test - `test/features/test_paladin_channel_divinity_integration.py`
+## test - `tests/features/test_paladin_channel_divinity_integration.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `print_summary(self)` - Print test results summary.
@@ -5352,7 +5352,7 @@ Total functions documented: 6842
 - `test_paladin_character_context_with_channel_divinity(self)` - Test setting up paladin character context for Channel Divinity.
 - `main()` - Run the Channel Divinity action integration test suite.
 
-## test - `test/features/test_paladin_divine_smite.py`
+## test - `tests/features/test_paladin_divine_smite.py`
 
 - `action_panel(self, qapp, temp_db, paladin_character)` - Create ActionPanel with Paladin character.
 - `capture_damage(monster_id, damage)` - Inferred from name: capture damage.
@@ -5370,7 +5370,7 @@ Total functions documented: 6842
 - `test_smite_dialog_not_shown_when_monster_dies(self, action_panel, temp_db)` - Test that Divine Smite dialog doesn't appear when monster would die anyway.
 - `test_spell_slot_consumption(self, action_panel, temp_db, paladin_character)` - Test that using Divine Smite properly consumes spell slots.
 
-## test - `test/features/test_paladin_lay_on_hands.py`
+## test - `tests/features/test_paladin_lay_on_hands.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `print_summary(self)` - Print test results summary.
@@ -5386,7 +5386,7 @@ Total functions documented: 6842
 - `test_poison_curing_option(self)` - Test poison curing functionality.
 - `main()` - Run the Lay on Hands test suite.
 
-## test - `test/fixtures/fighter_test_database.py`
+## test - `tests/fixtures/fighter_test_database.py`
 
 - `__enter__(self)` - Context manager entry.
 - `__exit__(self, exc_type, exc_val, exc_tb)` - Context manager exit with cleanup.
@@ -5402,7 +5402,7 @@ Total functions documented: 6842
 - `setup_database(self)` - Initialize database with full schema and Fighter test data.
 - `create_fighter_test_db()` - Convenience function to create a Fighter test database.
 
-## test - `test/helpers/ui_test_helpers.py`
+## test - `tests/helpers/ui_test_helpers.py`
 
 - `find_attack_buttons(action_panel)` - Find all weapon attack buttons in the action panel.
 - `find_class_feature_buttons(action_panel)` - Find Fighter class feature buttons.
@@ -5429,12 +5429,12 @@ Total functions documented: 6842
 - `wait_for_condition(condition: Callable[[], bool], timeout_ms: int=5000, check_interval_ms: int=100)` - Wait for a condition to become true within a timeout.
 - `wait_for_ui_update(ms: int=100)` - Wait for UI to update and process events.
 
-## test - `test/run_fighter_tests.py`
+## test - `tests/run_fighter_tests.py`
 
 - `main()` - Main test execution function.
 - `run_pytest_with_output(test_files, markers=None)` - Run pytest on specific test files and return results.
 
-## test - `test/services/test_concentration_system.py`
+## test - `tests/services/test_concentration_system.py`
 
 - `setUp(self)` - Set up test database with minimal data.
 - `tearDown(self)` - Clean up test database.
@@ -5448,7 +5448,7 @@ Total functions documented: 6842
 - `test_start_concentration_success(self)` - Test successfully starting concentration on a spell.
 - `test_update_concentration_duration(self)` - Test updating concentration duration during combat.
 
-## test - `test/services/test_condition_manager.py`
+## test - `tests/services/test_condition_manager.py`
 
 - `_create_test_schema(self)` - Create minimal schema for testing.
 - `setUp(self)` - Create a test database and condition manager.
@@ -5475,7 +5475,7 @@ Total functions documented: 6842
 - `test_danger_sense_not_blocked_by_frightened(self)` - Danger Sense should work when only frightened.
 - `test_danger_sense_with_no_conditions(self)` - Danger Sense should work when not incapacitated.
 
-## test - `test/services/test_condition_stat_service.py`
+## test - `tests/services/test_condition_stat_service.py`
 
 - `_create_test_schema(self)` - Create minimal schema for testing.
 - `setUp(self)` - Create a test database and services.
@@ -5489,7 +5489,7 @@ Total functions documented: 6842
 - `test_movement_speed_modification(self)` - Test movement speed modifications from conditions.
 - `test_saving_throw_modifiers(self)` - Test saving throw modifiers from conditions.
 
-## test - `test/services/test_fighter_champion.py`
+## test - `tests/services/test_fighter_champion.py`
 
 - `_init_champion_schema(conn: sqlite3.Connection)` - Inferred from name: init champion schema.
 - `temp_db_path(prefix: str)` - Inferred from name: temp db path.
@@ -5498,7 +5498,7 @@ Total functions documented: 6842
 - `test_roll_skill_check_applies_remarkable_athlete(monkeypatch)` - Inferred from name: test roll skill check applies remarkable athlete.
 - `test_survivor_heals_when_bloodied_and_tracks_defy_death()` - Inferred from name: test survivor heals when bloodied and tracks defy death.
 
-## test - `test/services/test_monster_attack_parser.py`
+## test - `tests/services/test_monster_attack_parser.py`
 
 - `setUp(self)` - Set up database connection.
 - `test_parse_database_monsters(self)` - Test parsing attacks from actual database monsters.
@@ -5521,7 +5521,7 @@ Total functions documented: 6842
 - `test_size_based_grapple(self)` - Test parsing size-based automatic grapple effects.
 - `test_trample_attack_automatic_prone(self)` - Test parsing trample attacks that automatically knock prone.
 
-## test - `test/services/test_paladin_devotion.py`
+## test - `tests/services/test_paladin_devotion.py`
 
 - `_init_paladin_schema(conn: sqlite3.Connection)` - Inferred from name: init paladin schema.
 - `temp_db_path(prefix: str)` - Inferred from name: temp db path.
@@ -5535,7 +5535,7 @@ Total functions documented: 6842
 - `test_long_rest_recovery()` - Test long rest recovery for paladins.
 - `test_paladin_initialization()` - Test basic paladin character initialization.
 
-## test - `test/services/test_ritual_casting.py`
+## test - `tests/services/test_ritual_casting.py`
 
 - `setUp(self)` - Set up test database with minimal data.
 - `tearDown(self)` - Clean up test database.
@@ -5549,7 +5549,7 @@ Total functions documented: 6842
 - `test_ritual_casting_time_calculation(self)` - Test ritual casting time calculation.
 - `test_wizard_can_ritual_cast_from_spellbook(self)` - Test that wizard can ritual cast spells from spellbook.
 
-## test - `test/services/test_rogue_abilities.py`
+## test - `tests/services/test_rogue_abilities.py`
 
 - `_create_test_database(self)` - Create minimal test database structure.
 - `_create_test_rogue(self, level: int=1, character_id: str='test_rogue')` - Create a test rogue character.
@@ -5569,7 +5569,7 @@ Total functions documented: 6842
 - `test_update_rogue_resources_for_level(self)` - Test resource updates for different levels.
 - `test_weapon_eligibility_for_sneak_attack(self)` - Test weapon eligibility for Sneak Attack.
 
-## test - `test/services/test_warlock_fiend.py`
+## test - `tests/services/test_warlock_fiend.py`
 
 - `create_test_warlock(self, level=1, patron='Fiend')` - Helper to create a test warlock character.
 - `setup_class(cls)` - Set up test database once for all tests.
@@ -5591,7 +5591,7 @@ Total functions documented: 6842
 - `test_spell_casting_integration(self)` - Test that Warlock integrates with spellcasting system.
 - `test_warlock_initialization(self)` - Test basic Warlock initialization.
 
-## test - `test/services/test_weapon_attack_service.py`
+## test - `tests/services/test_weapon_attack_service.py`
 
 - `_create_test_schema(self)` - Create minimal database schema for testing.
 - `_insert_test_data(self)` - Insert test character data.
@@ -5613,7 +5613,7 @@ Total functions documented: 6842
 - `test_weapon_mastery_effects_topple(self)` - Test Topple weapon mastery save DC calculation.
 - `test_weapon_mastery_unlimited_access(self)` - Test characters with unlimited weapon mastery access.
 
-## test - `test/services/test_wizard_evocation.py`
+## test - `tests/services/test_wizard_evocation.py`
 
 - `_init_wizard_schema(conn: sqlite3.Connection)` - Inferred from name: init wizard schema.
 - `temp_db_path(prefix: str)` - Inferred from name: temp db path.
@@ -5627,12 +5627,12 @@ Total functions documented: 6842
 - `test_wizard_initialization()` - Test basic wizard character initialization.
 - `test_wizard_spell_preparation_limit()` - Test that wizard spell preparation respects Intelligence modifier + level.
 
-## test - `test/test_action_economy_enforcement.py`
+## test - `tests/test_action_economy_enforcement.py`
 
 - `test_action_economy_logic()` - Test the logic for action economy enforcement.
 - `test_action_mapping()` - Test that actions are properly mapped to economy types.
 
-## test - `test/test_action_registry.py`
+## test - `tests/test_action_registry.py`
 
 - `_create_test_character(self, character_id='test_char', class_name='barbarian', level=1, subclass='berserker')` - Create a test character
 - `_setup_test_database(self)` - Setup minimal database schema for testing
@@ -5651,7 +5651,7 @@ Total functions documented: 6842
 - `test_trigger_types(self)` - Test that automatic triggers are properly set
 - `test_action_registry()` - Test registry in isolation as specified in roadmap
 
-## test - `test/test_action_tracking.py`
+## test - `tests/test_action_tracking.py`
 
 - `setup_method(self)` - Setup test action economy
 - `test_action_logging(self)` - Test that actions are properly logged
@@ -5662,7 +5662,7 @@ Total functions documented: 6842
 - `test_resource_consumption_tracking(self)` - Test resource consumption tracking across multiple actions
 - `test_action_tracking()` - Main test function as specified in roadmap
 
-## test - `test/test_action_validation.py`
+## test - `tests/test_action_validation.py`
 
 - `_create_test_character(self, character_id='test_char', class_name='barbarian', level=1, subclass='berserker', rage_uses=2)` - Create a test character
 - `_setup_test_database(self)` - Setup minimal database schema for testing
@@ -5678,13 +5678,13 @@ Total functions documented: 6842
 - `test_warning_logs_without_blocking(self)` - Test that warnings are logged but actions aren't blocked
 - `test_action_validation()` - Main test function as specified in roadmap
 
-## test - `test/test_alt_encounters.py`
+## test - `tests/test_alt_encounters.py`
 
 - `controlled_choice(options)` - Inferred from name: controlled choice.
 - `test_generate_skill_challenge_resource_swap_text()` - Inferred from name: test generate skill challenge resource swap text.
 - `test_generate_skill_challenge_structure()` - Inferred from name: test generate skill challenge structure.
 
-## test - `test/test_barbarian_level_progression.py`
+## test - `tests/test_barbarian_level_progression.py`
 
 - `_calculate_brutal_critical_dice(level)` - Calculate brutal critical extra dice by level
 - `_calculate_rage_uses(level)` - Calculate rage uses per long rest by level
@@ -5693,17 +5693,17 @@ Total functions documented: 6842
 - `_test_level_features(db_path, character_id, level)` - Test features available at specific level
 - `test_barbarian_level_progression()` - Test Barbarian progression from level 1 to 20
 
-## test - `test/test_bis_loot_system.py`
+## test - `tests/test_bis_loot_system.py`
 
 - `clean_test_character(character_id)` - Inferred from name: clean test character.
 - `create_test_character(class_name, strength=15, dexterity=10, constitution=14)` - Inferred from name: create test character.
 - `test_bis_drops()` - Inferred from name: test bis drops.
 
-## test - `test/test_campaign_frame_simple.py`
+## test - `tests/test_campaign_frame_simple.py`
 
 - `test_campaign_frame()` - Inferred from name: test campaign frame.
 
-## test - `test/test_character_creation.py`
+## test - `tests/test_character_creation.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run(self)` - Run the test application
@@ -5716,24 +5716,24 @@ Total functions documented: 6842
 - `test_full_creation_flow(self)` - Test 4: Full character creation flow
 - `test_imports(self)` - Test 1: Basic imports
 
-## test - `test/test_character_creation_automated.py`
+## test - `tests/test_character_creation_automated.py`
 
 - `log_test(test_name: str, success: bool, message: str='', error: Exception=None)` - Log test result
 - `run_automated_tests()` - Run all character creation tests automatically
 
-## test - `test/test_character_creation_fixed.py`
+## test - `tests/test_character_creation_fixed.py`
 
 - `test_character_creation_fix()` - Inferred from name: test character creation fix.
 
-## test - `test/test_class_filtering.py`
+## test - `tests/test_class_filtering.py`
 
 - `test_class_filtering()` - Inferred from name: test class filtering.
 
-## test - `test/test_class_filtering_final.py`
+## test - `tests/test_class_filtering_final.py`
 
 - `test_class_filtering_final()` - Inferred from name: test class filtering final.
 
-## test - `test/test_cleric_life.py`
+## test - `tests/test_cleric_life.py`
 
 - `setUp(self)` - Set up test database with full schema.
 - `tearDown(self)` - Clean up test database.
@@ -5748,13 +5748,13 @@ Total functions documented: 6842
 - `test_spell_slot_progression(self)` - Test cleric spell slot progression.
 - `test_subclass_registry_integration(self)` - Test Life Domain is properly registered in subclass system.
 
-## test - `test/test_condition_integration.py`
+## test - `tests/test_condition_integration.py`
 
 - `check_danger_sense_enhanced(character_id)` - Enhanced Danger Sense that checks for incapacitating conditions.
 - `test_condition_system_standalone()` - Test that condition system works independently.
 - `test_danger_sense_integration_prep()` - Test that we're ready for Danger Sense integration.
 
-## test - `test/test_cunning_strike_end_to_end.py`
+## test - `tests/test_cunning_strike_end_to_end.py`
 
 - `_create_goblin(self, goblin_id: str='goblin1')` - Create test goblin target
 - `_create_rogue(self, level: int=5, rogue_id: str='rogue1', dex: int=18)` - Create test rogue
@@ -5768,7 +5768,7 @@ Total functions documented: 6842
 - `test_trip_strike_combat_flow(self)` - Test Trip Strike: Select -> Attack -> Save -> Apply Prone
 - `main()` - Run all end-to-end tests
 
-## test - `test/test_cunning_strike_integration.py`
+## test - `tests/test_cunning_strike_integration.py`
 
 - `_create_test_rogue(self, level: int=5, character_id: str='test_rogue', dexterity: int=18)` - Create a test rogue character
 - `_setup_test_database(self)` - Setup minimal database schema
@@ -5792,19 +5792,19 @@ Total functions documented: 6842
 - `test_validation_too_many_effects_level_5(self)` - Test validation rejects multiple effects for level 5 rogue
 - `main()` - Run all integration tests
 
-## test - `test/test_danger_sense_integration.py`
+## test - `tests/test_danger_sense_integration.py`
 
 - `test_backwards_compatibility()` - Test that existing code still works unchanged.
 - `test_danger_sense_integration()` - Test that enhanced Danger Sense works with condition system.
 
-## test - `test/test_divine_smite_simple.py`
+## test - `tests/test_divine_smite_simple.py`
 
 - `main()` - Run all simple tests.
 - `test_critical_hit_indication()` - Test that critical hits are properly indicated in dialog.
 - `test_hp_threshold_logic()` - Test the logic for when to show the smite dialog.
 - `test_smite_damage_calculation()` - Test that smite damage is calculated correctly.
 
-## test - `test/test_dynamic_feature_system.py`
+## test - `tests/test_dynamic_feature_system.py`
 
 - `_setup_test_database(self)` - Setup test database with minimal schema and data
 - `setUp(self)` - Inferred from name: setUp.
@@ -5818,11 +5818,11 @@ Total functions documented: 6842
 - `test_level_up_preview(self)` - Test level up preview functionality
 - `test_subclass_selection_detection(self)` - Test detecting subclass selection level
 
-## test - `test/test_dynamic_system_validation.py`
+## test - `tests/test_dynamic_system_validation.py`
 
 - `test_dynamic_feature_system()` - Test the dynamic feature system with existing database
 
-## test - `test/test_encounter_avoidance.py`
+## test - `tests/test_encounter_avoidance.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run_all_tests(self)` - Inferred from name: run all tests.
@@ -5834,11 +5834,11 @@ Total functions documented: 6842
 - `test_stealth_vs_perception(self)` - Inferred from name: test stealth vs perception.
 - `test_xp_calculation(self)` - Inferred from name: test xp calculation.
 
-## test - `test/test_encounter_panel_debug.py`
+## test - `tests/test_encounter_panel_debug.py`
 
 - `test_encounter_panel_debug()` - Inferred from name: test encounter panel debug.
 
-## test - `test/test_fighter_comprehensive.py`
+## test - `tests/test_fighter_comprehensive.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `_generate_recommendations(self)` - Generate recommendations based on test results.
@@ -5857,13 +5857,13 @@ Total functions documented: 6842
 - `main()` - Main test runner function.
 - `run_manual_feature_tests()` - Run specific manual tests for features that are hard to automate.
 
-## test - `test/test_fighter_validation_demo.py`
+## test - `tests/test_fighter_validation_demo.py`
 
 - `demonstrate_testing_capabilities()` - Demonstrate the comprehensive testing capabilities.
 - `show_usage_examples()` - Show examples of how to use the testing framework.
 - `test_framework_setup()` - Test that the testing framework is properly set up.
 
-## test - `test/test_full_action_economy.py`
+## test - `tests/test_full_action_economy.py`
 
 - `_create_test_character(self, character_id='test_char', class_name='barbarian', level=20, subclass='berserker')` - Create a test character
 - `_setup_test_database(self)` - Setup minimal database schema for testing
@@ -5879,18 +5879,18 @@ Total functions documented: 6842
 - `test_resource_consumption(self)` - Validate resource consumption
 - `test_full_action_economy()` - Main test function as specified in roadmap
 
-## test - `test/test_galahad_smite.py`
+## test - `tests/test_galahad_smite.py`
 
 - `test_galahad_smite()` - Inferred from name: test galahad smite.
 
-## test - `test/test_level_1_paladin_fix.py`
+## test - `tests/test_level_1_paladin_fix.py`
 
 - `main()` - Run all level 1 paladin tests.
 - `test_divine_smite_availability()` - Test that level 1 paladins can potentially use Divine Smite (have spell slots).
 - `test_level_1_paladin_spell_selection()` - Test that level 1 paladins can select 2 prepared spells during creation.
 - `test_level_1_paladin_spell_slots()` - Test that level 1 paladins get 2 first-level spell slots (D&D 2024).
 
-## test - `test/test_lucky_halo.py`
+## test - `tests/test_lucky_halo.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `load_test_character_with_resources(self)` - Load a character with Lucky and Inspiration resources.
@@ -5901,7 +5901,7 @@ Total functions documented: 6842
 - `test_resource_priority(self)` - Test that Inspiration shows before Lucky.
 - `main()` - Main test entry point.
 
-## test - `test/test_monster_distribution.py`
+## test - `tests/test_monster_distribution.py`
 
 - `setUp(self)` - Set up test fixtures
 - `test_alignment_filtering(self)` - Test monster alignment filtering based on campaign frame rules
@@ -5921,7 +5921,7 @@ Total functions documented: 6842
 - `test_full_campaign_simulation(self)` - Simulate a full campaign to test monster distribution over time
 - `run_monster_distribution_tests()` - Run all monster distribution tests
 
-## test - `test/test_paladin_comprehensive.py`
+## test - `tests/test_paladin_comprehensive.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `cleanup(self)` - Clean up test environment.
@@ -5944,7 +5944,7 @@ Total functions documented: 6842
 - `test_paladin_spell_preparation(self)` - Test paladin spell preparation calculation.
 - `main()` - Run the paladin test suite.
 
-## test - `test/test_paladin_comprehensive_regression.py`
+## test - `tests/test_paladin_comprehensive_regression.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `create_test_paladin_full(self, character_id: str, level: int, subclass: str='devotion')` - Create a complete test paladin with all required fields.
@@ -5965,7 +5965,7 @@ Total functions documented: 6842
 - `test_ui_components(self)` - Test all UI components can be created.
 - `main()` - Run the comprehensive paladin regression test suite.
 
-## test - `test/test_paladin_simple.py`
+## test - `tests/test_paladin_simple.py`
 
 - `run_all_tests()` - Run all simple paladin tests.
 - `test_action_cards_exist()` - Test if paladin action card files exist.
@@ -5977,11 +5977,11 @@ Total functions documented: 6842
 - `test_paladin_service_import()` - Test paladin service can be imported.
 - `test_paladin_tables_needed()` - Test what paladin-specific tables exist.
 
-## test - `test/test_paladin_subclasses.py`
+## test - `tests/test_paladin_subclasses.py`
 
 - `test_subclass_features()` - Inferred from name: test subclass features.
 
-## test - `test/test_parlay_system.py`
+## test - `tests/test_parlay_system.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run_all_tests(self)` - Inferred from name: run all tests.
@@ -5993,18 +5993,18 @@ Total functions documented: 6842
 - `test_parlay_skills(self)` - Inferred from name: test parlay skills.
 - `test_xp_calculation(self)` - Inferred from name: test xp calculation.
 
-## test - `test/test_rage_resistance.py`
+## test - `tests/test_rage_resistance.py`
 
 - `_map_action_to_economy_type(self, action_type: ActionType)` - Copy of the mapping method for testing.
 - `test_action_economy_integration()` - Test that rage action economy integration works.
 - `test_rage_resistance_calculations()` - Test the mathematics of rage damage resistance.
 
-## test - `test/test_rage_state_tracking.py`
+## test - `tests/test_rage_state_tracking.py`
 
 - `test_damage_type_mapping()` - Test damage type recognition.
 - `test_rage_state_conditions()` - Test the conditions for applying rage resistance.
 
-## test - `test/test_rest_system.py`
+## test - `tests/test_rest_system.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `cleanup_test_character(self)` - Inferred from name: cleanup test character.
@@ -6014,11 +6014,11 @@ Total functions documented: 6842
 - `test_ration_check(self)` - Inferred from name: test ration check.
 - `test_ration_consumption(self)` - Inferred from name: test ration consumption.
 
-## test - `test/test_results_summary.py`
+## test - `tests/test_results_summary.py`
 
 - `run_tests_and_summarize()` - Run tests and provide summary.
 
-## test - `test/test_rogue_expertise_progression.py`
+## test - `tests/test_rogue_expertise_progression.py`
 
 - `_create_rogue(self, level: int)` - Create a rogue character at specified level
 - `_setup_test_database(self)` - Setup minimal database schema
@@ -6034,7 +6034,7 @@ Total functions documented: 6842
 - `test_rogue_features_table_expertise_count(self)` - Test rogue_features table tracks expertise count
 - `main()` - Run all tests
 
-## test - `test/test_rogue_level_progression.py`
+## test - `tests/test_rogue_level_progression.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run_full_test(self)` - Run complete level progression test.
@@ -6042,11 +6042,11 @@ Total functions documented: 6842
 - `test_level(self, level: int)` - Test a specific level progression.
 - `verify_level_features(self, level: int, result: Dict[str, Any])` - Verify expected features for a given level.
 
-## test - `test/test_rogue_subclass_selection.py`
+## test - `tests/test_rogue_subclass_selection.py`
 
 - `test_rogue_subclass_selection()` - Test that level 3 rogues can choose between Thief and Assassin subclasses.
 
-## test - `test/test_rogue_ui_action_cards.py`
+## test - `tests/test_rogue_ui_action_cards.py`
 
 - `_calculate_sneak_attack_dice(self, level: int)` - Calculate sneak attack dice based on level
 - `_create_test_rogue(self, level: int=1, character_id: str='test_rogue')` - Create a test rogue character
@@ -6068,7 +6068,7 @@ Total functions documented: 6842
 - `test_uncanny_dodge_usage_simulation(self)` - Test simulating Uncanny Dodge usage
 - `main()` - Run all tests
 
-## test - `test/test_rogue_ui_choice_cards.py`
+## test - `tests/test_rogue_ui_choice_cards.py`
 
 - `_calculate_sneak_attack_dice(self, level: int)` - Calculate sneak attack dice based on level
 - `_create_test_rogue(self, level: int=1, character_id: str='test_rogue')` - Create a test rogue character
@@ -6093,7 +6093,7 @@ Total functions documented: 6842
 - `test_uncanny_dodge_reaction_timing(self)` - Test Uncanny Dodge card appears during enemy attack
 - `main()` - Run all tests
 
-## test - `test/test_rogue_validation.py`
+## test - `tests/test_rogue_validation.py`
 
 - `main()` - Run all validation tests.
 - `test_action_types_defined()` - Test that Rogue action types are defined.
@@ -6103,7 +6103,7 @@ Total functions documented: 6842
 - `test_weapon_attack_service_integration()` - Test that WeaponAttackService includes Sneak Attack integration.
 - `test_weapon_eligibility()` - Test weapon eligibility for Sneak Attack.
 
-## test - `test/test_scalable_subclass_architecture.py`
+## test - `tests/test_scalable_subclass_architecture.py`
 
 - `test_enhanced_manager_with_registry()` - Test that EnhancedSubclassManager works with the registry.
 - `test_feature_type_compatibility()` - Test that different subclasses use feature types correctly.
@@ -6111,7 +6111,7 @@ Total functions documented: 6842
 - `test_registry_loads_berserker()` - Test that the registry can load the existing Berserker.
 - `test_registry_loads_champion()` - Test that the registry can load the new Champion.
 
-## test - `test/test_shop_integration.py`
+## test - `tests/test_shop_integration.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run_all_tests(self)` - Inferred from name: run all tests.
@@ -6119,7 +6119,7 @@ Total functions documented: 6842
 - `test_shop_size_enum_values(self)` - Test that all ShopSize enum values work
 - `test_vendor_encounter_compatibility(self)` - Test that vendor encounter can create ShopInterface
 
-## test - `test/test_shop_system.py`
+## test - `tests/test_shop_system.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `run_all_tests(self)` - Inferred from name: run all tests.
@@ -6131,15 +6131,15 @@ Total functions documented: 6842
 - `test_shop_sorting(self)` - Inferred from name: test shop sorting.
 - `test_small_shop_inventory(self)` - Inferred from name: test small shop inventory.
 
-## test - `test/test_simple.py`
+## test - `tests/test_simple.py`
 
 - `test_character_creation()` - Inferred from name: test character creation.
 
-## test - `test/test_simple_validation.py`
+## test - `tests/test_simple_validation.py`
 
 - `main()` - Inferred from name: main.
 
-## test - `test/test_skill_challenge_system.py`
+## test - `tests/test_skill_challenge_system.py`
 
 - `cleanup_test_data()` - Clean up test data from database.
 - `main()` - Run all skill challenge system tests.
@@ -6148,7 +6148,7 @@ Total functions documented: 6842
 - `test_skill_challenge_database()` - Test that skill challenge templates are loaded from database.
 - `test_skill_challenge_session()` - Test creating and managing a skill challenge session.
 
-## test - `test/test_skill_rewards.py`
+## test - `tests/test_skill_rewards.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `get_inventory_count(self, item_name: str)` - Get quantity of an item in test character inventory.
@@ -6159,7 +6159,7 @@ Total functions documented: 6842
 - `test_item_reward(self)` - Inferred from name: test item reward.
 - `test_rations_reward(self)` - Inferred from name: test rations reward.
 
-## test - `test/test_skilled_feat.py`
+## test - `tests/test_skilled_feat.py`
 
 - `setUp(self)` - Inferred from name: setUp.
 - `tearDown(self)` - Inferred from name: tearDown.
@@ -6168,13 +6168,13 @@ Total functions documented: 6842
 - `test_skilled_feat_can_be_taken_twice_at_same_level(self)` - Inferred from name: test skilled feat can be taken twice at same level.
 - `test_skilled_feat_excludes_existing_proficiencies(self)` - Inferred from name: test skilled feat excludes existing proficiencies.
 
-## test - `test/test_sneak_attack_debug.py`
+## test - `tests/test_sneak_attack_debug.py`
 
 - `mock_get_context_weapon_properties(context)` - Inferred from name: mock get context weapon properties.
 - `mock_has_class_feature(feature_name)` - Inferred from name: mock has class feature.
 - `test_sneak_attack_debug()` - Debug sneak attack with various advantage states.
 
-## test - `test/test_social_interactions.py`
+## test - `tests/test_social_interactions.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `_get_inventory_count(self, item_name: str)` - Get quantity of an item in inventory.
@@ -6187,7 +6187,7 @@ Total functions documented: 6842
 - `test_stealth_avoidance_flow(self)` - Test complete stealth avoidance flow.
 - `test_xp_reward_balance(self)` - Test that different resolution methods have balanced XP rewards.
 
-## test - `test/test_spell_action_cards.py`
+## test - `tests/test_spell_action_cards.py`
 
 - `main()` - Run all tests.
 - `test_spell_action_cards_creation()` - Test that spell action cards are created for spellcasting characters.
@@ -6195,11 +6195,11 @@ Total functions documented: 6842
 - `test_spell_casting_context()` - Test that spell data is passed correctly in action context.
 - `test_spell_icon_generation()` - Test that spell icons are generated correctly.
 
-## test - `test/test_spell_cards_qt6.py`
+## test - `tests/test_spell_cards_qt6.py`
 
 - `test_spell_action_cards()` - Test that spell action cards appear for Nathlas.
 
-## test - `test/test_spell_data_phase1.py`
+## test - `tests/test_spell_data_phase1.py`
 
 - `main()` - Inferred from name: main.
 - `test_cantrip_counts()` - Test that all classes have sufficient cantrips for character creation
@@ -6207,7 +6207,7 @@ Total functions documented: 6842
 - `test_level1_spell_counts()` - Test that all classes have sufficient level 1 spells
 - `test_total_spell_count()` - Test overall spell counts
 
-## test - `test/test_spell_registry.py`
+## test - `tests/test_spell_registry.py`
 
 - `setUp(self)` - Set up test database.
 - `tearDown(self)` - Clean up test database.
@@ -6227,7 +6227,7 @@ Total functions documented: 6842
 - `test_search_spells_ritual_only(self)` - Test searching for ritual spells only.
 - `test_spell_caching(self)` - Test that spells are cached properly.
 
-## test - `test/test_spell_saving_simple.py`
+## test - `tests/test_spell_saving_simple.py`
 
 - `main()` - Inferred from name: main.
 - `test_existing_character_spell_data()` - Inferred from name: test existing character spell data.
@@ -6235,14 +6235,14 @@ Total functions documented: 6842
 - `test_spell_saving_logic_exists()` - Inferred from name: test spell saving logic exists.
 - `test_spell_table_structure()` - Inferred from name: test spell table structure.
 
-## test - `test/test_spell_selection_integration.py`
+## test - `tests/test_spell_selection_integration.py`
 
 - `main()` - Inferred from name: main.
 - `test_cleric_character_creation_no_spells()` - Inferred from name: test cleric character creation no spells.
 - `test_warlock_character_creation_with_spells()` - Inferred from name: test warlock character creation with spells.
 - `test_wizard_character_creation_with_spells()` - Inferred from name: test wizard character creation with spells.
 
-## test - `test/test_spell_selection_ui.py`
+## test - `tests/test_spell_selection_ui.py`
 
 - `main()` - Inferred from name: main.
 - `test_cleric_selection()` - Inferred from name: test cleric selection.
@@ -6252,18 +6252,18 @@ Total functions documented: 6842
 - `test_warlock_selection()` - Inferred from name: test warlock selection.
 - `test_wizard_selection()` - Inferred from name: test wizard selection.
 
-## test - `test/test_spell_self_targeting.py`
+## test - `tests/test_spell_self_targeting.py`
 
 - `_get_spell_buff_effects(spell_name, cast_level)` - Inferred from name: get spell buff effects.
 - `_is_self_targeting_spell(spell_data)` - Inferred from name: is self targeting spell.
 - `test_is_self_targeting_spell()` - Test that buff spells are correctly identified as self-targeting.
 - `test_spell_buff_effects()` - Test that buff effects are correctly formatted.
 
-## test - `test/test_spell_slots_qt6.py`
+## test - `tests/test_spell_slots_qt6.py`
 
 - `test_spell_slots()` - Test spell slot availability.
 
-## test - `test/test_spellcasting_service.py`
+## test - `tests/test_spellcasting_service.py`
 
 - `setUp(self)` - Set up test database with minimal schema.
 - `tearDown(self)` - Clean up test database.
@@ -6277,7 +6277,7 @@ Total functions documented: 6842
 - `test_upcasting(self)` - Test casting spells at higher levels.
 - `test_warlock_pact_magic_restoration(self)` - Test warlock pact magic slot restoration on short rest.
 
-## test - `test/test_stage_1_3_ui.py`
+## test - `tests/test_stage_1_3_ui.py`
 
 - `log_callback(message)` - Inferred from name: log callback.
 - `test_condition_badge_creation()` - Test creating individual condition badges.
@@ -6285,7 +6285,7 @@ Total functions documented: 6842
 - `test_condition_logging()` - Test the condition logging system.
 - `test_integration_with_existing_system()` - Test that our condition system doesn't break existing functionality.
 
-## test - `test/test_stage_1_4_integration.py`
+## test - `tests/test_stage_1_4_integration.py`
 
 - `test_action_economy_restrictions()` - Test that conditions properly block actions.
 - `test_condition_advantage_integration()` - Test that conditions properly integrate with advantage system.
@@ -6294,14 +6294,14 @@ Total functions documented: 6842
 - `test_exhaustion_comprehensive()` - Test comprehensive exhaustion effects across all systems.
 - `test_saving_throw_integration()` - Test saving throw modifications from conditions.
 
-## test - `test/test_stage_2_1_subclass_definitions.py`
+## test - `tests/test_stage_2_1_subclass_definitions.py`
 
 - `test_berserker_definition()` - Test the Berserker subclass definition.
 - `test_enhanced_subclass_manager()` - Test the enhanced subclass manager.
 - `test_feature_type_handlers()` - Test different feature type handling.
 - `test_subclass_feature_creation()` - Test creating individual subclass features.
 
-## test - `test/test_stage_2_2_berserker_migration.py`
+## test - `tests/test_stage_2_2_berserker_migration.py`
 
 - `test_berserker_legacy_compatibility()` - Test that new system doesn't break existing Berserker functionality.
 - `test_frenzy_damage_mechanics()` - Test Frenzy damage bonus mechanics.
@@ -6309,7 +6309,7 @@ Total functions documented: 6842
 - `test_mindless_rage_integration()` - Test Mindless Rage with condition immunity system.
 - `test_retaliation_mechanics()` - Test Retaliation reaction mechanics.
 
-## test - `test/test_stage_2_3_ui_integration.py`
+## test - `tests/test_stage_2_3_ui_integration.py`
 
 - `mock_handler(feature_name, character_id)` - Inferred from name: mock handler.
 - `test_character_panel_integration()` - Test integration with character panel (mock-based).
@@ -6318,14 +6318,14 @@ Total functions documented: 6842
 - `test_subclass_features_widget_backend()` - Test the backend functionality of SubclassFeaturesWidget.
 - `test_ui_widget_creation()` - Test UI widget creation (if PyQt6 available).
 
-## test - `test/test_stage_2_4_feature_activation.py`
+## test - `tests/test_stage_2_4_feature_activation.py`
 
 - `test_action_card_integration()` - Test integration with action card system.
 - `test_berserker_feature_activation()` - Test Berserker feature activation through action cards.
 - `test_champion_feature_activation()` - Test Champion feature activation through automatic triggers.
 - `test_resource_tracking_integration()` - Test resource tracking across the feature activation system.
 
-## test - `test/test_stealth_mechanics.py`
+## test - `tests/test_stealth_mechanics.py`
 
 - `add_equipment(self, db_path: str, character_id: str, item_data: Dict[str, Any])` - Add equipment to a character.
 - `create_test_character(self, db_path: str, character_data: Dict[str, Any])` - Create a test character in the database.
@@ -6339,13 +6339,13 @@ Total functions documented: 6842
 - `test_stealth_with_proficiency(self, setup_database)` - Test that character with stealth proficiency can attempt to hide.
 - `test_stealth_without_proficiency(self, setup_database)` - Test that character without stealth proficiency cannot hide.
 
-## test - `test/test_tab_styling.py`
+## test - `tests/test_tab_styling.py`
 
 - `get_tab_availability(status)` - Inferred from name: get tab availability.
 - `test_css_generation()` - Test that CSS is generated correctly.
 - `test_tab_availability_logic()` - Test the logic for determining tab availability.
 
-## test - `test/test_ui_action_cards.py`
+## test - `tests/test_ui_action_cards.py`
 
 - `_create_test_character(self, character_id='test_char', class_name='barbarian', level=1, subclass='berserker', rage_uses=2)` - Create a test character
 - `_setup_test_database(self)` - Setup minimal database schema for testing
@@ -6362,16 +6362,16 @@ Total functions documented: 6842
 - `test_warning_badges(self)` - Test warning badge system
 - `test_ui_action_cards()` - Main test function as specified in roadmap
 
-## test - `test/test_unified_feature_system.py`
+## test - `tests/test_unified_feature_system.py`
 
 - `test_unified_feature_system()` - Test the new unified feature system with all 11 classes
 
-## test - `test/test_weapon_hydration.py`
+## test - `tests/test_weapon_hydration.py`
 
 - `test_longsword_plus_one_exists()` - Inferred from name: test longsword plus one exists.
 - `test_magic_weapon_variants()` - Inferred from name: test magic weapon variants.
 
-## test - `test/testing_framework_character_creation.py`
+## test - `tests/testing_framework_character_creation.py`
 
 - `__init__(self, framework: UIAutomationFramework)` - Inferred from name: init.
 - `_finalize_character(self, name: str)` - Set character name and complete creation.
@@ -6398,7 +6398,7 @@ Total functions documented: 6842
 - `validate_spell_selection_ui(self, char_class: CharacterClass)` - Validate that spell selection UI appears for spellcasting classes.
 - `main()` - Main entry point for character creation testing.
 
-## test - `test/testing_framework_combat_interactions.py`
+## test - `tests/testing_framework_combat_interactions.py`
 
 - `__init__(self, framework: UIAutomationFramework)` - Inferred from name: init.
 - `_check_concentration_indicator(self)` - Check if concentration indicator is shown.
@@ -6422,7 +6422,7 @@ Total functions documented: 6842
 - `run_all_combat_tests(self, character_id: str)` - Run all combat tests for a character.
 - `main()` - Main entry point for combat testing.
 
-## test - `test/testing_framework_master.py`
+## test - `tests/testing_framework_master.py`
 
 - `__init__(self)` - Inferred from name: init.
 - `_get_test_character_with_spells(self)` - Get a character ID that has spells for testing.
@@ -6437,7 +6437,7 @@ Total functions documented: 6842
 - `setup_test_data_and_run(self)` - Set up test data and run comprehensive tests.
 - `main()` - Main entry point for the testing framework.
 
-## test - `test/testing_framework_spell_actions.py`
+## test - `tests/testing_framework_spell_actions.py`
 
 - `__init__(self, framework: UIAutomationFramework)` - Inferred from name: init.
 - `_enter_encounter_mode(self)` - Enter encounter mode to see action cards.
@@ -6457,7 +6457,7 @@ Total functions documented: 6842
 - `create_test_wizard_with_spells(self, name: str='TestWizardSpells')` - Create a test wizard character with known spells.
 - `main()` - Main entry point for spell action testing.
 
-## test - `test/testing_framework_ui_automation.py`
+## test - `tests/testing_framework_ui_automation.py`
 
 - `__init__(self, framework: UIAutomationFramework)` - Inferred from name: init.
 - `_complete_character_creation(self, name: str)` - Complete the character creation process.
@@ -6492,7 +6492,7 @@ Total functions documented: 6842
 - `wait_for_widget(self, widget_finder, timeout_ms: int=5000)` - Wait for a widget to become available.
 - `main()` - Main entry point for testing framework.
 
-## test - `test/ui/test_action_panel_integration.py`
+## test - `tests/ui/test_action_panel_integration.py`
 
 - `__init__(self, db_path)` - Inferred from name: init.
 - `_force_reload_character(self)` - Mock character reload.
@@ -6511,7 +6511,7 @@ Total functions documented: 6842
 - `temp_db()` - Create temporary database with full Fighter test data.
 - `test_ui_interaction_helpers()` - Test helper functions for UI interactions work correctly.
 
-## test - `test/ui/test_rest_restrictions.py`
+## test - `tests/ui/test_rest_restrictions.py`
 
 - `__init__(self, id, encounter_id, monster_id, monster_name, max_hit_points, current_hit_points, armor_class, initiative)` - Inferred from name: init.
 - `is_alive(self)` - Inferred from name: is alive.
@@ -6536,7 +6536,7 @@ Total functions documented: 6842
 - `test_character(temp_db)` - Get an existing test character and add rations.
 - `test_monsters_present_detection()` - Unit test for _monsters_present() method.
 
-## test - `test/validate_action_types.py`
+## test - `tests/validate_action_types.py`
 
 - `_map_action_to_economy_type(self, action_type: ActionType)` - Copy of the mapping method for testing.
 - `test_action_economy_mapping()` - Test that action economy mapping works without errors.

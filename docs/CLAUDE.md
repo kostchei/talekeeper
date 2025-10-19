@@ -351,20 +351,20 @@ tester.test_defense_style()  # or test_dueling_style(), etc.
 - **Location**: `services/condition_manager.py`
 - **Features**: D&D 2024 conditions with mechanical effects
 - **Integration**: Danger Sense, advantage/disadvantage, movement restrictions
-- **Testing**: `test/services/test_condition_manager.py`
+- **Testing**: `tests/services/test_condition_manager.py`
 
 ### Subclass Architecture
 - **Primary**: `services/enhanced_subclass_manager.py`
 - **Registry**: `services/subclass_registry.py`
 - **Features**: Modular, scalable design for 44+ subclasses across 11 classes
 - **Example**: Champion Fighter, Berserker Barbarian implementations
-- **Testing**: `test/test_scalable_subclass_architecture.py`
+- **Testing**: `tests/test_scalable_subclass_architecture.py`
 
 ### Action Economy System
 - **Enforcement**: Action/bonus action/reaction tracking and validation
 - **Integration**: Works with class features and combat system
 - **UI**: Action cards show availability based on economy state
-- **Testing**: `test/test_action_economy_enforcement.py`
+- **Testing**: `tests/test_action_economy_enforcement.py`
 
 ### Configuration System
 - **Location**: `core/config.py`

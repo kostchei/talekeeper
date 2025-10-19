@@ -52,10 +52,10 @@ def main():
     print("-" * 40)
 
     try:
-        from test.fixtures.fighter_test_database import FighterTestDatabase
+        from tests.fixtures.fighter_test_database import FighterTestDatabase
         print("  [OK] FighterTestDatabase import")
 
-        from test.helpers.ui_test_helpers import UITestHelpers
+        from tests.helpers.ui_test_helpers import UITestHelpers
         print("  [OK] UITestHelpers import")
 
         from services.fighter_abilities import FighterAbilitiesService

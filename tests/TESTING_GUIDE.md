@@ -96,7 +96,7 @@ python -m pytest services/test_weapon_attack_service.py -k "dueling or archery" 
 ```bash
 cd test
 # Check if UI helpers still work
-python -c "from test.helpers.ui_test_helpers import UITestHelpers; print('UI helpers OK')"
+python -c "from tests.helpers.ui_test_helpers import UITestHelpers; print('UI helpers OK')"
 ```
 
 ## Common Test Commands
@@ -146,7 +146,7 @@ The test database is created temporarily for each test run:
 ### Manual Database Testing
 ```python
 # Create test database manually
-from test.fixtures.fighter_test_database import FighterTestDatabase
+from tests.fixtures.fighter_test_database import FighterTestDatabase
 
 with FighterTestDatabase() as db_path:
     print(f"Test DB at: {db_path}")
@@ -230,12 +230,12 @@ cd test && python -m pytest services/ --collect-only -q | grep "test_"
 ## Maintenance
 
 ### After Database Schema Changes
-1. Update `test/fixtures/fighter_test_database.py` to match new schema
+1. Update `tests/fixtures/fighter_test_database.py` to match new schema
 2. Run validation: `python test_simple_validation.py`
 3. Run tests: `python -m pytest services/ -v`
 
 ### After Adding New Fighter Features
-1. Add test in appropriate file under `test/features/`
+1. Add test in appropriate file under `tests/features/`
 2. Update this guide with new test commands
 3. Run full test suite to ensure no regressions
 

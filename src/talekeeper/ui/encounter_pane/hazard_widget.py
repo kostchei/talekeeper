@@ -221,7 +221,23 @@ class HazardWidget(QWidget):
                     exhaustion_gained = int(exhaustion_match.group(1))
                 else:
                     exhaustion_gained = 1
-                results.append(f"Exhaustion Gained: {exhaustion_gained} level(s)")
+
+                # Apply exhaustion via ConditionManager
+                character_id = self.character_data.get('id')
+                if character_id:
+                    try:
+                        from src.talekeeper.services.condition_manager import ConditionManager
+                        condition_manager = ConditionManager()
+
+                        condition_manager._add_exhaustion_level(character_id, exhaustion_gained, f"Hazard: {self.current_hazard.get('name')}")
+                        current_level = condition_manager.get_exhaustion_level(character_id)
+
+                        results.append(f"Exhaustion Gained: {exhaustion_gained} level(s) (now level {current_level})")
+                    except Exception as e:
+                        print(f"[HazardWidget] Error applying exhaustion: {e}")
+                        results.append(f"Exhaustion Gained: {exhaustion_gained} level(s)")
+                else:
+                    results.append(f"Exhaustion Gained: {exhaustion_gained} level(s)")
 
             if self.current_hazard.get('damage_avg'):
                 damage = self.current_hazard['damage_avg']

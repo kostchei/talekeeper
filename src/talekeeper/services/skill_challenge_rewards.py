@@ -273,7 +273,23 @@ class SkillChallengeRewards:
 
     def _apply_exhaustion(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply exhaustion condition."""
-        # Exhaustion would need to be tracked in conditions system
+        character_id = character_data.get('id')
+
+        if character_id:
+            try:
+                from src.talekeeper.services.condition_manager import ConditionManager, ConditionType, ActiveCondition
+                condition_manager = ConditionManager(self.db_path)
+
+                # Add one level of exhaustion
+                condition_manager._add_exhaustion_level(character_id, 1, "Skill challenge failure")
+
+                # Get current level for feedback
+                current_level = condition_manager.get_exhaustion_level(character_id)
+                return character_data, [f"Gained one level of exhaustion (now level {current_level})"]
+            except Exception as e:
+                print(f"[SkillChallengeRewards] Error applying exhaustion: {e}")
+                return character_data, ["Gained one level of exhaustion (error applying condition)"]
+
         return character_data, ["Gained one level of exhaustion"]
 
     def _get_dangerous_trap_damage(self, level: int) -> Tuple[str, int]:
@@ -364,7 +380,36 @@ class SkillChallengeRewards:
 
     def _apply_poison_condition(self, character_data: Dict) -> Tuple[Dict, List[str]]:
         """Apply poisoned condition."""
-        # Poison condition would need to be tracked in conditions system
+        character_id = character_data.get('id')
+
+        if character_id:
+            try:
+                from src.talekeeper.services.condition_manager import ConditionManager, ConditionType, ActiveCondition
+                condition_manager = ConditionManager(self.db_path)
+
+                # Apply poisoned condition
+                poisoned_condition = ActiveCondition(
+                    condition_type=ConditionType.POISONED,
+                    source="Skill challenge failure - poison trap/hazard",
+                    duration_type="save_ends",
+                    save_dc=15,  # Standard DC for skill challenge poison
+                    save_ability="constitution",
+                    save_frequency="end_of_turn"
+                )
+
+                if condition_manager.add_condition(character_id, poisoned_condition):
+                    return character_data, [
+                        "Poisoned condition applied!",
+                        "Effect: Disadvantage on attack rolls and ability checks",
+                        "Make a DC 15 Constitution save at the end of each turn to end the effect"
+                    ]
+                else:
+                    return character_data, ["Already poisoned or immune to poison"]
+
+            except Exception as e:
+                print(f"[SkillChallengeRewards] Error applying poison: {e}")
+                return character_data, ["Poisoned condition applied (error - condition may not persist)"]
+
         return character_data, ["Poisoned condition applied (disadvantage on attack rolls and ability checks)"]
 
     def _apply_quest_modifier(self, character_data: Dict, modifier: str) -> Tuple[Dict, List[str]]:

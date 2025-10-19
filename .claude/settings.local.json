@@ -24,7 +24,7 @@
       "Bash(pip uninstall:*)",
       "Bash(where python)",
       "Bash(find:*)",
-      "Bash(for file in encounter_pane/encounter_panel.py test/encounter_pane/encounter_panel.py test/test_encounter_panel_debug.py tests/test_log_narration_pipeline.py)",
+      "Bash(for file in encounter_pane/encounter_panel.py tests/encounter_pane/encounter_panel.py tests/test_encounter_panel_debug.py tests/test_log_narration_pipeline.py)",
       "Bash(do sed -i \"s/, encoding=''utf-8''//g\" \"$file\")",
       "Bash(echo \"Fixed: $file\")",
       "Bash(done)",
@@ -59,7 +59,9 @@
       "Bash(xargs kill:*)",
       "Bash(while read f)",
       "Bash(do echo \"=== $f ===\")",
-      "Bash(head -n 1 \"$f\")"
+      "Bash(head -n 1 \"$f\")",
+      "Bash(xargs -I {} sed -i \"s/from test\\./from tests./g\" {})",
+      "Bash(xargs -I {} sed -i \"s/import test\\./import tests./g\" {})"
     ],
     "deny": [],
     "ask": []

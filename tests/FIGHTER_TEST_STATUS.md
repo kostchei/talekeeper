@@ -3,9 +3,9 @@
 ## ✅ Completed Tasks (Framework Created)
 
 ### Test Infrastructure Setup
-- ✅ Created `test/ui/test_action_panel_integration.py` with pytest-qt fixtures
-- ✅ Created `test/fixtures/fighter_test_database.py` with Fighter characters at levels 1-15
-- ✅ Created `test/helpers/ui_test_helpers.py` with UI interaction functions
+- ✅ Created `tests/ui/test_action_panel_integration.py` with pytest-qt fixtures
+- ✅ Created `tests/fixtures/fighter_test_database.py` with Fighter characters at levels 1-15
+- ✅ Created `tests/helpers/ui_test_helpers.py` with UI interaction functions
 
 ### Test Suites Created
 - ✅ **test_fighter_second_wind.py** - 12 tests for Second Wind mechanics
@@ -65,7 +65,7 @@ These tests require the PyQt6 application running:
 ### Run These Commands (They Work!)
 ```bash
 # Working Fighter tests
-cd test
+cd tests
 python -m pytest services/test_fighter_champion.py services/test_weapon_attack_service.py -v
 
 # Validation check
@@ -77,8 +77,8 @@ python test_results_summary.py
 
 ### Import Verification (Works)
 ```python
-from test.fixtures.fighter_test_database import FighterTestDatabase
-from test.helpers.ui_test_helpers import UITestHelpers
+from tests.fixtures.fighter_test_database import FighterTestDatabase
+from tests.helpers.ui_test_helpers import UITestHelpers
 from services.fighter_abilities import FighterAbilitiesService
 ```
 
@@ -90,7 +90,7 @@ from services.fighter_abilities import FighterAbilitiesService
    - Ensure all tables are created properly
 
 2. **Fix Test Imports** (Priority 2)
-   - Update path resolution in test/features/* files
+   - Update path resolution in tests/features/* files
    - Mock missing service methods
    - Handle service return value mismatches
 

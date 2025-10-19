@@ -17,13 +17,13 @@ from unittest.mock import patch
 # Ensure project imports resolve
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from test.fixtures.fighter_test_database import FighterTestDatabase
-from test.features.test_fighter_second_wind import TestSecondWindMechanics
-from test.features.test_fighter_action_surge import TestActionSurgeMechanics
-from test.features.test_fighter_indomitable import TestIndomitableMechanics
-from test.features.test_fighter_weapon_mastery import TestWeaponMasteryBasics
-from test.features.test_fighter_combat_flow import TestFightingStyleEffects
-from test.features.test_champion_subclass import TestChampionImprovedCritical
+from tests.fixtures.fighter_test_database import FighterTestDatabase
+from tests.features.test_fighter_second_wind import TestSecondWindMechanics
+from tests.features.test_fighter_action_surge import TestActionSurgeMechanics
+from tests.features.test_fighter_indomitable import TestIndomitableMechanics
+from tests.features.test_fighter_weapon_mastery import TestWeaponMasteryBasics
+from tests.features.test_fighter_combat_flow import TestFightingStyleEffects
+from tests.features.test_champion_subclass import TestChampionImprovedCritical
 
 
 class FighterFeatureValidator:

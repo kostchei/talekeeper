@@ -119,6 +119,14 @@ class CombatManager:
         self.beast_loot_service = BeastLootService(db_path)
         self.encounter_id: Optional[str] = None
         self.morale_triggered_groups: set = set()
+
+        # Initialize condition manager for tracking conditions
+        try:
+            from src.talekeeper.services.condition_manager import ConditionManager
+            self.condition_manager = ConditionManager(db_path)
+        except ImportError:
+            self.condition_manager = None
+            print("[COMBAT_MGR] Warning: ConditionManager not available")
         
     def add_player_combatant(self, character_data: Dict[str, Any]) -> Combatant:
         """Add player character to combat"""
@@ -696,10 +704,12 @@ class CombatManager:
                     description=attack.raw_text,
                     attack_bonus=attack.attack_bonus,
                     damage_dice=attack.damage_dice,
-                    damage_type=attack.damage_type
+                    damage_type=attack.damage_type,
+                    standardized_attack=attack  # Wire up the parsed attack with effects
                 )
                 actions.append(action)
-                print(f"[COMBAT_MGR] Added action: {action.name} with attack_bonus={action.attack_bonus}, damage={action.damage_dice}")
+                effect_count = len(attack.effects) if attack.effects else 0
+                print(f"[COMBAT_MGR] Added action: {action.name} with attack_bonus={action.attack_bonus}, damage={action.damage_dice}, effects={effect_count}")
 
             return actions
 
@@ -993,9 +1003,28 @@ class CombatManager:
         if total_save >= save_dc:
             return f"{target.name} saves against {condition}! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
         else:
-            # Apply condition
+            # Apply condition to in-memory list
             if condition not in target.conditions:
                 target.conditions.append(condition)
+
+            # Also apply via ConditionManager for persistence and mechanical effects
+            if self.condition_manager:
+                try:
+                    from src.talekeeper.services.condition_manager import ConditionType, ActiveCondition
+                    condition_type = self._map_condition_to_type(condition)
+                    if condition_type:
+                        active_condition = ActiveCondition(
+                            condition_type=condition_type,
+                            source=f"Monster Attack: {attacker.name} (Failed {save_ability.title()} save)",
+                            duration_type="save_ends",
+                            save_dc=save_dc,
+                            save_ability=save_ability,
+                            save_frequency="end_of_turn"
+                        )
+                        self.condition_manager.add_condition(target.id, active_condition)
+                except Exception as e:
+                    self.log(f"[WARNING] Could not apply condition to ConditionManager: {e}")
+
             return f"{target.name} fails save and is {condition}! (rolled {d20_roll}+{save_modifier}={total_save} vs DC {save_dc})"
 
     def _handle_save_or_damage(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
@@ -1031,8 +1060,26 @@ class CombatManager:
             return None
 
         condition = effect.condition
+
+        # Add to in-memory list for immediate combat tracking
         if condition not in target.conditions:
             target.conditions.append(condition)
+
+        # Also apply via ConditionManager for persistence and mechanical effects
+        if self.condition_manager:
+            try:
+                from src.talekeeper.services.condition_manager import ConditionType, ActiveCondition
+                condition_type = self._map_condition_to_type(condition)
+                if condition_type:
+                    active_condition = ActiveCondition(
+                        condition_type=condition_type,
+                        source=f"Monster Attack: {attacker.name}",
+                        duration_type="instant" if condition == "prone" else "permanent"
+                    )
+                    self.condition_manager.add_condition(target.id, active_condition)
+            except Exception as e:
+                self.log(f"[WARNING] Could not apply condition to ConditionManager: {e}")
+
         return f"{target.name} is automatically {condition}!"
 
     def _handle_size_condition(self, effect, target: Combatant, attacker: Combatant) -> Optional[str]:
@@ -1044,11 +1091,56 @@ class CombatManager:
         max_size = effect.max_size
         if max_size in ["huge", "large", "medium"]:  # Player qualifies
             condition = effect.condition
+
+            # Add to in-memory list
             if condition not in target.conditions:
                 target.conditions.append(condition)
+
+            # Apply via ConditionManager
+            if self.condition_manager:
+                try:
+                    from src.talekeeper.services.condition_manager import ConditionType, ActiveCondition
+                    condition_type = self._map_condition_to_type(condition)
+                    if condition_type:
+                        active_condition = ActiveCondition(
+                            condition_type=condition_type,
+                            source=f"Monster Attack: {attacker.name} (size-based)",
+                            duration_type="permanent"
+                        )
+                        self.condition_manager.add_condition(target.id, active_condition)
+                except Exception as e:
+                    self.log(f"[WARNING] Could not apply condition to ConditionManager: {e}")
+
             return f"{target.name} is {condition} (size restriction)!"
         else:
             return f"{target.name} is too large to be affected!"
+
+    def _map_condition_to_type(self, condition_str: str):
+        """Map condition string to ConditionType enum."""
+        try:
+            from src.talekeeper.services.condition_manager import ConditionType
+
+            condition_map = {
+                'blinded': ConditionType.BLINDED,
+                'charmed': ConditionType.CHARMED,
+                'deafened': ConditionType.DEAFENED,
+                'exhaustion': ConditionType.EXHAUSTION,
+                'frightened': ConditionType.FRIGHTENED,
+                'grappled': ConditionType.GRAPPLED,
+                'incapacitated': ConditionType.INCAPACITATED,
+                'invisible': ConditionType.INVISIBLE,
+                'paralyzed': ConditionType.PARALYZED,
+                'petrified': ConditionType.PETRIFIED,
+                'poisoned': ConditionType.POISONED,
+                'prone': ConditionType.PRONE,
+                'restrained': ConditionType.RESTRAINED,
+                'stunned': ConditionType.STUNNED,
+                'unconscious': ConditionType.UNCONSCIOUS
+            }
+
+            return condition_map.get(condition_str.lower())
+        except ImportError:
+            return None
 
     def _get_saving_throw_modifier(self, combatant: Combatant, ability: str) -> int:
         """Get saving throw modifier for a given ability"""

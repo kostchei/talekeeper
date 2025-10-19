@@ -12,7 +12,7 @@ from pathlib import Path
 # Ensure project imports resolve
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from test.fixtures.fighter_test_database import FighterTestDatabase
+from tests.fixtures.fighter_test_database import FighterTestDatabase
 from services.fighter_abilities import FighterAbilitiesService
 
 
@@ -180,7 +180,7 @@ def show_usage_examples():
 
     print("\n5. Create custom tests using the framework:")
     print("""
-   from test.fixtures.fighter_test_database import FighterTestDatabase
+   from tests.fixtures.fighter_test_database import FighterTestDatabase
    from services.fighter_abilities import FighterAbilitiesService
 
    def test_custom_fighter_feature():

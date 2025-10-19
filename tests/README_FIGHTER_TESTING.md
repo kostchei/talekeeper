@@ -113,7 +113,7 @@ The framework automatically creates isolated test databases with:
 ## Custom Test Creation
 
 ```python
-from test.fixtures.fighter_test_database import FighterTestDatabase
+from tests.fixtures.fighter_test_database import FighterTestDatabase
 from services.fighter_abilities import FighterAbilitiesService
 
 def test_custom_fighter_feature():

@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 # Ensure project imports resolve
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from test.fixtures.fighter_test_database import FighterTestDatabase
+from tests.fixtures.fighter_test_database import FighterTestDatabase
 from services.fighter_abilities import FighterAbilitiesService
 from services.advantage_system import AdvantageSystem
 from core.game_engine_sqlite import GameEngineSQLite
