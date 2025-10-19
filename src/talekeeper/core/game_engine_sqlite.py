@@ -2491,12 +2491,12 @@ class GameEngineSQLite:
             print(f"[SQLite] Error calculating bag weight: {e}")
             return 0.0
 
-    def add_gold_to_character_sync(self, character_id: str, gold_amount: int, store_in_bag: bool = None) -> bool:
+    def add_gold_to_character_sync(self, character_id: str, gold_amount: float, store_in_bag: bool = None) -> bool:
         """Add gold to character's inventory with automatic Bag of Holding handling.
 
         Args:
             character_id: Character ID
-            gold_amount: Amount of gold to add
+            gold_amount: Amount of gold to add (float for copper/silver precision)
             store_in_bag: True to force store in bag, False to force on person, None for auto
         """
         try:

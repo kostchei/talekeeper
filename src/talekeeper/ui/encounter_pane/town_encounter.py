@@ -1619,7 +1619,8 @@ class ShopInterface(QWidget):
                     QMessageBox.critical(self, "Purchase Failed",
                                        "Failed to add item to inventory. Please try again.")
         else:
-            total_value_gp = round(item_data['sell_price_gp'] * quantity, 2)
+            import math
+            total_value_gp = math.floor(item_data['sell_price_gp'] * quantity * 100) / 100
             total_value_display, _ = format_currency(total_value_gp)
 
             reply = QMessageBox.question(self, "Confirm Sale",
@@ -1708,16 +1709,17 @@ class ShopInterface(QWidget):
     def _add_gold(self, amount: float):
         """Add gold to character inventory with Bag of Holding support"""
         try:
+            import math
             character_id = self.character_data.get('id', '')
-            amount_rounded = round(amount, 2)
+            amount_truncated = math.floor(amount * 100) / 100
 
-            from talekeeper.core.game_engine_sqlite import GameEngine
-            engine = GameEngine()
+            from talekeeper.core.game_engine_sqlite import GameEngineSQLite
+            engine = GameEngineSQLite()
 
-            success = engine.add_gold_to_character_sync(character_id, amount_rounded, store_in_bag=None)
+            success = engine.add_gold_to_character_sync(character_id, amount_truncated, store_in_bag=None)
 
             if success:
-                print(f"[Shop] Added {amount_rounded} gold to character {character_id}")
+                print(f"[Shop] Added {amount_truncated} gold to character {character_id}")
             else:
                 print(f"[Shop] Failed to add gold to character {character_id}")
 

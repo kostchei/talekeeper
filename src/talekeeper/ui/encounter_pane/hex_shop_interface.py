@@ -244,11 +244,12 @@ class HexShopInterface(ShopInterface):
                     QMessageBox.critical(self, "Purchase Failed",
                                        "Failed to add item to inventory. Please try again.")
         else:
+            import math
             shop_service = ShopService()
             sell_price_gp, sell_price_display, charisma_roll = shop_service.calculate_sell_price_with_character(
                 item_data.get('cost_gp', 0), self.character_data
             )
-            total_value_gp = round(sell_price_gp * quantity, 2)
+            total_value_gp = math.floor(sell_price_gp * quantity * 100) / 100
             total_value_display, _ = format_currency(total_value_gp)
 
             if total_value_gp > self.remaining_pool:

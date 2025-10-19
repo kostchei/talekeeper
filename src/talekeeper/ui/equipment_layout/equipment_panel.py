@@ -789,7 +789,8 @@ class EquipmentPanel(QWidget):
             display_text = f"{item_name}"
             if quantity > 1:
                 if treasure_type in ('coins', 'currency') or item_type == 'currency':
-                    display_text += f" ({round(quantity, 2)})"
+                    import math
+                    display_text += f" ({math.floor(quantity * 100) / 100})"
                 else:
                     display_text += f" ({quantity})"
             if item_type:
