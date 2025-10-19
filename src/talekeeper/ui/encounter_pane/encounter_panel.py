@@ -553,6 +553,10 @@ class EncounterPanel(QWidget):
             print(f"Warning: Could not initialize stealth service: {e}")
             self.stealth_service = None
         self.player_hidden = False
+
+        # Initialize parlay system
+        self._parlay_monsters = None
+        self._stealth_monsters = None
         self.stealth_dc = 0
         
         # Set fixed size (fits above action cards)
@@ -5337,6 +5341,163 @@ class EncounterPanel(QWidget):
                     if hasattr(widget, 'instance_id') and widget.instance_id == monster_id:
                         widget.setToolTip(tooltip_html)
                         break
+
+    def attempt_parlay(self):
+        """Attempt to parlay with the current encounter."""
+        from talekeeper.services.parlay_system import ParlaySystem
+
+        if not self.encounter_instances:
+            parent = self.parent()
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("No encounter to parlay with!")
+            return
+
+        parent = self.parent()
+        if not hasattr(parent, 'character_sheet') or not parent.character_sheet.character_data:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("No active character!")
+            return
+
+        character_data = parent.character_sheet.character_data
+
+        living_instances = [inst for inst in self.encounter_instances.values() if inst.is_alive]
+        if not living_instances:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("No living monsters to parlay with!")
+            return
+
+        monsters = []
+        for instance in living_instances:
+            monster_dict = instance.monster_full_data.copy() if instance.monster_full_data else {}
+            monster_dict['xp'] = instance.monster_xp
+            monster_dict['challenge_rating'] = instance.monster_cr
+            monsters.append(monster_dict)
+
+        parlay_system = ParlaySystem('talekeeper.db')
+        can_parlay, reason = parlay_system.can_parlay_with_encounter(monsters)
+
+        if not can_parlay:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info(f"[PARLAY] {reason}")
+            return
+
+        if hasattr(parent, 'log_panel'):
+            parent.log_panel.log_combat(f"[PARLAY] {reason}")
+
+        session_id = parlay_system.create_parlay_challenge(character_data['id'], monsters)
+
+        if not session_id:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_error("[PARLAY] Failed to create parlay challenge!")
+            return
+
+        xp_reward = parlay_system.calculate_parlay_xp_reward(monsters)
+
+        self._show_parlay_skill_challenge(session_id, xp_reward, monsters)
+
+    def _show_parlay_skill_challenge(self, session_id: str, xp_reward: int, monsters: List[Dict]):
+        """Display the parlay skill challenge widget."""
+        from talekeeper.services.skill_challenge_manager import SkillChallengeManager
+
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        manager = SkillChallengeManager('talekeeper.db')
+        session = manager.get_active_session(character_data['id'])
+
+        if not session:
+            parent = self.parent()
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_error("[PARLAY] Failed to load parlay session!")
+            return
+
+        self.skill_challenge_widget = SkillChallengeWidget()
+        self.skill_challenge_widget.set_character_data(character_data)
+
+        self.skill_challenge_widget.challenge_completed.connect(
+            lambda outcome, reward_text: self._on_parlay_completed(outcome, reward_text, xp_reward, monsters)
+        )
+        self.skill_challenge_widget.challenge_refused.connect(self._on_parlay_refused)
+
+        self.skill_challenge_widget.start_challenge(session.template)
+
+        self.encounters_list.setVisible(False)
+        self.monsters_frame.setVisible(False)
+        self.encounter_details_text.setVisible(False)
+
+        self.encounters_layout.addWidget(self.skill_challenge_widget)
+
+    def _on_parlay_completed(self, outcome: str, reward_text: str, xp_reward: int, monsters: List[Dict]):
+        """Handle parlay challenge completion."""
+        from talekeeper.services.parlay_system import ParlaySystem
+
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        parent = self.parent()
+        parlay_system = ParlaySystem('talekeeper.db')
+
+        if outcome == 'success':
+            result = parlay_system.apply_parlay_success(character_data['id'], xp_reward)
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_combat(f"[PARLAY SUCCESS] {result['message']}")
+
+            self._parlay_monsters = monsters
+
+            self._check_pickpocket_opportunity()
+
+            self._clear_encounter_after_parlay()
+        else:
+            if hasattr(parent, 'log_panel'):
+                parent.log_panel.log_info("[PARLAY FAILED] Negotiations break down - combat begins!")
+
+            self._restore_parlay_encounter_for_combat()
+
+        if self.skill_challenge_widget:
+            self.skill_challenge_widget.deleteLater()
+            self.skill_challenge_widget = None
+
+        self.encounters_list.setVisible(True)
+        self.encounter_details_text.setVisible(True)
+
+    def _on_parlay_refused(self, refuse_cost: str):
+        """Handle parlay refusal."""
+        parent = self.parent()
+        if hasattr(parent, 'log_panel'):
+            parent.log_panel.log_info(f"[PARLAY REFUSED] {refuse_cost}")
+
+        self._clear_encounter_after_parlay()
+
+        if self.skill_challenge_widget:
+            self.skill_challenge_widget.deleteLater()
+            self.skill_challenge_widget = None
+
+        self.encounters_list.setVisible(True)
+        self.encounter_details_text.setVisible(True)
+
+    def _check_pickpocket_opportunity(self):
+        """Check if pickpocket action card should be shown."""
+        character_data = self._get_current_character_data()
+        if not character_data:
+            return
+
+        parent = self.parent()
+        if hasattr(parent, 'action_panel') and hasattr(parent.action_panel, 'check_for_pickpocket_card'):
+            parent.action_panel.check_for_pickpocket_card(hasattr(self, '_parlay_monsters'))
+
+    def _clear_encounter_after_parlay(self):
+        """Clear the encounter after successful parlay or refusal."""
+        self.encounter_instances.clear()
+        self._clear_monster_cards()
+        self.current_encounter = None
+        self.current_encounter_id = None
+
+    def _restore_parlay_encounter_for_combat(self):
+        """Restore the parlay encounter and start combat."""
+        self.monsters_frame.setVisible(True)
+        self._start_combat()
 
     def _clear_monster_cards(self):
         """Clear all monster cards from the grid layout."""

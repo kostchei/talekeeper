@@ -388,6 +388,8 @@ class MainWindow(QMainWindow):
 
         if action == "study":
             self.encounter_pane.perform_monster_study()
+        elif action == "influence":
+            self.encounter_pane.attempt_parlay()
 
     def _on_monster_selected(self, monster_id: str):
         """Handle monster selection for targeting."""

@@ -30,6 +30,7 @@ class SkillAttemptResult:
     success: bool
     session_complete: bool = False
     final_outcome: Optional[str] = None
+    roll_breakdown: Optional[str] = None
 
 
 @dataclass
@@ -244,36 +245,45 @@ class SkillChallengeManager:
 
     def attempt_skill(self, session_id: str, skill_name: str, character_data: dict) -> SkillAttemptResult:
         """Attempt a skill check in the challenge."""
-        # Get session
+        from talekeeper.services.advantage_system import AdvantageSystem, AdvantageState
+
         session = self._get_session_by_id(session_id)
         if not session or not session.is_active:
             raise ValueError("Invalid or inactive session")
 
-        # Validate skill
         if skill_name not in session.template.skills:
             raise ValueError(f"Skill {skill_name} not available for this challenge")
 
-        # Calculate DC (increases with usage)
         dc = self.get_skill_dc(session, skill_name)
 
-        # Get character ability modifier and proficiency
         ability_modifier, proficiency_bonus = self._get_skill_modifiers(skill_name, character_data)
 
-        # Roll d20
-        roll_result = random.randint(1, 20)
+        disadvantage_mode = self._get_session_disadvantage_mode(session.template.id)
+
+        advantage_state = AdvantageState.NORMAL
+        roll_breakdown = None
+
+        if disadvantage_mode == 'first' and session.successes == 0 and session.failures == 0:
+            advantage_state = AdvantageState.DISADVANTAGE
+        elif disadvantage_mode == 'all':
+            advantage_state = AdvantageState.DISADVANTAGE
+
+        advantage_system = AdvantageSystem()
+        roll_result, breakdown = advantage_system.roll_d20_with_advantage(advantage_state)
+
+        if advantage_state != AdvantageState.NORMAL:
+            roll_breakdown = breakdown
+
         total_result = roll_result + ability_modifier + proficiency_bonus
         success = total_result >= dc
 
-        # Update skill usage
         session.skill_usage[skill_name] = session.skill_usage.get(skill_name, 0) + 1
 
-        # Update success/failure counts
         if success:
             session.successes += 1
         else:
             session.failures += 1
 
-        # Check for completion
         session_complete = False
         final_outcome = None
 
@@ -286,11 +296,9 @@ class SkillChallengeManager:
             final_outcome = 'failure'
             session.is_active = False
 
-        # Save attempt to database
         self._save_attempt(session_id, skill_name, ability_modifier, proficiency_bonus,
                           dc, roll_result, total_result, success)
 
-        # Update session in database
         self._update_session(session, final_outcome)
 
         return SkillAttemptResult(
@@ -302,7 +310,8 @@ class SkillChallengeManager:
             total_result=total_result,
             success=success,
             session_complete=session_complete,
-            final_outcome=final_outcome
+            final_outcome=final_outcome,
+            roll_breakdown=roll_breakdown
         )
 
     def refuse_challenge(self, session_id: str) -> str:
@@ -429,6 +438,32 @@ class SkillChallengeManager:
         # to check character's actual skill proficiencies
 
         return ability_modifier, proficiency_bonus
+
+    def _get_session_disadvantage_mode(self, template_id: str) -> str:
+        """
+        Get disadvantage mode from skill_challenge_metadata.
+
+        Returns:
+            'none', 'first', or 'all'
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT metadata_value FROM skill_challenge_metadata
+                WHERE template_id = ? AND metadata_key = 'disadvantage_mode'
+            ''', (template_id,))
+
+            result = cursor.fetchone()
+            return result[0] if result else 'none'
+
+        except Exception as e:
+            print(f"Error getting disadvantage mode: {e}")
+            return 'none'
+        finally:
+            if conn:
+                conn.close()
 
     def _save_attempt(self, session_id: str, skill_name: str, ability_modifier: int,
                      proficiency_bonus: int, dc: int, roll_result: int,
