@@ -4,6 +4,7 @@ import random
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from .hex_coordinate_system import HexCoordinateSystem
+from .settlement_population import determine_population
 
 class HexMapService:
 
@@ -83,8 +84,26 @@ class HexMapService:
 
         existing = cursor.fetchone()
         if existing:
+            result = dict(existing)
+            settlement_type = result.get('settlement_type')
+            stored_population = result.get('population', 0)
+            if settlement_type not in [None, 'empty'] and (stored_population is None or stored_population <= 0):
+                seed = result.get('encounter_seed')
+                if seed is None:
+                    seed = self._get_position_seed(q, r)
+                    cursor.execute(
+                        'UPDATE character_hex_map SET encounter_seed = ? WHERE id = ?',
+                        (seed, result['id'])
+                    )
+                population = determine_population(settlement_type, seed)
+                cursor.execute(
+                    'UPDATE character_hex_map SET population = ? WHERE id = ?',
+                    (population, result['id'])
+                )
+                conn.commit()
+                result['population'] = population
             conn.close()
-            return dict(existing)
+            return result
 
         distance = self.coord_system.get_distance(0, 0, q, r)
         seed = self._get_position_seed(q, r)
@@ -95,11 +114,13 @@ class HexMapService:
 
         settlement_type = self._generate_settlement_type()
 
+        population = determine_population(settlement_type, seed)
+
         cursor.execute('''
             INSERT INTO character_hex_map
-            (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)
-        ''', (character_id, q, r, terrain, biome, seed, settlement_type))
+            (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type, population)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+        ''', (character_id, q, r, terrain, biome, seed, settlement_type, population))
 
         conn.commit()
 

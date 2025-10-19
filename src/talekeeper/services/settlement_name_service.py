@@ -1,6 +1,7 @@
 import random
 import sqlite3
 from typing import Dict, Optional, Tuple
+from talekeeper.services.settlement_population import determine_population
 
 
 HISTORIC_INN_NAMES = [
@@ -224,7 +225,7 @@ class SettlementNameService:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT settlement_type, settlement_name, accommodation_name, encounter_seed
+            SELECT settlement_type, settlement_name, accommodation_name, encounter_seed, population, id
             FROM character_hex_map
             WHERE character_id = ? AND q = ? AND r = ?
         ''', (character_id, q, r))
@@ -235,7 +236,32 @@ class SettlementNameService:
             conn.close()
             return None
 
-        settlement_type, existing_settlement_name, existing_accommodation_name, seed = row
+        settlement_type, existing_settlement_name, existing_accommodation_name, seed, stored_population, row_id = row
+
+        if seed is None:
+            seed = hash(f"{q},{r}") % (2**31)
+            cursor.execute(
+                '''
+                UPDATE character_hex_map
+                SET encounter_seed = ?
+                WHERE id = ?
+                ''',
+                (seed, row_id)
+            )
+            conn.commit()
+
+        population = stored_population if stored_population and stored_population > 0 else determine_population(settlement_type, seed)
+
+        if stored_population != population:
+            cursor.execute(
+                '''
+                UPDATE character_hex_map
+                SET population = ?
+                WHERE id = ?
+                ''',
+                (population, row_id)
+            )
+            conn.commit()
 
         if settlement_type in [None, 'empty']:
             conn.close()
@@ -254,10 +280,9 @@ class SettlementNameService:
                 'settlement_name': existing_settlement_name,
                 'accommodation_name': existing_accommodation_name,
                 'worthy_name': None,
-                'population': self._estimate_population(settlement_type)
+                'population': population
             }
 
-        population = self._estimate_population(settlement_type)
         settlement_name = None
         accommodation_name = None
         worthy_name = None
@@ -288,17 +313,6 @@ class SettlementNameService:
             'worthy_name': worthy_name,
             'population': population
         }
-
-    def _estimate_population(self, settlement_type: str) -> int:
-        """Estimate population midpoint for settlement type."""
-        population_map = {
-            'hamlet': 100,
-            'village': 750,
-            'town_small': 2500,
-            'town_medium': 5000,
-            'town_large': 10000
-        }
-        return population_map.get(settlement_type, 0)
 
     def _determine_highest_lifestyle(self, settlement_type: str) -> str:
         """Determine highest available lifestyle for settlement type."""

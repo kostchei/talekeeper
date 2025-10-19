@@ -3,6 +3,7 @@ import sqlite3
 from enum import Enum
 from typing import List, Dict, Any, Tuple, Optional
 from talekeeper.services.equipment_database import EquipmentDatabase
+from talekeeper.services.settlement_population import determine_population
 
 
 def format_currency(gold_amount: float) -> Tuple[str, str]:
@@ -183,27 +184,12 @@ class ShopService:
         }
         return mapping.get(settlement_type, ShopSize.MEDIUM)
 
-    def _determine_population_tier(self, settlement_type: str, seed: int) -> int:
-        rng = random.Random(seed)
-
-        if settlement_type == 'hamlet':
-            return rng.choice([25, 75, 150, 200])
-        elif settlement_type == 'village':
-            return rng.choice([200, 500, 1000, 1500])
-        elif settlement_type == 'town_small':
-            return 2000
-        elif settlement_type == 'town_medium':
-            return 5000
-        elif settlement_type == 'town_large':
-            return 10000
-        else:
-            return 150
-
     def generate_hex_shop_inventory(
         self,
         settlement_type: str,
         character_data: Dict[str, Any],
-        hex_seed: int
+        hex_seed: int,
+        population_override: Optional[int] = None
     ) -> Dict[str, Any]:
         charisma_roll = self.get_charisma_skill_roll(character_data)
         has_crafter = self.has_crafter_feat(character_data)
@@ -212,7 +198,11 @@ class ShopService:
         if has_crafter:
             buy_discount += 20
 
-        population = self._determine_population_tier(settlement_type, hex_seed)
+        population = (
+            population_override
+            if population_override is not None and population_override > 0
+            else determine_population(settlement_type, hex_seed)
+        )
         economy_tier = self.ECONOMY_TIERS.get(population, {'base_pool': 100, 'base_cap': 100})
 
         import time

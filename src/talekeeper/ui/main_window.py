@@ -1935,7 +1935,8 @@ class MainWindow(QMainWindow):
             settlement_type=settlement_type,
             hex_seed=hex_data['encounter_seed'],
             hex_coords=(q, r),
-            parent=dialog
+            parent=dialog,
+            population=hex_data.get('population')
         )
 
         shop.shopping_completed.connect(dialog.accept)

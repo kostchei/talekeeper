@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from PyQt6.QtWidgets import QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
 from talekeeper.ui.encounter_pane.town_encounter import ShopInterface
@@ -8,14 +8,15 @@ from talekeeper.services.shop_service import ShopService, ShopSize
 class HexShopInterface(ShopInterface):
 
     def __init__(self, character_data: Dict[str, Any], settlement_type: str,
-                 hex_seed: int, hex_coords: tuple, parent=None):
+                 hex_seed: int, hex_coords: tuple, parent=None,
+                 population: Optional[int] = None):
         self.hex_seed = hex_seed
         self.hex_coords = hex_coords
         self.settlement_type = settlement_type
 
         shop_service = ShopService()
         self.shop_data = shop_service.generate_hex_shop_inventory(
-            settlement_type, character_data, hex_seed
+            settlement_type, character_data, hex_seed, population_override=population
         )
 
         shop_size = self._get_shop_size(settlement_type)

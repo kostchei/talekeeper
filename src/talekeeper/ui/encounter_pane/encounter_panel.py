@@ -7218,21 +7218,44 @@ class EncounterPanel(QWidget):
 
         self._create_temporary_settlement(character['id'], hex_q, hex_r)
 
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout
         from talekeeper.ui.rest_pane import LongRestWidget
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Long Rest")
+        dialog.setModal(True)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.setMinimumSize(820, 720)
+        dialog.resize(960, 760)
 
         rest_widget = LongRestWidget(
             db_path='talekeeper.db',
             character_data=character,
             hex_q=hex_q,
             hex_r=hex_r,
-            parent=self
+            parent=dialog
         )
 
-        rest_widget.rest_completed.connect(lambda result: self._on_long_rest_completed(result, hex_q, hex_r))
-        rest_widget.rest_cancelled.connect(lambda: rest_widget.close())
-        rest_widget.encounter_triggered.connect(self._on_long_rest_encounter)
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(rest_widget)
 
-        rest_widget.show()
+        def _on_rest_completed(result: dict):
+            dialog.accept()
+            self._on_long_rest_completed(result, hex_q, hex_r)
+
+        def _on_rest_cancelled():
+            dialog.reject()
+
+        def _on_rest_encounter(payload: dict):
+            dialog.close()
+            self._on_long_rest_encounter(payload)
+
+        rest_widget.rest_completed.connect(_on_rest_completed)
+        rest_widget.rest_cancelled.connect(_on_rest_cancelled)
+        rest_widget.encounter_triggered.connect(_on_rest_encounter)
+
+        dialog.exec()
 
     def _create_temporary_settlement(self, character_id: str, q: int, r: int):
         """Create a temporary settlement in the hex map for encounter-based resting."""
@@ -7268,11 +7291,13 @@ class EncounterPanel(QWidget):
 
         if not existing:
             encounter_seed = random.randint(1, 1000000)
+            from talekeeper.services.settlement_population import determine_population
+            population = determine_population(settlement_type, encounter_seed)
             cursor.execute('''
                 INSERT INTO character_hex_map
-                (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?)
-            ''', (character_id, q, r, 'plains', 'temperate', encounter_seed, settlement_type))
+                (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type, population)
+                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+            ''', (character_id, q, r, 'plains', 'temperate', encounter_seed, settlement_type, population))
 
             conn.commit()
 
@@ -7706,5 +7731,3 @@ class EncounterPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"[UI] Error forcing character reload: {e}")
-
-

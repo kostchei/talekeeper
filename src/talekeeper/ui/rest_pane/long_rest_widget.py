@@ -1,7 +1,7 @@
 from typing import Dict, Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QRadioButton, QButtonGroup, QFrame,
-                             QScrollArea, QMessageBox)
+                             QScrollArea, QMessageBox, QSizePolicy)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
@@ -27,12 +27,22 @@ class LongRestWidget(QWidget):
 
         self.selected_lifestyle = None
         self.lifestyle_options = []
+        self.current_gold = 0.0
+        self.current_hp = 0
+        self.max_hp = 0
 
-        self.setWindowTitle("Long Rest")
-        self.setMinimumSize(600, 700)
-        self.setMaximumSize(800, 900)
+        if parent is None:
+            self.setWindowTitle("Long Rest")
+            self.setMinimumSize(820, 720)
+            self.resize(960, 760)
+        else:
+            self.setSizePolicy(QSizePolicy.Policy.Expanding,
+                               QSizePolicy.Policy.Expanding)
+            self.setMinimumSize(720, 520)
 
         self._setup_ui()
+        self._refresh_character_snapshot()
+        self._update_character_status()
         self._load_settlement_data()
 
     def _setup_ui(self):
@@ -78,7 +88,7 @@ class LongRestWidget(QWidget):
 
         self.lifestyle_container = QWidget()
         self.lifestyle_layout = QVBoxLayout()
-        self.lifestyle_layout.setSpacing(10)
+        self.lifestyle_layout.setSpacing(12)
         self.lifestyle_container.setLayout(self.lifestyle_layout)
         scroll_area.setWidget(self.lifestyle_container)
 
@@ -98,7 +108,6 @@ class LongRestWidget(QWidget):
             "color: #e0e0e0;"
         )
         layout.addWidget(self.character_status_label)
-        self._update_character_status()
 
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)
@@ -142,6 +151,17 @@ class LongRestWidget(QWidget):
 
         self.setLayout(layout)
 
+    def _refresh_character_snapshot(self):
+        status = self.rest_service.get_character_rest_status(self.character_data['id'])
+        self.current_hp = int(status.get('current_hp', 0))
+        self.max_hp = int(status.get('max_hp', max(1, self.current_hp)))
+        self.current_gold = float(self.rest_service.get_character_gold(self.character_data['id']))
+
+        # Keep the upstream character dict reasonably current for any listeners.
+        self.character_data['hit_points_current'] = self.current_hp
+        self.character_data['hit_points_max'] = self.max_hp
+        self.character_data['gold'] = self.current_gold
+
     def _load_settlement_data(self):
         settlement_data = self.name_service.get_or_create_settlement_names(
             self.character_data['id'], self.hex_q, self.hex_r
@@ -151,18 +171,29 @@ class LongRestWidget(QWidget):
             self._show_wilderness_rest()
             return
 
-        settlement_type = settlement_data.get('settlement_type', 'empty')
-        settlement_name = settlement_data.get('settlement_name', 'The Wilderness')
+        settlement_type = settlement_data.get('settlement_type') or 'empty'
+        settlement_name = settlement_data.get('settlement_name')
         population = settlement_data.get('population', 0)
 
-        if settlement_type == 'empty' or not settlement_name:
-            settlement_name = "The Wilderness"
-            population = 0
+        if settlement_type == 'empty':
+            self._show_wilderness_rest()
+            return
+
+        settlement_type_display = self._format_settlement_type(settlement_type)
+        population_display = population if population and population > 0 else 'None'
+
+        if settlement_name:
+            display_name = settlement_name
+        else:
+            display_name = (
+                f"Unnamed {settlement_type_display}"
+                if settlement_type_display != 'Unknown'
+                else "Unnamed Settlement"
+            )
 
         self.settlement_info_label.setText(
-            f"{settlement_name}\n"
-            f"{self._format_settlement_type(settlement_type)} | "
-            f"Population: {population if population > 0 else 'None'}"
+            f"{display_name}\n"
+            f"{settlement_type_display} | Population: {population_display}"
         )
 
         self.lifestyle_options = self.rest_service.get_available_lifestyles(
@@ -184,6 +215,7 @@ class LongRestWidget(QWidget):
         self._populate_lifestyle_options()
 
     def _populate_lifestyle_options(self):
+        self.selected_lifestyle = None
         for i in reversed(range(self.lifestyle_layout.count())):
             widget = self.lifestyle_layout.itemAt(i).widget()
             if widget:
@@ -192,18 +224,34 @@ class LongRestWidget(QWidget):
         self.button_group = QButtonGroup(self)
         self.button_group.buttonClicked.connect(self._on_lifestyle_selected)
 
+        safe_selection_index: Optional[int] = None
+
         for idx, option in enumerate(self.lifestyle_options):
             radio_button = self._create_lifestyle_option(option, idx)
             self.lifestyle_layout.addWidget(radio_button)
+            hazard = option.get('hazard_chance', 0.0)
+            if safe_selection_index is None and (hazard is None or hazard <= 0.0):
+                safe_selection_index = idx
 
         if self.lifestyle_options:
             self.lifestyle_layout.addStretch()
 
+        if not self.lifestyle_options:
+            self.rest_button.setEnabled(False)
+            self.rest_button.setText("Take Long Rest")
+            return
+
+        default_index = safe_selection_index if safe_selection_index is not None else 0
+        default_button = self.button_group.button(default_index)
+        if default_button:
+            default_button.setChecked(True)
+            self._on_lifestyle_selected(default_button)
+
     def _create_lifestyle_option(self, option: Dict, index: int) -> QWidget:
         container = QWidget()
         container_layout = QVBoxLayout()
-        container_layout.setContentsMargins(10, 10, 10, 10)
-        container_layout.setSpacing(5)
+        container_layout.setContentsMargins(12, 10, 12, 10)
+        container_layout.setSpacing(6)
 
         radio = QRadioButton()
         self.button_group.addButton(radio, index)
@@ -213,7 +261,7 @@ class LongRestWidget(QWidget):
         lifestyle_name = option['lifestyle'].capitalize()
         cost_text = f"{option['cost_gp']:.2f} gp" if option['cost_gp'] > 0 else "Free"
 
-        title_label = QLabel(f"{lifestyle_name} - {cost_text}")
+        title_label = QLabel(f"{lifestyle_name} \u2013 {cost_text}")
         title_font = QFont()
         title_font.setPointSize(11)
         title_font.setBold(True)
@@ -227,47 +275,45 @@ class LongRestWidget(QWidget):
 
         desc_label = QLabel(option['description'])
         desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("color: #cccccc; margin-left: 25px;")
+        desc_label.setStyleSheet("color: #d8d8d8; margin-left: 32px;")
         container_layout.addWidget(desc_label)
 
         location_label = QLabel(f"Location: {option.get('location', 'Unknown')}")
-        location_label.setStyleSheet("color: #aaaaaa; font-style: italic; margin-left: 25px;")
+        location_label.setStyleSheet("color: #b5b5b5; font-style: italic; margin-left: 32px;")
         container_layout.addWidget(location_label)
 
-        if option.get('warning'):
-            warning_label = QLabel(f"⚠ {option['warning']}")
-            warning_label.setStyleSheet(
-                "color: #ff6b6b; "
-                "background-color: #3a1a1a; "
-                "border: 1px solid #ff6b6b; "
-                "border-radius: 3px; "
-                "padding: 5px; "
-                "margin-left: 25px; "
-                "margin-top: 5px; "
-                "font-weight: bold;"
+        hazard_chance = option.get('hazard_chance', 0.0)
+        if hazard_chance:
+            risk_label = QLabel(f"Rest risk: {int(hazard_chance * 100)}% chance of trouble.")
+            risk_label.setStyleSheet(
+                "color: #d8b25c; "
+                "margin-left: 32px; "
+                "font-style: italic; "
+                "font-size: 11px;"
             )
-            container_layout.addWidget(warning_label)
+            container_layout.addWidget(risk_label)
 
         container.setLayout(container_layout)
 
-        if option['lifestyle'] in ['wretched', 'squalid']:
-            bg_color = "#2a1a1a"
-            border_color = "#ff6b6b"
-        elif option['lifestyle'] in ['poor', 'modest']:
-            bg_color = "#1a2a1a"
-            border_color = "#6bff6b"
-        else:
-            bg_color = "#1a1a2a"
-            border_color = "#6b6bff"
+        neutral_palette = {
+            'wretched': ('#272727', '#4f4f4f'),
+            'squalid': ('#282828', '#575757'),
+            'poor': ('#2c3034', '#49616c'),
+            'modest': ('#2d3339', '#567284'),
+            'comfortable': ('#303741', '#6c879e'),
+            'wealthy': ('#343b48', '#7f97b1')
+        }
+
+        bg_color, border_color = neutral_palette.get(option['lifestyle'], ('#2a2a2a', '#535353'))
 
         container.setStyleSheet(
             f"QWidget {{ "
             f"  background-color: {bg_color}; "
-            f"  border: 2px solid {border_color}; "
-            f"  border-radius: 6px; "
+            f"  border: 1px solid {border_color}; "
+            f"  border-radius: 8px; "
             f"}} "
-            f"QRadioButton {{ background-color: transparent; }} "
-            f"QLabel {{ background-color: transparent; border: none; }}"
+            "QRadioButton { background-color: transparent; } "
+            "QLabel { background-color: transparent; border: none; }"
         )
 
         return container
@@ -284,22 +330,19 @@ class LongRestWidget(QWidget):
         return type_map.get(settlement_type, 'Unknown')
 
     def _update_character_status(self):
-        character = self.character_data
-        current_hp = character.get('current_hp', 0)
-        max_hp = character.get('max_hp', 1)
-        gold = character.get('gold', 0)
+        max_hp = self.max_hp if self.max_hp else max(1, self.current_hp)
+        status_lines = [
+            "Character Status:",
+            f"HP: {self.current_hp} / {max_hp}   |   Gold: {self.current_gold:.2f} gp",
+            ""
+        ]
 
-        status_text = (
-            f"Character Status:\n"
-            f"HP: {current_hp} / {max_hp}   |   "
-            f"Gold: {gold:.2f} gp"
-        )
+        if self.current_hp < max_hp:
+            status_lines.append(f"Long rest will restore {max_hp - self.current_hp} HP")
+        else:
+            status_lines.append("You are already at full HP.")
 
-        if current_hp < max_hp:
-            hp_restored = max_hp - current_hp
-            status_text += f"\n\nLong rest will restore {hp_restored} HP"
-
-        self.character_status_label.setText(status_text)
+        self.character_status_label.setText("\n".join(status_lines))
 
     def _on_lifestyle_selected(self, button):
         index = self.button_group.id(button)
@@ -308,13 +351,16 @@ class LongRestWidget(QWidget):
             self.rest_button.setEnabled(True)
 
             cost = self.selected_lifestyle['cost_gp']
-            current_gold = self.character_data.get('gold', 0)
+            current_gold = self.current_gold
 
-            if cost > current_gold:
+            if cost - current_gold > 1e-6:
                 self.rest_button.setEnabled(False)
-                self.rest_button.setText(f"Cannot Afford ({cost:.2f} gp needed)")
+                self.rest_button.setText(f"Need {cost:.2f} gp (You have {current_gold:.2f} gp)")
             else:
-                self.rest_button.setText("Take Long Rest")
+                if cost > 0:
+                    self.rest_button.setText(f"Take Long Rest ({cost:.2f} gp)")
+                else:
+                    self.rest_button.setText("Take Long Rest")
 
     def _on_rest_clicked(self):
         if not self.selected_lifestyle:
@@ -323,8 +369,8 @@ class LongRestWidget(QWidget):
         cost = self.selected_lifestyle['cost_gp']
         lifestyle = self.selected_lifestyle['lifestyle']
 
-        current_gold = self.character_data.get('gold', 0)
-        if cost > current_gold:
+        current_gold = self.current_gold
+        if cost - current_gold > 1e-6:
             QMessageBox.warning(
                 self,
                 "Insufficient Gold",
@@ -354,7 +400,8 @@ class LongRestWidget(QWidget):
             )
             return
 
-        self.character_data['gold'] = current_gold - cost
+        self._refresh_character_snapshot()
+        self._update_character_status()
 
         triggered, event_type, event_data = self.rest_service.check_hazard_trigger(lifestyle)
 
@@ -431,6 +478,8 @@ class LongRestWidget(QWidget):
             f"Hit Dice Restored: {rest_result['hit_dice_restored']}"
         )
 
+        self._refresh_character_snapshot()
+
         self.rest_completed.emit({
             'lifestyle': lifestyle,
             'cost': cost,
@@ -457,6 +506,8 @@ class LongRestWidget(QWidget):
             f"Hit Dice Restored: {rest_result['hit_dice_restored']}\n\n"
             f"You wake refreshed and ready for adventure."
         )
+
+        self._refresh_character_snapshot()
 
         self.rest_completed.emit({
             'lifestyle': lifestyle,

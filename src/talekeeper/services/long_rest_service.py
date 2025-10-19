@@ -163,28 +163,31 @@ class LongRestService:
         if settlement_type in [None, 'empty']:
             return [self._create_lifestyle_option('wretched', None, None)]
 
-        lifestyles = []
+        rng = random.Random()
+        lifestyle_order = ['squalid', 'poor', 'modest', 'comfortable', 'wealthy']
+        order_lookup = {name: idx for idx, name in enumerate(lifestyle_order)}
+
+        def roll_unique_lifestyles(pool: List[str], rolls: int) -> List[str]:
+            """Return up to `rolls` unique lifestyles from pool."""
+            selected = set()
+            for _ in range(rolls):
+                choice = rng.choice(pool)
+                selected.add(choice)
+            return sorted(selected, key=lambda name: order_lookup.get(name, len(lifestyle_order)))
+
+        lifestyles: List[Dict] = []
 
         if settlement_type == 'hamlet':
             lifestyles.append(self._create_lifestyle_option('wretched', settlement_name, None))
-            available = random.choice(['squalid', 'poor', 'modest'])
-            if available == 'squalid':
-                lifestyles.append(self._create_lifestyle_option('squalid', settlement_name, None))
-            elif available == 'poor':
-                lifestyles.append(self._create_lifestyle_option('squalid', settlement_name, None))
-                lifestyles.append(self._create_lifestyle_option('poor', settlement_name, accommodation_name))
-            else:
-                lifestyles.append(self._create_lifestyle_option('squalid', settlement_name, None))
-                lifestyles.append(self._create_lifestyle_option('poor', settlement_name, None))
-                lifestyles.append(self._create_lifestyle_option('modest', settlement_name, accommodation_name))
+            rolled = roll_unique_lifestyles(['squalid', 'poor', 'modest'], 2)
+            for lifestyle in rolled:
+                lifestyles.append(self._create_lifestyle_option(lifestyle, settlement_name, accommodation_name))
 
         elif settlement_type == 'village':
             lifestyles.append(self._create_lifestyle_option('wretched', settlement_name, None))
-            available = random.choice(['squalid', 'poor', 'modest', 'comfortable'])
-            for level in ['squalid', 'poor', 'modest', 'comfortable']:
-                lifestyles.append(self._create_lifestyle_option(level, settlement_name, accommodation_name))
-                if level == available:
-                    break
+            rolled = roll_unique_lifestyles(['squalid', 'poor', 'modest', 'comfortable'], 2)
+            for lifestyle in rolled:
+                lifestyles.append(self._create_lifestyle_option(lifestyle, settlement_name, accommodation_name))
 
         else:
             for level in ['wretched', 'squalid', 'poor', 'modest', 'comfortable', 'wealthy']:
@@ -250,60 +253,196 @@ class LongRestService:
 
         return (True, event_type, event_data)
 
-    def deduct_lifestyle_cost(self, character_id: str, lifestyle_cost: float) -> bool:
-        """Deduct gold from character. Returns True if successful."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT gold FROM characters WHERE id = ?', (character_id,))
-        row = cursor.fetchone()
-
-        if not row:
-            conn.close()
-            return False
-
-        current_gold = row[0]
-
-        if current_gold < lifestyle_cost:
-            conn.close()
-            return False
-
-        new_gold = current_gold - lifestyle_cost
-
-        cursor.execute('UPDATE characters SET gold = ? WHERE id = ?', (new_gold, character_id))
-        conn.commit()
-        conn.close()
-
-        return True
-
-    def apply_long_rest_benefits(self, character_id: str) -> Dict:
-        """Apply long rest benefits: restore HP, spell slots, abilities."""
+    def get_character_gold(self, character_id: str) -> float:
+        """Get total gold (in gp) from the character's inventory."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT current_hp, max_hp, level, hit_dice, max_hit_dice
-            FROM characters
-            WHERE id = ?
+            SELECT SUM(
+                COALESCE(quantity, 0) *
+                COALESCE(NULLIF(unit_value_gp, 0), 1)
+            )
+            FROM character_inventory
+            WHERE character_id = ?
+              AND item_name = 'Gold Pieces'
+              AND item_type IN ('treasure', 'currency')
         ''', (character_id,))
 
         row = cursor.fetchone()
+        conn.close()
 
-        if not row:
-            conn.close()
-            return {'success': False, 'error': 'Character not found'}
+        if not row or row[0] is None:
+            return 0.0
 
-        current_hp, max_hp, level, hit_dice, max_hit_dice = row
+        return float(round(row[0], 4))
 
-        restored_hp = max_hp - current_hp
-        restored_hit_dice = min(level // 2, max_hit_dice - hit_dice)
+    def get_character_rest_status(self, character_id: str) -> Dict[str, float]:
+        """Return HP/Hit Dice snapshot for rest calculations (handles legacy schemas)."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        column_sets = [
+            ('hit_points_current', 'hit_points_max', 'hit_dice_current', 'hit_dice_max'),
+            ('current_hit_points', 'max_hit_points', 'hit_dice_current', 'hit_dice_max'),
+            ('current_hp', 'max_hp', 'hit_dice', 'max_hit_dice')
+        ]
+
+        status = {
+            'current_hp': 0,
+            'max_hp': 0,
+            'level': 1,
+            'hit_dice_current': 0,
+            'hit_dice_max': 0
+        }
+
+        for hp_current, hp_max, hd_current, hd_max in column_sets:
+            try:
+                cursor.execute(f'''
+                    SELECT
+                        COALESCE({hp_current}, 0),
+                        COALESCE({hp_max}, 0),
+                        level,
+                        COALESCE({hd_current}, 0),
+                        COALESCE({hd_max}, 0)
+                    FROM characters
+                    WHERE id = ?
+                ''', (character_id,))
+                row = cursor.fetchone()
+                if row:
+                    status['current_hp'] = row[0]
+                    status['max_hp'] = row[1]
+                    status['level'] = row[2]
+                    status['hit_dice_current'] = row[3]
+                    status['hit_dice_max'] = row[4]
+                    break
+            except sqlite3.OperationalError:
+                continue
+
+        conn.close()
+        return status
+
+    def _spend_gold(self, cursor: sqlite3.Cursor, character_id: str, amount_gp: float) -> bool:
+        """Internal helper to deduct gold without closing the connection."""
+        if amount_gp <= 0:
+            return True
 
         cursor.execute('''
+            SELECT id, COALESCE(quantity, 0), COALESCE(unit_value_gp, 0)
+            FROM character_inventory
+            WHERE character_id = ?
+              AND item_name = 'Gold Pieces'
+              AND item_type IN ('treasure', 'currency')
+            ORDER BY id
+        ''', (character_id,))
+
+        rows = cursor.fetchall()
+        if not rows:
+            return False
+
+        total_gold = 0.0
+        normalized_rows = []
+        for inv_id, quantity, unit_value in rows:
+            value_per = unit_value if unit_value and unit_value > 0 else 1.0
+            row_total = quantity * value_per
+            total_gold += row_total
+            normalized_rows.append((inv_id, quantity, value_per))
+
+        if total_gold + 1e-6 < amount_gp:
+            return False
+
+        remaining = amount_gp
+        for inv_id, quantity, value_per in normalized_rows:
+            row_total = quantity * value_per
+            if row_total <= 0 or remaining <= 1e-6:
+                continue
+
+            deduction = min(row_total, remaining)
+            new_total = row_total - deduction
+            new_quantity = max(0.0, round(new_total / value_per, 4))
+
+            cursor.execute('''
+                UPDATE character_inventory
+                SET quantity = ?
+                WHERE id = ?
+            ''', (new_quantity, inv_id))
+
+            remaining -= deduction
+            if remaining <= 1e-6:
+                break
+
+        return True
+
+    def deduct_lifestyle_cost(self, character_id: str, lifestyle_cost: float) -> bool:
+        """Deduct gold from character_inventory. Returns True if successful."""
+        if lifestyle_cost <= 0:
+            return True
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        success = self._spend_gold(cursor, character_id, lifestyle_cost)
+
+        if success:
+            conn.commit()
+        else:
+            conn.rollback()
+
+        conn.close()
+        return success
+
+    def apply_long_rest_benefits(self, character_id: str) -> Dict:
+        """Apply long rest benefits: restore HP, spell slots, abilities."""
+        status = self.get_character_rest_status(character_id)
+
+        max_hp = status['max_hp']
+        current_hp = status['current_hp']
+        level = status['level']
+        hit_dice_current = status['hit_dice_current']
+        hit_dice_max = status['hit_dice_max']
+
+        if max_hp <= 0:
+            return {'success': False, 'error': 'Character not found'}
+
+        restored_hp = max(0, max_hp - current_hp)
+        available_hit_dice = max(0, hit_dice_max - hit_dice_current)
+        restored_hit_dice = min(level // 2, available_hit_dice)
+        new_hit_dice = hit_dice_current + restored_hit_dice
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("PRAGMA table_info(characters)")
+        column_names = {row[1] for row in cursor.fetchall()}
+
+        update_fields = []
+        params: List = []
+
+        if 'hit_points_current' in column_names:
+            update_fields.append('hit_points_current = ?')
+            params.append(max_hp)
+        if 'current_hit_points' in column_names:
+            update_fields.append('current_hit_points = ?')
+            params.append(max_hp)
+        if 'current_hp' in column_names:
+            update_fields.append('current_hp = ?')
+            params.append(max_hp)
+        if 'hit_dice_current' in column_names:
+            update_fields.append('hit_dice_current = ?')
+            params.append(new_hit_dice)
+        if 'hit_dice' in column_names:
+            update_fields.append('hit_dice = ?')
+            params.append(new_hit_dice)
+
+        update_fields.append('updated_at = ?')
+        params.append(datetime.now().isoformat())
+        params.append(character_id)
+
+        cursor.execute(f'''
             UPDATE characters
-            SET current_hp = max_hp,
-                hit_dice = hit_dice + ?
+            SET {", ".join(update_fields)}
             WHERE id = ?
-        ''', (restored_hit_dice, character_id))
+        ''', params)
 
         conn.commit()
         conn.close()
@@ -313,7 +452,7 @@ class LongRestService:
             'hp_restored': restored_hp,
             'hit_dice_restored': restored_hit_dice,
             'new_hp': max_hp,
-            'new_hit_dice': hit_dice + restored_hit_dice
+            'new_hit_dice': new_hit_dice
         }
 
     def record_rest(self, character_id: str, q: int, r: int, lifestyle: str, lifestyle_cost: float,
@@ -388,28 +527,34 @@ class LongRestService:
     def apply_gold_loss(self, character_id: str, gold_formula: str) -> Dict:
         """Apply gold loss to character."""
         gold_lost = self.roll_damage(gold_formula)
+        current_gold = self.get_character_gold(character_id)
+        actual_loss = min(gold_lost, current_gold)
+
+        if actual_loss <= 0:
+            return {
+                'success': True,
+                'gold_lost': 0,
+                'old_gold': current_gold,
+                'new_gold': current_gold
+            }
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT gold FROM characters WHERE id = ?', (character_id,))
-        row = cursor.fetchone()
+        success = self._spend_gold(cursor, character_id, actual_loss)
 
-        if not row:
-            conn.close()
-            return {'success': False}
+        if success:
+            conn.commit()
+        else:
+            conn.rollback()
 
-        current_gold = row[0]
-        actual_loss = min(gold_lost, current_gold)
-        new_gold = current_gold - actual_loss
-
-        cursor.execute('UPDATE characters SET gold = ? WHERE id = ?', (new_gold, character_id))
-        conn.commit()
         conn.close()
 
+        new_gold = max(0.0, current_gold - actual_loss if success else current_gold)
+
         return {
-            'success': True,
-            'gold_lost': actual_loss,
+            'success': success,
+            'gold_lost': actual_loss if success else 0,
             'old_gold': current_gold,
             'new_gold': new_gold
         }
