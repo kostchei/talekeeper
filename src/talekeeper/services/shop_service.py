@@ -1,6 +1,7 @@
 import random
+import sqlite3
 from enum import Enum
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from talekeeper.services.equipment_database import EquipmentDatabase
 
 
@@ -51,8 +52,22 @@ class ShopSize(Enum):
 
 
 class ShopService:
-    def __init__(self):
+    ECONOMY_TIERS = {
+        25: {'base_pool': 10, 'base_cap': 10},
+        75: {'base_pool': 25, 'base_cap': 25},
+        150: {'base_pool': 50, 'base_cap': 50},
+        200: {'base_pool': 75, 'base_cap': 75},
+        500: {'base_pool': 200, 'base_cap': 100},
+        1000: {'base_pool': 400, 'base_cap': 150},
+        1500: {'base_pool': 700, 'base_cap': 200},
+        2000: {'base_pool': 1000, 'base_cap': 250},
+        5000: {'base_pool': 5000, 'base_cap': 5000},
+        10000: {'base_pool': 10000, 'base_cap': 10000},
+    }
+
+    def __init__(self, db_path: str = "talekeeper.db"):
         self.equipment_db = EquipmentDatabase()
+        self.db_path = db_path
 
     def generate_shop_inventory(self, shop_size: ShopSize, markup_percent: float = 25.0) -> List[Dict[str, Any]]:
         all_equipment = self.equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
@@ -97,3 +112,168 @@ class ShopService:
         sell_price_gp = max(0.01, item_cost * 0.5)
         display, _ = format_currency(sell_price_gp)
         return (sell_price_gp, display)
+
+    def get_charisma_skill_roll(self, character_data: Dict[str, Any]) -> int:
+        character_id = character_data.get('id')
+        if not character_id:
+            return 0
+
+        charisma_mod = self._calculate_ability_modifier(character_data.get('charisma', 10))
+        proficiency_bonus = self._calculate_proficiency_bonus(character_data.get('level', 1))
+
+        skills = ['Persuasion', 'Deception', 'Intimidation']
+        rolls = []
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        for skill in skills:
+            cursor.execute('''
+                SELECT COUNT(*) FROM character_proficiencies
+                WHERE character_id = ? AND proficiency_name = ? AND proficiency_type = 'skill'
+            ''', (character_id, skill))
+
+            is_proficient = cursor.fetchone()[0] > 0
+            skill_bonus = charisma_mod + (proficiency_bonus if is_proficient else 0)
+
+            cursor.execute('''
+                SELECT COUNT(*) FROM character_proficiencies
+                WHERE character_id = ? AND proficiency_name = ? AND proficiency_type = 'skill_expertise'
+            ''', (character_id, skill))
+
+            has_expertise = cursor.fetchone()[0] > 0
+            if has_expertise:
+                skill_bonus += proficiency_bonus
+
+            roll = random.randint(1, 20) + skill_bonus
+            rolls.append(roll)
+
+        conn.close()
+        return max(rolls)
+
+    def has_crafter_feat(self, character_data: Dict[str, Any]) -> bool:
+        character_id = character_data.get('id')
+        if not character_id:
+            return False
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM character_feats WHERE character_id = ? AND feat_name = 'Crafter'",
+            (character_id,)
+        )
+        has_feat = cursor.fetchone()[0] > 0
+        conn.close()
+        return has_feat
+
+    def _calculate_ability_modifier(self, ability_score: int) -> int:
+        return (ability_score - 10) // 2
+
+    def _calculate_proficiency_bonus(self, level: int) -> int:
+        return ((level - 1) // 4) + 2
+
+    def _settlement_to_shop_size(self, settlement_type: str) -> ShopSize:
+        mapping = {
+            'hamlet': ShopSize.SMALL,
+            'village': ShopSize.MEDIUM,
+            'town_small': ShopSize.LARGE,
+            'town_medium': ShopSize.LARGE,
+            'town_large': ShopSize.LARGE,
+            'empty': ShopSize.SMALL
+        }
+        return mapping.get(settlement_type, ShopSize.MEDIUM)
+
+    def _determine_population_tier(self, settlement_type: str, seed: int) -> int:
+        random.seed(seed)
+
+        if settlement_type == 'hamlet':
+            return random.choice([25, 75, 150, 200])
+        elif settlement_type == 'village':
+            return random.choice([200, 500, 1000, 1500])
+        elif settlement_type == 'town_small':
+            return 2000
+        elif settlement_type == 'town_medium':
+            return 5000
+        elif settlement_type == 'town_large':
+            return 10000
+        else:
+            return 150
+
+    def generate_hex_shop_inventory(
+        self,
+        settlement_type: str,
+        character_data: Dict[str, Any],
+        hex_seed: int
+    ) -> Dict[str, Any]:
+        charisma_roll = self.get_charisma_skill_roll(character_data)
+        has_crafter = self.has_crafter_feat(character_data)
+
+        buy_discount = charisma_roll
+        if has_crafter:
+            buy_discount += 20
+
+        population = self._determine_population_tier(settlement_type, hex_seed)
+        economy_tier = self.ECONOMY_TIERS.get(population, {'base_pool': 100, 'base_cap': 100})
+
+        random.seed(hex_seed + 1)
+        pool_variance = random.randint(1, 200) / 100.0
+        cap_variance = random.randint(1, 200) / 100.0
+
+        actual_pool = economy_tier['base_pool'] * pool_variance
+        actual_cap = economy_tier['base_cap'] * cap_variance
+
+        all_equipment = self.equipment_db.get_equipment_by_rarity(['common', 'uncommon'])
+        eligible_items = [item for item in all_equipment if 0.01 <= item.get('cost_gp', 0) <= actual_cap]
+
+        if not eligible_items:
+            eligible_items = [item for item in all_equipment if item.get('cost_gp', 0) >= 0.01]
+
+        premium_items = [item for item in eligible_items if item.get('cost_gp', 0) >= actual_cap * 0.5]
+        high_value_items = [item for item in eligible_items if actual_cap * 0.5 <= item.get('cost_gp', 0) <= actual_cap]
+
+        num_premium = random.randint(1, 8)
+        num_high_value = random.randint(1, 8)
+
+        inventory = []
+        if premium_items:
+            inventory.extend(random.sample(premium_items, min(num_premium, len(premium_items))))
+        if high_value_items:
+            inventory.extend(random.sample(high_value_items, min(num_high_value, len(high_value_items))))
+
+        seen = set()
+        unique_inventory = []
+        for item in inventory:
+            if item['name'] not in seen:
+                seen.add(item['name'])
+                unique_inventory.append(item)
+
+        for item in unique_inventory:
+            base_cost = item.get('cost_gp', 0)
+            markup = max(0, 25 - buy_discount)
+            buy_price = base_cost * (1 + markup / 100.0)
+            item['buy_price_gp'] = buy_price
+            item['buy_price_display'], _ = format_currency(buy_price)
+            item['buy_discount_applied'] = buy_discount
+
+        unique_inventory.sort(key=lambda x: x.get('cost_gp', 0))
+
+        return {
+            'inventory': unique_inventory,
+            'charisma_roll': charisma_roll,
+            'has_crafter': has_crafter,
+            'pool_variance': pool_variance,
+            'cap_variance': cap_variance,
+            'settlement_type': settlement_type,
+            'population': population,
+            'base_pool': economy_tier['base_pool'],
+            'base_cap': economy_tier['base_cap'],
+            'actual_pool': actual_pool,
+            'actual_cap': actual_cap
+        }
+
+    def calculate_sell_price_with_character(self, item_cost: float, character_data: Dict[str, Any]) -> Tuple[float, str, int]:
+        charisma_roll = self.get_charisma_skill_roll(character_data)
+        sell_rate = min(100, 40 + charisma_roll)
+        sell_price = item_cost * (sell_rate / 100.0)
+        display, _ = format_currency(sell_price)
+        return (sell_price, display, charisma_roll)

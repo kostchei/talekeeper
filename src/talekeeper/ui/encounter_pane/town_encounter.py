@@ -1846,7 +1846,9 @@ class TownEncounterPanel(QWidget):
     
     def _setup_ui(self):
         """Setup the town encounter interface"""
-        layout = QVBoxLayout(self)
+        layout = self.layout()
+        if not layout:
+            layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(15)
         

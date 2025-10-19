@@ -4465,29 +4465,88 @@ class EncounterPanel(QWidget):
         if not character_data:
             self.encounter_details_text.setPlainText("No active character found.")
             return
-        description_text = "A travelling vendor offers goods."
+
         self.encounters_list.setVisible(False)
         self.monsters_frame.setVisible(False)
 
-        from talekeeper.services.shop_service import ShopSize
+        from talekeeper.services.shop_service import ShopService, ShopSize
         import random
-        vendor_size = random.choice([ShopSize.SMALL, ShopSize.MEDIUM, ShopSize.LARGE])
 
-        self.vendor_widget = ShopInterface(character_data, vendor_size, self)
+        settlement_roll = random.randint(1, 100)
+
+        if settlement_roll <= 6:
+            self.encounter_details_text.setPlainText(
+                "You search for signs of civilization but find nothing. "
+                "This area is too remote for any traveling merchants."
+            )
+            return
+
+        elif settlement_roll <= 31:
+            settlement_type = 'hamlet'
+            shop_size = ShopSize.SMALL
+            description_prefix = "You encounter a humble peddler from a nearby hamlet"
+        elif settlement_roll <= 99:
+            settlement_type = 'village'
+            shop_size = ShopSize.MEDIUM
+            description_prefix = "A traveling merchant from a village has set up camp"
+        else:
+            town_roll = random.randint(1, 6)
+            if town_roll <= 3:
+                settlement_type = 'town_small'
+                shop_size = ShopSize.LARGE
+                description_prefix = "A well-stocked caravan from a nearby town offers goods"
+            elif town_roll <= 5:
+                settlement_type = 'town_medium'
+                shop_size = ShopSize.LARGE
+                description_prefix = "A prosperous merchant caravan has traveled from a medium town"
+            else:
+                settlement_type = 'town_large'
+                shop_size = ShopSize.LARGE
+                description_prefix = "An impressive merchant guild from a large city has goods for sale"
+
+        shop_service = ShopService()
+        encounter_seed = random.randint(1, 1000000)
+
+        shop_data = shop_service.generate_hex_shop_inventory(
+            settlement_type, character_data, encounter_seed
+        )
+
+        self.vendor_widget = ShopInterface(character_data, shop_size, self)
+        self.vendor_widget.shop_inventory = shop_data['inventory']
         self.encounters_layout.addWidget(self.vendor_widget)
 
+        charisma_roll = shop_data['charisma_roll']
+        has_crafter = shop_data['has_crafter']
+
+        description_text = f"{description_prefix}.\n\n"
+        description_text += f"Your negotiation skills (roll: {charisma_roll}"
+        if has_crafter:
+            description_text += ", Crafter feat"
+        description_text += f") have secured favorable prices.\n\n"
+
+        buy_discount = charisma_roll + (20 if has_crafter else 0)
+        final_markup = max(0, 25 - buy_discount)
+        description_text += f"Buy prices: {final_markup}% markup\n"
+
+        sell_rate = min(100, 40 + charisma_roll)
+        description_text += f"Sell prices: {sell_rate}% of value"
+
         if self.description_service and self.campaign_frame:
-            inventory = getattr(self.vendor_widget, 'shop_inventory', [])
+            inventory = shop_data['inventory']
             vendor_context = {
                 "name": "Travelling Vendor",
-                "shop_size": vendor_size.size_name,
+                "settlement_type": settlement_type,
+                "shop_size": shop_size.size_name,
                 "inventory_count": len(inventory),
-                "rarities": sorted({item.get('rarity', 'common') for item in inventory if isinstance(item, dict)}),
+                "charisma_roll": charisma_roll,
+                "has_crafter": has_crafter,
                 "character_level": character_data.get('level'),
             }
-            narrative = self.description_service.generate_description("vendor", vendor_context, self.campaign_frame)
+            narrative = self.description_service.generate_description(
+                "vendor", vendor_context, self.campaign_frame
+            )
             if narrative:
-                description_text = narrative
+                description_text = narrative + "\n\n" + description_text
 
         self.encounter_details_text.setPlainText(description_text)
 

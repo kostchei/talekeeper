@@ -12,6 +12,7 @@ class HexMapWidget(QWidget):
 
     travel_requested = pyqtSignal(int, int)
     closed = pyqtSignal()
+    hex_shop_requested = pyqtSignal(int, int, str)
 
     def __init__(self, db_path: str, parent=None):
         super().__init__(parent)
@@ -65,6 +66,11 @@ class HexMapWidget(QWidget):
         self.hex_info_label.setStyleSheet("padding: 10px; border: 1px solid #555;")
         self.hex_info_label.setMinimumWidth(250)
         info_panel.addWidget(self.hex_info_label)
+
+        self.vendor_button = QPushButton("Visit Vendor")
+        self.vendor_button.clicked.connect(self._on_vendor_button_clicked)
+        self.vendor_button.hide()
+        info_panel.addWidget(self.vendor_button)
 
         self.stats_label = QLabel("Exploration Stats")
         self.stats_label.setWordWrap(True)
@@ -200,13 +206,18 @@ class HexMapWidget(QWidget):
     def _select_hex(self, q: int, r: int):
         self.selected_hex = (q, r)
         hex_data = self.hex_service.get_hex(self.character_id, q, r)
+        self.current_hex_data = hex_data
 
         if not hex_data:
             self.hex_info_label.setText(f"Hex ({q}, {r})\nUnexplored")
+            self.vendor_button.hide()
             return
 
         current_q, current_r = self.hex_service.get_character_position(self.character_id)
         distance = self.coord_system.get_distance(current_q, current_r, q, r)
+
+        settlement_type = hex_data.get('settlement_type')
+        show_vendor = (distance == 0 and settlement_type and settlement_type != 'empty')
 
         if distance == 1 and hex_data.get('revealed'):
             scouting_info = self.scouting_service.scout_hex(self.character_id, q, r, hex_data)
@@ -214,6 +225,7 @@ class HexMapWidget(QWidget):
             html += "<br/><br/><b>[Click again to travel here]</b>"
             self.hex_info_label.setText(html)
             self.hex_info_label.setTextFormat(Qt.TextFormat.RichText)
+            self.vendor_button.hide()
 
             if q != current_q or r != current_r:
                 self._travel_to_hex(q, r)
@@ -221,11 +233,30 @@ class HexMapWidget(QWidget):
             info_parts = [
                 f"<b>Hex ({q}, {r})</b>",
                 f"Terrain: {hex_data['terrain_type'].title()}",
-                "",
-                "<b>[Current Location]</b>"
             ]
+
+            if settlement_type:
+                settlement_names = {
+                    'empty': 'No Settlement',
+                    'hamlet': 'Hamlet',
+                    'village': 'Village',
+                    'town_small': 'Small Town',
+                    'town_medium': 'Medium Town',
+                    'town_large': 'Large Town'
+                }
+                settlement_name = settlement_names.get(settlement_type, 'Unknown')
+                info_parts.append(f"Settlement: {settlement_name}")
+
+            info_parts.append("")
+            info_parts.append("<b>[Current Location]</b>")
+
             self.hex_info_label.setText("<br/>".join(info_parts))
             self.hex_info_label.setTextFormat(Qt.TextFormat.RichText)
+
+            if show_vendor:
+                self.vendor_button.show()
+            else:
+                self.vendor_button.hide()
         else:
             info_parts = [
                 f"<b>Hex ({q}, {r})</b>",
@@ -244,6 +275,17 @@ class HexMapWidget(QWidget):
 
             self.hex_info_label.setText("<br/>".join(info_parts))
             self.hex_info_label.setTextFormat(Qt.TextFormat.RichText)
+            self.vendor_button.hide()
+
+    def _on_vendor_button_clicked(self):
+        if not self.selected_hex or not self.current_hex_data:
+            return
+
+        q, r = self.selected_hex
+        settlement_type = self.current_hex_data.get('settlement_type')
+
+        if settlement_type and settlement_type != 'empty':
+            self.hex_shop_requested.emit(q, r, settlement_type)
 
     def _travel_to_hex(self, q: int, r: int):
         try:

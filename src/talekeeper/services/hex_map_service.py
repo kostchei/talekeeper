@@ -93,11 +93,13 @@ class HexMapService:
         terrain = random.choice(self.TERRAIN_TYPES)
         biome = terrain
 
+        settlement_type = self._generate_settlement_type()
+
         cursor.execute('''
             INSERT INTO character_hex_map
-            (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited)
-            VALUES (?, ?, ?, ?, ?, ?, 0, 0)
-        ''', (character_id, q, r, terrain, biome, seed))
+            (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)
+        ''', (character_id, q, r, terrain, biome, seed, settlement_type))
 
         conn.commit()
 
@@ -109,6 +111,24 @@ class HexMapService:
         conn.close()
 
         return result
+
+    def _generate_settlement_type(self) -> str:
+        settlement_roll = random.randint(1, 100)
+
+        if settlement_roll <= 6:
+            return 'empty'
+        elif settlement_roll <= 31:
+            return 'hamlet'
+        elif settlement_roll <= 99:
+            return 'village'
+        else:
+            town_roll = random.randint(1, 6)
+            if town_roll <= 3:
+                return 'town_small'
+            elif town_roll <= 5:
+                return 'town_medium'
+            else:
+                return 'town_large'
 
     def _get_position_seed(self, q: int, r: int) -> int:
         return hash(f"{q},{r}") % (2**31)
@@ -207,6 +227,10 @@ class HexMapService:
             self._reveal_hex(character_id, neighbor_q, neighbor_r)
 
         return hex_data
+
+    def get_hex_settlement(self, character_id: str, q: int, r: int) -> Optional[str]:
+        hex_data = self.get_hex(character_id, q, r)
+        return hex_data.get('settlement_type') if hex_data else None
 
     def get_exploration_stats(self, character_id: str) -> Dict:
         conn = self._get_connection()

@@ -1887,6 +1887,7 @@ class MainWindow(QMainWindow):
             self.hex_map_widget = HexMapWidget('talekeeper.db', self)
             self.hex_map_widget.closed.connect(self._on_hex_map_closed)
             self.hex_map_widget.travel_requested.connect(self._on_hex_travel)
+            self.hex_map_widget.hex_shop_requested.connect(self._on_hex_shop_requested)
 
         if self.hex_map_widget.isVisible():
             self.hex_map_widget.hide()
@@ -1904,6 +1905,72 @@ class MainWindow(QMainWindow):
     def _on_hex_travel(self, q: int, r: int):
         """Handle player traveling to a new hex."""
         self.log_panel.log_info(f"Traveled to hex ({q}, {r})")
+
+    def _on_hex_shop_requested(self, q: int, r: int, settlement_type: str):
+        """Open shop interface for hex-based vendor."""
+        if not self.game_engine.current_character:
+            return
+
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        from talekeeper.services.hex_map_service import HexMapService
+        from talekeeper.ui.encounter_pane.hex_shop_interface import HexShopInterface
+
+        hex_service = HexMapService('talekeeper.db')
+        hex_data = hex_service.get_hex(self.game_engine.current_character['id'], q, r)
+
+        if not hex_data:
+            self.log_panel.log_error(f"Could not load hex data for ({q}, {r})")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Vendor - Hex ({q}, {r})")
+        dialog.resize(900, 700)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        shop = HexShopInterface(
+            character_data=self.game_engine.current_character,
+            settlement_type=settlement_type,
+            hex_seed=hex_data['encounter_seed'],
+            hex_coords=(q, r),
+            parent=dialog
+        )
+
+        shop.shopping_completed.connect(dialog.accept)
+        layout.addWidget(shop)
+
+        settlement_names = {
+            'empty': 'wilderness',
+            'hamlet': 'hamlet',
+            'village': 'village',
+            'town_small': 'small town',
+            'town_medium': 'medium town',
+            'town_large': 'large town'
+        }
+        settlement_name = settlement_names.get(settlement_type, settlement_type)
+
+        shop_data = shop.shop_data
+        charisma_roll = shop_data.get('charisma_roll', 0)
+        has_crafter = shop_data.get('has_crafter', False)
+        population = shop_data.get('population', 0)
+        actual_cap = shop_data.get('actual_cap', 0)
+        discount = charisma_roll + (20 if has_crafter else 0)
+        final_markup = max(0, 25 - discount)
+
+        log_msg = f"Visiting {settlement_name} vendor (Pop: {population}, Cap: {actual_cap:.0f} gp)"
+        self.log_panel.log_system(log_msg)
+
+        skills_msg = f"Negotiation check: {charisma_roll}"
+        if has_crafter:
+            skills_msg += " (+20 Crafter feat)"
+        skills_msg += f" = {final_markup}% markup on purchases"
+        self.log_panel.log_info(skills_msg)
+
+        dialog.exec()
+
+        self._force_reload_character()
+        self.log_panel.log_system("Shop visit completed")
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """Ensure background workers are stopped when window closes."""

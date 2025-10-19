@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS character_hex_map (
     terrain_type TEXT NOT NULL,
     biome TEXT NOT NULL,
     encounter_seed INTEGER,
+    settlement_type TEXT,
     revealed INTEGER DEFAULT 0,
     visited INTEGER DEFAULT 0,
     first_visited_date TEXT,
