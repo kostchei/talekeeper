@@ -1,3 +1,5 @@
+# core
+# category: core
 import random
 import sqlite3
 from enum import Enum

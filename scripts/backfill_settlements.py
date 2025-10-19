@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Backfill settlement_type for existing hexes that don't have it.
 This updates hexes that were created before settlement generation was implemented.

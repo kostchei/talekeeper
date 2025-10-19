@@ -1,3 +1,4 @@
+#test
 """
 Test Concentration System - Phase 4.2 Testing
 Tests concentration mechanics for D&D 2024

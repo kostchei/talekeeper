@@ -1,3 +1,5 @@
+# core
+# category: core
 import sqlite3
 import os
 import sys

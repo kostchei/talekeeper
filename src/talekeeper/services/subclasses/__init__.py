@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Subclass Definitions Package
 

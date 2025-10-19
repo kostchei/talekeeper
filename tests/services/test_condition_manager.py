@@ -1,3 +1,4 @@
+#test
 """
 Test suite for the Condition Manager system.
 Tests the condition system in isolation before integration.

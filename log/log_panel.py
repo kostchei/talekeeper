@@ -1,3 +1,4 @@
+#redundant - legacy root-level file (moved to src/talekeeper/)
 """
 Log Panel Widget - Game activity and message display
 

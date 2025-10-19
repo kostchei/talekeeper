@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Programmatic Character Creator for TaleKeeper
 

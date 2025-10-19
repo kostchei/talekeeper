@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Unified Class Feature System for TaleKeeper
 

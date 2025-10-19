@@ -1,3 +1,4 @@
+#test
 """
 Spell Action Card Testing Framework - Specialized Tests
 ======================================================

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Feat Effects Processor for TaleKeeper
 

@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Create a Level 5 Rogue with enough XP for Level 6
 

@@ -1,4 +1,7 @@
+# core
+#utility
 #!/usr/bin/env python3
+# core
 """
 Populate the level_progression table with D&D 2024 progression data.
 """

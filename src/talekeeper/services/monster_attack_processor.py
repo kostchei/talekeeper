@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Monster Attack Processor
 

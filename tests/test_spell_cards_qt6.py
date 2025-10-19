@@ -1,3 +1,4 @@
+#test
 """
 TESTING FRAMEWORK - Qt6 test to verify spell action cards appear
 """

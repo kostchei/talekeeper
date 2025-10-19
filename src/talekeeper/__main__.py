@@ -1,3 +1,5 @@
+# core
+# category: core
 import sys
 from pathlib import Path
 

@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 import sqlite3
 
 DB_PATH = '../../talekeeper.db'

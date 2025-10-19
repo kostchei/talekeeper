@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Oath of Devotion Paladin Subclass
 

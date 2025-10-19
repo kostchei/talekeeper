@@ -1,3 +1,4 @@
+#test
 """
 Integration tests for the Bag of Holding system.
 """

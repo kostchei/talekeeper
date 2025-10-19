@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Feature Definitions for All Classes
 

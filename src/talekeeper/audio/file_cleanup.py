@@ -1,3 +1,5 @@
+# core
+# category: utility
 """Automatic cleanup of old narration audio files."""
 
 from __future__ import annotations

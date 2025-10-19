@@ -1,3 +1,4 @@
+#test
 """
 Summary of Fighter testing framework test results.
 """

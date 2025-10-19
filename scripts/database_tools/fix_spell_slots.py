@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """Fix spell slots for existing spellcaster characters."""
 
 import sys

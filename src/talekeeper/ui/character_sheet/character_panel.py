@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Character Sheet Widget - Expandable character information panel
 

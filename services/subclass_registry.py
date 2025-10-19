@@ -1,3 +1,5 @@
+# core
+# core
 """
 Subclass Registry for TaleKeeper
 

@@ -1,3 +1,4 @@
+#test
 """
 Core Regression Tests: Fighter & Champion
 

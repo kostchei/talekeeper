@@ -1,3 +1,4 @@
+#test
 """
 Regression Test: Paladin Lay on Hands Feature
 

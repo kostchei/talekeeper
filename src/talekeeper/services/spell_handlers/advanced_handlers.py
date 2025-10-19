@@ -1,3 +1,5 @@
+# core
+# category: core
 from typing import Dict, List, Any
 from .base_handler import SpellHandler, roll_dice
 import json

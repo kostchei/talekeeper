@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Action Economy Enforcer for TaleKeeper
 

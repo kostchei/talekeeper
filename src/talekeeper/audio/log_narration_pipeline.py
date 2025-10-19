@@ -1,3 +1,5 @@
+# core
+# category: utility
 """Convert log panel events into narrated audio."""
 
 from __future__ import annotations

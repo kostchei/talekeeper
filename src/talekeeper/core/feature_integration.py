@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Feature System Integration with Game Engine
 

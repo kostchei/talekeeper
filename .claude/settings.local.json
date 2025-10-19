@@ -56,7 +56,10 @@
       "Bash(mv:*)",
       "Bash(git log:*)",
       "Bash(taskkill:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(while read f)",
+      "Bash(do echo \"=== $f ===\")",
+      "Bash(head -n 1 \"$f\")"
     ],
     "deny": [],
     "ask": []

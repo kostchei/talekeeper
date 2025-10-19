@@ -1,3 +1,4 @@
+#test
 """
 Fighter class test runner script.
 

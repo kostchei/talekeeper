@@ -1,3 +1,4 @@
+#test
 """
 Quick test to verify Galahad can use Divine Smite
 """

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Game Menu Widget - Top dropdown menu with game controls
 

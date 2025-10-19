@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Lay on Hands Dialog for Paladins
 

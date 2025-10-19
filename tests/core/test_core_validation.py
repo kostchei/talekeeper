@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Core validation tests for TaleKeeper regression suite.

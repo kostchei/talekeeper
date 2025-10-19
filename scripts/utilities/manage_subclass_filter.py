@@ -1,4 +1,7 @@
+# core
+#utility
 #!/usr/bin/env python3
+# core
 """
 Utility to manage subclass filtering configuration
 """

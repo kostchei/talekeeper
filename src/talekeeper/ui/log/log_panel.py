@@ -1,3 +1,4 @@
+# category: core
 """
 Log Panel Widget - Game activity and message display
 

@@ -1,3 +1,5 @@
+# core
+# core
 """
 Aura Manager for Paladin Auras
 

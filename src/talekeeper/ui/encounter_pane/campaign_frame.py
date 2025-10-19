@@ -1,3 +1,5 @@
+# core
+# category: core
 # === File: campaign_frame.py ===
 import json
 from typing import Dict, List, Optional

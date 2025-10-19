@@ -1,4 +1,6 @@
-﻿"""Weapon Mastery persistence and lookup utilities for TaleKeeper."""
+# core
+# category: core
+"""Weapon Mastery persistence and lookup utilities for TaleKeeper."""
 
 from __future__ import annotations
 

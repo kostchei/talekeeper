@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Warlock Patron implementations for TaleKeeper.
 

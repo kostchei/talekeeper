@@ -1,4 +1,6 @@
-﻿"""Weapon Mastery selection dialog for TaleKeeper."""
+# core
+# category: core
+"""Weapon Mastery selection dialog for TaleKeeper."""
 
 from typing import Dict, List, Optional
 

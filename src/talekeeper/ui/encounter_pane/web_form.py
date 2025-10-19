@@ -1,3 +1,5 @@
+# core
+# category: core
 # === File: web_ui.py ===
 from flask import Flask, request, render_template_string, redirect
 from campaign_frame import CampaignFrame

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Town Encounter System - Training Hall and Town Services
 

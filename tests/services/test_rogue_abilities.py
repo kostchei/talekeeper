@@ -1,3 +1,4 @@
+#test
 """
 Test suite for Rogue Abilities Service
 

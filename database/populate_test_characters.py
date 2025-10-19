@@ -1,4 +1,7 @@
+# test
+#utility
 #!/usr/bin/env python3
+# test
 """
 Populate database with test characters.
 This script ensures all test characters are properly created with:

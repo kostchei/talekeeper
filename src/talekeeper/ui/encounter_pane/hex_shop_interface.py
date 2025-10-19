@@ -1,3 +1,5 @@
+# core
+# category: core
 from typing import Dict, Any, Optional
 from PyQt6.QtWidgets import QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt

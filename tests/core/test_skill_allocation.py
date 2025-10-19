@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Regression tests for skill proficiency allocation during character generation.

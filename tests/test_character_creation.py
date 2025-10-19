@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Qt6 Test for Character Creation Workflow

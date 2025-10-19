@@ -1,3 +1,4 @@
+#test
 """
 Integration Tests for Cunning Strike System
 

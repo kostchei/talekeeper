@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Debug test for Sneak Attack issue

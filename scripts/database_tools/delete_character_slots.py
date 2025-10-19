@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Delete characters from specified save slots.
 Usage: python delete_character_slots.py --slots 8-19

@@ -1,3 +1,6 @@
+# redundant
+#utility
+# redundant
 """
 Template Validator for TaleKeeper Character Templates
 

@@ -1,3 +1,5 @@
+# core
+# category: utility
 """Wrapper around Piper TTS for local narration synthesis."""
 
 from __future__ import annotations

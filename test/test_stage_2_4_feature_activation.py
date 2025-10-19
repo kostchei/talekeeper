@@ -1,3 +1,4 @@
+# test
 """
 Test Stage 2.4: Feature Activation System
 Tests the complete integration of subclass features with the action card system and automatic triggers.

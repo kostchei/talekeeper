@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Paladin Subclasses Package
 

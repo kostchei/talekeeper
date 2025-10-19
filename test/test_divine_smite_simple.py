@@ -1,3 +1,4 @@
+# test
 """
 Simple test to verify Divine Smite logic works correctly.
 

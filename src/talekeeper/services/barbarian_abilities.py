@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Barbarian Abilities Service for TaleKeeper
 

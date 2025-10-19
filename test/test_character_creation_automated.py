@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# test
 """
 Automated Character Creation Test (No GUI)
 

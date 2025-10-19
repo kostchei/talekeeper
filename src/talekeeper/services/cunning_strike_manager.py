@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Cunning Strike Manager for TaleKeeper
 

@@ -1,3 +1,4 @@
+# test
 """
 Test spell self-targeting for buff spells.
 

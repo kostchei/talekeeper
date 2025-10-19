@@ -1,3 +1,5 @@
+# core
+# core
 """Narrative description helper backed by a lightweight Ollama model.
 
 This service builds a rich prompt using campaign frame data and entity context

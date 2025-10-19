@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 School of Evocation Wizard Subclass
 

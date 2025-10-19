@@ -1,4 +1,7 @@
+# core
+#utility
 #!/usr/bin/env python3
+# core
 """
 Create a Level 20 Fighter (Champion) with full progression
 

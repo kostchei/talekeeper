@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Cleric Abilities Service
 

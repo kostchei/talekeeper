@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Subclass Features Widget for TaleKeeper
 

@@ -1,3 +1,5 @@
+# core
+# category: core
 import random
 import json
 import os

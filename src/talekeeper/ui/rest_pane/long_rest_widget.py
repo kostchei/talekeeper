@@ -1,3 +1,5 @@
+# core
+# category: core
 from typing import Dict, Optional, List
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QRadioButton, QButtonGroup, QFrame,

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Equipment Panel Widget - Expandable inventory and equipment display
 

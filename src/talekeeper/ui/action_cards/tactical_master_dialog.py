@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Tactical Master Dialog for Fighter Level 9+
 

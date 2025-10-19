@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# test
 """
 Comprehensive test for Rogue level progression (1-20)
 Tests all features are properly granted and stored in both tables

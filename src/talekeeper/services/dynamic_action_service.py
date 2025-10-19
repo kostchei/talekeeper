@@ -1,3 +1,5 @@
+# core
+# category: core
 from typing import Dict, List, Any, Optional
 from talekeeper.services.feature_registry import FeatureRegistry
 

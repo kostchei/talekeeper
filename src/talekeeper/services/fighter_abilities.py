@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Fighter Abilities Service for TaleKeeper
 

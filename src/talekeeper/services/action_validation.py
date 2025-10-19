@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Action Validation Layer for TaleKeeper
 

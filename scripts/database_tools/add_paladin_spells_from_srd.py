@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Add all Paladin spells from SRD to database
 

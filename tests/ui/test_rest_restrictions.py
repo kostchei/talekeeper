@@ -1,3 +1,4 @@
+#test
 """
 Pytest-qt integration tests for Rest System restrictions.
 

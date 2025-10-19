@@ -1,3 +1,4 @@
+#test
 """
 Unit tests for WeaponAttackService.
 

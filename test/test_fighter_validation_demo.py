@@ -1,3 +1,4 @@
+# test
 """
 Fighter testing framework validation demo.
 

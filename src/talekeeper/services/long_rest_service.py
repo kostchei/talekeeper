@@ -1,3 +1,5 @@
+# core
+# category: core
 import random
 import sqlite3
 from typing import Dict, List, Optional, Tuple

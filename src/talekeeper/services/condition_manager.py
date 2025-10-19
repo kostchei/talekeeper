@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Condition Management System for D&D 2024
 

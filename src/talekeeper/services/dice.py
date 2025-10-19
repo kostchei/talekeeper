@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Dice Rolling System for D&D 2024 Mechanics
 

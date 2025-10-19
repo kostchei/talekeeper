@@ -1,3 +1,5 @@
+# core
+# core
 """
 Action Registry System for TaleKeeper
 

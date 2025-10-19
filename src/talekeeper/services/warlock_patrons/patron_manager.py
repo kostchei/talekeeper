@@ -1,3 +1,5 @@
+# core
+# category: core
 import sqlite3
 from typing import Dict, List, Optional, Any
 from .fiend_patron import FiendPatron

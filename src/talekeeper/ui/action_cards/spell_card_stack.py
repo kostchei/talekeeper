@@ -1,3 +1,5 @@
+# core
+# category: core
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
 from typing import List, Dict, Any

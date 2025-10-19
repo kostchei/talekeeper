@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Monster Knowledge Label - Interactive label with hover tooltips for monster information
 

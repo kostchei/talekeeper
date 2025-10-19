@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Wizard Subclasses Package
 

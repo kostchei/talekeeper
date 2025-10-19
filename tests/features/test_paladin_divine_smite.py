@@ -1,3 +1,4 @@
+#test
 """
 Comprehensive tests for Paladin Divine Smite functionality.
 

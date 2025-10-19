@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# test
 """
 Test script to verify Rogue subclass selection is working properly.
 """

@@ -1,4 +1,6 @@
-﻿"""
+﻿# core
+# core
+"""
 Action Cards Widget - Bottom panel for character actions
 
 PyQt6 widget that provides quick access to character actions:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# test
 """
 Test script for Lucky/Inspiration halo system
 Tests that the advantage halos appear correctly on action cards

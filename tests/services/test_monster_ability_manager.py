@@ -1,3 +1,4 @@
+#test
 """
 Tests for Monster Ability Manager
 

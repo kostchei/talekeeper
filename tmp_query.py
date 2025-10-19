@@ -1,3 +1,4 @@
+# redundant
 import sqlite3, json
 conn = sqlite3.connect("talekeeper.db")
 cur = conn.cursor()

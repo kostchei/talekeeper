@@ -1,3 +1,5 @@
+# core
+# category: core
 import json
 import sqlite3
 from typing import Dict, List, Optional, Any

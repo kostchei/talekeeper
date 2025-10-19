@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Rogue Abilities Service for TaleKeeper
 

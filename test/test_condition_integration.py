@@ -1,3 +1,4 @@
+# test
 """
 Test integration of condition system with existing Barbarian features.
 This validates Stage 1.1 is complete before moving to Stage 1.2.

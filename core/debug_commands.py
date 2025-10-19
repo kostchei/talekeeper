@@ -1,3 +1,5 @@
+# core
+# core
 """
 TaleKeeper Debug Commands System
 

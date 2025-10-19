@@ -1,3 +1,5 @@
+# core
+# category: core
 import json
 import sqlite3
 from typing import Dict, List, Optional, Any
@@ -30,128 +32,128 @@ class SorcererKingPatron:
 
         # Level 3: Sorcerer-King Spells and Tyrant's Herald
         if level >= 3:
-                # Sorcerer-King Spells with Psionic Casting
-                expanded_spells = self.get_expanded_spells()
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Sorcerer-King Spells',
-                    'passive',
-                    'permanent',
-                    3,
-                    'The magic of your patron ensures you always have certain spells ready. You can cast these spells without Verbal or Material components (except consumed or costly materials).',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'spells': expanded_spells,
-                        'psionic_casting': True
-                    })
-                ))
+            # Sorcerer-King Spells with Psionic Casting
+            expanded_spells = self.get_expanded_spells()
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Sorcerer-King Spells',
+                'passive',
+                'permanent',
+                3,
+                'The magic of your patron ensures you always have certain spells ready. You can cast these spells without Verbal or Material components (except consumed or costly materials).',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'spells': expanded_spells,
+                    'psionic_casting': True
+                })
+            ))
 
-                # Tyrant's Herald - Intimidating Presence
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Intimidating Presence',
-                    'passive',
-                    'permanent',
-                    3,
-                    'You gain proficiency in the Intimidation skill. You also have Expertise in Intimidation.',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'skill_proficiency': 'Intimidation',
-                        'expertise': True
-                    })
-                ))
+            # Tyrant's Herald - Intimidating Presence
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Intimidating Presence',
+                'passive',
+                'permanent',
+                3,
+                'You gain proficiency in the Intimidation skill. You also have Expertise in Intimidation.',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'skill_proficiency': 'Intimidation',
+                    'expertise': True
+                })
+            ))
 
-                # Tyrant's Herald - Voice of Tyranny
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Voice of Tyranny',
-                    'bonus_action',
-                    'long_rest',
-                    3,
-                    'You can cast Command as a Bonus Action without expending a spell slot. You can do so a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'uses_max': 'charisma_mod',
-                        'uses_current': 'charisma_mod',
-                        'spell': 'command'
-                    })
-                ))
+            # Tyrant's Herald - Voice of Tyranny
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Voice of Tyranny',
+                'bonus_action',
+                'long_rest',
+                3,
+                'You can cast Command as a Bonus Action without expending a spell slot. You can do so a number of times equal to your Charisma modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'uses_max': 'charisma_mod',
+                    'uses_current': 'charisma_mod',
+                    'spell': 'command'
+                })
+            ))
 
-            # Level 6: Decisive Edict
-            if level >= 6:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Decisive Edict',
-                    'action',
-                    'short_rest',
-                    6,
-                    'When you cast a spell using a Pact Magic spell slot, you can cause profane power to erupt in a 30-foot Emanation originating from you. For each creature you can see in the Emanation, choose Marshal (Advantage on attack rolls until end of next turn) or Oppress (Frightened condition until end of next turn on failed Wisdom save).',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'uses_max': 1,
-                        'uses_current': 1,
-                        'area': '30-foot emanation',
-                        'effects': ['marshal', 'oppress']
-                    })
-                ))
+        # Level 6: Decisive Edict
+        if level >= 6:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Decisive Edict',
+                'action',
+                'short_rest',
+                6,
+                'When you cast a spell using a Pact Magic spell slot, you can cause profane power to erupt in a 30-foot Emanation originating from you. For each creature you can see in the Emanation, choose Marshal (Advantage on attack rolls until end of next turn) or Oppress (Frightened condition until end of next turn on failed Wisdom save).',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'uses_max': 1,
+                    'uses_current': 1,
+                    'area': '30-foot emanation',
+                    'effects': ['marshal', 'oppress']
+                })
+            ))
 
-            # Level 10: Vindictive Rebuke
-            if level >= 10:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Vindictive Rebuke',
-                    'reaction',
-                    'long_rest',
-                    10,
-                    'When an enemy hits you with an attack roll, you can take a Reaction to force the enemy to reroll the d20, and the enemy must use the new roll. If this Reaction turns the attack roll into a miss, the triggering creature takes Psychic damage equal to your Warlock level.',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'uses_max': 'charisma_mod',
-                        'uses_current': 'charisma_mod',
-                        'damage_type': 'psychic'
-                    })
-                ))
+        # Level 10: Vindictive Rebuke
+        if level >= 10:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Vindictive Rebuke',
+                'reaction',
+                'long_rest',
+                10,
+                'When an enemy hits you with an attack roll, you can take a Reaction to force the enemy to reroll the d20, and the enemy must use the new roll. If this Reaction turns the attack roll into a miss, the triggering creature takes Psychic damage equal to your Warlock level.',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'uses_max': 'charisma_mod',
+                    'uses_current': 'charisma_mod',
+                    'damage_type': 'psychic'
+                })
+            ))
 
-            # Level 14: Absolute Tyranny
-            if level >= 14:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    character_id,
-                    'Absolute Tyranny',
-                    'passive',
-                    'permanent',
-                    14,
-                    'Whenever you cast Command, you can target one additional creature within the spell\'s range. Additionally, a creature Frightened by you automatically fails its save against any Command you cast.',
-                    json.dumps({
-                        'source': 'warlock_patron',
-                        'patron': 'sorcerer_king',
-                        'command_enhancement': True,
-                        'additional_targets': 1,
-                        'frightened_auto_fail': True
-                    })
-                ))
+        # Level 14: Absolute Tyranny
+        if level >= 14:
+            cursor.execute("""
+                INSERT OR IGNORE INTO character_features (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id,
+                'Absolute Tyranny',
+                'passive',
+                'permanent',
+                14,
+                'Whenever you cast Command, you can target one additional creature within the spell\'s range. Additionally, a creature Frightened by you automatically fails its save against any Command you cast.',
+                json.dumps({
+                    'source': 'warlock_patron',
+                    'patron': 'sorcerer_king',
+                    'command_enhancement': True,
+                    'additional_targets': 1,
+                    'frightened_auto_fail': True
+                })
+            ))
 
         if should_commit:
             conn.commit()

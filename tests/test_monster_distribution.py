@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Comprehensive Monster Distribution System Tests

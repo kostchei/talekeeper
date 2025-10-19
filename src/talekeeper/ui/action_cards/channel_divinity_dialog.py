@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Channel Divinity Dialog for Paladins
 

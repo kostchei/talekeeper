@@ -1,3 +1,5 @@
+# core
+# core
 """
 Standardized Monster Attack Processor
 

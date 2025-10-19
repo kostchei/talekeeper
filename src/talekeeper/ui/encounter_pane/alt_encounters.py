@@ -1,3 +1,5 @@
+# core
+# category: core
 import random
 
 TRAP_TYPES = ['Setback', 'Dangerous']

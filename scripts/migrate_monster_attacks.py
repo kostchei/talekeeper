@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 Monster Attack Migration Script
 

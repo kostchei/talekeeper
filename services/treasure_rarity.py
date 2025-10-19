@@ -1,3 +1,5 @@
+# core
+# core
 """
 Treasure rarity system for TaleKeeper.
 Determines item rarity based on character level using D&D 5e treasure tables.

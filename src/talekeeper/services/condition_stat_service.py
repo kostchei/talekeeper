@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Condition Stat Modification Service
 

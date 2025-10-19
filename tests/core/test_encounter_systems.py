@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Regression tests for encounter systems: monsters, skill challenges, hazards, and vendors.

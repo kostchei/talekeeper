@@ -1,3 +1,5 @@
+# core
+# category: core
 """UI theme definitions for TaleKeeper.
 
 Provides light and dark palettes inspired by the watercolor palette in art/pallette.jpg.

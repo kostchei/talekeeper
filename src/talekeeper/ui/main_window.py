@@ -1,3 +1,5 @@
+# core
+# category: core
 """Main Application Window for TaleKeeper Desktop."""
 
 import json

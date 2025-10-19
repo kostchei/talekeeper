@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 Standardized Monster Attack Processor
 

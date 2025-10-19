@@ -1,3 +1,5 @@
+# core
+# core
 """Layout profiles for TaleKeeper UI variants."""
 
 from __future__ import annotations

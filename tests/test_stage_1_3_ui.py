@@ -1,3 +1,4 @@
+#test
 """
 Test Stage 1.3: Condition UI Display (Read-Only)
 Tests the condition badge display and logging integration.

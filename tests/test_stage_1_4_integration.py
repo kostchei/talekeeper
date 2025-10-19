@@ -1,3 +1,4 @@
+#test
 """
 Test Stage 1.4: Full Condition Integration
 Tests complete integration of conditions with advantage system, action economy, and combat mechanics.

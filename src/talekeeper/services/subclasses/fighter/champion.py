@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Champion Subclass for Fighter
 

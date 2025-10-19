@@ -1,3 +1,4 @@
+#test
 #!/usr/bin/env python3
 """
 Hero Mode Stat Allocation Test

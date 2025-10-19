@@ -1,4 +1,6 @@
-﻿"""
+# core
+# category: core
+"""
 Equipment database helper functions for TaleKeeper.
 Provides database access methods for equipment data.
 """

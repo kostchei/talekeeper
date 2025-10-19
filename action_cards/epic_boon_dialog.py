@@ -1,3 +1,5 @@
+# core
+# core
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QListWidget, QListWidgetItem, QFrame, QTextEdit)
 from PyQt6.QtCore import Qt, pyqtSignal

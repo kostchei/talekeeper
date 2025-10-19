@@ -1,3 +1,4 @@
+# test
 """
 Simple validation to show Fighter testing framework is implemented.
 """

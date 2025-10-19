@@ -1,3 +1,4 @@
+# test
 """
 Test Stage 2.1: Enhanced Subclass Definitions
 Tests the new subclass definition system in isolation.

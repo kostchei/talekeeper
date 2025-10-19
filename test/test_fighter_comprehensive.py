@@ -1,3 +1,4 @@
+# test
 """
 Comprehensive Fighter class validation test suite.
 

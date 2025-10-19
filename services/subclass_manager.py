@@ -1,3 +1,5 @@
+# core
+# core
 """
 Subclass Manager Service for TaleKeeper
 

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 TaleKeeper Configuration System
 

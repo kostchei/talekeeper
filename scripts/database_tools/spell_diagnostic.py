@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """
 TESTING FRAMEWORK - Simple spell diagnostic script
 ====================================================

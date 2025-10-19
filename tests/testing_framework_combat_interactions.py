@@ -1,3 +1,4 @@
+#test
 """
 Combat Interaction Testing Framework
 ====================================

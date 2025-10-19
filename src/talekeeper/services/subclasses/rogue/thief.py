@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Thief Subclass for Rogue
 

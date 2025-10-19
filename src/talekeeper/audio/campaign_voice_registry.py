@@ -1,3 +1,5 @@
+# core
+# category: utility
 """Registry that maps campaign frames to trained voice profiles."""
 
 from __future__ import annotations

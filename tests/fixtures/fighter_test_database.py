@@ -1,3 +1,4 @@
+#test
 """
 Fighter test database setup utilities.
 

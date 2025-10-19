@@ -1,3 +1,4 @@
+#test
 """
 Tests for newly implemented Fighter/Champion features:
 - Remarkable Athlete jump distance

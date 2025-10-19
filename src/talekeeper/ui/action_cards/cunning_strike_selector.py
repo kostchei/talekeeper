@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Cunning Strike Selector UI Widget
 

@@ -1,3 +1,4 @@
+#test
 """
 Test Danger Sense integration with condition system.
 Stage 1.2 validation test.

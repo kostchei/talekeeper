@@ -1,3 +1,5 @@
+# core
+# core
 """
 Action Card Generator for Enhanced Action Economy
 

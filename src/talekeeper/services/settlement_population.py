@@ -1,3 +1,5 @@
+# core
+# category: utility
 import random
 from typing import Optional
 

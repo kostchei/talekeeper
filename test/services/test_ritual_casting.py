@@ -1,3 +1,4 @@
+# test
 """
 Test Ritual Casting Service - Phase 4.1 Testing
 Tests ritual casting mechanics for D&D 2024

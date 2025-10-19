@@ -1,3 +1,5 @@
+# core
+# category: core
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGraphicsView, QGraphicsScene
 from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QPointF
 from PyQt6.QtGui import QColor, QPainter, QPolygonF, QPen, QBrush, QFont

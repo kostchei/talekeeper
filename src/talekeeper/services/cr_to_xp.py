@@ -1,3 +1,5 @@
+# core
+# category: utility
 """
 CR to XP Conversion Utility
 

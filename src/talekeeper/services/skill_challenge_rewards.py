@@ -1,3 +1,5 @@
+# core
+# category: core
 import sqlite3
 import random
 import re

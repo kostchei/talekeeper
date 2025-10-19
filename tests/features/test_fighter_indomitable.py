@@ -1,3 +1,4 @@
+#test
 """
 Comprehensive tests for Fighter Indomitable mechanics.
 

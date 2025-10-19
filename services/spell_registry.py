@@ -1,3 +1,5 @@
+# core
+# core
 """
 Spell Registry for TaleKeeper
 

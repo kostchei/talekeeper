@@ -1,3 +1,4 @@
+# test
 """
 Simple validation test for Rogue implementation
 

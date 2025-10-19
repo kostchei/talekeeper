@@ -1,3 +1,5 @@
+# core
+# category: redundant
 """
 Subclass Manager Service for TaleKeeper
 

@@ -1,3 +1,5 @@
+# core
+# category: utility
 """Audio playback manager for narration files."""
 
 from __future__ import annotations

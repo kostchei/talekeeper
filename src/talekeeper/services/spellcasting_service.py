@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Spellcasting Service for TaleKeeper
 

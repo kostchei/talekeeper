@@ -1,3 +1,5 @@
+# core
+# core
 """
 Centralized service for weapon attack calculations and effects.
 This service consolidates weapon-related logic previously scattered across UI components.

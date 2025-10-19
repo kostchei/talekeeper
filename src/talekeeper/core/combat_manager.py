@@ -1,4 +1,6 @@
-﻿"""
+# core
+# category: core
+"""
 D&D 2024 Compliant Combat Manager
 
 Handles initiative, turn order, action economy, and combat resolution

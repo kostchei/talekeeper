@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Subclass Action Integration for TaleKeeper
 

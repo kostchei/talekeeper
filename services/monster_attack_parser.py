@@ -1,3 +1,5 @@
+# core
+# core
 """
 Monster Attack Parser - Phase 1
 

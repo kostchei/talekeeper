@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Divine Smite Dialog for Paladins
 

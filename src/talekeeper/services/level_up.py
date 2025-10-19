@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Level Up Service - Handle character leveling and multi-classing
 """

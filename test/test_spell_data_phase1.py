@@ -1,3 +1,4 @@
+# test
 """
 Phase 1 Spell Data Validation Tests
 Tests that essential spells for character creation are present in the database

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Weapon Mastery Effects Processor for TaleKeeper
 

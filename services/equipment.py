@@ -1,3 +1,5 @@
+# core
+# core
 """
 Equipment Service - Database-backed equipment data and properties.
 Queries the equipment table for all item data and AC calculations.

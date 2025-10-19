@@ -1,4 +1,6 @@
-﻿"""
+# core
+# category: core
+"""
 Encounter Pane Widget - Central content area for encounters and exploration
 
 PyQt6 widget that serves as the main content display area:

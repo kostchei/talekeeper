@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Enhanced Subclass Manager for TaleKeeper
 

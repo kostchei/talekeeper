@@ -1,3 +1,4 @@
+#test
 """
 Test Stage 2.2: Berserker Feature Migration
 Tests migration of Berserker features to the new system with condition integration.

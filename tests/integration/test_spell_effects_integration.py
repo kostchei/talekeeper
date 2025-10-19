@@ -1,3 +1,4 @@
+#test
 """
 Integration tests for spell effects in combat/AC/attack systems.
 """

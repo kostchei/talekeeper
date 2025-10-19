@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Ritual Casting Service - Phase 4.1 Implementation
 Handles ritual casting mechanics for D&D 2024

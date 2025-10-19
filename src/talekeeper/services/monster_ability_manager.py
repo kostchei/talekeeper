@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Monster Non-Attack Ability Manager
 

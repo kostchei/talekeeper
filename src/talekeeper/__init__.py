@@ -1,2 +1,4 @@
+# core
+# category: utility
 __version__ = "3.0.0"
 __app_name__ = "TaleKeeper"

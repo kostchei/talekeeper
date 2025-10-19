@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Proficiency Bonus Calculation System
 

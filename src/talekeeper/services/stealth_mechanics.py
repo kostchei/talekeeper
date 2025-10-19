@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Stealth Mechanics Service for TaleKeeper
 

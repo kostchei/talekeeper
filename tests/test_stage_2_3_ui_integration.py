@@ -1,3 +1,4 @@
+#test
 """
 Test Stage 2.3: UI Integration for Subclass Features
 Tests the UI display of subclass features with availability indicators, resource tracking, and tooltips.

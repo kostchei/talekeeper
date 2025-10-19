@@ -1,3 +1,4 @@
+# test
 """
 Test suite for the Condition Stat Service.
 Tests automatic stat modifications from conditions.

@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Universal Character Resource Management System
 

@@ -1,3 +1,4 @@
+# test
 """
 Test suite for stealth mechanics in TaleKeeper.
 

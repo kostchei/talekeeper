@@ -1,3 +1,6 @@
+# core
+#utility
+# core
 """Process source monster training images: convert to PNG, resize, and replace generated images.
 
 This script:

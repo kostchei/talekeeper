@@ -1,3 +1,5 @@
+# core
+# category: core
 """
 Condition Display Widget - Compact status badges for character conditions
 
