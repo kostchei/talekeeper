@@ -248,7 +248,7 @@ class HexShopInterface(ShopInterface):
             sell_price_gp, sell_price_display, charisma_roll = shop_service.calculate_sell_price_with_character(
                 item_data.get('cost_gp', 0), self.character_data
             )
-            total_value_gp = sell_price_gp * quantity
+            total_value_gp = round(sell_price_gp * quantity, 2)
             total_value_display, _ = format_currency(total_value_gp)
 
             if total_value_gp > self.remaining_pool:

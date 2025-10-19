@@ -205,6 +205,20 @@ class DatabaseInitializer:
         print("Checking database schema version...")
         return self.check_schema_version()
     
+    def _ensure_inventory_columns(self, cursor: sqlite3.Cursor):
+        """Ensure Bag of Holding columns exist on character_inventory."""
+        cursor.execute("PRAGMA table_info(character_inventory)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if 'stored_in_bag' not in columns:
+            cursor.execute("ALTER TABLE character_inventory ADD COLUMN stored_in_bag INTEGER NOT NULL DEFAULT 0")
+
+        if 'treasure_type' not in columns:
+            cursor.execute("ALTER TABLE character_inventory ADD COLUMN treasure_type TEXT NOT NULL DEFAULT 'standard'")
+
+        if 'unit_value_gp' not in columns:
+            cursor.execute("ALTER TABLE character_inventory ADD COLUMN unit_value_gp REAL DEFAULT NULL")
+
     def check_schema_version(self) -> bool:
         """Check and upgrade database schema if needed."""
         try:
@@ -226,7 +240,7 @@ class DatabaseInitializer:
             current_version = result[0] if result else 0
             
             # Target schema version
-            target_version = 2
+            target_version = 3
             
             if current_version >= target_version:
                 print(f"Database schema is up to date (version {current_version})")
@@ -249,9 +263,9 @@ class DatabaseInitializer:
                 ''')
                 conn.commit()
                 print("Schema version updated to v2")
-                return True
+                current_version = 2
             
-            elif current_version == 1:
+            if current_version == 1:
                 # Future: handle upgrade from v1 to v2
                 print("Upgrading schema from v1 to v2...")
                 # Would contain specific upgrade logic here
@@ -261,11 +275,21 @@ class DatabaseInitializer:
                 ''')
                 conn.commit()
                 print("Schema upgraded to v2")
+                current_version = 2
+
+            if current_version < 3:
+                print("Applying Bag of Holding schema upgrades (v2 -> v3)...")
+                self._ensure_inventory_columns(cursor)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO schema_version (version, description)
+                    VALUES (3, 'Added Bag of Holding inventory support columns')
+                ''')
+                conn.commit()
+                print("Schema upgraded to v3")
                 return True
             
-            else:
-                print(f"Unknown schema version: {current_version}")
-                return False
+            print(f"Unknown schema version: {current_version}")
+            return False
             
         except Exception as e:
             print(f"Error checking schema version: {e}")

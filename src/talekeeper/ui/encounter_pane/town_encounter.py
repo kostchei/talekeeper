@@ -1619,7 +1619,7 @@ class ShopInterface(QWidget):
                     QMessageBox.critical(self, "Purchase Failed",
                                        "Failed to add item to inventory. Please try again.")
         else:
-            total_value_gp = item_data['sell_price_gp'] * quantity
+            total_value_gp = round(item_data['sell_price_gp'] * quantity, 2)
             total_value_display, _ = format_currency(total_value_gp)
 
             reply = QMessageBox.question(self, "Confirm Sale",
@@ -1706,38 +1706,21 @@ class ShopInterface(QWidget):
             print(f"Error deducting gold: {e}")
     
     def _add_gold(self, amount: float):
-        """Add gold to character inventory"""
+        """Add gold to character inventory with Bag of Holding support"""
         try:
             character_id = self.character_data.get('id', '')
-            conn = sqlite3.connect("talekeeper.db")
-            cursor = conn.cursor()
-            
-            # Check if gold entry exists
-            cursor.execute("""
-                SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
-            """, (character_id,))
-            
-            result = cursor.fetchone()
-            
-            if result:
-                # Update existing gold
-                cursor.execute("""
-                    UPDATE character_inventory 
-                    SET quantity = quantity + ?
-                    WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
-                """, (amount, character_id))
+            amount_rounded = round(amount, 2)
+
+            from talekeeper.core.game_engine_sqlite import GameEngine
+            engine = GameEngine()
+
+            success = engine.add_gold_to_character_sync(character_id, amount_rounded, store_in_bag=None)
+
+            if success:
+                print(f"[Shop] Added {amount_rounded} gold to character {character_id}")
             else:
-                # Create new gold entry
-                cursor.execute("""
-                    INSERT INTO character_inventory 
-                    (character_id, item_name, item_type, quantity, equipped) 
-                    VALUES (?, 'Gold Pieces', 'treasure', ?, 0)
-                """, (character_id, amount))
-            
-            conn.commit()
-            conn.close()
-            
+                print(f"[Shop] Failed to add gold to character {character_id}")
+
         except Exception as e:
             print(f"Error adding gold: {e}")
     

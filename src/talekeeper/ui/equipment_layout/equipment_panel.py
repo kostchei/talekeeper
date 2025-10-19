@@ -778,16 +778,24 @@ class EquipmentPanel(QWidget):
             self.inventory_list.addItem(list_item)
         
         # Add unequipped inventory items
+        bag_weight = 0.0
         for item in self.inventory_items:
             item_name = item.get('name', 'Unknown Item')
             item_type = item.get('item_type', '')
             quantity = item.get('quantity', 1)
+            stored_in_bag = item.get('stored_in_bag', 0)
+            treasure_type = item.get('treasure_type', '')
 
             display_text = f"{item_name}"
             if quantity > 1:
-                display_text += f" ({quantity})"
+                if treasure_type in ('coins', 'currency') or item_type == 'currency':
+                    display_text += f" ({round(quantity, 2)})"
+                else:
+                    display_text += f" ({quantity})"
             if item_type:
                 display_text += f" [{item_type}]"
+            if stored_in_bag:
+                display_text += " [Bag of Holding]"
 
             list_item = QListWidgetItem(display_text)
             list_item.setData(Qt.ItemDataRole.UserRole, {'item': item, 'equipped': False, 'slot': None})
@@ -800,8 +808,18 @@ class EquipmentPanel(QWidget):
         
         # Update weight - include both equipped and unequipped items
         equipped_weight = sum(item.get('weight_lb', 0) for item in self.equipped_items.values())
-        inventory_weight = sum(item.get('weight_lb', 0) * item.get('quantity', 1) 
-                              for item in self.inventory_items)
+        inventory_weight = 0.0
+
+        for item in self.inventory_items:
+            total_weight_item = item.get('weight_total_lb')
+            if total_weight_item is None:
+                total_weight_item = item.get('weight_lb', 0) or 0
+
+            if item.get('stored_in_bag'):
+                bag_weight += total_weight_item
+            else:
+                inventory_weight += total_weight_item
+
         total_weight = equipped_weight + inventory_weight
         
         # D&D 5e carrying capacity rules
@@ -821,9 +839,12 @@ class EquipmentPanel(QWidget):
             self.weight_bar.setStyleSheet("QProgressBar::chunk { background-color: #44aa44; }")
         
         # Update progress bar (0-100 scale)
-        weight_percentage = int(min(100, (total_weight / max_weight) * 100))
+        weight_percentage = int(min(100, (total_weight / max_weight) * 100)) if max_weight else 0
         self.weight_bar.setValue(weight_percentage)
-        self.weight_label.setText(f"{total_weight:.1f}/{max_weight} lb{encumbrance_status}")
+        label_text = f"{total_weight:.1f}/{max_weight} lb{encumbrance_status}"
+        if bag_weight > 0:
+            label_text += f" (+{bag_weight:.1f} lb in Bag)"
+        self.weight_label.setText(label_text)
     
     def _update_stats_display(self):
         """Update the stats display based on equipped items."""

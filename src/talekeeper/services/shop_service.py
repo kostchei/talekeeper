@@ -110,7 +110,7 @@ class ShopService:
         return size_map.get(size_name.lower(), ShopSize.MEDIUM)
 
     def calculate_sell_price(self, item_cost: float) -> Tuple[float, str]:
-        sell_price_gp = max(0.01, item_cost * 0.5)
+        sell_price_gp = round(max(0.01, item_cost * 0.5), 2)
         display, _ = format_currency(sell_price_gp)
         return (sell_price_gp, display)
 
@@ -294,6 +294,6 @@ class ShopService:
     def calculate_sell_price_with_character(self, item_cost: float, character_data: Dict[str, Any]) -> Tuple[float, str, int]:
         charisma_roll = self.get_charisma_skill_roll(character_data)
         sell_rate = min(100, 40 + charisma_roll)
-        sell_price = item_cost * (sell_rate / 100.0)
+        sell_price = round(item_cost * (sell_rate / 100.0), 2)
         display, _ = format_currency(sell_price)
         return (sell_price, display, charisma_roll)

@@ -104,7 +104,7 @@ class TreasureGenerator:
         }
 
     @staticmethod
-    def convert_gold_to_treasure(gold_amount: int, cr: float = 1.0) -> List[Dict]:
+    def convert_gold_to_treasure(gold_amount: int, cr: float = 1.0) -> Tuple[List[Dict], int]:
         treasures = []
         remaining_gold = gold_amount
 

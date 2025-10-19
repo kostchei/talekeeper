@@ -10,7 +10,7 @@ CREATE TABLE schema_version (
 
 -- Current schema version
 INSERT INTO schema_version (version, description) 
-VALUES (2, 'Complete schema with all migration features integrated');
+VALUES (3, 'Complete schema including Bag of Holding support columns');
 
 CREATE TABLE characters (
     id TEXT PRIMARY KEY,
@@ -129,12 +129,15 @@ CREATE TABLE character_inventory (
     character_id TEXT NOT NULL,
     item_name TEXT NOT NULL,
     item_type TEXT NOT NULL,  -- 'weapon', 'armor', 'shield', 'gear', 'treasure', etc.
-    quantity INTEGER NOT NULL DEFAULT 1,
-    weight_lb REAL NOT NULL DEFAULT 0.0,
-    description TEXT,
-    value_gp REAL NOT NULL DEFAULT 0,
-    equipped INTEGER NOT NULL DEFAULT 0,  -- 0 = not equipped, 1 = equipped
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      weight_lb REAL NOT NULL DEFAULT 0.0,
+      description TEXT,
+      value_gp REAL NOT NULL DEFAULT 0,
+      stored_in_bag INTEGER NOT NULL DEFAULT 0,
+      treasure_type TEXT NOT NULL DEFAULT 'standard',
+      unit_value_gp REAL DEFAULT NULL,
+      equipped INTEGER NOT NULL DEFAULT 0,  -- 0 = not equipped, 1 = equipped
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
 );

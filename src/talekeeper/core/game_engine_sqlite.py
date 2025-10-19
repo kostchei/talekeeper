@@ -78,12 +78,17 @@ class GameEngineSQLite:
                 weight_lb REAL NOT NULL DEFAULT 0.0,
                 description TEXT,
                 value_gp REAL NOT NULL DEFAULT 0,
+                stored_in_bag INTEGER NOT NULL DEFAULT 0,
+                treasure_type TEXT NOT NULL DEFAULT 'standard',
+                unit_value_gp REAL DEFAULT NULL,
                 equipped INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
             )
         """)
+
+        self._ensure_inventory_extension_columns(cursor)
         
         # Create index if it doesn't exist
         cursor.execute("""
@@ -93,6 +98,23 @@ class GameEngineSQLite:
         
         conn.commit()
         conn.close()
+
+    def _ensure_inventory_extension_columns(self, cursor: sqlite3.Cursor):
+        """Ensure Bag of Holding related columns exist on character_inventory."""
+        try:
+            cursor.execute("PRAGMA table_info(character_inventory)")
+            columns = {row['name'] for row in cursor.fetchall()}
+
+            if 'stored_in_bag' not in columns:
+                cursor.execute("ALTER TABLE character_inventory ADD COLUMN stored_in_bag INTEGER NOT NULL DEFAULT 0")
+
+            if 'treasure_type' not in columns:
+                cursor.execute("ALTER TABLE character_inventory ADD COLUMN treasure_type TEXT NOT NULL DEFAULT 'standard'")
+
+            if 'unit_value_gp' not in columns:
+                cursor.execute("ALTER TABLE character_inventory ADD COLUMN unit_value_gp REAL DEFAULT NULL")
+        except Exception as e:
+            print(f"[SQLite] Error ensuring inventory columns: {e}")
     
     def load_character_sync(self, save_slot: int) -> Optional[Dict[str, Any]]:
         """Load character from save slot."""
@@ -509,7 +531,9 @@ class GameEngineSQLite:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT ci.id, ci.item_name, ci.item_type, ci.quantity, ci.weight_lb,
-                           ci.description, ci.value_gp, ci.equipped, e.slot, e.description as equipment_description
+                           ci.description, ci.value_gp, ci.equipped, ci.stored_in_bag,
+                           ci.treasure_type, ci.unit_value_gp,
+                           e.description as equipment_description
                     FROM character_inventory ci
                     LEFT JOIN equipment e ON ci.item_name = e.name
                     WHERE ci.character_id = ?
@@ -519,17 +543,32 @@ class GameEngineSQLite:
                 inventory = []
                 for row in cursor.fetchall():
                     description = row['equipment_description'] if row['equipment_description'] else row['description']
+                    quantity = row['quantity'] if row['quantity'] is not None else 0
+                    weight_lb = row['weight_lb'] if row['weight_lb'] is not None else 0.0
+                    treasure_type = row['treasure_type'] if row['treasure_type'] else 'standard'
+
+                    if treasure_type == 'coins':
+                        total_weight = weight_lb
+                        per_item_weight = (weight_lb / quantity) if quantity else 0.0
+                    else:
+                        per_item_weight = weight_lb
+                        total_weight = per_item_weight * max(1, quantity)
+
                     inventory.append({
                         'id': row['id'],
                         'name': row['item_name'],
                         'item_type': row['item_type'],
-                        'quantity': row['quantity'],
-                        'weight_lb': row['weight_lb'],
+                        'quantity': quantity,
+                        'weight_lb': per_item_weight,
+                        'weight_total_lb': total_weight,
                         'description': description,
                         'value_gp': row['value_gp'],
                         'equipped': bool(row['equipped']),
-                        'slot': row['slot'],
-                        'container': 'backpack'
+                        'slot': None,
+                        'stored_in_bag': row['stored_in_bag'] if row['stored_in_bag'] is not None else 0,
+                        'treasure_type': treasure_type,
+                        'unit_value_gp': row['unit_value_gp'],
+                        'container': 'backpack' if not row['stored_in_bag'] else 'bag_of_holding'
                     })
 
                 return inventory
@@ -2421,72 +2460,87 @@ class GameEngineSQLite:
             print(f"[SQLite] Error checking for Bag of Holding: {e}")
             return False
 
+    def _calculate_bag_weight(self, cursor: sqlite3.Cursor, character_id: str) -> float:
+        """Calculate bag weight using existing cursor to avoid nested connections."""
+        cursor.execute("""
+            SELECT treasure_type, quantity, weight_lb
+            FROM character_inventory
+            WHERE character_id = ? AND stored_in_bag = 1
+        """, (character_id,))
+
+        total_weight = 0.0
+        for row in cursor.fetchall():
+            treasure_type = row['treasure_type'] if row['treasure_type'] is not None else 'standard'
+            quantity = row['quantity'] if row['quantity'] is not None else 0
+            weight_lb = row['weight_lb'] if row['weight_lb'] is not None else 0.0
+
+            if treasure_type == 'coins':
+                total_weight += weight_lb
+            else:
+                total_weight += weight_lb * quantity
+
+        return total_weight
+
     def get_bag_of_holding_weight(self, character_id: str) -> float:
         """Calculate total weight stored in Bag of Holding."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT item_name, treasure_type, quantity, weight_lb
-                    FROM character_inventory
-                    WHERE character_id = ? AND stored_in_bag = 1
-                """, (character_id,))
-
-                total_weight = 0.0
-                for row in cursor.fetchall():
-                    item_name, treasure_type, quantity, weight_lb = row
-                    if treasure_type == 'coins':
-                        total_weight += weight_lb
-                    else:
-                        total_weight += weight_lb * quantity
-
-                return total_weight
+                return self._calculate_bag_weight(cursor, character_id)
         except Exception as e:
             print(f"[SQLite] Error calculating bag weight: {e}")
             return 0.0
 
     def add_gold_to_character_sync(self, character_id: str, gold_amount: int, store_in_bag: bool = None) -> bool:
-        """Add gold to character's inventory in the database.
+        """Add gold to character's inventory with automatic Bag of Holding handling.
 
         Args:
             character_id: Character ID
             gold_amount: Amount of gold to add
-            store_in_bag: True to store in bag, False for character, None for auto (bag if available and heavy)
+            store_in_bag: True to force store in bag, False to force on person, None for auto
         """
         try:
+            has_bag = self.character_has_bag_of_holding(character_id)
+
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
                 if store_in_bag is None:
-                    has_bag = self.character_has_bag_of_holding(character_id)
-                    gold_weight = gold_amount / 50.0
-                    store_in_bag = has_bag and gold_weight > 10
+                    store_in_bag = has_bag
+                elif store_in_bag and not has_bag:
+                    store_in_bag = False
 
-                stored_in_bag = 1 if store_in_bag else 0
+                bag_full_redirect = False
+                if store_in_bag and has_bag:
+                    current_weight = self._calculate_bag_weight(cursor, character_id)
+                    incoming_weight = gold_amount / 50.0
+                    if current_weight + incoming_weight > 500.0:
+                        bag_full_redirect = True
+                        store_in_bag = False
+                        print(f"[SQLite] Bag of Holding is at capacity for character {character_id}; storing gold on person instead.")
+
+                stored_in_bag = 1 if (store_in_bag and has_bag) else 0
 
                 cursor.execute("""
                     SELECT quantity FROM character_inventory
                     WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = ?
                 """, (character_id, stored_in_bag))
-
                 result = cursor.fetchone()
 
+                new_quantity = gold_amount
                 if result:
-                    old_quantity = result[0]
-                    new_quantity = old_quantity + gold_amount
-                    new_weight = new_quantity / 50.0
+                    old_quantity = result['quantity'] if result['quantity'] is not None else 0
+                    new_quantity += old_quantity
 
                     cursor.execute("""
                         UPDATE character_inventory
                         SET quantity = ?, weight_lb = ?
                         WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = ?
-                    """, (new_quantity, new_weight, character_id, stored_in_bag))
+                    """, (new_quantity, new_quantity / 50.0, character_id, stored_in_bag))
 
                     location = "Bag of Holding" if stored_in_bag else "person"
                     print(f"[SQLite] Updated character {character_id} gold ({location}): {old_quantity} -> {new_quantity} (+{gold_amount})")
                 else:
-                    gold_weight = gold_amount / 50.0
-
                     import uuid
                     item_id = str(uuid.uuid4())
 
@@ -2494,12 +2548,16 @@ class GameEngineSQLite:
                         INSERT INTO character_inventory
                         (id, character_id, item_name, item_type, quantity, weight_lb, treasure_type, stored_in_bag)
                         VALUES (?, ?, 'Gold Pieces', 'currency', ?, ?, 'coins', ?)
-                    """, (item_id, character_id, gold_amount, gold_weight, stored_in_bag))
+                    """, (item_id, character_id, new_quantity, new_quantity / 50.0, stored_in_bag))
 
                     location = "Bag of Holding" if stored_in_bag else "inventory"
-                    print(f"[SQLite] Added {gold_amount} gold pieces to character {character_id} ({location})")
+                    reason = " (bag full)" if bag_full_redirect else ""
+                    print(f"[SQLite] Added {new_quantity} gold pieces to character {character_id} ({location}){reason}")
 
-                return cursor.rowcount > 0
+                if has_bag:
+                    self._rebalance_gold_storage(cursor, character_id)
+
+                return True
 
         except Exception as e:
             print(f"[SQLite] Error adding gold to character: {e}")
@@ -2517,11 +2575,25 @@ class GameEngineSQLite:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                if store_in_bag is None:
-                    has_bag = self.character_has_bag_of_holding(character_id)
-                    store_in_bag = has_bag
+                has_bag = self.character_has_bag_of_holding(character_id)
 
-                stored_in_bag = 1 if store_in_bag else 0
+                if store_in_bag is None:
+                    store_in_bag = has_bag
+                elif store_in_bag and not has_bag:
+                    store_in_bag = False
+
+                bag_full_redirect = False
+                stored_in_bag = 0
+                if store_in_bag and has_bag:
+                    quantity = treasure_item.get('quantity', 1) or 1
+                    item_weight = (treasure_item.get('weight_lb', 0.0) or 0.0) * quantity
+                    current_weight = self._calculate_bag_weight(cursor, character_id)
+                    if current_weight + item_weight > 500.0:
+                        bag_full_redirect = True
+                        store_in_bag = False
+                        print(f"[SQLite] Bag of Holding capacity exceeded for character {character_id}; storing {treasure_item.get('name', 'treasure')} on person.")
+                    else:
+                        stored_in_bag = 1
 
                 import uuid
                 item_id = str(uuid.uuid4())
@@ -2545,6 +2617,8 @@ class GameEngineSQLite:
                 ))
 
                 location = "Bag of Holding" if stored_in_bag else "inventory"
+                if bag_full_redirect:
+                    location += " (bag full)"
                 print(f"[SQLite] Added {treasure_item.get('name')} to character {character_id} ({location})")
 
                 return cursor.rowcount > 0
@@ -2604,3 +2678,70 @@ class GameEngineSQLite:
             print("[SQLite] Game engine shut down cleanly")
         except Exception as e:
             print(f"[SQLite] Error during shutdown: {e}")
+    def _rebalance_gold_storage(self, cursor: sqlite3.Cursor, character_id: str):
+        """Shift gold from the character's person into the Bag of Holding when possible."""
+        try:
+            capacity_left = 500.0 - self._calculate_bag_weight(cursor, character_id)
+            if capacity_left <= 0:
+                return
+
+            cursor.execute("""
+                SELECT quantity FROM character_inventory
+                WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = 0
+            """, (character_id,))
+            gold_on_person = cursor.fetchone()
+
+            if not gold_on_person:
+                return
+
+            coins_on_person = gold_on_person['quantity'] if gold_on_person['quantity'] is not None else 0
+            if coins_on_person <= 0:
+                return
+
+            coins_capacity = int(capacity_left * 50 + 1e-6)
+            if coins_capacity <= 0:
+                return
+
+            coins_to_move = min(coins_on_person, coins_capacity)
+            if coins_to_move <= 0:
+                return
+
+            remaining = coins_on_person - coins_to_move
+            if remaining > 0:
+                cursor.execute("""
+                    UPDATE character_inventory
+                    SET quantity = ?, weight_lb = ?
+                    WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = 0
+                """, (remaining, remaining / 50.0, character_id))
+            else:
+                cursor.execute("""
+                    DELETE FROM character_inventory
+                    WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = 0
+                """, (character_id,))
+
+            cursor.execute("""
+                SELECT quantity FROM character_inventory
+                WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = 1
+            """, (character_id,))
+            gold_in_bag = cursor.fetchone()
+
+            if gold_in_bag:
+                existing = gold_in_bag['quantity'] if gold_in_bag['quantity'] is not None else 0
+                updated_quantity = existing + coins_to_move
+                cursor.execute("""
+                    UPDATE character_inventory
+                    SET quantity = ?, weight_lb = ?
+                    WHERE character_id = ? AND item_name = 'Gold Pieces' AND stored_in_bag = 1
+                """, (updated_quantity, updated_quantity / 50.0, character_id))
+            else:
+                import uuid
+                item_id = str(uuid.uuid4())
+                cursor.execute("""
+                    INSERT INTO character_inventory
+                    (id, character_id, item_name, item_type, quantity, weight_lb, treasure_type, stored_in_bag)
+                    VALUES (?, ?, 'Gold Pieces', 'currency', ?, ?, 'coins', 1)
+                """, (item_id, character_id, coins_to_move, coins_to_move / 50.0))
+
+            print(f"[SQLite] Shifted {coins_to_move} gold pieces into Bag of Holding for character {character_id}")
+        except Exception as balance_error:
+            print(f"[SQLite] Error rebalancing gold storage: {balance_error}")
