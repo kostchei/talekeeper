@@ -26,6 +26,14 @@ Record the issues….
 - [ ] Encounter avoidance options
 - [ ] Pickpocket mechanics
 - [ ] Poisons system
+- [ ] **Monster Non-Attack Abilities** (See [CONAN_NON_ATTACK_ABILITIES.md](docs/CONAN_NON_ATTACK_ABILITIES.md))
+  - [ ] Phase 1: Recharge abilities (dragon breath weapons)
+  - [ ] Phase 2: Limited use abilities (X/Day)
+  - [ ] Phase 3: Charm/Domination effects
+  - [ ] Phase 4: Fear & Frightened conditions
+  - [ ] Phase 5: Paralysis & Petrification
+  - [ ] Phase 6: Legendary Actions
+  - [ ] Phase 7: Lair Actions
 
 ## 🏛️ Towns & Economy
 - [ ] Towns for selling equipment

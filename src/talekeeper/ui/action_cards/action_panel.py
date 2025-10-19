@@ -6403,9 +6403,10 @@ class ActionPanel(QWidget):
         if not character_id:
             print("[DEBUG] No character ID found for potion use")
             return
-        
-        # Check if character has healing potions in inventory
-        if not self._has_healing_potion(character_id):
+
+        # Get the best available potion
+        best_potion = self._get_best_healing_potion(character_id)
+        if not best_potion:
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'log_panel'):
@@ -6413,56 +6414,58 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
             return
-        
-        # Roll healing: 2d4+4
+
+        potion_name, num_dice, dice_size, modifier = best_potion
+
+        # Roll healing based on potion type
         import random
-        roll1 = random.randint(1, 4)
-        roll2 = random.randint(1, 4)
-        healing = roll1 + roll2 + 4
-        
+        rolls = [random.randint(1, dice_size) for _ in range(num_dice)]
+        healing = sum(rolls) + modifier
+
         # Apply healing to character
         current_hp = context.get('hit_points_current', 0)
         max_hp = context.get('hit_points_max', 0)
         new_hp = min(current_hp + healing, max_hp)
         actual_healing = new_hp - current_hp
-        
+
         # Update character HP in database
         try:
             import sqlite3
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                UPDATE characters 
+                UPDATE characters
                 SET hit_points_current = ?, current_hit_points = ?
                 WHERE id = ?
             """, (new_hp, new_hp, character_id))
-            
+
             conn.commit()
             conn.close()
-            
+
         except Exception as e:
             print(f"Error updating character HP: {e}")
-        
+
         # Remove one healing potion from inventory
-        self._consume_healing_potion(character_id)
-        
+        self._consume_healing_potion(character_id, potion_name)
+
         # Update character context
         self.character_context['hit_points_current'] = new_hp
         self.character_context['current_hit_points'] = new_hp
-        
+
         # Log the healing
         parent = self.parent()
         while parent:
             if hasattr(parent, 'log_panel'):
-                parent.log_panel.log_combat(f"[POTION] Used Healing Potion: 2d4([{roll1}, {roll2}]) + 4 = {healing} healing")
+                rolls_str = ', '.join(str(r) for r in rolls)
+                parent.log_panel.log_combat(f"[POTION] Used {potion_name}: {num_dice}d{dice_size}([{rolls_str}]) + {modifier} = {healing} healing")
                 if actual_healing > 0:
-                    parent.log_panel.log_combat(f"💚 Restored {actual_healing} HP ({current_hp} -> {new_hp})")
+                    parent.log_panel.log_combat(f"Restored {actual_healing} HP ({current_hp} -> {new_hp})")
                 else:
-                    parent.log_panel.log_combat(f"💚 Already at full health ({current_hp} HP)")
+                    parent.log_panel.log_combat(f"Already at full health ({current_hp} HP)")
                 break
             parent = parent.parent()
-        
+
         # Update character panel if available - use separate parent search
         parent = self.parent()
         while parent:
@@ -6470,100 +6473,133 @@ class ActionPanel(QWidget):
                 parent.character_panel.update_character_data(self.character_context)
                 break
             parent = parent.parent()
-        
+
         # Update potion card to reflect new count
         self._update_potion_card()
         self._update_visible_cards()
     
-    def _has_healing_potion(self, character_id: str) -> bool:
-        """Check if character has healing potions in inventory."""
+    def _get_best_healing_potion(self, character_id: str):
+        """Get the best available healing potion from inventory.
+
+        Returns: tuple of (potion_name, num_dice, dice_size, modifier) or None
+        """
+        potion_priority = [
+            ('Potion of Supreme Healing', 10, 4, 20),
+            ('Potion of Superior Healing', 8, 4, 8),
+            ('Potion of Greater Healing', 4, 4, 4),
+            ('Potion of Healing', 2, 4, 2),
+        ]
+
         try:
             import sqlite3
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT quantity FROM character_inventory 
-                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
-            """, (character_id,))
-            
-            result = cursor.fetchone()
+
+            for potion_name, num_dice, dice_size, modifier in potion_priority:
+                cursor.execute("""
+                    SELECT quantity FROM character_inventory
+                    WHERE character_id = ? AND item_name = ? AND quantity > 0
+                """, (character_id, potion_name))
+
+                result = cursor.fetchone()
+                if result and result[0] > 0:
+                    print(f"[DEBUG] Found {result[0]}x {potion_name} for character {character_id}")
+                    conn.close()
+                    return (potion_name, num_dice, dice_size, modifier)
+
             conn.close()
-            
-            if result:
-                print(f"[DEBUG] Found {result[0]} healing potions for character {character_id}")
-                return result[0] > 0
-            else:
-                print(f"[DEBUG] No healing potions found for character {character_id}")
-                return False
-            
+            print(f"[DEBUG] No healing potions found for character {character_id}")
+            return None
+
         except Exception as e:
-            print(f"Error checking healing potion inventory: {e}")
-            return False
+            print(f"Error finding best healing potion: {e}")
+            return None
+
+    def _has_healing_potion(self, character_id: str) -> bool:
+        """Check if character has any healing potions in inventory."""
+        return self._get_best_healing_potion(character_id) is not None
     
-    def _consume_healing_potion(self, character_id: str):
+    def _consume_healing_potion(self, character_id: str, potion_name: str):
         """Remove one healing potion from character's inventory."""
         try:
             import sqlite3
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             # Decrease potion quantity by 1
             cursor.execute("""
-                UPDATE character_inventory 
+                UPDATE character_inventory
                 SET quantity = quantity - 1
-                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
-            """, (character_id,))
-            
+                WHERE character_id = ? AND item_name = ? AND quantity > 0
+            """, (character_id, potion_name))
+
             # Remove entries with 0 quantity
             cursor.execute("""
-                DELETE FROM character_inventory 
-                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity <= 0
-            """, (character_id,))
-            
+                DELETE FROM character_inventory
+                WHERE character_id = ? AND item_name = ? AND quantity <= 0
+            """, (character_id, potion_name))
+
             conn.commit()
             conn.close()
-            
+
         except Exception as e:
             print(f"Error consuming healing potion: {e}")
     
     def _update_potion_card(self):
-        """Update the potion card to show current potion count."""
+        """Update the potion card to show current potion count and best available potion."""
         if ActionType.USE_POTION not in self.action_cards:
             return
-            
+
         if not self.character_context:
             return
-            
+
         character_id = self._resolve_character_id()
         if not character_id:
             return
-            
-        # Get potion count
+
+        card = self.action_cards[ActionType.USE_POTION]
+
+        # Get best available potion
+        best_potion = self._get_best_healing_potion(character_id)
+
+        if not best_potion:
+            card.set_description("No healing potions available")
+            print("[DEBUG] Updated potion card: No potions available")
+            return
+
+        potion_name, num_dice, dice_size, modifier = best_potion
+
+        # Get total count of all healing potions
         try:
             import sqlite3
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
+            potion_types = [
+                'Potion of Supreme Healing',
+                'Potion of Superior Healing',
+                'Potion of Greater Healing',
+                'Potion of Healing'
+            ]
+
             cursor.execute("""
-                SELECT SUM(quantity) FROM character_inventory 
-                WHERE character_id = ? AND (item_name = 'Potion of Healing' OR item_name = 'potion_of_healing') AND quantity > 0
-            """, (character_id,))
-            
+                SELECT SUM(quantity) FROM character_inventory
+                WHERE character_id = ? AND item_name IN (?, ?, ?, ?) AND quantity > 0
+            """, (character_id, *potion_types))
+
             result = cursor.fetchone()
             conn.close()
-            
-            potion_count = result[0] if result and result[0] else 0
-            
+
+            total_count = result[0] if result and result[0] else 0
+
+            # Create short name for display
+            short_name = potion_name.replace('Potion of ', '')
+
             # Update card description
-            card = self.action_cards[ActionType.USE_POTION]
-            if potion_count > 0:
-                card.set_description(f"Drink a healing potion (2d4+4 HP) - {potion_count} available")
-            else:
-                card.set_description("No healing potions available")
-            
-            print(f"[DEBUG] Updated potion card: {potion_count} potions available")
-            
+            card.set_description(f"Drink {short_name} ({num_dice}d{dice_size}+{modifier} HP) - {total_count} potions")
+
+            print(f"[DEBUG] Updated potion card: Best = {potion_name}, Total = {total_count}")
+
         except Exception as e:
             print(f"Error updating potion card: {e}")
     
