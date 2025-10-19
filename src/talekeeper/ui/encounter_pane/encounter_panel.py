@@ -631,7 +631,7 @@ class EncounterPanel(QWidget):
         action_buttons_layout.addWidget(self.downtime_btn)
 
         self.long_rest_btn = QPushButton("Long Rest")
-        self.long_rest_btn.clicked.connect(self._perform_long_rest)
+        self.long_rest_btn.clicked.connect(self._show_long_rest_widget)
         action_buttons_layout.addWidget(self.long_rest_btn)
         
         main_content_layout.addWidget(self.action_buttons_frame)
@@ -7199,6 +7199,119 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"ERROR: Could not update character sheet HP: {e}")
     
+    def _show_long_rest_widget(self):
+        """Show the new Long Rest widget with lifestyle options and hazard system."""
+        import random
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'game_engine'):
+                game_engine = parent.game_engine
+                character = game_engine.current_character
+                break
+            parent = parent.parent()
+
+        if not character:
+            return
+
+        hex_q = random.randint(-1000, 1000)
+        hex_r = random.randint(-1000, 1000)
+
+        self._create_temporary_settlement(character['id'], hex_q, hex_r)
+
+        from talekeeper.ui.rest_pane import LongRestWidget
+
+        rest_widget = LongRestWidget(
+            db_path='talekeeper.db',
+            character_data=character,
+            hex_q=hex_q,
+            hex_r=hex_r,
+            parent=self
+        )
+
+        rest_widget.rest_completed.connect(lambda result: self._on_long_rest_completed(result, hex_q, hex_r))
+        rest_widget.rest_cancelled.connect(lambda: rest_widget.close())
+        rest_widget.encounter_triggered.connect(self._on_long_rest_encounter)
+
+        rest_widget.show()
+
+    def _create_temporary_settlement(self, character_id: str, q: int, r: int):
+        """Create a temporary settlement in the hex map for encounter-based resting."""
+        import random
+        import sqlite3
+
+        settlement_roll = random.randint(1, 100)
+
+        if settlement_roll <= 6:
+            settlement_type = 'empty'
+        elif settlement_roll <= 31:
+            settlement_type = 'hamlet'
+        elif settlement_roll <= 99:
+            settlement_type = 'village'
+        else:
+            town_roll = random.randint(1, 6)
+            if town_roll <= 3:
+                settlement_type = 'town_small'
+            elif town_roll <= 5:
+                settlement_type = 'town_medium'
+            else:
+                settlement_type = 'town_large'
+
+        conn = sqlite3.connect('talekeeper.db')
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT id FROM character_hex_map
+            WHERE character_id = ? AND q = ? AND r = ?
+        ''', (character_id, q, r))
+
+        existing = cursor.fetchone()
+
+        if not existing:
+            encounter_seed = random.randint(1, 1000000)
+            cursor.execute('''
+                INSERT INTO character_hex_map
+                (character_id, q, r, terrain_type, biome, encounter_seed, revealed, visited, settlement_type)
+                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?)
+            ''', (character_id, q, r, 'plains', 'temperate', encounter_seed, settlement_type))
+
+            conn.commit()
+
+        conn.close()
+
+    def _on_long_rest_completed(self, result, hex_q, hex_r):
+        """Handle successful long rest completion."""
+        import sqlite3
+
+        lifestyle = result.get('lifestyle', 'unknown')
+        cost = result.get('cost', 0)
+        hazard_triggered = result.get('hazard_triggered', False)
+
+        if hazard_triggered:
+            hazard_result = result.get('hazard_result', {})
+            self._log_monster_action(f"[REST] Long rest completed ({lifestyle}, {cost} gp)")
+            self._log_monster_action(f"[HAZARD] {hazard_result.get('event_name', 'Unknown hazard')} encountered")
+        else:
+            self._log_monster_action(f"[REST] Peaceful long rest ({lifestyle}, {cost} gp)")
+
+        self._perform_long_rest()
+
+        conn = sqlite3.connect('talekeeper.db')
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM character_hex_map WHERE q = ? AND r = ?', (hex_q, hex_r))
+        conn.commit()
+        conn.close()
+
+    def _on_long_rest_encounter(self, encounter_data):
+        """Handle encounter that interrupted rest."""
+        event_data = encounter_data.get('event_data', {})
+        encounter_name = event_data.get('name', 'Unknown')
+
+        self._log_monster_action(f"[ENCOUNTER] Rest interrupted by {encounter_name}!")
+        self._log_monster_action(f"[ENCOUNTER] {event_data.get('description', '')}")
+
+        if event_data.get('type') == 'combat':
+            self._log_monster_action(f"[COMBAT] You must resolve this combat before resting again")
+
     def _perform_long_rest(self):
         """Perform long rest - restore all resources according to D&D 5e rules."""
         from datetime import datetime
@@ -7217,20 +7330,8 @@ class EncounterPanel(QWidget):
             if not character:
                 self._log_monster_action("[FAIL] No character found for long rest!")
                 return
-            
-            # Confirm long rest (since it's a significant action)
-            reply = QMessageBox.question(
-                self, 
-                "Long Rest", 
-                f"Take a Long Rest?\n\n{character['name']} will:\n• Restore all hit points\n• Restore all spell slots\n• Restore all long rest abilities\n• Restore half of spent hit dice\n\nThis represents 8 hours of rest in a safe location.",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
-            )
-            
-            if reply != QMessageBox.StandardButton.Yes:
-                return
-            
-            self._log_monster_action("[MOON] Beginning long rest...")
+
+            self._log_monster_action("[MOON] Applying long rest benefits...")
             
             # === D&D 5e LONG REST BENEFITS ===
 
