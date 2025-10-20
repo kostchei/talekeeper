@@ -4785,6 +4785,23 @@ class EncounterPanel(QWidget):
                     sources_text = ', '.join(breakdown['sources'])
                     self._log_monster_action(f"[STEALTH] Modifiers: {sources_text}")
 
+                # Apply INVISIBLE condition if in combat
+                if self.encounter_mode == "combat" and character_id:
+                    try:
+                        from talekeeper.services.condition_manager import ConditionManager, ConditionType, ActiveCondition
+                        condition_mgr = ConditionManager(self.db_path)
+                        invisible_cond = ActiveCondition(
+                            condition_type=ConditionType.INVISIBLE,
+                            source="Hidden (Stealth)",
+                            duration_type="until_attack",
+                            duration_remaining=-1,
+                            metadata={"stealth_dc": self.stealth_dc}
+                        )
+                        condition_mgr.add_condition(character_id, invisible_cond)
+                        self._log_monster_action("[STEALTH] You are invisible to enemies until you attack!")
+                    except Exception as e:
+                        print(f"[STEALTH] Error applying invisible condition: {e}")
+
                 # Update scene description
                 current_desc = self.scene_text.toPlainText()
                 stealth_text = f"\n\n[HIDDEN] You remain undetected. You can make a surprise attack or flee."
@@ -4881,6 +4898,38 @@ class EncounterPanel(QWidget):
         except Exception as e:
             print(f"Error showing hidden action buttons: {e}")
 
+    def clear_hidden_status(self, character_id: str = None) -> None:
+        """Clear hidden/invisible status when player attacks or is detected.
+
+        This should be called by action_panel after any offensive action (attack, spell, etc.)
+        to remove the hidden/invisible condition as per D&D rules.
+        """
+        try:
+            self.player_hidden = False
+
+            # Get character ID if not provided
+            if not character_id:
+                character_data = self._get_current_character_data()
+                if character_data:
+                    character_id = character_data.get('id')
+
+            # Remove INVISIBLE condition if present
+            if character_id:
+                try:
+                    from talekeeper.services.condition_manager import ConditionManager, ConditionType
+                    condition_mgr = ConditionManager(self.db_path)
+                    condition_mgr.remove_condition(character_id, ConditionType.INVISIBLE, reason="attacked")
+                    self._log_monster_action("[COMBAT] You are no longer hidden!")
+                except Exception as e:
+                    print(f"[COMBAT] Error removing invisible condition: {e}")
+
+            # Hide the hidden status indicator
+            if hasattr(self, 'hidden_status_frame'):
+                self.hidden_status_frame.hide()
+
+        except Exception as e:
+            print(f"Error clearing hidden status: {e}")
+
     def _initiate_surprise_attack(self) -> None:
         """Handle surprise attack from hidden state."""
         try:
@@ -4905,6 +4954,8 @@ class EncounterPanel(QWidget):
                 'player_hidden': True,
                 'surprise_round': True
             })
+
+            # Note: Hidden status will be cleared after the first attack by action panel
 
         except Exception as e:
             print(f"Error initiating surprise attack: {e}")
@@ -4952,10 +5003,41 @@ class EncounterPanel(QWidget):
 
             player_speed = character_data.get('speed', 30)
             character_name = character_data.get('name', 'Character')
+            character_id = character_data.get('id')
+
+            # Check if player is hidden/invisible
+            is_hidden = self.player_hidden
+
+            # Also check for invisible condition in the condition manager
+            if character_id and not is_hidden:
+                try:
+                    from talekeeper.services.condition_manager import ConditionManager, ConditionType
+                    condition_mgr = ConditionManager(self.db_path)
+                    invisible_condition = condition_mgr.get_condition(character_id, ConditionType.INVISIBLE)
+                    if invisible_condition:
+                        is_hidden = True
+                except Exception as e:
+                    print(f"[FLEE] Error checking invisible condition: {e}")
 
             self._log_monster_action(f"[FLEE] {character_name} attempts to flee from combat!")
 
-            # Step 1: All living monsters get one attack of opportunity
+            # Step 1: If hidden, flee without attacks of opportunity
+            if is_hidden:
+                self._log_monster_action(f"[FLEE] You slip away undetected - no attacks of opportunity!")
+
+                # Clear encounter
+                self._clear_monster_cards()
+                self.encounter_instances = {}
+                self.selected_monster_id = None
+                self.current_encounter = None
+                self.player_hidden = False
+
+                # Return to exploration mode
+                self.set_exploration_mode()
+                self.update_scene_description(f"You successfully fled from combat while hidden and continue exploring.")
+                return
+
+            # Step 1b: All living monsters get one attack of opportunity (if not hidden)
             living_monsters = []
             for monster_id, monster_instance in self.encounter_instances.items():
                 if monster_instance.current_hp > 0:
