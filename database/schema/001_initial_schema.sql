@@ -9,8 +9,8 @@ CREATE TABLE schema_version (
 );
 
 -- Current schema version
-INSERT INTO schema_version (version, description) 
-VALUES (3, 'Complete schema including Bag of Holding support columns');
+INSERT INTO schema_version (version, description)
+VALUES (4, 'Standardized HP columns (removed current_hit_points, max_hit_points duplicates)');
 
 CREATE TABLE characters (
     id TEXT PRIMARY KEY,
@@ -39,8 +39,6 @@ CREATE TABLE characters (
     hit_points_max INTEGER NOT NULL DEFAULT 8,
     hit_points_current INTEGER NOT NULL DEFAULT 8,
     hit_points_temporary INTEGER NOT NULL DEFAULT 0,
-    max_hit_points INTEGER NOT NULL DEFAULT 8,
-    current_hit_points INTEGER NOT NULL DEFAULT 8,
     hit_dice_max INTEGER NOT NULL DEFAULT 1,
     hit_dice_current INTEGER NOT NULL DEFAULT 1,
     death_saves_successes INTEGER NOT NULL DEFAULT 0,
@@ -67,7 +65,21 @@ CREATE TABLE characters (
     -- Metadata
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT,
-    notes TEXT DEFAULT '', second_wind_uses_current INTEGER DEFAULT 2, second_wind_uses_max INTEGER DEFAULT 2, action_surge_uses_current INTEGER DEFAULT 0, action_surge_uses_max INTEGER DEFAULT 0, indomitable_uses_current INTEGER DEFAULT 0, indomitable_uses_max INTEGER DEFAULT 0, weapon_mastery_count INTEGER DEFAULT 3, weapon_mastery_selections TEXT DEFAULT '[]',
+    notes TEXT DEFAULT '',
+
+    -- Fighter Features
+    second_wind_uses_current INTEGER DEFAULT 2,
+    second_wind_uses_max INTEGER DEFAULT 2,
+    action_surge_uses_current INTEGER DEFAULT 0,
+    action_surge_uses_max INTEGER DEFAULT 0,
+    indomitable_uses_current INTEGER DEFAULT 0,
+    indomitable_uses_max INTEGER DEFAULT 0,
+    weapon_mastery_count INTEGER DEFAULT 3,
+    weapon_mastery_selections TEXT DEFAULT '[]',
+
+    -- Inspiration System
+    inspiration_uses_current INTEGER DEFAULT 0,
+    inspiration_uses_max INTEGER DEFAULT 0,
     
     -- Foreign Key Constraints
     FOREIGN KEY (save_slot_id) REFERENCES save_slots(id) ON DELETE SET NULL
@@ -242,7 +254,7 @@ LEFT JOIN character_feats cf ON c.id = cf.character_id
 LEFT JOIN character_proficiencies cp ON c.id = cp.character_id  
 LEFT JOIN character_weapon_masteries cwm ON c.id = cwm.character_id
 GROUP BY c.id
-/* character_full(id,save_slot_id,name,race_id,class_id,subclass_id,background_id,level,experience_points,strength,dexterity,constitution,intelligence,wisdom,charisma,armor_class,hit_points_max,hit_points_current,hit_points_temporary,max_hit_points,current_hit_points,hit_dice_max,hit_dice_current,death_saves_successes,death_saves_failures,equipment_main_hand,equipment_off_hand,equipment_armor,equipment_shield,last_short_rest,last_long_rest,created_at,updated_at,notes,second_wind_uses_current,second_wind_uses_max,action_surge_uses_current,action_surge_uses_max,indomitable_uses_current,indomitable_uses_max,weapon_mastery_count,weapon_mastery_selections,feats,proficiencies,weapon_masteries) */;
+/* character_full(id,save_slot_id,name,race_id,class_id,subclass_id,background_id,level,experience_points,strength,dexterity,constitution,intelligence,wisdom,charisma,armor_class,hit_points_max,hit_points_current,hit_points_temporary,hit_dice_max,hit_dice_current,death_saves_successes,death_saves_failures,equipment_main_hand,equipment_off_hand,equipment_armor,equipment_shield,last_short_rest,last_long_rest,created_at,updated_at,notes,second_wind_uses_current,second_wind_uses_max,action_surge_uses_current,action_surge_uses_max,indomitable_uses_current,indomitable_uses_max,weapon_mastery_count,weapon_mastery_selections,feats,proficiencies,weapon_masteries) */;
 CREATE VIEW character_summary AS
 SELECT 
     c.id,

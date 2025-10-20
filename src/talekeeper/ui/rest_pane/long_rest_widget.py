@@ -405,14 +405,78 @@ class LongRestWidget(QWidget):
         self._refresh_character_snapshot()
         self._update_character_status()
 
+        # Check for ration consumption (wretched/wilderness rests)
+        ration_result = None
+        if lifestyle == 'wretched':
+            ration_result = self._handle_ration_requirement()
+            if ration_result and ration_result.get('cancelled'):
+                return  # User cancelled the rest
+
         triggered, event_type, event_data = self.rest_service.check_hazard_trigger(lifestyle)
 
         if triggered:
-            self._handle_hazard_event(event_type, event_data, lifestyle, cost)
+            self._handle_hazard_event(event_type, event_data, lifestyle, cost, ration_result)
         else:
-            self._complete_rest_safely(lifestyle, cost)
+            self._complete_rest_safely(lifestyle, cost, ration_result)
 
-    def _handle_hazard_event(self, event_type: str, event_data: Dict, lifestyle: str, cost: float):
+    def _handle_ration_requirement(self) -> Dict:
+        """
+        Handle ration consumption requirement for wretched rests.
+
+        Returns:
+            Dict with ration consumption and CON save results, or None
+        """
+        ration_check = self.rest_service.check_and_consume_ration(self.character_data['id'])
+
+        if ration_check['has_ration']:
+            QMessageBox.information(
+                self,
+                "Ration Consumed",
+                "You consume 1 day's worth of rations to sustain yourself during your rest."
+            )
+            return {'consumed_ration': True, 'con_save_needed': False}
+
+        # No rations - need to make a CON save
+        save_result = self.rest_service.make_constitution_save(self.character_data['id'], dc=10)
+
+        if save_result['success']:
+            QMessageBox.information(
+                self,
+                "Survived Without Food",
+                f"You have no rations!\n\n"
+                f"Constitution Save: d20({save_result['roll']}) + {save_result['modifier']} = {save_result['total']}\n"
+                f"DC: {save_result['dc']}\n\n"
+                f"Despite your hunger, you manage to endure the night without food."
+            )
+            return {
+                'consumed_ration': False,
+                'con_save_needed': True,
+                'con_save_success': True,
+                'save_result': save_result
+            }
+        else:
+            # Failed save - add exhaustion
+            exhaustion_result = self.rest_service.add_exhaustion_level(self.character_data['id'], 1)
+
+            QMessageBox.warning(
+                self,
+                "Exhaustion from Starvation",
+                f"You have no rations!\n\n"
+                f"Constitution Save: d20({save_result['roll']}) + {save_result['modifier']} = {save_result['total']}\n"
+                f"DC: {save_result['dc']} - FAILED\n\n"
+                f"The lack of food takes its toll.\n"
+                f"You gain 1 level of Exhaustion (now level {exhaustion_result.get('new_level', 1)})."
+            )
+            return {
+                'consumed_ration': False,
+                'con_save_needed': True,
+                'con_save_success': False,
+                'save_result': save_result,
+                'exhaustion_added': True,
+                'exhaustion_level': exhaustion_result.get('new_level', 1)
+            }
+
+    def _handle_hazard_event(self, event_type: str, event_data: Dict, lifestyle: str, cost: float, ration_result: Dict = None):
         if event_type == 'encounter':
             QMessageBox.information(
                 self,
@@ -449,12 +513,12 @@ class LongRestWidget(QWidget):
             )
 
             event_widget.event_resolved.connect(
-                lambda result: self._on_hazard_resolved(result, lifestyle, cost)
+                lambda result: self._on_hazard_resolved(result, lifestyle, cost, ration_result)
             )
 
             event_widget.exec()
 
-    def _on_hazard_resolved(self, result: Dict, lifestyle: str, cost: float):
+    def _on_hazard_resolved(self, result: Dict, lifestyle: str, cost: float, ration_result: Dict = None):
         hazard_name = result.get('event_name', 'Unknown')
         save_success = result.get('save_success', False)
 
@@ -471,6 +535,13 @@ class LongRestWidget(QWidget):
         )
 
         rest_result = self.rest_service.apply_long_rest_benefits(self.character_data['id'])
+
+        # Add ration info to message if applicable
+        if ration_result:
+            if ration_result.get('consumed_ration'):
+                message += "\n\n1 ration consumed during rest."
+            elif ration_result.get('exhaustion_added'):
+                message += f"\n\nExhaustion gained from lack of food (Level {ration_result['exhaustion_level']})."
 
         QMessageBox.information(
             self,
@@ -492,7 +563,7 @@ class LongRestWidget(QWidget):
 
         self.close()
 
-    def _complete_rest_safely(self, lifestyle: str, cost: float):
+    def _complete_rest_safely(self, lifestyle: str, cost: float, ration_result: Dict = None):
         self.rest_service.record_rest(
             self.character_data['id'], self.hex_q, self.hex_r,
             lifestyle, cost, False, None, None
@@ -500,13 +571,27 @@ class LongRestWidget(QWidget):
 
         rest_result = self.rest_service.apply_long_rest_benefits(self.character_data['id'])
 
+        # Build message with ration info if applicable
+        message_parts = []
+        if lifestyle == 'wretched':
+            message_parts.append("You rest in the wilderness.")
+        else:
+            message_parts.append(f"You rest peacefully in {lifestyle.capitalize()} accommodations.")
+
+        if ration_result:
+            if ration_result.get('consumed_ration'):
+                message_parts.append("\n1 ration consumed.")
+            elif ration_result.get('exhaustion_added'):
+                message_parts.append(f"\nExhaustion gained from lack of food (Level {ration_result['exhaustion_level']}).")
+
+        message_parts.append(f"\nHP Restored: {rest_result['hp_restored']}")
+        message_parts.append(f"Hit Dice Restored: {rest_result['hit_dice_restored']}")
+        message_parts.append("\nYou wake ready for adventure.")
+
         QMessageBox.information(
             self,
             "Rest Complete",
-            f"You rest peacefully in {lifestyle.capitalize()} accommodations.\n\n"
-            f"HP Restored: {rest_result['hp_restored']}\n"
-            f"Hit Dice Restored: {rest_result['hit_dice_restored']}\n\n"
-            f"You wake refreshed and ready for adventure."
+            "\n".join(message_parts)
         )
 
         self._refresh_character_snapshot()

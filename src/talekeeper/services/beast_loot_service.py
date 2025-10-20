@@ -7,8 +7,9 @@ class BeastLootService:
     """
     Handles loot drops for beast-type monsters.
 
-    Beasts drop rations instead of gold as individual treasure.
+    Beasts drop standard rations instead of gold as individual treasure.
     Ration quantity is based on individual treasure value converted at 0.5 GP per ration.
+    Uses "Rations (1 day)" from the equipment table so they stack with regular rations.
     """
 
     RATION_COST_GP = 0.5
@@ -134,22 +135,70 @@ class BeastLootService:
         Generate loot for a defeated beast.
 
         Returns:
-            List of loot items (rations instead of gold)
+            List of loot items (standard rations instead of gold)
         """
         if not self.is_beast(monster_id):
             return []
 
         ration_count = self.calculate_ration_drop(monster_id)
 
-        return [{
-            'name': 'Beast Rations',
-            'item_type': 'consumable',
-            'quantity': ration_count,
-            'unit_value_gp': self.RATION_COST_GP,
-            'value_gp': ration_count * self.RATION_COST_GP,
-            'weight_lb': ration_count * self.RATION_WEIGHT_LB,
-            'description': f'Edible meat from a slain beast ({ration_count} days of food)'
-        }]
+        # Return individual rations from the equipment table so they stack properly
+        loot_items = []
+        for _ in range(ration_count):
+            ration_item = self._get_ration_from_equipment()
+            if ration_item:
+                loot_items.append(ration_item)
+
+        return loot_items
+
+    def _get_ration_from_equipment(self) -> Dict:
+        """Get a single ration (1 day) from the equipment table."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id, name, description, item_type, rarity, cost_gp, weight_lb
+                FROM equipment
+                WHERE name = 'Rations (1 day)'
+                LIMIT 1
+            """)
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if not row:
+                print("[BEAST_LOOT] Warning: 'Rations (1 day)' not found in equipment table")
+                # Fallback to creating a basic ration dict
+                return {
+                    'name': 'Rations (1 day)',
+                    'item_type': 'gear',
+                    'rarity': 'common',
+                    'cost_gp': self.RATION_COST_GP,
+                    'weight_lb': self.RATION_WEIGHT_LB,
+                    'description': 'One day of food'
+                }
+
+            return {
+                'id': row[0],
+                'name': row[1],
+                'description': row[2],
+                'item_type': row[3],
+                'rarity': row[4],
+                'cost_gp': row[5],
+                'weight_lb': row[6]
+            }
+        except Exception as e:
+            print(f"[BEAST_LOOT] Error fetching ration from equipment: {e}")
+            # Return fallback ration
+            return {
+                'name': 'Rations (1 day)',
+                'item_type': 'gear',
+                'rarity': 'common',
+                'cost_gp': self.RATION_COST_GP,
+                'weight_lb': self.RATION_WEIGHT_LB,
+                'description': 'One day of food'
+            }
 
     def add_rations_to_inventory(self, character_id: str, quantity: int) -> bool:
         """Add rations to character inventory"""
@@ -160,10 +209,11 @@ class BeastLootService:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
+            # Use standard "Rations (1 day)" from equipment table
             cursor.execute("""
-                SELECT quantity
+                SELECT quantity, item_type
                 FROM character_inventory
-                WHERE character_id = ? AND item_name = 'Beast Rations'
+                WHERE character_id = ? AND item_name = 'Rations (1 day)'
             """, (character_id,))
 
             existing = cursor.fetchone()
@@ -173,13 +223,13 @@ class BeastLootService:
                 cursor.execute("""
                     UPDATE character_inventory
                     SET quantity = ?
-                    WHERE character_id = ? AND item_name = 'Beast Rations'
+                    WHERE character_id = ? AND item_name = 'Rations (1 day)'
                 """, (new_quantity, character_id))
             else:
                 cursor.execute("""
                     INSERT INTO character_inventory
-                    (character_id, item_name, quantity)
-                    VALUES (?, 'Beast Rations', ?)
+                    (character_id, item_name, item_type, quantity)
+                    VALUES (?, 'Rations (1 day)', 'gear', ?)
                 """, (character_id, quantity))
 
             conn.commit()

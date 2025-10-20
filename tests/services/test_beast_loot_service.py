@@ -37,9 +37,27 @@ def setup_db():
     """)
 
     cursor.execute("""
+        CREATE TABLE equipment (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            item_type TEXT,
+            description TEXT,
+            cost_gp REAL,
+            weight_lb REAL,
+            rarity TEXT
+        )
+    """)
+
+    cursor.execute("""
+        INSERT INTO equipment (id, name, item_type, description, cost_gp, weight_lb, rarity)
+        VALUES (1, 'Rations (1 day)', 'gear', 'One day of food', 0.5, 2.0, 'common')
+    """)
+
+    cursor.execute("""
         CREATE TABLE character_inventory (
             character_id TEXT,
             item_name TEXT,
+            item_type TEXT,
             quantity INTEGER
         )
     """)
@@ -104,18 +122,19 @@ def test_generate_beast_loot(setup_db):
     """Test loot generation for beasts"""
     service = BeastLootService(TEST_DB)
 
+    # Wolf drops 2 rations (CR 1/4 = 1 GP individual treasure / 0.5 GP per ration)
     loot = service.generate_beast_loot('wolf')
-    assert len(loot) == 1
-    assert loot[0]['name'] == 'Beast Rations'
-    assert loot[0]['quantity'] == 2
-    assert loot[0]['unit_value_gp'] == 0.5
-    assert loot[0]['value_gp'] == 1.0
+    assert len(loot) == 2  # Returns individual rations
+    assert all(item['name'] == 'Rations (1 day)' for item in loot)
+    assert all(item['item_type'] == 'gear' for item in loot)
+    assert all(item['cost_gp'] == 0.5 for item in loot)
 
+    # Tiger drops 20 rations
     loot = service.generate_beast_loot('tiger')
-    assert len(loot) == 1
-    assert loot[0]['quantity'] == 20
-    assert loot[0]['value_gp'] == 10.0
+    assert len(loot) == 20  # Returns individual rations
+    assert all(item['name'] == 'Rations (1 day)' for item in loot)
 
+    # Non-beasts don't drop rations
     loot = service.generate_beast_loot('goblin')
     assert len(loot) == 0
 
@@ -129,19 +148,20 @@ def test_add_rations_to_inventory(setup_db):
 
     conn = sqlite3.connect(TEST_DB)
     cursor = conn.cursor()
-    cursor.execute("SELECT quantity FROM character_inventory WHERE character_id = 'char_1' AND item_name = 'Beast Rations'")
+    cursor.execute("SELECT quantity FROM character_inventory WHERE character_id = 'char_1' AND item_name = 'Rations (1 day)'")
     result = cursor.fetchone()
     conn.close()
 
     assert result is not None
     assert result[0] == 5
 
+    # Adding more rations should stack
     success = service.add_rations_to_inventory('char_1', 3)
     assert success == True
 
     conn = sqlite3.connect(TEST_DB)
     cursor = conn.cursor()
-    cursor.execute("SELECT quantity FROM character_inventory WHERE character_id = 'char_1' AND item_name = 'Beast Rations'")
+    cursor.execute("SELECT quantity FROM character_inventory WHERE character_id = 'char_1' AND item_name = 'Rations (1 day)'")
     result = cursor.fetchone()
     conn.close()
 

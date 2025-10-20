@@ -406,7 +406,7 @@ class SubclassActionIntegration:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT current_hit_points, hit_points_max, constitution
+                SELECT hit_points_current, hit_points_max, constitution
                 FROM characters WHERE id = ?
             """, (character_id,))
 
@@ -431,7 +431,7 @@ class SubclassActionIntegration:
 
             # Apply healing
             cursor.execute("""
-                UPDATE characters SET current_hit_points = ? WHERE id = ?
+                UPDATE characters SET hit_points_current = ? WHERE id = ?
             """, (new_hp, character_id))
             conn.commit()
 

@@ -134,8 +134,8 @@ class UnifiedLevelUpService:
                 current_hp_current = character.get('hit_points_current', current_hp_max)
                 new_current_hp = min(current_hp_current + hp_gain, expected_hp)
 
-                cursor.execute("UPDATE characters SET hit_points_max = ?, hit_points_current = ?, max_hit_points = ?, current_hit_points = ? WHERE id = ?",
-                             (expected_hp, new_current_hp, expected_hp, new_current_hp, character_id))
+                cursor.execute("UPDATE characters SET hit_points_max = ?, hit_points_current = ? WHERE id = ?",
+                             (expected_hp, new_current_hp, character_id))
                 results["hp_gained"] = hp_gain
 
             # Update spellcasting for all spellcasting classes

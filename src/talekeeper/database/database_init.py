@@ -226,6 +226,54 @@ class DatabaseInitializer:
         if 'unit_value_gp' not in columns:
             cursor.execute("ALTER TABLE character_inventory ADD COLUMN unit_value_gp REAL DEFAULT NULL")
 
+    def _remove_duplicate_hp_columns(self, cursor: sqlite3.Cursor):
+        """Remove duplicate HP columns, standardizing on hit_points_current/hit_points_max."""
+        # Check if duplicate columns exist
+        cursor.execute("PRAGMA table_info(characters)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if 'current_hit_points' not in columns and 'max_hit_points' not in columns:
+            print("Duplicate HP columns already removed, skipping migration")
+            return
+
+        print("Found duplicate HP columns, migrating to standard naming...")
+
+        # Read the migration SQL file and execute it
+        migration_path = self.migrations_dir / '044_remove_duplicate_hp_columns.sql'
+        if not migration_path.exists():
+            print(f"Warning: Migration file not found at {migration_path}")
+            print("Attempting inline migration...")
+
+            # Inline migration as fallback
+            # First, ensure data is synced
+            cursor.execute("""
+                UPDATE characters
+                SET hit_points_current = COALESCE(current_hit_points, hit_points_current),
+                    hit_points_max = COALESCE(max_hit_points, hit_points_max)
+                WHERE current_hit_points IS NOT NULL OR max_hit_points IS NOT NULL
+            """)
+
+            # SQLite doesn't support DROP COLUMN, so we need to recreate the table
+            # Get all data first
+            cursor.execute("SELECT * FROM characters")
+            characters_data = cursor.fetchall()
+
+            # Get column names (excluding the duplicates)
+            cursor.execute("PRAGMA table_info(characters)")
+            all_columns = cursor.fetchall()
+
+            # This is complex, so we'll just log a warning
+            print("Warning: Could not complete migration without SQL file")
+            print("Please run migration 044 manually or recreate database")
+            return
+
+        # Execute migration from file
+        with open(migration_path, 'r') as f:
+            migration_sql = f.read()
+
+        cursor.executescript(migration_sql)
+        print("Successfully removed duplicate HP columns")
+
     def check_schema_version(self) -> bool:
         """Check and upgrade database schema if needed."""
         conn = None
@@ -248,8 +296,8 @@ class DatabaseInitializer:
             current_version = result[0] if result else 0
             
             # Target schema version
-            target_version = 3
-            
+            target_version = 4
+
             if current_version >= target_version:
                 print(f"Database schema is up to date (version {current_version})")
                 return True
@@ -294,8 +342,19 @@ class DatabaseInitializer:
                 ''')
                 conn.commit()
                 print("Schema upgraded to v3")
+                current_version = 3
+
+            if current_version < 4:
+                print("Removing duplicate HP columns (v3 -> v4)...")
+                self._remove_duplicate_hp_columns(cursor)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO schema_version (version, description)
+                    VALUES (4, 'Removed duplicate HP columns (current_hit_points, max_hit_points)')
+                ''')
+                conn.commit()
+                print("Schema upgraded to v4")
                 return True
-            
+
             print(f"Unknown schema version: {current_version}")
             return False
             

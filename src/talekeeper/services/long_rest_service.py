@@ -284,12 +284,6 @@ class LongRestService:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        column_sets = [
-            ('hit_points_current', 'hit_points_max', 'hit_dice_current', 'hit_dice_max'),
-            ('current_hit_points', 'max_hit_points', 'hit_dice_current', 'hit_dice_max'),
-            ('current_hp', 'max_hp', 'hit_dice', 'max_hit_dice')
-        ]
-
         status = {
             'current_hp': 0,
             'max_hp': 0,
@@ -298,28 +292,23 @@ class LongRestService:
             'hit_dice_max': 0
         }
 
-        for hp_current, hp_max, hd_current, hd_max in column_sets:
-            try:
-                cursor.execute(f'''
-                    SELECT
-                        COALESCE({hp_current}, 0),
-                        COALESCE({hp_max}, 0),
-                        level,
-                        COALESCE({hd_current}, 0),
-                        COALESCE({hd_max}, 0)
-                    FROM characters
-                    WHERE id = ?
-                ''', (character_id,))
-                row = cursor.fetchone()
-                if row:
-                    status['current_hp'] = row[0]
-                    status['max_hp'] = row[1]
-                    status['level'] = row[2]
-                    status['hit_dice_current'] = row[3]
-                    status['hit_dice_max'] = row[4]
-                    break
-            except sqlite3.OperationalError:
-                continue
+        cursor.execute('''
+            SELECT
+                COALESCE(hit_points_current, 0),
+                COALESCE(hit_points_max, 0),
+                level,
+                COALESCE(hit_dice_current, 0),
+                COALESCE(hit_dice_max, 0)
+            FROM characters
+            WHERE id = ?
+        ''', (character_id,))
+        row = cursor.fetchone()
+        if row:
+            status['current_hp'] = row[0]
+            status['max_hp'] = row[1]
+            status['level'] = row[2]
+            status['hit_dice_current'] = row[3]
+            status['hit_dice_max'] = row[4]
 
         conn.close()
         return status
@@ -393,6 +382,151 @@ class LongRestService:
         conn.close()
         return success
 
+    def check_and_consume_ration(self, character_id: str) -> Dict:
+        """
+        Check for rations and consume one if available.
+
+        Returns:
+            Dict with 'has_ration' (bool) and 'consumed' (bool)
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Check for any rations in inventory
+        cursor.execute('''
+            SELECT id, quantity
+            FROM character_inventory
+            WHERE character_id = ?
+              AND item_name = 'Rations (1 day)'
+              AND quantity > 0
+            ORDER BY id
+            LIMIT 1
+        ''', (character_id,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            conn.close()
+            return {'has_ration': False, 'consumed': False}
+
+        inv_id, quantity = row
+        new_quantity = quantity - 1
+
+        # Update or delete the ration entry
+        if new_quantity > 0:
+            cursor.execute('''
+                UPDATE character_inventory
+                SET quantity = ?
+                WHERE id = ?
+            ''', (new_quantity, inv_id))
+        else:
+            cursor.execute('''
+                DELETE FROM character_inventory
+                WHERE id = ?
+            ''', (inv_id,))
+
+        conn.commit()
+        conn.close()
+
+        return {'has_ration': True, 'consumed': True}
+
+    def make_constitution_save(self, character_id: str, dc: int = 10) -> Dict:
+        """
+        Make a Constitution saving throw.
+
+        Returns:
+            Dict with 'roll', 'modifier', 'total', 'success', 'dc'
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Get Constitution modifier
+        cursor.execute('''
+            SELECT constitution
+            FROM characters
+            WHERE id = ?
+        ''', (character_id,))
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return {'success': False, 'error': 'Character not found'}
+
+        constitution = row[0]
+        modifier = (constitution - 10) // 2
+
+        roll = random.randint(1, 20)
+        total = roll + modifier
+        success = total >= dc
+
+        return {
+            'roll': roll,
+            'modifier': modifier,
+            'total': total,
+            'success': success,
+            'dc': dc
+        }
+
+    def add_exhaustion_level(self, character_id: str, levels: int = 1) -> Dict:
+        """
+        Add exhaustion levels to character.
+
+        Returns:
+            Dict with 'old_level', 'new_level', 'success'
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Check if exhaustion column exists
+        cursor.execute("PRAGMA table_info(characters)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if 'exhaustion_level' not in columns and 'exhaustion' not in columns:
+            # Add column if it doesn't exist
+            try:
+                cursor.execute('ALTER TABLE characters ADD COLUMN exhaustion_level INTEGER DEFAULT 0')
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
+        # Get current exhaustion level
+        exhaustion_col = 'exhaustion_level' if 'exhaustion_level' in columns else 'exhaustion'
+
+        try:
+            cursor.execute(f'''
+                SELECT COALESCE({exhaustion_col}, 0)
+                FROM characters
+                WHERE id = ?
+            ''', (character_id,))
+
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return {'success': False, 'error': 'Character not found'}
+
+            old_level = row[0]
+            new_level = min(6, old_level + levels)  # Max exhaustion is 6
+
+            cursor.execute(f'''
+                UPDATE characters
+                SET {exhaustion_col} = ?
+                WHERE id = ?
+            ''', (new_level, character_id))
+
+            conn.commit()
+            conn.close()
+
+            return {
+                'success': True,
+                'old_level': old_level,
+                'new_level': new_level,
+                'added': new_level - old_level
+            }
+        except sqlite3.OperationalError as e:
+            conn.close()
+            return {'success': False, 'error': str(e)}
+
     def apply_long_rest_benefits(self, character_id: str) -> Dict:
         """Apply long rest benefits: restore HP, spell slots, abilities."""
         status = self.get_character_rest_status(character_id)
@@ -414,29 +548,12 @@ class LongRestService:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("PRAGMA table_info(characters)")
-        column_names = {row[1] for row in cursor.fetchall()}
-
-        update_fields = []
-        params: List = []
-
-        if 'hit_points_current' in column_names:
-            update_fields.append('hit_points_current = ?')
-            params.append(max_hp)
-        if 'current_hit_points' in column_names:
-            update_fields.append('current_hit_points = ?')
-            params.append(max_hp)
-        if 'current_hp' in column_names:
-            update_fields.append('current_hp = ?')
-            params.append(max_hp)
-        if 'hit_dice_current' in column_names:
-            update_fields.append('hit_dice_current = ?')
-            params.append(new_hit_dice)
-        if 'hit_dice' in column_names:
-            update_fields.append('hit_dice = ?')
-            params.append(new_hit_dice)
-
-        update_fields.append('updated_at = ?')
+        update_fields = [
+            'hit_points_current = ?',
+            'hit_dice_current = ?',
+            'updated_at = ?'
+        ]
+        params: List = [max_hp, new_hit_dice]
         params.append(datetime.now().isoformat())
         params.append(character_id)
 
@@ -494,7 +611,7 @@ class LongRestService:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT current_hp FROM characters WHERE id = ?', (character_id,))
+        cursor.execute('SELECT hit_points_current FROM characters WHERE id = ?', (character_id,))
         row = cursor.fetchone()
 
         if not row:
@@ -504,7 +621,7 @@ class LongRestService:
         current_hp = row[0]
         new_hp = max(0, current_hp - damage)
 
-        cursor.execute('UPDATE characters SET current_hp = ? WHERE id = ?', (new_hp, character_id))
+        cursor.execute('UPDATE characters SET hit_points_current = ? WHERE id = ?', (new_hp, character_id))
         conn.commit()
         conn.close()
 

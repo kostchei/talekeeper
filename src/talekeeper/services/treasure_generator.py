@@ -164,7 +164,7 @@ class TreasureGenerator:
     @staticmethod
     def generate_beast_rations(individual_treasure_gp: float) -> Dict:
         """
-        Generate rations from beast individual treasure value.
+        Generate standard rations from beast individual treasure value.
 
         Args:
             individual_treasure_gp: GP value of individual treasure
@@ -177,12 +177,12 @@ class TreasureGenerator:
         quantity = max(1, int(individual_treasure_gp / ration_cost_gp))
 
         return {
-            'name': 'Beast Rations',
-            'item_type': 'consumable',
+            'name': 'Rations (1 day)',
+            'item_type': 'gear',
             'treasure_type': 'rations',
             'quantity': quantity,
             'unit_value_gp': ration_cost_gp,
             'value_gp': quantity * ration_cost_gp,
             'weight_lb': quantity * ration_weight_lb,
-            'description': f'Edible meat from a slain beast ({quantity} days of food)'
+            'description': f'One day of food'
         }

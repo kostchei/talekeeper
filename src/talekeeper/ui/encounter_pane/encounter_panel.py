@@ -28,6 +28,7 @@ from typing import Optional, List, Dict, Any
 import json
 import os
 import random
+import sqlite3
 from uuid import uuid4
 from .encounter_generator import EncounterGenerator, roll_monster_hp
 from .campaign_frame import CampaignFrame
@@ -707,9 +708,9 @@ class EncounterPanel(QWidget):
         self.influence_btn.clicked.connect(lambda: self.exploration_action.emit("influence"))
         encounter_actions_layout.addWidget(self.influence_btn)
 
-        self.search_btn = QPushButton("Search")
-        self.search_btn.clicked.connect(lambda: self.exploration_action.emit("search"))
-        encounter_actions_layout.addWidget(self.search_btn)
+        self.flee_btn = QPushButton("Flee")
+        self.flee_btn.clicked.connect(self._attempt_flee_combat)
+        encounter_actions_layout.addWidget(self.flee_btn)
 
         self.study_btn = QPushButton("Study")
         self.study_btn.clicked.connect(lambda: self.exploration_action.emit("study"))
@@ -1266,7 +1267,7 @@ class EncounterPanel(QWidget):
 
         # Encounter buttons
         self.influence_btn.setEnabled(not combat_mode)
-        self.search_btn.setEnabled(not combat_mode)
+        self.flee_btn.setEnabled(combat_mode)  # Flee only available in combat
         self.study_btn.setEnabled(not combat_mode)
         self.hide_btn.setEnabled(not combat_mode)
     
@@ -4390,16 +4391,14 @@ class EncounterPanel(QWidget):
         if not character or not game_engine:
             self._log_monster_action(f"[TRAP] {source} deals {amount} damage (adjust manually).")
             return
-        current_hp = character.get('hit_points_current', character.get('current_hit_points', 0))
-        max_hp = character.get('hit_points_max', max(current_hp, character.get('hit_points_max', 0)))
+        current_hp = character.get('hit_points_current', 0)
+        max_hp = character.get('hit_points_max', max(current_hp, 0))
         new_hp = max(0, current_hp - amount)
         try:
             game_engine.update_character_hp_sync(new_hp)
         except Exception as exc:
             print(f"Error updating character HP after trap damage: {exc}")
         character['hit_points_current'] = new_hp
-        if 'current_hit_points' in character:
-            character['current_hit_points'] = new_hp
         self._update_character_sheet_hp(new_hp, max_hp)
         self._log_monster_action(
             f"[TRAP] {character.get('name', 'Adventurer')} now has {new_hp}/{max_hp} HP."
@@ -4933,6 +4932,158 @@ class EncounterPanel(QWidget):
 
         except Exception as e:
             print(f"Error fleeing encounter: {e}")
+
+    def _attempt_flee_combat(self) -> None:
+        """Handle fleeing from combat - monsters get attacks of opportunity, then speed check."""
+        try:
+            if self.encounter_mode != "combat":
+                self._log_monster_action("[FLEE] You can only flee during combat!")
+                return
+
+            if not self.encounter_instances:
+                self._log_monster_action("[FLEE] No monsters to flee from!")
+                return
+
+            # Get character data
+            character_data = self._get_current_character_data()
+            if not character_data:
+                self._log_monster_action("[FLEE] Error: Could not retrieve character data!")
+                return
+
+            player_speed = character_data.get('speed', 30)
+            character_name = character_data.get('name', 'Character')
+
+            self._log_monster_action(f"[FLEE] {character_name} attempts to flee from combat!")
+
+            # Step 1: All living monsters get one attack of opportunity
+            living_monsters = []
+            for monster_id, monster_instance in self.encounter_instances.items():
+                if monster_instance.current_hp > 0:
+                    living_monsters.append((monster_id, monster_instance))
+
+            if not living_monsters:
+                self._log_monster_action("[FLEE] All monsters are defeated - no need to flee!")
+                return
+
+            self._log_monster_action(f"[FLEE] {len(living_monsters)} monster(s) get attacks of opportunity!")
+
+            # Execute attacks of opportunity
+            for monster_id, monster_instance in living_monsters:
+                self._execute_flee_attack_of_opportunity(monster_instance)
+
+            # Step 2: Speed comparison - get fastest monster speed
+            import json
+            fastest_monster_speed = 0
+            fastest_monster_name = ""
+
+            for monster_id, monster_instance in living_monsters:
+                try:
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT name, speed FROM monsters WHERE id = ?", (monster_instance.monster_id,))
+                    row = cursor.fetchone()
+                    conn.close()
+
+                    if row:
+                        monster_name = row[0]
+                        speed_data = json.loads(row[1]) if row[1] else {}
+                        # Get walk speed (default movement)
+                        monster_walk_speed = speed_data.get('walk', 30)
+
+                        if monster_walk_speed > fastest_monster_speed:
+                            fastest_monster_speed = monster_walk_speed
+                            fastest_monster_name = monster_name
+                except Exception as e:
+                    print(f"[FLEE] Error getting monster speed: {e}")
+                    continue
+
+            # Step 3: Compare speeds
+            self._log_monster_action(f"[FLEE] Speed Check: {character_name} ({player_speed} ft) vs {fastest_monster_name} ({fastest_monster_speed} ft)")
+
+            if player_speed >= fastest_monster_speed:
+                # Success - escape!
+                self._log_monster_action(f"[FLEE] SUCCESS! {character_name} escapes from combat!")
+
+                # Clear encounter
+                self._clear_monster_cards()
+                self.encounter_instances = {}
+                self.selected_monster_id = None
+                self.current_encounter = None
+
+                # Return to exploration mode
+                self.set_exploration_mode()
+                self.update_scene_description(f"You successfully fled from combat and continue exploring.")
+            else:
+                # Failure - remain in combat
+                speed_diff = fastest_monster_speed - player_speed
+                self._log_monster_action(f"[FLEE] FAILED! {fastest_monster_name} is {speed_diff} ft faster - you cannot escape!")
+                self._log_monster_action(f"[FLEE] You remain in combat. The monsters close in...")
+
+        except Exception as e:
+            print(f"[FLEE] Error attempting to flee: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _execute_flee_attack_of_opportunity(self, monster_instance) -> None:
+        """Execute a single attack of opportunity when player flees."""
+        try:
+            # Get monster stats from database
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, action FROM monsters WHERE id = ?", (monster_instance.monster_id,))
+            row = cursor.fetchone()
+            conn.close()
+
+            if not row:
+                return
+
+            monster_name = row[0]
+            import json
+            actions = json.loads(row[1]) if row[1] else []
+
+            # Find a basic melee attack (skip multiattack)
+            attack_action = None
+            for action in actions:
+                action_name = action.get('name', '').lower()
+                if action_name != 'multiattack' and 'attack' in action_name.lower():
+                    attack_action = action
+                    break
+
+            if not attack_action:
+                # No attack found, use first non-multiattack action
+                for action in actions:
+                    if action.get('name', '').lower() != 'multiattack':
+                        attack_action = action
+                        break
+
+            if not attack_action:
+                self._log_monster_action(f"[FLEE] {monster_name} has no available attacks!")
+                return
+
+            # Log the attack
+            self._log_monster_action(f"[FLEE] {monster_name} makes an attack of opportunity with {attack_action.get('name', 'attack')}!")
+
+            # Get the action panel to execute the attack
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'action_panel'):
+                    # Execute a single attack (not multiattack)
+                    monster_stats = {'action': [attack_action]}
+                    parent.action_panel._execute_single_monster_attack(
+                        monster_instance,
+                        attack_action,
+                        monster_stats,
+                        self,
+                        attack_num=1,
+                        total_attacks=1
+                    )
+                    return
+                parent = parent.parent()
+
+        except Exception as e:
+            print(f"[FLEE] Error executing attack of opportunity: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _get_current_character_data(self) -> Optional[Dict[str, Any]]:
         """Get full character data for current character."""
@@ -5965,12 +6116,12 @@ class EncounterPanel(QWidget):
                 ration_count = max(1, int(individual_gp / 0.5))
                 treasure_details.append(f"{monster_name}: {ration_count} rations")
 
-                # Add rations to item drops
-                all_item_drops.append({
-                    'name': 'Beast Rations',
-                    'quantity': ration_count,
-                    'value_gp': ration_count * 0.5
-                })
+                # Add rations to item drops - use standard Rations from equipment table
+                # Add each ration individually so they stack properly
+                for _ in range(ration_count):
+                    ration_item = self._get_ration_from_equipment()
+                    if ration_item:
+                        all_item_drops.append(ration_item)
             else:
                 # Non-beasts drop gold normally
                 individual_gp = self._roll_individual_treasure(monster_cr)
@@ -6144,7 +6295,41 @@ class EncounterPanel(QWidget):
             import traceback
             traceback.print_exc()
             return []
-    
+
+    def _get_ration_from_equipment(self) -> dict:
+        """Get a single ration (1 day) from the equipment table."""
+        import sqlite3
+        try:
+            conn = sqlite3.connect("talekeeper.db")
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT id, name, description, item_type, rarity, cost_gp, weight_lb
+                FROM equipment
+                WHERE name = 'Rations (1 day)'
+                LIMIT 1
+            """)
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if not row:
+                print("[LOOT] Warning: 'Rations (1 day)' not found in equipment table")
+                return None
+
+            return {
+                'id': row[0],
+                'name': row[1],
+                'description': row[2],
+                'item_type': row[3],
+                'rarity': row[4],
+                'cost_gp': row[5],
+                'weight_lb': row[6]
+            }
+        except Exception as e:
+            print(f"[LOOT] Error fetching ration from equipment: {e}")
+            return None
+
     def _get_current_character_id(self) -> str:
         """Get the current character's ID."""
         try:
@@ -7149,8 +7334,8 @@ class EncounterPanel(QWidget):
             while parent_for_hp:
                 if hasattr(parent_for_hp, 'character_sheet') and parent_for_hp.character_sheet.character_data:
                     char_data = parent_for_hp.character_sheet.character_data
-                    current_hp = char_data.get('current_hit_points', char_data.get('hit_points_current', 0))
-                    max_hp = char_data.get('max_hit_points', char_data.get('hit_points_max', 0))
+                    current_hp = char_data.get('hit_points_current', 0)
+                    max_hp = char_data.get('hit_points_max', 0)
                     game_engine.update_character_hp_sync(current_hp, max_hp)
                     break
                 parent_for_hp = parent_for_hp.parent()
@@ -7255,24 +7440,18 @@ class EncounterPanel(QWidget):
                     # Get fresh character data from database
                     fresh_character = parent.game_engine.get_character_by_id_sync(character['id'])
                     if fresh_character:
-                        current_hp = fresh_character.get('current_hit_points',
-                                                        fresh_character['hit_points_current'])
-                        max_hp = fresh_character.get('max_hit_points',
-                                                     fresh_character['hit_points_max'])
+                        current_hp = fresh_character.get('hit_points_current', 0)
+                        max_hp = fresh_character.get('hit_points_max', 0)
                         break
                 parent = parent.parent()
             else:
                 # Fallback to character object values
-                current_hp = character.get('current_hit_points',
-                                           character['hit_points_current'])
-                max_hp = character.get('max_hit_points',
-                                       character['hit_points_max'])
+                current_hp = character.get('hit_points_current', 0)
+                max_hp = character.get('hit_points_max', 0)
         except Exception as e:
             print(f"ERROR: Could not get HP: {e}")
-            current_hp = character.get('current_hit_points',
-                                       character['hit_points_current'])
-            max_hp = character.get('max_hit_points',
-                                   character['hit_points_max'])
+            current_hp = character.get('hit_points_current', 0)
+            max_hp = character.get('hit_points_max', 0)
         
         dialog = QDialog(self)
         dialog.setWindowTitle("Hit Dice Recovery")
@@ -7391,15 +7570,13 @@ class EncounterPanel(QWidget):
             total_healing += healing
             rolls.append(f"d{hit_die}({roll})+{character['constitution_modifier']}={healing}")
         
-        # Apply healing (cannot exceed max HP) - use combat system fields
-        old_hp = character.get('current_hit_points', character['hit_points_current'])
-        max_hp = character.get('max_hit_points', character['hit_points_max'])
+        # Apply healing (cannot exceed max HP)
+        old_hp = character.get('hit_points_current', 0)
+        max_hp = character.get('hit_points_max', 0)
         new_hp = min(max_hp, old_hp + total_healing)
         actual_healing = new_hp - old_hp
-        
-        # Update both HP field sets to keep them in sync
-        if 'current_hit_points' in character:
-            character['current_hit_points'] = new_hp
+
+        # Update HP
         character['hit_points_current'] = new_hp
         
         # Spend the hit dice
@@ -7605,7 +7782,6 @@ class EncounterPanel(QWidget):
             old_hp = character['hit_points_current']
             max_hp = character['hit_points_max']
             character['hit_points_current'] = max_hp
-            character['current_hit_points'] = max_hp  # Alternative field
             self._log_monster_action(f"[HEAL] HP fully restored: {old_hp}/{max_hp} -> {max_hp}/{max_hp}")
 
             # Save HP to database immediately to persist through character reload
