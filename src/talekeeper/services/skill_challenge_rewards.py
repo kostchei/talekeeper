@@ -456,6 +456,22 @@ class SkillChallengeRewards:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
+            # Look up actual weight from equipment table if available
+            actual_weight = weight_lb
+            actual_description = description
+            actual_value = value_gp
+
+            from talekeeper.services.equipment import equipment_service
+            equipment_data = equipment_service.get_item(item_name)
+
+            if equipment_data:
+                actual_weight = equipment_data.get('weight_lb', weight_lb)
+                actual_description = equipment_data.get('description', description)
+                actual_value = equipment_data.get('cost_gp', value_gp)
+                print(f"[REWARDS] Found {item_name} in equipment table - weight: {actual_weight} lb")
+            else:
+                print(f"[REWARDS] Warning: {item_name} not in equipment table, using provided weight: {weight_lb} lb")
+
             cursor.execute("""
                 SELECT id, quantity FROM character_inventory
                 WHERE character_id = ? AND item_name = ? AND item_type = ?
@@ -473,7 +489,7 @@ class SkillChallengeRewards:
                 cursor.execute("""
                     INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, actual_weight, actual_description, actual_value))
 
             conn.commit()
             conn.close()

@@ -1461,9 +1461,9 @@ class GameEngineSQLite:
             # Add starting gold from background
             if background_gold > 0:
                 cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, 'Gold Pieces', 'treasure', background_gold, 0.02, 'Starting money from background', 1))
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, treasure_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), character_id, 'Gold Pieces', 'currency', background_gold, background_gold / 50.0, 'Starting money from background', background_gold, 'coins'))
                 print(f"[SQLite] Added {background_gold} gold pieces from {background_id} background")
         else:
             print(f"[SQLite] Warning: Background '{background_id}' not found in database")
@@ -2630,7 +2630,115 @@ class GameEngineSQLite:
             import traceback
             traceback.print_exc()
             return False
-    
+
+    def add_item_to_inventory_sync(self, character_id: str, item_name: str,
+                                    item_type: str = None, quantity: int = 1,
+                                    equipped: int = 0, store_in_bag: bool = None,
+                                    override_weight: float = None,
+                                    override_description: str = None,
+                                    override_value: float = None) -> bool:
+        """
+        Add an item to character inventory with automatic weight/stats lookup from equipment table.
+
+        Args:
+            character_id: Character ID
+            item_name: Name of the item
+            item_type: Type of item (weapon, armor, gear, etc.) - auto-detected if None
+            quantity: Number of items to add (default: 1)
+            equipped: 0 = not equipped, 1 = equipped (default: 0)
+            store_in_bag: True to store in Bag of Holding, False for character, None for auto
+            override_weight: Override weight instead of looking up from equipment table
+            override_description: Override description instead of looking up from equipment table
+            override_value: Override value instead of looking up from equipment table
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Look up item in equipment table for stats
+                from talekeeper.services.equipment import equipment_service
+                equipment_data = equipment_service.get_item(item_name)
+
+                # Determine item stats from equipment table or use overrides
+                if equipment_data:
+                    weight_lb = override_weight if override_weight is not None else equipment_data.get('weight_lb', 0.0)
+                    description = override_description if override_description is not None else equipment_data.get('description', '')
+                    value_gp = override_value if override_value is not None else equipment_data.get('cost_gp', 0.0)
+                    if item_type is None:
+                        item_type = equipment_data.get('item_type', 'gear')
+                else:
+                    # Item not in equipment table - use overrides or defaults
+                    weight_lb = override_weight if override_weight is not None else 0.0
+                    description = override_description if override_description is not None else ''
+                    value_gp = override_value if override_value is not None else 0.0
+                    if item_type is None:
+                        item_type = 'gear'
+                    print(f"[SQLite] Warning: '{item_name}' not found in equipment table, using defaults")
+
+                # Handle Bag of Holding storage
+                has_bag = self.character_has_bag_of_holding(character_id)
+                stored_in_bag = 0
+
+                if store_in_bag is None:
+                    store_in_bag = has_bag and not equipped
+                elif store_in_bag and not has_bag:
+                    store_in_bag = False
+                    print(f"[SQLite] Character {character_id} doesn't have Bag of Holding, storing on person")
+
+                if store_in_bag and has_bag:
+                    item_weight = weight_lb * quantity
+                    current_weight = self._calculate_bag_weight(cursor, character_id)
+                    if current_weight + item_weight > 500.0:
+                        store_in_bag = False
+                        print(f"[SQLite] Bag of Holding capacity exceeded, storing {item_name} on person")
+                    else:
+                        stored_in_bag = 1
+
+                # Check if item already exists in inventory (for stacking)
+                cursor.execute("""
+                    SELECT id, quantity FROM character_inventory
+                    WHERE character_id = ? AND item_name = ? AND item_type = ? AND equipped = ? AND stored_in_bag = ?
+                """, (character_id, item_name, item_type, equipped, stored_in_bag))
+
+                existing = cursor.fetchone()
+
+                if existing and item_type in ['gear', 'consumable', 'treasure']:
+                    # Stack with existing item
+                    new_quantity = existing['quantity'] + quantity
+                    cursor.execute("""
+                        UPDATE character_inventory
+                        SET quantity = ?
+                        WHERE id = ?
+                    """, (new_quantity, existing['id']))
+                    print(f"[SQLite] Stacked {quantity} {item_name} (now {new_quantity} total)")
+                else:
+                    # Add as new inventory entry
+                    import uuid
+                    item_id = str(uuid.uuid4())
+
+                    cursor.execute("""
+                        INSERT INTO character_inventory
+                        (id, character_id, item_name, item_type, quantity, weight_lb,
+                         description, value_gp, equipped, stored_in_bag)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (item_id, character_id, item_name, item_type, quantity, weight_lb,
+                          description, value_gp, equipped, stored_in_bag))
+
+                    location = "Bag of Holding" if stored_in_bag else "inventory"
+                    equip_status = " (equipped)" if equipped else ""
+                    print(f"[SQLite] Added {quantity}x {item_name} to {location}{equip_status} - weight: {weight_lb} lb each")
+
+                return True
+
+        except Exception as e:
+            print(f"[SQLite] Error adding item to inventory: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def save_character_sync(self, character_id: str = None) -> bool:
         """Save current character or specified character to database."""
         try:

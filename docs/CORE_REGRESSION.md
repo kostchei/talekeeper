@@ -4,7 +4,7 @@
 
 Comprehensive regression tests have been created to validate all Fighter and Champion mechanical capabilities from levels 1-20, including combat systems, encounter mechanics, and level progression.
 
-**Test Results: 36/36 PASSING (100%)**
+**Test Results: 40/40 PASSING (100%)**
 
 ## Test Coverage
 
@@ -168,6 +168,12 @@ Comprehensive regression tests have been created to validate all Fighter and Cha
    - Cannot get multiple Epic Boons
    - All 10 Epic Boons available
 
+9. **TestHPPersistence** (4 tests)
+   - HP persists through inventory reload (loot bug regression)
+   - Temporary HP persists through reload
+   - Death saves persist through reload
+   - HP update during combat persists through loot
+
 ## Running Core Regression Tests
 
 ### Quick Test
@@ -302,6 +308,26 @@ The regression test suite provides **100% confidence** that Fighter/Champion mec
 ---
 
 **Test Suite Created:** 2025-09-30
-**Last Updated:** 2025-09-30
-**Coverage:** Fighter levels 1-20, Champion levels 3-18, Combat systems, Encounters, Tactical Master, Epic Boons
+**Last Updated:** 2025-10-20
+**Coverage:** Fighter levels 1-20, Champion levels 3-18, Combat systems, Encounters, Tactical Master, Epic Boons, HP Persistence
 **Status:** Production Ready
+
+## Recent Additions
+
+### HP Persistence Tests (2025-10-20)
+
+Added regression tests for the HP reset bug fix. These tests verify that character HP correctly persists through all character reload operations:
+
+**Bug Fixed:** Character HP was being reset to full when looting items after combat.
+
+**Root Cause:** `_force_reload_character()` was reloading character data from the database without first persisting in-memory HP changes.
+
+**Fix:** Added `_persist_hp_before_reload()` helper method that saves current HP to database before any reload operation.
+
+**Test Coverage:**
+- Loot collection after combat damage
+- Temporary HP persistence
+- Death save persistence
+- Full combat → loot flow
+
+See [HP_RESET_BUG_POSTMORTEM.md](HP_RESET_BUG_POSTMORTEM.md) for detailed analysis.

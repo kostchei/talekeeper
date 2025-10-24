@@ -38,6 +38,7 @@ from talekeeper.ui.action_cards.channel_divinity_dialog import ChannelDivinityDi
 from talekeeper.ui.action_cards.cunning_strike_selector import CunningStrikeSelectorDialog
 from talekeeper.ui.advantage_halo import AdvantageHalo, AdvantageResourceManager
 from talekeeper.services.spellcasting_service import SpellcastingService
+from talekeeper.services.barbarian_abilities import BarbarianAbilitiesService
 from talekeeper.services.spell_registry import spell_registry
 from talekeeper.services.paladin_abilities import PaladinAbilitiesService
 from talekeeper.services.cunning_strike_manager import CunningStrikeManager
@@ -172,6 +173,7 @@ class ActionPanel(QWidget):
         self.equipped_weapons = {}  # Store equipped weapon data
         self.character_weapon_masteries = []
         self.character_weapon_mastery_map: Dict[str, Optional[str]] = {}
+        self.pending_retaliation_attacker: Optional[str] = None
         self._weapon_mastery_service: Optional[WeaponMasteryService] = None
         self._equipment_database: Optional[EquipmentDatabase] = None
         self._weapon_mastery_cache: Dict[str, Optional[Dict[str, Any]]] = {}
@@ -2934,6 +2936,18 @@ class ActionPanel(QWidget):
                     # Now handle damage if any
                     total_damage = result.get('total_damage', 0)
                     if total_damage > 0:
+                        attacks = result.get('attacks', []) or []
+                        attack_detail = None
+                        for attack in attacks:
+                            if attack.get('hit'):
+                                attack_detail = attack
+                                break
+                        if attack_detail is None and attacks:
+                            attack_detail = attacks[-1]
+                        damage_type = "physical"
+                        if attack_detail:
+                            damage_type = attack_detail.get('damage_type') or damage_type
+
                         # Get HP before damage for proper logging (from character sheet, not context)
                         parent = self.parent()
                         hp_before = 0
@@ -2947,7 +2961,13 @@ class ActionPanel(QWidget):
                             parent = parent.parent()
 
                         # Use the existing damage application system that properly updates UI
-                        self._apply_damage_to_player(total_damage, encounter_panel, "physical")
+                        self._apply_damage_to_player(
+                            total_damage,
+                            encounter_panel,
+                            damage_type,
+                            attacker=next_combatant,
+                            attack_detail=attack_detail
+                        )
 
                         # Get HP after damage for logging (from character sheet, not context)
                         parent = self.parent()
@@ -3129,6 +3149,8 @@ class ActionPanel(QWidget):
 
             # Reset reaction availability
             self.character_context['reaction_used'] = False
+            self.character_context['retaliation_available'] = False
+            self.pending_retaliation_attacker = None
 
             # Handle rage turn countdown
             self._update_rage_state()
@@ -3404,6 +3426,13 @@ class ActionPanel(QWidget):
                 total_feature_bonus += rage_bonus
                 print(f"RAGE BONUS APPLIED: +{rage_bonus} damage")
         
+        frenzy_info = self._consume_frenzy_bonus()
+        if frenzy_info:
+            frenzy_damage = frenzy_info['damage']
+            total_feature_bonus += frenzy_damage
+            feature_bonuses['Frenzy'] = frenzy_damage
+            context['frenzy_roll'] = frenzy_info['rolls']
+
         total_modifier = ability_mod + magic_bonus + total_feature_bonus
         
         # Parse damage dice - just handle basic cases like "1d6", "2d6", etc
@@ -4076,7 +4105,14 @@ class ActionPanel(QWidget):
             print(f"Error rolling monster damage: {e}")
             return 1
     
-    def _apply_damage_to_player(self, damage: int, encounter_panel, damage_type: str = "physical"):
+    def _apply_damage_to_player(
+        self,
+        damage: int,
+        encounter_panel,
+        damage_type: str = "physical",
+        attacker=None,
+        attack_detail: Optional[Dict[str, Any]] = None
+    ):
         """Apply damage to the player character, with class-specific resistances."""
         try:
             # Check for rage damage resistance (bludgeoning, piercing, slashing) - BARBARIANS ONLY
@@ -4162,6 +4198,8 @@ class ActionPanel(QWidget):
                             break
                         log_parent = log_parent.parent()
                     
+                    self._handle_berserker_retaliation_trigger(character_data, attacker, attack_detail, damage, damage_type)
+
                     return new_hp
                 parent = parent.parent()
                 
@@ -4237,6 +4275,91 @@ class ActionPanel(QWidget):
 
                 if reply == QMessageBox.StandardButton.Yes:
                     self._cast_hellish_rebuke(attacker, character_id)
+
+    def _handle_berserker_retaliation_trigger(
+        self,
+        character_data: dict,
+        attacker: Any,
+        attack_detail: Optional[Dict[str, Any]],
+        damage: int,
+        damage_type: str
+    ):
+        """Enable Berserker Retaliation when conditions are met."""
+        if damage <= 0 or not character_data:
+            return
+
+        try:
+            character_id = character_data.get('id') or self._resolve_character_id()
+        except Exception:
+            character_id = character_data.get('id')
+
+        if not character_id:
+            return
+
+        class_value = (self.character_context or {}).get('class_id') or character_data.get('class_id', '')
+        if str(class_value).lower() != 'barbarian':
+            return
+
+        subclass_value = (
+            (self.character_context or {}).get('subclass') or
+            character_data.get('subclass_id') or
+            character_data.get('subclass')
+        )
+        if str(subclass_value).lower() != 'berserker':
+            return
+
+        level = (self.character_context or {}).get('level', character_data.get('level', 0))
+        if level < 10:
+            return
+
+        attack_type = None
+        if attack_detail:
+            attack_type = attack_detail.get('attack_type')
+        if attack_type and str(attack_type).lower() == 'ranged':
+            return
+
+        range_feet = None
+        if attack_detail:
+            range_feet = attack_detail.get('range_feet')
+        if range_feet is not None and range_feet > 5:
+            return
+
+        if self.action_economy_enabled and self.current_combat_session:
+            try:
+                active_character_id = self.character_id or character_id
+                state = self.current_combat_session.action_economy.get_combatant_state(active_character_id)
+                if state and not state.reaction_available:
+                    return
+            except Exception:
+                pass
+
+        try:
+            service = BarbarianAbilitiesService(self._resolve_db_path())
+            if not service.mark_retaliation_available(character_id):
+                return
+        except Exception as exc:
+            print(f"[ACTION_PANEL] Failed to mark Retaliation available: {exc}")
+            return
+
+        attacker_name = getattr(attacker, 'name', None) if attacker else None
+        if not attacker_name and attack_detail:
+            attacker_name = attack_detail.get('attacker_name')
+
+        already_ready = self.character_context.get('retaliation_available')
+        self.character_context['retaliation_available'] = True
+        self.pending_retaliation_attacker = attacker_name or ""
+
+        if already_ready:
+            return
+
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'log_panel'):
+                character_name = self.character_context.get('name', 'Character')
+                target_name = self.pending_retaliation_attacker or "the attacker"
+                parent.log_panel.log_combat(f"[REACTION] {character_name} can use Retaliation against {target_name}!")
+                break
+            parent = parent.parent()
 
     def _character_has_spell(self, spell_name: str) -> bool:
         """Check if character has a specific spell prepared."""
@@ -5831,7 +5954,7 @@ class ActionPanel(QWidget):
                     # Apply total damage to player
                     total_damage = result.get('total_damage', 0)
                     if total_damage > 0 and hasattr(parent, 'character_sheet'):
-                        self._apply_damage_to_player(total_damage, "physical", parent.character_sheet.character_data)
+                        self._apply_damage_to_player(total_damage, None, "physical")
                         parent.log_panel.log_combat(f"[DAMAGE] Player takes {total_damage} total damage!")
 
                     break
@@ -6398,6 +6521,81 @@ class ActionPanel(QWidget):
         #     bonuses['Sharpshooter'] = sharpshooter_bonus
 
         return bonuses
+
+    def _consume_frenzy_bonus(self) -> Optional[Dict[str, Any]]:
+        """Consume Berserker Frenzy bonus if active and return the roll."""
+        try:
+            character_id = self._resolve_character_id()
+        except Exception:
+            character_id = None
+
+        if not character_id:
+            return None
+
+        class_id = (self.character_context or {}).get('class_id', '').lower()
+        if class_id != 'barbarian':
+            return None
+
+        import sqlite3
+        import random
+
+        db_path = self._resolve_db_path()
+        try:
+            with sqlite3.connect(db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT frenzy_active, level
+                    FROM barbarian_features
+                    WHERE character_id = ?
+                """, (character_id,))
+                row = cursor.fetchone()
+                if not row or not self._is_truthy(row['frenzy_active']):
+                    return None
+
+                level = row['level'] or 0
+                if level >= 16:
+                    dice = "1d10"
+                elif level >= 9:
+                    dice = "1d8"
+                else:
+                    dice = "1d6"
+
+                die_size = int(dice.split('d')[1])
+                roll = random.randint(1, die_size)
+
+                cursor.execute("""
+                    UPDATE barbarian_features
+                    SET frenzy_active = 0
+                    WHERE character_id = ?
+                """, (character_id,))
+                try:
+                    cursor.execute("""
+                        UPDATE character_combat_state
+                        SET frenzy_active = 0
+                        WHERE character_id = ?
+                    """, (character_id,))
+                except sqlite3.OperationalError:
+                    pass
+
+                conn.commit()
+
+                return {
+                    'damage': roll,
+                    'dice': dice,
+                    'rolls': [roll]
+                }
+        except sqlite3.Error as exc:
+            print(f"[ACTION_PANEL] Failed to consume Frenzy bonus: {exc}")
+            return None
+
+    def _is_truthy(self, value) -> bool:
+        """Normalize SQLite truthy values."""
+        if isinstance(value, (bool, int)):
+            return bool(value)
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "t", "yes", "on"}
     
     def _use_healing_potion(self, context: Dict[str, Any]):
         """Use a healing potion to restore hit points."""
@@ -9476,10 +9674,22 @@ class ActionCard(QWidget):
                     parent = parent.parent()
                 return
 
+        encounter_panel = self._get_encounter_panel()
+        target_ids: List[str] = []
+        if encounter_panel and hasattr(encounter_panel, 'get_living_monsters'):
+            try:
+                living_monsters = encounter_panel.get_living_monsters() or []
+                for monster in living_monsters:
+                    if getattr(monster, 'is_alive', True) and getattr(monster, 'current_hit_points', 0) > 0:
+                        target_ids.append(monster.id)
+            except Exception as exc:
+                print(f"Error gathering Intimidating Presence targets: {exc}")
+
         # Use the enhanced subclass integration
         try:
             from talekeeper.services.subclass_action_integration import subclass_action_integration
-            result = subclass_action_integration.activate_feature(character_id, "Intimidating Presence")
+            activation_context = {'target_ids': target_ids} if target_ids else None
+            result = subclass_action_integration.activate_feature(character_id, "Intimidating Presence", activation_context)
 
             if result.get('success'):
                 # Consume the bonus action
@@ -9500,6 +9710,27 @@ class ActionCard(QWidget):
                         parent.log_panel.log_combat(f"[BONUS ACTION] [FEAR] {character_name} uses Intimidating Presence!")
                         parent.log_panel.log_combat(f"All enemies within 30 ft must make a Wisdom save (DC {save_dc}) or be Frightened for 1 minute")
                         parent.log_panel.log_combat("Frightened creatures can repeat the save at the end of each turn")
+
+                        affected_targets = result.get('targets_affected') or []
+                        failed_targets = result.get('targets_failed') or []
+
+                        if affected_targets and encounter_panel:
+                            for target_id in affected_targets:
+                                monster_instance = getattr(encounter_panel, 'encounter_instances', {}).get(target_id)
+                                monster_name = getattr(monster_instance, 'monster_name', target_id)
+                                parent.log_panel.log_combat(f"    [FEAR] {monster_name} is frightened (DC {save_dc}).")
+                                if monster_instance and hasattr(monster_instance, 'conditions'):
+                                    existing_conditions = [c.lower() for c in monster_instance.conditions]
+                                    if 'frightened' not in existing_conditions:
+                                        monster_instance.conditions.append('Frightened')
+                                        if hasattr(encounter_panel, '_update_monster_card_display'):
+                                            encounter_panel._update_monster_card_display(target_id)
+
+                        if failed_targets and encounter_panel:
+                            for target_id in failed_targets:
+                                monster_instance = getattr(encounter_panel, 'encounter_instances', {}).get(target_id)
+                                monster_name = getattr(monster_instance, 'monster_name', target_id)
+                                parent.log_panel.log_combat(f"    [RESIST] {monster_name} resists the fear effect.")
 
                         if uses_remaining == 0:
                             parent.log_panel.log_combat("Intimidating Presence depleted (recharges on long rest)")
@@ -9573,9 +9804,11 @@ class ActionCard(QWidget):
 
         try:
             from talekeeper.services.subclass_action_integration import subclass_action_integration
-            result = subclass_action_integration.activate_feature(character_id, "Retaliation")
+            activation_context = {'attacker_name': self.pending_retaliation_attacker} if self.pending_retaliation_attacker else None
+            result = subclass_action_integration.activate_feature(character_id, "Retaliation", activation_context)
 
             if result.get('success'):
+                retaliation_target = self.pending_retaliation_attacker or result.get('attacker_name', '')
                 # Consume the reaction
                 if self.action_economy_enabled and self.current_combat_session:
                     try:
@@ -9587,7 +9820,8 @@ class ActionCard(QWidget):
                 while parent:
                     if hasattr(parent, 'log_panel'):
                         character_name = self.character_context.get('name', 'Character')
-                        parent.log_panel.log_combat(f"[REACTION] {character_name} retaliates with a melee attack!")
+                        target_name = retaliation_target or "the attacker"
+                        parent.log_panel.log_combat(f"[REACTION] {character_name} retaliates against {target_name} with a melee attack!")
 
                         if result.get('adds_rage_damage'):
                             parent.log_panel.log_combat("Attack includes Rage damage bonus")
@@ -9598,6 +9832,10 @@ class ActionCard(QWidget):
 
                         break
                     parent = parent.parent()
+
+                self.pending_retaliation_attacker = None
+                self.character_context['retaliation_available'] = False
+                self._refresh_action_availability()
             else:
                 reason = result.get('error', 'Unknown error')
                 parent = self.parent()

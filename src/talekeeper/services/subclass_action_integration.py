@@ -61,6 +61,7 @@ class SubclassActionIntegration:
             "Envenom Weapons": self._handle_envenom_weapons,
             "Death Strike": self._handle_death_strike
         }
+        self._activation_context: Optional[Dict[str, Any]] = None
 
     def get_action_cards_for_character(self, character_id: str, level: int) -> List[Dict[str, Any]]:
         """Get action cards that should be created for a character's subclass features."""
@@ -108,7 +109,7 @@ class SubclassActionIntegration:
 
         return modifiers
 
-    def activate_feature(self, character_id: str, feature_name: str) -> Dict[str, Any]:
+    def activate_feature(self, character_id: str, feature_name: str, activation_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Activate a subclass feature through the action system."""
         handler = self._feature_handlers.get(feature_name)
         if not handler:
@@ -122,11 +123,15 @@ class SubclassActionIntegration:
             return {"success": False, "error": f"Feature not found: {feature_name}"}
 
         # Execute the handler
+        previous_context = self._activation_context
+        self._activation_context = activation_context or {}
         try:
             result = handler(character_id, feature, "activate")
             return result if result else {"success": False, "error": "Handler returned no result"}
         except Exception as e:
             return {"success": False, "error": str(e)}
+        finally:
+            self._activation_context = previous_context
 
     # ==================== BERSERKER FEATURE HANDLERS ====================
 
@@ -170,7 +175,10 @@ class SubclassActionIntegration:
                 "feature_data": feature
             }
         elif integration_type == "activate":
-            return self._activate_retaliation(character_id, feature)
+            attacker_name = None
+            if self._activation_context:
+                attacker_name = self._activation_context.get('attacker_name')
+            return self._activate_retaliation(character_id, feature, attacker_name)
 
         return None
 
@@ -377,17 +385,26 @@ class SubclassActionIntegration:
 
     # ==================== ACTIVATION METHODS ====================
 
-    def _activate_retaliation(self, character_id: str, feature: SubclassFeature) -> Dict[str, Any]:
+    def _activate_retaliation(self, character_id: str, feature: SubclassFeature, attacker_name: Optional[str] = None) -> Dict[str, Any]:
         """Activate Retaliation reaction."""
-        # Check if character can make reaction
-        # For now, return success - actual combat mechanics handled elsewhere
-        return {
-            "success": True,
-            "message": "Retaliation attack available",
-            "attack_type": "melee_weapon_or_unarmed",
-            "adds_rage_damage": True,
-            "range": 5
-        }
+        try:
+            from talekeeper.services.barbarian_abilities import BarbarianAbilitiesService
+            service = BarbarianAbilitiesService(self.db_path)
+            result = service.use_berserker_retaliation(character_id, attacker_name or "")
+
+            if result.get('success'):
+                return {
+                    "success": True,
+                    "message": result.get('effect', "Retaliation attack available"),
+                    "attack_type": result.get('action_type', 'reaction'),
+                    "adds_rage_damage": True,
+                    "range": 5,
+                    "attacker_name": attacker_name or ""
+                }
+
+            return {"success": False, "error": result.get('error', 'Retaliation not available')}
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
 
     def _activate_heroic_warrior(self, character_id: str) -> Dict[str, Any]:
         """Activate Heroic Warrior inspiration gain at turn start."""

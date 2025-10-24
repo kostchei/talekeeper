@@ -241,8 +241,13 @@ class EnhancedSubclassManager:
     def get_subclass_definition(self, class_name: str, subclass_name: str) -> Optional[SubclassDefinition]:
         """Get a subclass definition using the registry."""
         if self._registry is None:
-            from talekeeper.services.subclass_registry import subclass_registry
-            self._registry = subclass_registry
+            try:
+                from talekeeper.services.subclass_registry import subclass_registry
+                self._registry = subclass_registry
+            except ModuleNotFoundError:
+                # Fallback to relative import for test environments
+                from .subclass_registry import subclass_registry
+                self._registry = subclass_registry
         return self._registry.get_subclass(class_name, subclass_name)
 
     def get_character_subclass_features(self, character_id: str, level: int) -> List[SubclassFeature]:
@@ -284,7 +289,11 @@ class EnhancedSubclassManager:
     def apply_mindless_rage(self, character_id: str) -> Dict[str, Any]:
         """Apply Mindless Rage immunity when raging."""
         try:
-            from talekeeper.services.condition_manager import ConditionManager, ConditionType
+            try:
+                from talekeeper.services.condition_manager import ConditionManager, ConditionType
+            except ModuleNotFoundError:
+                # Fallback to relative import for test environments
+                from .condition_manager import ConditionManager, ConditionType
             condition_manager = ConditionManager(self.db_path)
 
             # Check if character is raging
@@ -322,7 +331,11 @@ class EnhancedSubclassManager:
     def remove_rage_immunities(self, character_id: str):
         """Remove Mindless Rage immunities when rage ends."""
         try:
-            from talekeeper.services.condition_manager import ConditionManager, ConditionType
+            try:
+                from talekeeper.services.condition_manager import ConditionManager, ConditionType
+            except ModuleNotFoundError:
+                # Fallback to relative import for test environments
+                from .condition_manager import ConditionManager, ConditionType
             condition_manager = ConditionManager(self.db_path)
 
             condition_manager.remove_immunity(character_id, ConditionType.CHARMED, "Mindless Rage")

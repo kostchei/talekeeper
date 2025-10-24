@@ -518,6 +518,8 @@ class BarbarianAbilitiesService:
             reckless_active = row['reckless_attack_active'] or False
 
             # Frenzy (Level 3+): When you Reckless Attack while Raging
+            # SRD: "roll a number of d6s equal to your Rage Damage bonus"
+            # Only applies to Strength-based attacks, first hit only
             if level >= 3 and is_raging and reckless_active:
                 if not row['frenzy_active']:
                     cursor.execute("""
@@ -532,7 +534,7 @@ class BarbarianAbilitiesService:
 
                     result["frenzy"] = {
                         "activated": True,
-                        "effect": f"Add {row['rage_damage_bonus']}d6 to first hit this turn"
+                        "effect": f"Add {row['rage_damage_bonus']}d6 to first Strength-based hit this turn"
                     }
 
             # Mindless Rage (Level 6+): Immune to Charmed/Frightened while raging
@@ -551,6 +553,29 @@ class BarbarianAbilitiesService:
             conn.commit()
 
         return result
+
+    def mark_retaliation_available(self, character_id: str, attacker_name: str = "") -> bool:
+        """Mark Retaliation as available after the character is damaged in melee."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT level
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+            row = cursor.fetchone()
+            if not row or row['level'] < 10:
+                return False
+
+            cursor.execute("""
+                UPDATE barbarian_features
+                SET retaliation_available = TRUE
+                WHERE character_id = ?
+            """, (character_id,))
+
+            conn.commit()
+            return True
 
     def use_berserker_retaliation(self, character_id: str, attacker_name: str = "") -> Dict[str, Any]:
         """Use Berserker Retaliation reaction (Level 10+)."""
@@ -574,13 +599,20 @@ class BarbarianAbilitiesService:
             if subclass != 'berserker':
                 return {'success': False, 'error': 'Retaliation requires Berserker subclass'}
 
+            cursor.execute("""
+                UPDATE barbarian_features
+                SET retaliation_available = FALSE
+                WHERE character_id = ?
+            """, (character_id,))
+            conn.commit()
+
             return {
                 'success': True,
                 'effect': f'Make one melee weapon or unarmed attack against {attacker_name or "the attacker"}',
                 'action_type': 'reaction'
             }
 
-    def use_intimidating_presence(self, character_id: str) -> Dict[str, Any]:
+    def use_intimidating_presence(self, character_id: str, target_ids: Optional[List[str]] = None) -> Dict[str, Any]:
         """Use Intimidating Presence (Berserker Level 14+)."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -624,11 +656,46 @@ class BarbarianAbilitiesService:
 
             conn.commit()
 
+            targets_affected: List[str] = []
+            targets_failed: List[str] = []
+
+            if target_ids:
+                try:
+                    from services.condition_manager import ConditionManager, ConditionType, ActiveCondition
+                    condition_manager = ConditionManager(self.db_path)
+
+                    for target_id in target_ids:
+                        frightened_condition = ActiveCondition(
+                            condition_type=ConditionType.FRIGHTENED,
+                            source=f"Intimidating Presence ({character_id})",
+                            duration_type="minutes",
+                            duration_remaining=1,
+                            save_dc=save_dc,
+                            save_ability="wisdom",
+                            save_frequency="end_of_turn",
+                            metadata={"source_character": character_id}
+                        )
+                        try:
+                            applied = condition_manager.add_condition(target_id, frightened_condition)
+                        except sqlite3.IntegrityError:
+                            applied = False
+
+                        if applied:
+                            targets_affected.append(target_id)
+                        else:
+                            targets_failed.append(target_id)
+                except ImportError:
+                    targets_failed.extend(target_ids)
+                except Exception:
+                    targets_failed.extend(target_ids)
+
             return {
                 'success': True,
                 'save_dc': save_dc,
                 'effect': '30 ft emanation - Wisdom save or Frightened for 1 minute (repeat save each turn)',
-                'uses_remaining': row['intimidating_presence_uses_current'] - 1
+                'uses_remaining': row['intimidating_presence_uses_current'] - 1,
+                'targets_affected': targets_affected,
+                'targets_failed': targets_failed
             }
 
     def has_danger_sense_advantage(self, character_id: str, save_ability: str, conditions: List[str] = None) -> bool:

@@ -44,6 +44,7 @@ class CombatAction:
     damage_type: Optional[str] = None
     target_required: bool = True
     range_feet: Optional[int] = None
+    attack_category: Optional[str] = None
     standardized_attack: Optional[Any] = None  # Store full standardized attack for effects
 
 @dataclass
@@ -698,6 +699,7 @@ class CombatManager:
             print(f"[COMBAT_MGR] Parsed {len(parsed_attacks)} attacks from: {actions_json[:100]}")
 
             for attack in parsed_attacks:
+                range_value = attack.reach if attack.attack_type == "melee" else attack.range_normal
                 action = CombatAction(
                     name=attack.name,
                     action_type=ActionType.ACTION,
@@ -705,6 +707,8 @@ class CombatManager:
                     attack_bonus=attack.attack_bonus,
                     damage_dice=attack.damage_dice,
                     damage_type=attack.damage_type,
+                    range_feet=range_value,
+                    attack_category=attack.attack_type,
                     standardized_attack=attack  # Wire up the parsed attack with effects
                 )
                 actions.append(action)
@@ -881,6 +885,9 @@ class CombatManager:
                 'target_ac': target.armor_class,
                 'action_name': action.name,
                 'damage_dice': action.damage_dice,
+                'damage_type': action.damage_type,
+                'range_feet': action.range_feet,
+                'attack_type': action.attack_category or getattr(action.standardized_attack, 'attack_type', None),
                 'attacker_name': attacker.name
             }
         else:
@@ -896,6 +903,10 @@ class CombatManager:
                 'attack_bonus': attack_bonus,
                 'target_ac': target.armor_class,
                 'action_name': action.name,
+                'damage_dice': action.damage_dice,
+                'damage_type': action.damage_type,
+                'range_feet': action.range_feet,
+                'attack_type': action.attack_category or getattr(action.standardized_attack, 'attack_type', None),
                 'attacker_name': attacker.name
             }
     

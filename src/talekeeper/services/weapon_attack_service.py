@@ -125,16 +125,26 @@ class WeaponAttackService:
         is_ranged = 'ranged' in weapon_properties or any(x in weapon_name.lower() for x in ['bow', 'crossbow', 'sling'])
         is_finesse = 'finesse' in weapon_properties
 
-        # Determine ability modifier
+        # Determine ability modifier and track if using Strength
+        str_mod = (character.get('strength', 10) - 10) // 2
+        dex_mod = (character.get('dexterity', 10) - 10) // 2
+        is_strength_based = False
+
         if is_finesse:
-            ability_mod = max(
-                (character.get('strength', 10) - 10) // 2,
-                (character.get('dexterity', 10) - 10) // 2
-            )
+            # Finesse weapons can use STR or DEX, whichever is higher
+            if str_mod >= dex_mod:
+                ability_mod = str_mod
+                is_strength_based = True
+            else:
+                ability_mod = dex_mod
+                is_strength_based = False
         elif is_ranged:
-            ability_mod = (character.get('dexterity', 10) - 10) // 2
+            ability_mod = dex_mod
+            is_strength_based = False
         else:
-            ability_mod = (character.get('strength', 10) - 10) // 2
+            # Melee weapons without finesse use Strength
+            ability_mod = str_mod
+            is_strength_based = True
 
         # Proficiency bonus
         level = character.get('level', 1)
@@ -256,6 +266,22 @@ class WeaponAttackService:
             damage_total += spell_dice['roll']
             modifiers_applied.append(f"{spell_dice['spell']} +{spell_dice['roll']} {spell_dice['type']}")
 
+        # Apply Frenzy damage bonus (Berserker 3+)
+        # SRD: Only applies to Strength-based attacks while Raging and using Reckless Attack
+        weapon_damage_type = weapon.get('damage_type', 'bludgeoning')
+        frenzy_bonus = self._consume_frenzy_damage(character.get('id'), is_strength_based, weapon_damage_type)
+        frenzy_damage = 0
+        frenzy_rolls: List[int] = []
+        frenzy_dice: Optional[str] = None
+        frenzy_damage_type: Optional[str] = None
+        if frenzy_bonus:
+            frenzy_damage = frenzy_bonus['damage']
+            frenzy_rolls = frenzy_bonus['rolls']
+            frenzy_dice = frenzy_bonus['dice']
+            frenzy_damage_type = frenzy_bonus['damage_type']
+            damage_total += frenzy_damage
+            modifiers_applied.append(f"Frenzy +{frenzy_damage} {frenzy_damage_type} damage ({frenzy_dice})")
+
         # Apply Sneak Attack if eligible (Rogue class)
         sneak_attack_data = self._apply_sneak_attack_if_eligible(
             character, weapon, target, advantage or is_hidden, disadvantage, is_hidden
@@ -283,6 +309,8 @@ class WeaponAttackService:
             damage_breakdown += f'{damage_bonus:+d}'
         if sneak_attack_damage > 0:
             damage_breakdown += f' + {sneak_attack_data["damage_dice"]} sneak attack'
+        if frenzy_dice:
+            damage_breakdown += f' + {frenzy_dice} frenzy'
 
         return {
             'attack_roll': attack_roll,
@@ -293,7 +321,11 @@ class WeaponAttackService:
             'cunning_strike_effects': cunning_strike_effects,
             'damage_total': max(0, damage_total),  # Damage can't be negative
             'damage_breakdown': damage_breakdown,
-            'modifiers_applied': modifiers_applied
+            'modifiers_applied': modifiers_applied,
+            'frenzy_rolls': frenzy_rolls,
+            'frenzy_damage': frenzy_damage,
+            'frenzy_dice': frenzy_dice,
+            'frenzy_damage_type': frenzy_damage_type
         }
 
     def apply_fighting_style_effects(self,
@@ -388,6 +420,85 @@ class WeaponAttackService:
                 bonus += 2
 
         return bonus
+
+    def _consume_frenzy_damage(self, character_id: Optional[str], is_strength_based: bool = False, weapon_damage_type: str = 'bludgeoning') -> Optional[Dict[str, Any]]:
+        """Apply Frenzy damage bonus once per turn if active.
+
+        Per SRD: "roll a number of d6s equal to your Rage Damage bonus"
+        "The damage has the same type as the weapon or Unarmed Strike used for the attack."
+        Only applies to Strength-based attacks.
+
+        Args:
+            character_id: The character's ID
+            is_strength_based: Whether this attack uses Strength modifier
+            weapon_damage_type: The damage type of the weapon (e.g., 'slashing', 'piercing')
+
+        Returns:
+            Dict with damage, dice, rolls, and damage_type, or None if not applicable
+        """
+        if not character_id:
+            return None
+
+        # SRD: Frenzy only applies to Strength-based attacks
+        if not is_strength_based:
+            return None
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT frenzy_active, level, rage_damage_bonus
+                FROM barbarian_features
+                WHERE character_id = ?
+            """, (character_id,))
+
+            row = cursor.fetchone()
+            if not row or not self._is_truthy(row['frenzy_active']):
+                return None
+
+            # SRD: Roll a number of d6s equal to your Rage Damage bonus
+            rage_damage_bonus = row['rage_damage_bonus'] or 2
+            num_dice = rage_damage_bonus
+            dice = f"{num_dice}d6"
+
+            # Roll the damage
+            rolls = [random.randint(1, 6) for _ in range(num_dice)]
+            total_damage = sum(rolls)
+
+            # Consume the Frenzy effect (only applies to first hit)
+            cursor.execute("""
+                UPDATE barbarian_features
+                SET frenzy_active = 0
+                WHERE character_id = ?
+            """, (character_id,))
+
+            try:
+                cursor.execute("""
+                    UPDATE character_combat_state
+                    SET frenzy_active = 0
+                    WHERE character_id = ?
+                """, (character_id,))
+            except sqlite3.OperationalError:
+                # Legacy databases may not have this column yet
+                pass
+
+            conn.commit()
+
+            # SRD: Damage type matches the weapon
+            return {
+                'damage': total_damage,
+                'dice': dice,
+                'rolls': rolls,
+                'damage_type': weapon_damage_type
+            }
+
+    @staticmethod
+    def _is_truthy(value) -> bool:
+        """Normalize SQLite truthy values."""
+        if isinstance(value, (bool, int)):
+            return bool(value)
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "t", "yes", "on"}
 
     def get_fighting_style_attack_bonus(self, weapon: Dict[str, Any], character: Dict[str, Any]) -> int:
         """

@@ -6521,6 +6521,9 @@ class EncounterPanel(QWidget):
                         print(f"[LOOT] Database commit completed for {len(items)} items")
                         conn.close()
 
+                        # Save current HP to database BEFORE reloading character
+                        self._persist_hp_before_reload()
+
                         # Force refresh inventory display
                         if hasattr(parent, '_force_reload_character'):
                             print("[LOOT] Calling _force_reload_character()")
@@ -8128,6 +8131,9 @@ class EncounterPanel(QWidget):
             # Clean up the skill challenge widget
             self._cleanup_active_widgets()
 
+            # Save current HP to database BEFORE reloading character
+            self._persist_hp_before_reload()
+
             # Refresh character data in other panels
             self._force_reload_character()
 
@@ -8162,6 +8168,9 @@ class EncounterPanel(QWidget):
 
             # Clean up the skill challenge widget
             self._cleanup_active_widgets()
+
+            # Save current HP to database BEFORE reloading character
+            self._persist_hp_before_reload()
 
             # Refresh character data in other panels
             self._force_reload_character()
@@ -8213,10 +8222,43 @@ class EncounterPanel(QWidget):
                 self._log_monster_action(f"[XP] Gained {xp_gained} XP from hazard")
 
             self._cleanup_active_widgets()
+
+            # Save current HP to database BEFORE reloading character
+            self._persist_hp_before_reload()
+
             self._force_reload_character()
 
         except Exception as e:
             self._log_monster_action(f"[ERROR] Failed to apply hazard outcome: {e}")
+
+    def _persist_hp_before_reload(self):
+        """
+        Persist current HP to database before triggering character reload.
+
+        This prevents the HP reset bug where _force_reload_character() loads
+        character data from the database, overwriting in-memory HP changes
+        that haven't been persisted yet.
+
+        Called before any operation that triggers _force_reload_character():
+        - Looting items
+        - Skill challenge completion
+        - Hazard resolution
+        """
+        try:
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'game_engine') and hasattr(parent, 'character_sheet'):
+                    if parent.character_sheet.character_data:
+                        char_data = parent.character_sheet.character_data
+                        current_hp = char_data.get('hit_points_current', 0)
+                        max_hp = char_data.get('hit_points_max', 0)
+                        if current_hp > 0 or max_hp > 0:
+                            parent.game_engine.update_character_hp_sync(current_hp, max_hp)
+                            print(f"[HP_PERSIST] Saved HP {current_hp}/{max_hp} before reload")
+                        return
+                parent = parent.parent()
+        except Exception as e:
+            print(f"[HP_PERSIST] Error persisting HP: {e}")
 
     def _force_reload_character(self):
         """Force reload character data in all panels."""
