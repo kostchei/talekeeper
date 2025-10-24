@@ -7303,7 +7303,10 @@ class EncounterPanel(QWidget):
                         
                         conn.commit()
                         conn.close()
-                        
+
+                        # Save current HP to database BEFORE reloading character
+                        self._persist_hp_before_reload()
+
                         # Force refresh inventory display
                         if hasattr(parent, '_force_reload_character'):
                             parent._force_reload_character()
