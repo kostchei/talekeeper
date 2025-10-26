@@ -8,6 +8,8 @@ from .local_tts_engine import LocalTTSEngine
 from .log_narration_pipeline import LogNarrationPipeline
 from .voice_trainer import VoiceTrainer, VoiceTrainingSample
 from .audio_player import NarrationPlayer
+from .midi_player import MidiPlayer
+from .ambient_music_manager import AmbientMusicManager
 from .file_cleanup import NarrationFileCleanup
 from .piper_voice_trainer import PiperVoiceTrainer
 
@@ -20,6 +22,8 @@ __all__ = [
     "VoiceTrainer",
     "VoiceTrainingSample",
     "NarrationPlayer",
+    "MidiPlayer",
+    "AmbientMusicManager",
     "NarrationFileCleanup",
     "PiperVoiceTrainer",
 ]

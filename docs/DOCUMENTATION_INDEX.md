@@ -1,6 +1,6 @@
 # TaleKeeper Documentation Index
 
-Last Updated: 2025-10-19
+Last Updated: 2025-10-26
 
 ## Main Implementation Guide
 
@@ -15,6 +15,9 @@ Last Updated: 2025-10-19
 ### Testing & Quality
 - **[README_TESTING_FRAMEWORK.md](README_TESTING_FRAMEWORK.md)** - Qt6 testing framework guide
 - **[CORE_REGRESSION.md](CORE_REGRESSION.md)** - Regression test suite documentation
+
+### Audio Systems
+- **[MIDI_INTEGRATION.md](MIDI_INTEGRATION.md)** - MIDI background music with random bag shuffle system
 - **[PIPER_TTS_SETUP.md](PIPER_TTS_SETUP.md)** - Text-to-speech setup instructions
 
 ### Monster Systems

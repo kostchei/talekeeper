@@ -13,21 +13,22 @@ from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSpl
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence
 
-from ui.themes import build_stylesheet, get_theme_palette
-from ui.layout_profiles import (
+from talekeeper.ui.themes import build_stylesheet, get_theme_palette
+from talekeeper.ui.layout_profiles import (
     BASELINE_PROFILE,
     LayoutProfile,
 )
-from menu.game_menu import GameMenu
-from character_sheet.character_panel import CharacterPanel
-from encounter_pane.encounter_panel import EncounterPanel
-from log.log_panel import LogPanel
-from equipment_layout.equipment_panel import EquipmentPanel
-from action_cards.action_panel import ActionPanel
-from core.game_engine_sqlite import GameEngineSQLite
-from ui.settings_dialog import SettingsDialog
+from talekeeper.menu.game_menu import GameMenu
+from talekeeper.character_sheet.character_panel import CharacterPanel
+from talekeeper.encounter_pane.encounter_panel import EncounterPanel
+from talekeeper.log.log_panel import LogPanel
+from talekeeper.equipment_layout.equipment_panel import EquipmentPanel
+from talekeeper.action_cards.action_panel import ActionPanel
+from talekeeper.core.game_engine_sqlite import GameEngineSQLite
+from talekeeper.ui.settings_dialog import SettingsDialog
 
-from audio import (
+from talekeeper.audio import (
+    MidiPlayer,
     CampaignVoiceProfile,
     CampaignVoiceRegistry,
     LogNarrationPipeline,
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
         self.voice_registry: Optional[CampaignVoiceRegistry] = None
         self.log_narration_pipeline: Optional[LogNarrationPipeline] = None
         self.narration_player: Optional[NarrationPlayer] = None
+        self.midi_player: Optional[MidiPlayer] = None
 
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
@@ -108,7 +110,9 @@ class MainWindow(QMainWindow):
         self.log_panel.show()
 
         # Initialize audio narration after log panel is ready
+        # Initialize MIDI background music
         self._initialize_narration_pipeline()
+        self._initialize_midi_player()
 
         # Equipment panel (bottom right)
         self.equipment_panel = EquipmentPanel(self, layout_profile=profile)
@@ -1814,3 +1818,109 @@ class MainWindow(QMainWindow):
             except Exception:
                 LOGGER.exception("Error while shutting down narration pipeline")
         super().closeEvent(event)
+
+    # === MIDI Background Music ===
+
+    def _initialize_midi_player(self) -> None:
+        """Set up MIDI background music player with DOS-era OPL3 sound."""
+        from pathlib import Path
+        
+        try:
+            # Initialize MIDI player
+            self.midi_player = MidiPlayer(parent=self)
+            
+            # Set initial volume (lighter background music)
+            self.midi_player.set_volume(0.4)
+            
+            # Connect narration signals for volume ducking
+            if self.narration_player:
+                self.narration_player.playback_started.connect(self._duck_music_for_narration)
+                self.narration_player.playback_finished.connect(self._restore_music_volume)
+            
+            # Auto-queue ambient Conan tracks
+            self._queue_ambient_music()
+            
+            LOGGER.info("MIDI player initialized with OPL3 soundfont")
+            if hasattr(self, 'log_panel') and self.log_panel:
+                self.log_panel.log_system("🎵 Ambient music ready (OPL3 synthesis)")
+                
+        except Exception as exc:
+            LOGGER.exception("Failed to initialize MIDI player")
+            if hasattr(self, 'log_panel') and self.log_panel:
+                self.log_panel.log_warning(f"MIDI playback unavailable: {exc}")
+
+    def _queue_ambient_music(self) -> None:
+        """Queue ambient MIDI files for continuous playback based on campaign."""
+        if not self.midi_player:
+            return
+
+        # Get campaign style (e.g., 'conan', 'golden')
+        campaign_style = self._get_active_campaign_style() or "conan"
+
+        # Build path to campaign-specific ambient music
+        # Path: audio/midi/campaigns/{campaign_style}/ambient/
+        ambient_dir = Path("audio") / "midi" / "campaigns" / campaign_style / "ambient"
+
+        if not ambient_dir.exists():
+            LOGGER.warning(f"Ambient music directory not found for campaign '{campaign_style}': {ambient_dir}")
+            LOGGER.info("No campaign music available - MIDI player will remain silent")
+            return
+
+        # Get all MIDI files sorted
+        midi_files = sorted(ambient_dir.glob("*.mid"))
+        if not midi_files:
+            LOGGER.warning(f"No ambient MIDI files found in {ambient_dir}")
+            return
+
+        # Queue all ambient tracks
+        for midi_file in midi_files:
+            self.midi_player.enqueue(midi_file)
+
+        LOGGER.info(f"Queued {len(midi_files)} ambient music tracks for '{campaign_style}' campaign")
+
+
+    def _duck_music_for_narration(self, _path: Path) -> None:
+        """Lower music volume when narration plays (duck to 30%)."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.3)
+            LOGGER.debug("Music ducked to 30% for narration")
+
+    def _restore_music_volume(self, _path: Path) -> None:
+        """Restore music volume after narration (back to 40%)."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.4)
+            LOGGER.debug("Music restored to 40%")
+
+    def play_soundscape(self, event_type: str) -> None:
+        """Play event soundscape and duck ambient music to 10%.
+
+        Args:
+            event_type: Type of event (combat, victory, defeat, downtime, 
+                       carousing, stealth, exploration, tension)
+        """
+        if not self.midi_player:
+            return
+
+        # Get campaign style
+        campaign_style = self._get_active_campaign_style() or "conan"
+
+        # Build path to soundscape
+        scape_path = Path("audio") / "midi" / "campaigns" / campaign_style / "scape" / f"{event_type}.mid"
+
+        if not scape_path.exists():
+            LOGGER.warning(f"Soundscape not found: {scape_path}")
+            return
+
+        # Duck ambient music to 10%
+        self.midi_player.set_volume(0.1)
+        LOGGER.info(f"Playing {event_type} soundscape, music ducked to 10%")
+
+        # TODO: Play soundscape file (requires separate soundscape player)
+        # For now, log the request
+        LOGGER.info(f"Soundscape requested: {event_type} at {scape_path}")
+
+    def _on_soundscape_finished(self) -> None:
+        """Restore ambient music volume after soundscape finishes."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.4)
+            LOGGER.debug("Soundscape finished, music restored to 40%")

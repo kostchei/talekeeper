@@ -1,5 +1,5 @@
 # core
-# category: core
+# core
 """Main Application Window for TaleKeeper Desktop."""
 
 import json
@@ -24,11 +24,11 @@ from talekeeper.ui.encounter_pane.encounter_panel import EncounterPanel
 from talekeeper.ui.log.log_panel import LogPanel
 from talekeeper.ui.equipment_layout.equipment_panel import EquipmentPanel
 from talekeeper.ui.action_cards.action_panel import ActionPanel
-from talekeeper.ui.hex_map.hex_map_widget import HexMapWidget
 from talekeeper.core.game_engine_sqlite import GameEngineSQLite
 from talekeeper.ui.settings_dialog import SettingsDialog
 
 from talekeeper.audio import (
+    MidiPlayer,
     CampaignVoiceProfile,
     CampaignVoiceRegistry,
     LogNarrationPipeline,
@@ -56,13 +56,11 @@ class MainWindow(QMainWindow):
         # Theme management
         self.current_theme = "light"  # Default to light theme
 
-        # Hex map (lazy initialization)
-        self.hex_map_widget: Optional[HexMapWidget] = None
-
         # Audio narration pipeline (lazy initialization)
         self.voice_registry: Optional[CampaignVoiceRegistry] = None
         self.log_narration_pipeline: Optional[LogNarrationPipeline] = None
         self.narration_player: Optional[NarrationPlayer] = None
+        self.midi_player: Optional[MidiPlayer] = None
 
         # === CENTRAL WIDGET ===
         central_widget = QWidget()
@@ -112,7 +110,9 @@ class MainWindow(QMainWindow):
         self.log_panel.show()
 
         # Initialize audio narration after log panel is ready
+        # Initialize MIDI background music
         self._initialize_narration_pipeline()
+        self._initialize_midi_player()
 
         # Equipment panel (bottom right)
         self.equipment_panel = EquipmentPanel(self, layout_profile=profile)
@@ -216,7 +216,7 @@ class MainWindow(QMainWindow):
             lambda action: self.log_panel.log_combat(f"Encounter action: {action}")
         )
         self.encounter_pane.exploration_action.connect(
-            lambda action: self._handle_exploration_action(action)
+            lambda action: self.log_panel.log_info(f"Exploration: {action}")
         )
         self.encounter_pane.monster_selected.connect(
             lambda monster_id: self._on_monster_selected(monster_id)
@@ -251,19 +251,12 @@ class MainWindow(QMainWindow):
         if self.log_panel is None:
             return
 
-        from talekeeper.core.config import get_config
-        config = get_config()
-
-        if not config.narrative.enable_audio_narration:
-            LOGGER.info("Audio narration disabled in settings")
-            return
-
         try:
             registry = self._load_campaign_voice_registry()
         except FileNotFoundError:
             LOGGER.info("Narration voice profile file not found; narration disabled")
             self.log_panel.log_system(
-                "Audio narration disabled (voice profiles not found). Enable in Settings if needed."
+                "🎙️ Narration disabled: place voice_profiles.json in excess/narration to enable audio logs."
             )
             return
         except Exception as exc:
@@ -384,21 +377,12 @@ class MainWindow(QMainWindow):
         name = getattr(campaign_frame, "name", None)
         return str(name) if name else None
     
-    def _handle_exploration_action(self, action: str):
-        """Handle exploration actions like study, search, hide, etc."""
-        self.log_panel.log_info(f"Exploration: {action}")
-
-        if action == "study":
-            self.encounter_pane.perform_monster_study()
-        elif action == "influence":
-            self.encounter_pane.attempt_parlay()
-
     def _on_monster_selected(self, monster_id: str):
         """Handle monster selection for targeting."""
         # Pass the selected monster to the action panel for targeting
         if hasattr(self.action_panel, 'set_target_monster'):
             self.action_panel.set_target_monster(monster_id)
-
+        
         # Get monster info for logging
         selected_monster = self.encounter_pane.get_selected_monster()
         if selected_monster:
@@ -764,21 +748,9 @@ class MainWindow(QMainWindow):
             saved_character = self.game_engine.create_new_character_sync(save_character_data, save_slot=save_slot)
 
             # Update weapon mastery resources for applicable classes
-            from talekeeper.services.weapon_attack_service import WeaponAttackService
+            from services.weapon_attack_service import WeaponAttackService
             weapon_service = WeaponAttackService('talekeeper.db')
             weapon_service.update_character_mastery_resources(saved_character['id'])
-
-            # Initialize racial trait resources
-            try:
-                from talekeeper.services.racial_trait_effects import RacialTraitEffectsProcessor
-                racial_processor = RacialTraitEffectsProcessor('talekeeper.db')
-                racial_processor.initialize_racial_resources(
-                    saved_character['id'],
-                    saved_character.get('race_id', 'human'),
-                    saved_character['level']
-                )
-            except Exception as e:
-                print(f"[DEBUG] Error initializing racial resources: {e}")
 
             # Apply Skilled feat skill selections if present
             skilled_feat_skills = character_data.get('skilled_feat_skills', {})
@@ -877,7 +849,7 @@ class MainWindow(QMainWindow):
 
             # Load class features into action panel using new feature system
             try:
-                from talekeeper.core.feature_integration import FeatureSystemIntegration
+                from core.feature_integration import FeatureSystemIntegration
                 feature_system = FeatureSystemIntegration('talekeeper.db')
                 print(f"[DEBUG] Loading features for character {saved_character['name']} (ID: {saved_character['id']})")
                 available_features = feature_system.get_available_features(saved_character['id'])
@@ -967,15 +939,10 @@ class MainWindow(QMainWindow):
     def _force_reload_character(self):
         """Refresh inventory and action panels to show updated data."""
         self.log_panel.log_system("Refreshing inventory...")
-
+        
         try:
             if hasattr(self, 'game_engine') and self.game_engine.current_character:
-                character_id = self.game_engine.current_character['id']
-                character = self.game_engine.get_character_by_id_sync(character_id)
-                if character:
-                    self.game_engine.current_character = character
-                else:
-                    character = self.game_engine.current_character
+                character = self.game_engine.current_character
                 character_name = character['name']
                 
                 # Get updated inventory from database
@@ -1023,27 +990,18 @@ class MainWindow(QMainWindow):
                 # Refresh equipment panel with proper parameters
                 if hasattr(self, 'equipment_panel'):
                     self.equipment_panel.load_equipment_data(equipped_items, character_inventory, character['strength'], character['dexterity'], character.get('class_id', ''), character['constitution'])
-
+                
                 # Refresh action panel (for potion availability)
                 if hasattr(self, 'action_panel'):
                     self.action_panel._update_potion_card()
                     self.action_panel._update_visible_cards()
-
-                # Refresh character sheet panel to show updated stats
-                if hasattr(self, 'character_sheet'):
-                    print(f"[ForceReload] Updating character sheet for {character['name']} level {character['level']} {character['class_id']}")
-                    self.character_sheet.load_character_data(character)
-                    print(f"[ForceReload] Character sheet updated")
-
+                
                 self.log_panel.log_info(f"Inventory refreshed for {character_name}")
                 self.log_panel.log_system("Equipment and action panels updated")
             else:
                 self.log_panel.log_error("No active character to refresh")
                 self.log_panel.log_info("Load or create a character first")
         except Exception as e:
-            import traceback
-            print(f"[ForceReload] EXCEPTION: {e}")
-            print(traceback.format_exc())
             self.log_panel.log_error(f"Failed to refresh inventory: {e}")
             self.log_panel.log_system("Refresh operation failed")
     
@@ -1178,7 +1136,7 @@ class MainWindow(QMainWindow):
 
         # Load class features into action panel using new feature system
         try:
-            from talekeeper.core.feature_integration import FeatureSystemIntegration
+            from core.feature_integration import FeatureSystemIntegration
             feature_system = FeatureSystemIntegration('talekeeper.db')
             available_features = feature_system.get_available_features(character['id'])
             
@@ -1187,19 +1145,8 @@ class MainWindow(QMainWindow):
                 print(f"[DEBUG] No features found, initializing for {character['class_id']} level {character['level']}")
                 feature_system.initialize_character_features(character['id'])
                 available_features = feature_system.get_available_features(character['id'])
-
-            # Initialize racial trait resources if missing (for existing characters)
-            try:
-                from talekeeper.services.racial_trait_effects import RacialTraitEffectsProcessor
-                racial_processor = RacialTraitEffectsProcessor('talekeeper.db')
-                racial_processor.initialize_racial_resources(
-                    character['id'],
-                    character.get('race_id', 'human'),
-                    character['level']
-                )
-            except Exception as e:
-                print(f"[DEBUG] Error initializing racial resources: {e}")
-
+            
+            
             # Convert feature list to dictionary format expected by action panel
             class_features = {}
             for feature_data in available_features:
@@ -1404,7 +1351,7 @@ class MainWindow(QMainWindow):
     def _on_settings_changed(self):
         """Handle settings changes."""
         try:
-            from talekeeper.core.config import get_config
+            from core.config import get_config
             config = get_config()
 
             self.log_panel.log_system("Settings reloaded")
@@ -1493,7 +1440,7 @@ class MainWindow(QMainWindow):
             layout.addLayout(content_layout)
 
             # Load available campaigns
-            campaign_dir = os.path.join(os.path.dirname(__file__), 'encounter_pane', 'campaign')
+            campaign_dir = os.path.join(os.path.dirname(__file__), '..', 'encounter_pane', 'campaign')
             campaigns = {}
 
             # Find all JSON files in campaign directory
@@ -1766,21 +1713,12 @@ class MainWindow(QMainWindow):
             # Second Wind - available at level 1
             save_data['ability_uses']['Second Wind'] = 1  # Start with 1 use
             save_data['ability_uses_max']['Second Wind'] = 1  # 1 use per short rest
-
+            
             # Action Surge - available at level 2+
             if level >= 2:
                 save_data['ability_uses']['Action Surge'] = 1  # Start with 1 use
                 save_data['ability_uses_max']['Action Surge'] = 1  # 1 use per short rest
-
-        # Initialize racial trait abilities
-        prof_bonus = 2 + ((level - 1) // 4)
-        if race_id == 'goliath_fire':
-            save_data['ability_uses']['Fires Burn'] = prof_bonus
-            save_data['ability_uses_max']['Fires Burn'] = prof_bonus
-            if level >= 5:
-                save_data['ability_uses']['Large Form'] = 1
-                save_data['ability_uses_max']['Large Form'] = 1
-
+        
         # Apply feat effects to character stats
         if selected_feats:
             save_data = self._apply_feat_effects(save_data, selected_feats)
@@ -1802,7 +1740,7 @@ class MainWindow(QMainWindow):
     def _apply_feat_effects(self, character_data: Dict, feat_names: List[str]) -> Dict:
         """Apply mechanical effects from selected feats to character data."""
         try:
-            from talekeeper.services.feat_effects import FeatEffectsProcessor
+            from services.feat_effects import FeatEffectsProcessor
             
             processor = FeatEffectsProcessor()
             modified_data = processor.apply_feat_effects_to_character(character_data, feat_names)
@@ -1814,7 +1752,7 @@ class MainWindow(QMainWindow):
             return character_data  # Return unmodified data if error occurs
 
     def _get_race_id_by_name(self, name):
-        """Get race ID by name from talekeeper.database."""
+        """Get race ID by name from database."""
         races = self.game_engine.get_available_races_sync()
         for race in races:
             if race.name == name:
@@ -1825,7 +1763,7 @@ class MainWindow(QMainWindow):
         raise ValueError(f"Race '{name}' not found in database. Available races: {available_names}")
     
     def _get_class_id_by_name(self, name):
-        """Get class ID by name from talekeeper.database."""
+        """Get class ID by name from database."""
         classes = self.game_engine.get_available_classes_sync()
         for cls in classes:
             if cls.name == name:
@@ -1838,7 +1776,7 @@ class MainWindow(QMainWindow):
         raise ValueError(f"Class '{name}' not found in database. Available classes: {available_names}")
     
     def _get_background_id_by_name(self, name):
-        """Get background ID by name from talekeeper.database."""
+        """Get background ID by name from database."""
         try:
             backgrounds = self.game_engine.get_available_backgrounds_sync()
             for bg in backgrounds:
@@ -1872,112 +1810,6 @@ class MainWindow(QMainWindow):
             'speed': 30  # Default speed for now
         }
 
-    def keyPressEvent(self, event):
-        """Handle global keyboard shortcuts."""
-        if event.key() == Qt.Key.Key_M:
-            self._toggle_hex_map()
-        elif event.key() == Qt.Key.Key_T and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            self._toggle_theme()
-        else:
-            super().keyPressEvent(event)
-
-    def _toggle_hex_map(self):
-        """Toggle hex map display."""
-        if not self.game_engine.current_character:
-            self.log_panel.log_info("Load or create a character to use the hex map")
-            return
-
-        if self.hex_map_widget is None:
-            self.hex_map_widget = HexMapWidget('talekeeper.db', self)
-            self.hex_map_widget.closed.connect(self._on_hex_map_closed)
-            self.hex_map_widget.travel_requested.connect(self._on_hex_travel)
-            self.hex_map_widget.hex_shop_requested.connect(self._on_hex_shop_requested)
-
-        if self.hex_map_widget.isVisible():
-            self.hex_map_widget.hide()
-        else:
-            character = self.game_engine.current_character
-            self.hex_map_widget.set_character(character['id'], character['name'])
-            self.hex_map_widget.show()
-            self.hex_map_widget.raise_()
-            self.log_panel.log_system(f"Hex map opened for {character['name']}")
-
-    def _on_hex_map_closed(self):
-        """Handle hex map being closed."""
-        self.log_panel.log_system("Hex map closed")
-
-    def _on_hex_travel(self, q: int, r: int):
-        """Handle player traveling to a new hex."""
-        self.log_panel.log_info(f"Traveled to hex ({q}, {r})")
-
-    def _on_hex_shop_requested(self, q: int, r: int, settlement_type: str):
-        """Open shop interface for hex-based vendor."""
-        if not self.game_engine.current_character:
-            return
-
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout
-        from talekeeper.services.hex_map_service import HexMapService
-        from talekeeper.ui.encounter_pane.hex_shop_interface import HexShopInterface
-        import time
-
-        hex_service = HexMapService('talekeeper.db')
-        hex_data = hex_service.get_hex(self.game_engine.current_character['id'], q, r)
-
-        if not hex_data:
-            self.log_panel.log_error(f"Could not load hex data for ({q}, {r})")
-            return
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle(f"Vendor - Hex ({q}, {r})")
-        dialog.resize(900, 700)
-
-        layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        shop = HexShopInterface(
-            character_data=self.game_engine.current_character,
-            settlement_type=settlement_type,
-            hex_seed=hex_data['encounter_seed'],
-            hex_coords=(q, r),
-            parent=dialog,
-            population=hex_data.get('population')
-        )
-
-        shop.shopping_completed.connect(dialog.accept)
-        layout.addWidget(shop)
-
-        settlement_names = {
-            'empty': 'wilderness',
-            'hamlet': 'hamlet',
-            'village': 'village',
-            'town_small': 'small town',
-            'town_medium': 'medium town',
-            'town_large': 'large town'
-        }
-        settlement_name = settlement_names.get(settlement_type, settlement_type)
-
-        shop_data = shop.shop_data
-        charisma_roll = shop_data.get('charisma_roll', 0)
-        has_crafter = shop_data.get('has_crafter', False)
-        population = shop_data.get('population', 0)
-        actual_cap = shop_data.get('actual_cap', 0)
-        discount = charisma_roll + (20 if has_crafter else 0)
-        final_markup = max(0, 25 - discount)
-
-        log_msg = f"Visiting {settlement_name} vendor (Pop: {population}, Cap: {actual_cap:.0f} gp)"
-        self.log_panel.log_system(log_msg)
-
-        skills_msg = f"Negotiation check: {charisma_roll}"
-        if has_crafter:
-            skills_msg += " (+20 Crafter feat)"
-        skills_msg += f" = {final_markup}% markup on purchases"
-        self.log_panel.log_info(skills_msg)
-
-        dialog.exec()
-
-        self._force_reload_character()
-        self.log_panel.log_system("Shop visit completed")
-
     def closeEvent(self, event: QCloseEvent) -> None:
         """Ensure background workers are stopped when window closes."""
         if self.log_narration_pipeline:
@@ -1986,3 +1818,109 @@ class MainWindow(QMainWindow):
             except Exception:
                 LOGGER.exception("Error while shutting down narration pipeline")
         super().closeEvent(event)
+
+    # === MIDI Background Music ===
+
+    def _initialize_midi_player(self) -> None:
+        """Set up MIDI background music player with DOS-era OPL3 sound."""
+        from pathlib import Path
+        
+        try:
+            # Initialize MIDI player
+            self.midi_player = MidiPlayer(parent=self)
+            
+            # Set initial volume (lighter background music)
+            self.midi_player.set_volume(0.4)
+            
+            # Connect narration signals for volume ducking
+            if self.narration_player:
+                self.narration_player.playback_started.connect(self._duck_music_for_narration)
+                self.narration_player.playback_finished.connect(self._restore_music_volume)
+            
+            # Auto-queue ambient Conan tracks
+            self._queue_ambient_music()
+            
+            LOGGER.info("MIDI player initialized with OPL3 soundfont")
+            if hasattr(self, 'log_panel') and self.log_panel:
+                self.log_panel.log_system("🎵 Ambient music ready (OPL3 synthesis)")
+                
+        except Exception as exc:
+            LOGGER.exception("Failed to initialize MIDI player")
+            if hasattr(self, 'log_panel') and self.log_panel:
+                self.log_panel.log_warning(f"MIDI playback unavailable: {exc}")
+
+    def _queue_ambient_music(self) -> None:
+        """Queue ambient MIDI files for continuous playback based on campaign."""
+        if not self.midi_player:
+            return
+
+        # Get campaign style (e.g., 'conan', 'golden')
+        campaign_style = self._get_active_campaign_style() or "conan"
+
+        # Build path to campaign-specific ambient music
+        # Path: audio/midi/campaigns/{campaign_style}/ambient/
+        ambient_dir = Path("audio") / "midi" / "campaigns" / campaign_style / "ambient"
+
+        if not ambient_dir.exists():
+            LOGGER.warning(f"Ambient music directory not found for campaign '{campaign_style}': {ambient_dir}")
+            LOGGER.info("No campaign music available - MIDI player will remain silent")
+            return
+
+        # Get all MIDI files sorted
+        midi_files = sorted(ambient_dir.glob("*.mid"))
+        if not midi_files:
+            LOGGER.warning(f"No ambient MIDI files found in {ambient_dir}")
+            return
+
+        # Queue all ambient tracks
+        for midi_file in midi_files:
+            self.midi_player.enqueue(midi_file)
+
+        LOGGER.info(f"Queued {len(midi_files)} ambient music tracks for '{campaign_style}' campaign")
+
+
+    def _duck_music_for_narration(self, _path: Path) -> None:
+        """Lower music volume when narration plays (duck to 30%)."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.3)
+            LOGGER.debug("Music ducked to 30% for narration")
+
+    def _restore_music_volume(self, _path: Path) -> None:
+        """Restore music volume after narration (back to 40%)."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.4)
+            LOGGER.debug("Music restored to 40%")
+
+    def play_soundscape(self, event_type: str) -> None:
+        """Play event soundscape and duck ambient music to 10%.
+
+        Args:
+            event_type: Type of event (combat, victory, defeat, downtime, 
+                       carousing, stealth, exploration, tension)
+        """
+        if not self.midi_player:
+            return
+
+        # Get campaign style
+        campaign_style = self._get_active_campaign_style() or "conan"
+
+        # Build path to soundscape
+        scape_path = Path("audio") / "midi" / "campaigns" / campaign_style / "scape" / f"{event_type}.mid"
+
+        if not scape_path.exists():
+            LOGGER.warning(f"Soundscape not found: {scape_path}")
+            return
+
+        # Duck ambient music to 10%
+        self.midi_player.set_volume(0.1)
+        LOGGER.info(f"Playing {event_type} soundscape, music ducked to 10%")
+
+        # TODO: Play soundscape file (requires separate soundscape player)
+        # For now, log the request
+        LOGGER.info(f"Soundscape requested: {event_type} at {scape_path}")
+
+    def _on_soundscape_finished(self) -> None:
+        """Restore ambient music volume after soundscape finishes."""
+        if self.midi_player:
+            self.midi_player.set_volume(0.4)
+            LOGGER.debug("Soundscape finished, music restored to 40%")
