@@ -2,7 +2,8 @@
 # category: core
 import sqlite3
 import json
-from typing import Dict, List, Optional, Tuple, Any
+import time
+from typing import Dict, List, Optional, Tuple, Any, Callable
 
 
 class UnifiedLevelUpService:
@@ -11,13 +12,59 @@ class UnifiedLevelUpService:
         from talekeeper.services.feature_registry import FeatureRegistry
         self.feature_registry = FeatureRegistry(db_path)
 
+    def _get_connection(self) -> sqlite3.Connection:
+        """
+        Get optimized database connection.
+
+        Uses WAL mode-compatible settings for concurrent access.
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _retry_on_lock(self, operation: Callable, max_retries: int = 3, operation_name: str = "operation") -> Any:
+        """
+        Retry an operation with exponential backoff if it encounters a database lock.
+
+        Args:
+            operation: Callable that performs the database operation
+            max_retries: Maximum number of retry attempts
+            operation_name: Name of operation for logging
+
+        Returns:
+            Result from the operation
+
+        Raises:
+            sqlite3.OperationalError: If all retries are exhausted
+        """
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                return operation()
+            except sqlite3.OperationalError as e:
+                last_error = e
+                if "locked" in str(e).lower():
+                    if attempt < max_retries - 1:
+                        wait_time = 0.1 * (2 ** attempt)  # Exponential backoff: 0.1s, 0.2s, 0.4s
+                        print(f"[UnifiedLevelUp] Database locked during {operation_name}, retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"[UnifiedLevelUp] Failed after {max_retries} attempts: {e}")
+                        raise
+                else:
+                    raise  # Re-raise non-lock errors immediately
+
+        raise last_error
+
     def get_available_classes(self) -> List[str]:
         """Get list of available classes for leveling."""
         return ['Barbarian', 'Cleric', 'Paladin', 'Rogue', 'Warlock', 'Wizard', 'Fighter']
 
     def get_character_class_levels(self, character_id: str) -> Dict[str, int]:
         """Get current class levels for a character."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         result = {}
 
@@ -40,7 +87,7 @@ class UnifiedLevelUpService:
     def is_asi_level(self, character_id: str, class_choice: str) -> bool:
         """Check if next level grants ASI for the selected class."""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -94,7 +141,7 @@ class UnifiedLevelUpService:
 
     def level_up_character(self, character_id: str) -> Dict[str, Any]:
         """Level up a character using the unified feature system"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             character = self._get_character_data(cursor, character_id)
@@ -353,7 +400,7 @@ class UnifiedLevelUpService:
 
     def apply_subclass_choice(self, character_id: str, subclass_id: str) -> Dict[str, Any]:
         """Apply a subclass choice to a character"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             cursor.execute("UPDATE characters SET subclass_id = ? WHERE id = ?",
@@ -399,7 +446,7 @@ class UnifiedLevelUpService:
     def apply_feature_choice(self, character_id: str, feature_instance_id: int,
                            choice: str) -> Dict[str, Any]:
         """Apply a choice for a feature (like fighting style, expertise skills)"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -437,7 +484,7 @@ class UnifiedLevelUpService:
 
     def get_available_epic_boons(self) -> List[Dict[str, Any]]:
         """Get all available Epic Boon feats"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT name, description, prerequisites
@@ -457,7 +504,7 @@ class UnifiedLevelUpService:
 
     def apply_epic_boon(self, character_id: str, boon_name: str) -> Dict[str, Any]:
         """Apply an Epic Boon feat to the character"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             if self._has_epic_boon(cursor, character_id):
@@ -518,7 +565,7 @@ class UnifiedLevelUpService:
 
     def apply_warlock_invocations(self, character_id: str, invocation_ids: List[str]) -> Dict[str, Any]:
         """Apply selected Eldritch Invocations to character"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             cursor.execute("SELECT level FROM characters WHERE id = ?", (character_id,))
@@ -592,7 +639,7 @@ class UnifiedLevelUpService:
 
     def apply_spell_selection(self, character_id: str, spell_ids: List[str], spellcasting_class: str = None) -> Dict[str, Any]:
         """Apply selected spells to character's known/prepared spells"""
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             if not spellcasting_class:
@@ -634,7 +681,7 @@ class UnifiedLevelUpService:
         if pact_boon.lower() not in valid_pacts:
             return {"success": False, "error": f"Invalid pact boon: {pact_boon}"}
 
-        with sqlite3.connect(self.db_path) as conn:
+        with self._get_connection() as conn:
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -674,7 +721,48 @@ class UnifiedLevelUpService:
                     SET extra_attacks = 2
                     WHERE character_id = ?
                 """, (character_id,))
-                print(f"[UnifiedLevelUp] Granted Extra Attack to Fighter")
+                print(f"[UnifiedLevelUp] Granted Extra Attack to Fighter (2 attacks)")
+
+            elif level == 11:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET extra_attacks = 3
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Two Extra Attacks to Fighter (3 attacks)")
+
+            elif level == 9:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET indomitable_uses_max = 1, indomitable_uses_current = 1
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Indomitable to Fighter (1 use)")
+
+            elif level == 13:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET indomitable_uses_max = 2, indomitable_uses_current = 2
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Improved Indomitable for Fighter (2 uses)")
+
+            elif level == 17:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET action_surge_uses_max = 2, action_surge_uses_current = 2,
+                        indomitable_uses_max = 3, indomitable_uses_current = 3
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Improved Action Surge (2 uses) and Indomitable (3 uses) for Fighter")
+
+            elif level == 20:
+                cursor.execute("""
+                    UPDATE fighter_features
+                    SET extra_attacks = 4
+                    WHERE character_id = ?
+                """, (character_id,))
+                print(f"[UnifiedLevelUp] Granted Three Extra Attacks to Fighter (4 attacks)")
 
         except Exception as e:
             print(f"[UnifiedLevelUp] Error in Fighter level-up: {e}")

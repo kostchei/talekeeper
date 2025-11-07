@@ -1,0 +1,74 @@
+{
+  "character_id": "fighter_test",
+  "character_name": "Testhammer the Brave",
+  "test_timestamp": "2025-11-08T00:22:50.457100",
+  "class": "fighter",
+  "subclass": null,
+  "species": "Wood Elf",
+  "background": "Farmer",
+  "final_level": 1,
+  "initial_state": {
+    "ability_scores": {
+      "strength": 15,
+      "dexterity": 14,
+      "constitution": 13,
+      "intelligence": 12,
+      "wisdom": 10,
+      "charisma": 8
+    },
+    "fighting_style": "Dueling",
+    "starting_hp": 13
+  },
+  "progression": [
+    {
+      "level": 1,
+      "xp_required": 0,
+      "choices_made": {
+        "fighting_style": "Dueling",
+        "species": "Wood Elf",
+        "background": "Farmer"
+      },
+      "features_granted": [
+        "fighting_style",
+        "second_wind",
+        "weapon_mastery"
+      ],
+      "resources": {
+        "second_wind_uses": 2,
+        "action_surge_uses": 0,
+        "indomitable_uses": 0
+      },
+      "ability_scores": {
+        "strength": 15,
+        "dexterity": 14,
+        "constitution": 13,
+        "intelligence": 12,
+        "wisdom": 10,
+        "charisma": 8
+      },
+      "hp_max": 13,
+      "extra_attacks": 1,
+      "critical_range_min": 20
+    }
+  ],
+  "summary": {
+    "total_features_gained": 3,
+    "asi_taken": 0,
+    "feats_taken": 0,
+    "final_ability_scores": {
+      "strength": 15,
+      "dexterity": 14,
+      "constitution": 13,
+      "intelligence": 12,
+      "wisdom": 10,
+      "charisma": 8
+    },
+    "final_resources": {
+      "second_wind_uses": 2,
+      "action_surge_uses": 0,
+      "indomitable_uses": 0
+    },
+    "final_extra_attacks": 1,
+    "final_critical_range_min": 20
+  }
+}

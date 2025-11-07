@@ -1,0 +1,24 @@
+{
+  "character_id": "fighter_test",
+  "character_name": "Testhammer the Brave",
+  "test_timestamp": "2025-11-07T23:46:05.224473",
+  "class": "fighter",
+  "subclass": null,
+  "species": "Goliath (Fire Giant)",
+  "background": "Entertainer",
+  "final_level": 0,
+  "initial_state": {
+    "ability_scores": {
+      "strength": 15,
+      "dexterity": 14,
+      "constitution": 13,
+      "intelligence": 12,
+      "wisdom": 10,
+      "charisma": 8
+    },
+    "fighting_style": "Dueling",
+    "starting_hp": 13
+  },
+  "progression": [],
+  "summary": {}
+}

@@ -14,7 +14,10 @@ class ClassAbilitiesService:
         self._scaling_cache = {}
 
     def _get_connection(self) -> sqlite3.Connection:
+        """Get optimized database connection with WAL mode support."""
         conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.execute("PRAGMA busy_timeout = 5000")
         conn.row_factory = sqlite3.Row
         return conn
 

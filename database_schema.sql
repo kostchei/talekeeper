@@ -347,19 +347,20 @@ CREATE TABLE levelup_costs (
 CREATE TABLE fighter_features (
     character_id TEXT NOT NULL,
     level INTEGER NOT NULL,
-    
+
     -- Core Fighter Features
     fighting_style TEXT, -- 'archery', 'defense', 'dueling', etc.
+    additional_fighting_style TEXT, -- Champion's additional fighting style at level 7
     action_surge_uses_current INTEGER DEFAULT 0,
     action_surge_uses_max INTEGER DEFAULT 0,
     second_wind_used BOOLEAN DEFAULT FALSE,
     indomitable_uses_current INTEGER DEFAULT 0,
     indomitable_uses_max INTEGER DEFAULT 0,
     extra_attacks INTEGER DEFAULT 1, -- 1 base, +1 at levels 5, 11, 20
-    
+
     -- Weapon Mastery
     weapon_masteries_known INTEGER DEFAULT 3, -- Scales with level
-    
+
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
     PRIMARY KEY (character_id)
 );

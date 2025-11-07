@@ -1,0 +1,139 @@
+# Fighter (Champion) Progression Choices
+# D&D 5e SRD 2024
+#
+# This file defines all choices made during a Fighter's progression from level 1 to 20.
+# The Champion subclass is selected at level 3.
+#
+# Weapon Masteries: Simplified - assumes ALL masteries known (no selection needed)
+
+character_template:
+  name: "Testhammer the Brave"
+  class: "fighter"
+  subclass: "champion"
+  species: "random"  # Will randomly select from available species
+  background: "random"  # Will randomly select from available backgrounds
+
+  ability_scores:
+    method: "standard_array"  # Options: standard_array, point_buy, manual
+    values:
+      strength: 15      # Primary combat ability
+      dexterity: 14     # AC and initiative
+      constitution: 13  # HP and concentration
+      intelligence: 12  # Investigation, History
+      wisdom: 10        # Perception, Insight
+      charisma: 8       # Social interactions
+
+  starting_equipment: "default"  # Use default Fighter starting equipment
+
+progression_choices:
+
+  # Level 1 - Character Creation
+  level_1:
+    fighting_style: "Dueling"  # +2 damage with one-handed weapon
+    # Weapon masteries: ALL (no selection needed per simplified rules)
+
+  # Level 2 - No choices (Action Surge, Tactical Mind granted automatically)
+
+  # Level 3 - Subclass Selection
+  level_3:
+    subclass: "champion"
+    # Grants: Improved Critical (19-20), Remarkable Athlete
+
+  # Level 4 - First ASI
+  level_4:
+    choice_type: "asi"
+    asi:
+      ability_1: "strength"
+      ability_1_increase: 2
+      ability_2: null
+      ability_2_increase: null
+    # Result: STR 15 → 17
+
+  # Level 5 - No choices (Extra Attack, Tactical Shift granted automatically)
+
+  # Level 6 - Second ASI
+  level_6:
+    choice_type: "asi"
+    asi:
+      ability_1: "strength"
+      ability_1_increase: 2
+      ability_2: null
+      ability_2_increase: null
+    # Result: STR 17 → 19 (will cap at 20 with species bonus if applicable)
+
+  # Level 7 - Champion: Additional Fighting Style
+  champion_level_7:
+    additional_fighting_style: "Defense"  # +1 AC (cannot duplicate level 1 choice)
+    # Note: Cannot choose "Dueling" again
+
+  # Level 8 - Third ASI
+  level_8:
+    choice_type: "asi"
+    asi:
+      ability_1: "constitution"
+      ability_1_increase: 2
+      ability_2: null
+      ability_2_increase: null
+    # Result: CON 13 → 15
+
+  # Level 9 - No choices (Indomitable, Tactical Master granted automatically)
+
+  # Level 10 - No choices (Champion: Heroic Warrior granted automatically)
+  # Second Wind uses increase to 4
+
+  # Level 11 - No choices (Two Extra Attacks - 3 total attacks)
+
+  # Level 12 - Fourth ASI
+  level_12:
+    choice_type: "feat"
+    feat: "great_weapon_master"
+    # Alternative to ASI: Take -5 to hit for +10 damage
+
+  # Level 13 - No choices (Studied Attacks, Indomitable improves to 2 uses)
+
+  # Level 14 - Fifth ASI
+  level_14:
+    choice_type: "asi"
+    asi:
+      ability_1: "dexterity"
+      ability_1_increase: 2
+      ability_2: null
+      ability_2_increase: null
+    # Result: DEX 14 → 16
+
+  # Level 15 - No choices (Champion: Superior Critical 18-20)
+
+  # Level 16 - Sixth ASI
+  level_16:
+    choice_type: "asi"
+    asi:
+      ability_1: "constitution"
+      ability_1_increase: 2
+      ability_2: null
+      ability_2_increase: null
+    # Result: CON 15 → 17
+
+  # Level 17 - No choices (Action Surge 2 uses, Indomitable 3 uses)
+
+  # Level 18 - No choices (Champion: Survivor - Defy Death, Heroic Rally)
+
+  # Level 19 - Epic Boon
+  level_19:
+    choice_type: "feat"
+    feat: "epic_boon_of_combat_prowess"
+    # Epic Boon choices vary - this is a sample
+
+  # Level 20 - No choices (Three Extra Attacks - 4 total attacks)
+
+# Expected Final State Summary (for validation):
+# - Level: 20
+# - STR: 19 (or 20 with species bonus)
+# - DEX: 16
+# - CON: 17
+# - Fighting Styles: Dueling, Defense
+# - Feats: Great Weapon Master, Epic Boon of Combat Prowess
+# - Extra Attacks: 4
+# - Critical Range: 18-20
+# - Second Wind: 4 uses per short rest
+# - Action Surge: 2 uses per short rest
+# - Indomitable: 3 uses per long rest

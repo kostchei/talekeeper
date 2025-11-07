@@ -62,7 +62,8 @@
       "Bash(head -n 1 \"$f\")",
       "Bash(xargs -I {} sed -i \"s/from test\\./from tests./g\" {})",
       "Bash(xargs -I {} sed -i \"s/import test\\./import tests./g\" {})",
-      "Bash(sed -n '387,450p' \"D:\\Code\\TaleKeeper\\src\\talekeeper\\ui\\main_window.py\")"
+      "Bash(sed -n '387,450p' \"D:\\Code\\TaleKeeper\\src\\talekeeper\\ui\\main_window.py\")",
+      "Bash(\"tests\\docs\\SAMPLE_REPORT.md\")"
     ],
     "deny": [],
     "ask": []
