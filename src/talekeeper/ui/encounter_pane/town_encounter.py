@@ -741,40 +741,48 @@ Training includes food and lodging (counts as a long rest)."""
             character_id = self.character_data.get('id', '')
             if not character_id:
                 return 0
-            
+
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                SELECT quantity FROM character_inventory 
+                SELECT quantity FROM character_inventory
                 WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
             """, (character_id,))
-            
+
             result = cursor.fetchone()
             conn.close()
-            
-            return result[0] if result else 0
-            
+
+            if result:
+                import math
+                # Truncate to 2 decimal places (no rounding)
+                return math.floor(result[0] * 100) / 100
+            return 0
+
         except Exception as e:
             print(f"Error getting character gold: {e}")
             return 0
-    
+
     def _deduct_gold(self, character_id: str, amount: int):
         """Deduct gold from character inventory"""
         try:
+            import math
+            # Truncate to 2 decimal places (no rounding)
+            amount = math.floor(amount * 100) / 100
+
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             # Update gold quantity in inventory
             cursor.execute("""
-                UPDATE character_inventory 
+                UPDATE character_inventory
                 SET quantity = quantity - ?
                 WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
             """, (amount, character_id))
-            
+
             conn.commit()
             conn.close()
-            
+
         except Exception as e:
             print(f"Error deducting gold: {e}")
     
@@ -1449,20 +1457,24 @@ class ShopInterface(QWidget):
             character_id = self.character_data.get('id', '')
             if not character_id:
                 return 0
-            
+
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                SELECT quantity FROM character_inventory 
+                SELECT quantity FROM character_inventory
                 WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type IN ('treasure', 'currency')
             """, (character_id,))
-            
+
             result = cursor.fetchone()
             conn.close()
-            
-            return result[0] if result else 0
-            
+
+            if result:
+                import math
+                # Truncate to 2 decimal places (no rounding)
+                return math.floor(result[0] * 100) / 100
+            return 0
+
         except Exception as e:
             print(f"Error getting character gold: {e}")
             return 0
@@ -1692,19 +1704,23 @@ class ShopInterface(QWidget):
     def _deduct_gold(self, amount: float):
         """Deduct gold from character inventory"""
         try:
+            import math
+            # Truncate to 2 decimal places (no rounding)
+            amount = math.floor(amount * 100) / 100
+
             character_id = self.character_data.get('id', '')
             conn = sqlite3.connect("talekeeper.db")
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                UPDATE character_inventory 
+                UPDATE character_inventory
                 SET quantity = quantity - ?
                 WHERE character_id = ? AND item_name = 'Gold Pieces' AND item_type = 'treasure'
             """, (amount, character_id))
-            
+
             conn.commit()
             conn.close()
-            
+
         except Exception as e:
             print(f"Error deducting gold: {e}")
     

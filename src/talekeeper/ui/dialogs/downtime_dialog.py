@@ -232,7 +232,11 @@ class DowntimeDialog(QDialog):
             """, (character_id,))
             result = cursor.fetchone()
             conn.close()
-            return result[0] if result else 0
+            if result:
+                import math
+                # Truncate to 2 decimal places (no rounding)
+                return math.floor(result[0] * 100) / 100
+            return 0
         except Exception as e:
             print(f"Error getting character gold: {e}")
             return 0

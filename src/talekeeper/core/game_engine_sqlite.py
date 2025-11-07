@@ -24,15 +24,44 @@ class GameEngineSQLite:
         self.db_path = db_path
         self.current_character = None
         self.settings = {}
+        self._enable_wal_mode()  # Enable WAL mode for better concurrency
         self._load_settings()
         self._ensure_tables_exist()
         self.proficiency_system = ProficiencySystem(db_path)
-        
+
+    def _enable_wal_mode(self):
+        """
+        Enable Write-Ahead Logging (WAL) mode for better concurrency.
+
+        WAL mode allows:
+        - Multiple readers to access the database simultaneously
+        - One writer to work concurrently with readers
+        - Better performance and reduced locking
+
+        This is the recommended mode for applications with concurrent access.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")  # Faster than FULL, still safe with WAL
+            conn.execute("PRAGMA busy_timeout=5000")    # 5 second timeout for locks
+            conn.close()
+        except Exception as e:
+            print(f"[GameEngine] Warning: Could not enable WAL mode: {e}")
+
     def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with foreign keys enabled."""
+        """
+        Get database connection with optimized settings for concurrency.
+
+        Connection is configured with:
+        - Foreign keys enabled
+        - Row factory for dict-like access
+        - Busy timeout for handling transient locks
+        """
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
-        conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
+        conn.execute("PRAGMA busy_timeout = 5000")  # 5 second busy timeout
+        conn.row_factory = sqlite3.Row
         return conn
     
     def _safe_get_row_value(self, row: sqlite3.Row, key: str, default=None):
@@ -651,11 +680,11 @@ class GameEngineSQLite:
                         id, save_slot_id, name, race_id, class_id, background_id, level,
                         experience_points, strength, dexterity, constitution, intelligence,
                         wisdom, charisma, armor_class, hit_points_max, hit_points_current,
-                        hit_points_temporary, max_hit_points, current_hit_points,
+                        hit_points_temporary,
                         hit_dice_max, hit_dice_current, death_saves_successes,
                         death_saves_failures, equipment_main_hand, equipment_off_hand,
                         equipment_armor, equipment_shield, created_at, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     character_id, save_slot_id, character_data['name'],
                     character_data['race_id'], character_data['class_id'], character_data['background_id'],
@@ -664,7 +693,6 @@ class GameEngineSQLite:
                     character_data['intelligence'], character_data['wisdom'], character_data['charisma'],
                     calculated_ac if calculated_ac is not None else character_data.get('ac', 10), character_data['hit_points_max'],
                     character_data['hit_points_current'], character_data.get('hit_points_temporary', 0),
-                    character_data['hit_points_max'], character_data['hit_points_current'],
                     character_data.get('hit_dice_max', 1), character_data.get('hit_dice_current', 1),
                     0, 0,  # death saves
                     character_data.get('equipment_main_hand'), character_data.get('equipment_off_hand'),
@@ -1898,10 +1926,10 @@ class GameEngineSQLite:
                 if max_hp is not None:
                     # Update both current and max HP
                     cursor.execute("""
-                        UPDATE characters 
-                        SET hit_points_current = ?, hit_points_max = ?, max_hit_points = ?, updated_at = ?
+                        UPDATE characters
+                        SET hit_points_current = ?, hit_points_max = ?, updated_at = ?
                         WHERE id = ?
-                    """, (current_hp, max_hp, max_hp, datetime.now().isoformat(), self.current_character['id']))
+                    """, (current_hp, max_hp, datetime.now().isoformat(), self.current_character['id']))
                     
                     # Also update the current character dictionary
                     self.current_character['hit_points_current'] = current_hp
@@ -2502,6 +2530,10 @@ class GameEngineSQLite:
             store_in_bag: True to force store in bag, False to force on person, None for auto
         """
         try:
+            # Truncate to 2 decimal places (no rounding)
+            import math
+            gold_amount = math.floor(gold_amount * 100) / 100
+
             has_bag = self.character_has_bag_of_holding(character_id)
 
             with self._get_connection() as conn:
@@ -2533,6 +2565,9 @@ class GameEngineSQLite:
                 if result:
                     old_quantity = result['quantity'] if result['quantity'] is not None else 0
                     new_quantity += old_quantity
+                    # Truncate to 2 decimal places (no rounding)
+                    import math
+                    new_quantity = math.floor(new_quantity * 100) / 100
 
                     cursor.execute("""
                         UPDATE character_inventory

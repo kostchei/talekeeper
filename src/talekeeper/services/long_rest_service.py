@@ -277,7 +277,9 @@ class LongRestService:
         if not row or row[0] is None:
             return 0.0
 
-        return float(round(row[0], 4))
+        # Truncate to 2 decimal places (no rounding)
+        import math
+        return math.floor(float(row[0]) * 100) / 100
 
     def get_character_rest_status(self, character_id: str) -> Dict[str, float]:
         """Return HP/Hit Dice snapshot for rest calculations (handles legacy schemas)."""
@@ -350,7 +352,10 @@ class LongRestService:
 
             deduction = min(row_total, remaining)
             new_total = row_total - deduction
-            new_quantity = max(0.0, round(new_total / value_per, 4))
+            new_quantity_raw = new_total / value_per
+            # Truncate to 2 decimal places (no rounding)
+            import math
+            new_quantity = max(0.0, math.floor(new_quantity_raw * 100) / 100)
 
             cursor.execute('''
                 UPDATE character_inventory
