@@ -619,6 +619,10 @@ class GameEngineSQLite:
             import uuid
             
             character_id = str(uuid.uuid4())
+            normalized_class_id = (character_data.get('class_id') or '').strip().lower()
+            if not normalized_class_id:
+                raise ValueError("character_data['class_id'] is required for character creation")
+            character_data['class_id'] = normalized_class_id
             
             with self._get_connection() as conn:
                 cursor = conn.cursor()
@@ -805,8 +809,15 @@ class GameEngineSQLite:
                 selected_cantrips = character_data.get('selected_cantrips', [])
                 selected_spells = character_data.get('selected_spells', [])
 
-                print(f"[SQLite] Character data contains {len(selected_cantrips)} cantrips: {selected_cantrips}")
-                print(f"[SQLite] Character data contains {len(selected_spells)} spells: {selected_spells}")
+                print(f"[SQLite] ==========================================")
+                print(f"[SQLite] SPELL SAVING DEBUG for {character_data.get('name')}:")
+                print(f"[SQLite]   Class: {character_data.get('class_id')}")
+                print(f"[SQLite]   Character data keys: {list(character_data.keys())}")
+                print(f"[SQLite]   selected_cantrips in data: {'selected_cantrips' in character_data}")
+                print(f"[SQLite]   selected_cantrips value: {character_data.get('selected_cantrips')}")
+                print(f"[SQLite]   Cantrips to save ({len(selected_cantrips)}): {selected_cantrips}")
+                print(f"[SQLite]   Spells to save ({len(selected_spells)}): {selected_spells}")
+                print(f"[SQLite] ==========================================")
 
                 if selected_cantrips:
                     for cantrip_id in selected_cantrips:
@@ -859,7 +870,7 @@ class GameEngineSQLite:
                 print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
 
             # Initialize spell slots for spellcasting classes (using service with its own connection)
-            class_id = character_data['class_id']
+            class_id = character_data.get('class_id', '').lower()
             if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
                 from talekeeper.services.spellcasting_service import SpellcastingService
                 spellcasting_service = SpellcastingService(self.db_path)

@@ -209,16 +209,28 @@ class SpellcastingService:
             # Determine ritual casting ability
             ritual_casting = class_name.lower() in ['wizard', 'cleric']
 
-            # Insert/update spellcasting info
-            cursor.execute("""
-                INSERT OR REPLACE INTO character_spellcasting
-                (character_id, spellcasting_class, spellcasting_ability, spell_attack_bonus, spell_save_dc,
-                 ritual_casting, spellcasting_focus, prepared_spells, known_spells, cantrips_known)
-                VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', 0)
-            """, (
-                character_id, class_name, spellcasting_ability.value, spell_attack_bonus,
-                spell_save_dc, ritual_casting, 'component_pouch'
-            ))
+            table_columns = self._get_spellcasting_table_columns(cursor)
+
+            if 'spellcasting_class' in table_columns:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_spellcasting
+                    (character_id, spellcasting_class, spellcasting_ability, spell_attack_bonus, spell_save_dc,
+                     ritual_casting, spellcasting_focus, prepared_spells, known_spells, cantrips_known)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', 0)
+                """, (
+                    character_id, class_name, spellcasting_ability.value, spell_attack_bonus,
+                    spell_save_dc, ritual_casting, 'component_pouch'
+                ))
+            else:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_spellcasting
+                    (character_id, spellcasting_ability, spell_attack_bonus, spell_save_dc,
+                     ritual_casting, spellcasting_focus)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    character_id, spellcasting_ability.value, spell_attack_bonus,
+                    spell_save_dc, ritual_casting, 'component_pouch'
+                ))
 
             # Initialize spell slots based on class and level
             self._initialize_spell_slots(cursor, character_id, class_name, level)
@@ -324,7 +336,7 @@ class SpellcastingService:
                 VALUES (?, ?, ?, 0, 'pact')
             """, (character_id, slot_level, pact_slots))
 
-    def get_character_spell_slots(self, character_id: str) -> List[SpellSlot]:
+    def get_character_spell_slots(self, character_id: str, attempt_repair: bool = True) -> List[SpellSlot]:
         """Get all spell slots for a character."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -338,7 +350,10 @@ class SpellcastingService:
             """, (character_id,))
 
             slots = []
-            for row in cursor.fetchall():
+            rows = cursor.fetchall()
+
+        slots = []
+        for row in rows:
                 slot = SpellSlot(
                     level=row['spell_level'],
                     slot_type=SpellSlotType(row['slot_type']),
@@ -347,7 +362,46 @@ class SpellcastingService:
                 )
                 slots.append(slot)
 
+        if slots or not attempt_repair:
             return slots
+
+        class_name = self._get_character_class_id(character_id)
+        if class_name and class_name.lower() in ['wizard', 'cleric', 'paladin', 'warlock']:
+            try:
+                print(f"[SpellcastingService] Detected missing spell slots for {character_id} ({class_name}); rebuilding.")
+                self.initialize_character_spellcasting(character_id, class_name)
+                return self.get_character_spell_slots(character_id, attempt_repair=False)
+            except Exception as exc:
+                print(f"[SpellcastingService] Failed to rebuild spell slots for {character_id}: {exc}")
+
+        return slots
+
+    def _get_character_class_id(self, character_id: str) -> Optional[str]:
+        """Fetch the stored class id for a character."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT class_id FROM characters WHERE id = ? LIMIT 1",
+                    (character_id,)
+                )
+                row = cursor.fetchone()
+                if row and row[0]:
+                    return row[0]
+        except Exception as exc:
+            print(f"[SpellcastingService] Could not load class for {character_id}: {exc}")
+        return None
+
+    def _get_spellcasting_table_columns(self, cursor) -> set[str]:
+        """Cache the column list for character_spellcasting to support legacy schemas."""
+        cached = getattr(self, '_spellcasting_table_columns', None)
+        if cached is not None:
+            return cached
+
+        cursor.execute("PRAGMA table_info(character_spellcasting)")
+        columns = {row[1] for row in cursor.fetchall()}
+        self._spellcasting_table_columns = columns
+        return columns
 
     def can_cast_spell(self, character_id: str, spell_id: str,
                        spell_level: Optional[int] = None) -> Tuple[bool, str]:

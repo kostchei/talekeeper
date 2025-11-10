@@ -523,7 +523,7 @@ class UnifiedLevelUpService:
             }
 
     def _handle_warlock_level_up(self, cursor, character_id: str, new_level: int) -> List[Dict[str, Any]]:
-        """Handle Warlock-specific level-up choices (invocations and pact boon)"""
+        """Handle Warlock-specific level-up choices (invocations, pact boon, and spells)"""
         choices = []
 
         # Update pact magic slots
@@ -534,6 +534,54 @@ class UnifiedLevelUpService:
             print(f"[UnifiedLevelUp] Updated Warlock pact magic slots for level {new_level}")
         except Exception as e:
             print(f"[UnifiedLevelUp] Error updating Warlock pact slots: {e}")
+
+        # Check for new spells and cantrips to learn from warlock_pact_progression
+        cursor.execute("""
+            SELECT cantrips_known, spells_known FROM warlock_pact_progression WHERE level = ?
+        """, (new_level,))
+        current_progression = cursor.fetchone()
+
+        if current_progression:
+            cantrips_should_know, spells_should_know = current_progression
+
+            # Count how many cantrips they currently have
+            cursor.execute("""
+                SELECT COUNT(*) FROM character_spells cs
+                JOIN spells s ON cs.spell_id = s.id
+                WHERE cs.character_id = ? AND s.level = 0
+            """, (character_id,))
+            current_cantrips = cursor.fetchone()[0]
+
+            # Count how many spells they currently have (exclude cantrips)
+            cursor.execute("""
+                SELECT COUNT(*) FROM character_spells cs
+                JOIN spells s ON cs.spell_id = s.id
+                WHERE cs.character_id = ? AND s.level > 0
+            """, (character_id,))
+            current_spells = cursor.fetchone()[0]
+
+            # If they need more cantrips, add a cantrip selection choice
+            if current_cantrips < cantrips_should_know:
+                cantrips_to_learn = cantrips_should_know - current_cantrips
+                choices.append({
+                    "type": "cantrip_selection",
+                    "spellcasting_class": "warlock",
+                    "count": cantrips_to_learn,
+                    "level": new_level
+                })
+                print(f"[UnifiedLevelUp] Warlock needs to learn {cantrips_to_learn} cantrip(s) (has {current_cantrips}, should have {cantrips_should_know})")
+
+            # If they need more spells, add a spell selection choice
+            if current_spells < spells_should_know:
+                spells_to_learn = spells_should_know - current_spells
+                choices.append({
+                    "type": "spell_selection",
+                    "spellcasting_class": "warlock",
+                    "spell_level": "any",  # Warlocks can learn any spell they have slots for
+                    "count": spells_to_learn,
+                    "level": new_level
+                })
+                print(f"[UnifiedLevelUp] Warlock needs to learn {spells_to_learn} spell(s) (has {current_spells}, should have {spells_should_know})")
 
         cursor.execute("""
             SELECT formula_data FROM ability_scaling_formulas

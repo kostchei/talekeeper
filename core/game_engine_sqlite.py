@@ -530,6 +530,10 @@ class GameEngineSQLite:
             import uuid
             
             character_id = str(uuid.uuid4())
+            normalized_class_id = (character_data.get('class_id') or '').strip().lower()
+            if not normalized_class_id:
+                raise ValueError("character_data['class_id'] is required for character creation")
+            character_data['class_id'] = normalized_class_id
             
             with self._get_connection() as conn:
                 cursor = conn.cursor()
@@ -755,11 +759,11 @@ class GameEngineSQLite:
                     print(f"[SQLite] Saved {len(selected_spells)} level-1 spells for character")
 
                 # Initialize spell slots for spellcasting classes
-                class_id = character_data['class_id']
-                if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
-                    from services.spellcasting_service import SpellcastingService
-                    spellcasting_service = SpellcastingService(self.db_path)
-                    spellcasting_service.initialize_character_spellcasting(character_id, class_id)
+            class_id = character_data.get('class_id', '').lower()
+            if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
+                from services.spellcasting_service import SpellcastingService
+                spellcasting_service = SpellcastingService(self.db_path)
+                spellcasting_service.initialize_character_spellcasting(character_id, class_id)
                     print(f"[SQLite] Initialized spell slots for {class_id}")
 
                 conn.commit()

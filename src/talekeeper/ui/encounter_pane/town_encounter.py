@@ -673,28 +673,75 @@ Training includes food and lodging (counts as a long rest)."""
 
                         choices_required = result.get('choices_required', [])
                         invocation_choice = next((c for c in choices_required if c.get('type') == 'eldritch_invocations'), None)
-                        spell_choice = next((c for c in choices_required if c.get('type') == 'spell_preparation'), None)
+                        spell_choice = next((c for c in choices_required if c.get('type') == 'spell_selection'), None)
+                        cantrip_choice = next((c for c in choices_required if c.get('type') == 'cantrip_selection'), None)
 
-                        if invocation_choice or spell_choice:
+                        if invocation_choice or spell_choice or cantrip_choice:
+                            # Calculate how many spells and cantrips to learn
+                            spells_to_learn = 0
+                            if spell_choice:
+                                spells_to_learn = spell_choice.get('count', 0)
+
+                            cantrips_to_learn = 0
+                            if cantrip_choice:
+                                cantrips_to_learn = cantrip_choice.get('count', 0)
+
                             dialog = WarlockLevelUpDialog(
                                 updated_character['id'],
                                 updated_character['name'],
                                 updated_character['level'],
                                 invocation_choice.get('count', 0) if invocation_choice else 0,
+                                spells_to_learn,
+                                cantrips_to_learn,
                                 db_path='talekeeper.db',
                                 parent=self
                             )
 
                             if dialog.exec() == QDialog.DialogCode.Accepted:
-                                selected_invocations, selected_spells = dialog.get_selections()
+                                selected_invocations, selected_spells, selected_cantrips = dialog.get_selections()
 
                                 if selected_invocations:
                                     self.level_up_service.apply_warlock_invocations(character_id, selected_invocations)
                                     print(f"[Training] Invocations learned: {selected_invocations}")
 
+                                if selected_cantrips:
+                                    self.level_up_service.apply_spell_selection(character_id, selected_cantrips, 'warlock')
+                                    print(f"[Training] Cantrips learned: {selected_cantrips}")
+
                                 if selected_spells:
                                     self.level_up_service.apply_spell_selection(character_id, selected_spells, 'warlock')
                                     print(f"[Training] Spells learned: {selected_spells}")
+
+                                # Reload character after spell/cantrip selection to update action panel
+                                if selected_cantrips or selected_spells:
+                                    parent = self.parent()
+                                    while parent:
+                                        if hasattr(parent, 'game_engine'):
+                                            game_engine = parent.game_engine
+                                            updated_character = game_engine.get_character_by_id_sync(character_id)
+                                            if updated_character:
+                                                game_engine.current_character = updated_character
+                                                print(f"[Training] Reloaded character after spell selection")
+
+                                                # Trigger action panel refresh
+                                                if hasattr(parent, 'action_panel'):
+                                                    character_stats = {
+                                                        'id': updated_character['id'],
+                                                        'name': updated_character['name'],
+                                                        'class_id': updated_character.get('class_id', ''),
+                                                        'subclass_id': updated_character.get('subclass_id', ''),
+                                                        'level': updated_character.get('level', 1),
+                                                        'strength': updated_character.get('strength', 10),
+                                                        'dexterity': updated_character.get('dexterity', 10),
+                                                        'constitution': updated_character.get('constitution', 10),
+                                                        'intelligence': updated_character.get('intelligence', 10),
+                                                        'wisdom': updated_character.get('wisdom', 10),
+                                                        'charisma': updated_character.get('charisma', 10),
+                                                    }
+                                                    parent.action_panel.set_character_context(character_stats)
+                                                    print(f"[Training] Refreshed action panel with new spells")
+                                            break
+                                        parent = parent.parent()
                             else:
                                 print(f"[Training] Warlock choices cancelled")
                 except Exception as e:

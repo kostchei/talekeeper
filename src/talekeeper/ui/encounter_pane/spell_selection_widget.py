@@ -202,6 +202,8 @@ class SpellSelectionWidget(QWidget):
             if spell_id:
                 self.selected_cantrips.append(spell_id)
 
+        print(f"[SpellWidget] _on_cantrip_selected called - selected_cantrips now: {self.selected_cantrips}")
+
         spell_data = combo.property('spell_data')
         if spell_data and cantrip_id:
             spell = next((s for s in spell_data if s['id'] == cantrip_id), None)
@@ -293,9 +295,19 @@ class SpellSelectionWidget(QWidget):
             return []
 
     def get_selected_cantrips(self) -> List[str]:
+        # Defensive: rebuild list from current combo selections before returning
+        self.selected_cantrips = []
+        for c in self.cantrip_combos:
+            spell_id = c.currentData()
+            if spell_id:
+                self.selected_cantrips.append(spell_id)
+        print(f"[SpellWidget] get_selected_cantrips() called - returning: {self.selected_cantrips}")
         return self.selected_cantrips
 
     def get_selected_spells(self) -> List[str]:
+        # Defensive: rebuild list from current checkbox selections before returning
+        self.selected_spells = [sid for sid, cb in self.spell_checkboxes.items() if cb.isChecked()]
+        print(f"[SpellWidget] get_selected_spells() called - returning: {self.selected_spells}")
         return self.selected_spells
 
     def is_selection_complete(self, class_name: str) -> bool:
