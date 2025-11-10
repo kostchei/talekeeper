@@ -95,8 +95,81 @@ class WarlockService:
                 (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
                 VALUES (?, 'Pact of the Chain', 'passive', 'permanent', 3,
                         'You learn the Find Familiar spell and can cast it as a ritual.',
-                        '{"source": "warlock_pact", "pact_type": "chain"}')
+                        '{"source": "warlock_pact", "pact_type": "chain", "familiar_type": null, "familiar_hp": null, "familiar_alive": false}')
             """, (character_id,))
+            conn.commit()
+
+    def select_familiar(self, character_id: str, familiar_type: str) -> bool:
+        """Select a familiar for Pact of the Chain. Valid types: quasit, imp, pseudodragon, sprite"""
+        valid_familiars = ['quasit', 'imp', 'pseudodragon', 'sprite']
+        if familiar_type.lower() not in valid_familiars:
+            return False
+
+        # Get max HP for the familiar from monster data
+        familiar_hp_map = {
+            'quasit': 25,
+            'imp': 10,
+            'pseudodragon': 7,
+            'sprite': 2
+        }
+        max_hp = familiar_hp_map.get(familiar_type.lower(), 10)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE character_features
+                SET mechanics = json_set(
+                    json(mechanics),
+                    '$.familiar_type', ?,
+                    '$.familiar_hp', ?,
+                    '$.familiar_alive', 1
+                )
+                WHERE character_id = ? AND feature_name = 'Pact of the Chain'
+            """, (familiar_type.lower(), max_hp, character_id))
+            conn.commit()
+            return True
+
+    def get_active_familiar(self, character_id: str) -> Optional[Dict[str, Any]]:
+        """Get the active familiar for a Pact of Chain warlock, if any"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT mechanics
+                FROM character_features
+                WHERE character_id = ? AND feature_name = 'Pact of the Chain'
+            """, (character_id,))
+
+            result = cursor.fetchone()
+            if not result or not result[0]:
+                return None
+
+            mechanics = json.loads(result[0])
+            familiar_type = mechanics.get('familiar_type')
+            familiar_hp = mechanics.get('familiar_hp')
+            familiar_alive = mechanics.get('familiar_alive', False)
+
+            if not familiar_type or not familiar_alive:
+                return None
+
+            return {
+                'type': familiar_type,
+                'hp': familiar_hp,
+                'alive': familiar_alive
+            }
+
+    def update_familiar_hp(self, character_id: str, new_hp: int):
+        """Update familiar's current HP"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE character_features
+                SET mechanics = json_set(
+                    json(mechanics),
+                    '$.familiar_hp', ?,
+                    '$.familiar_alive', CASE WHEN ? > 0 THEN 1 ELSE 0 END
+                )
+                WHERE character_id = ? AND feature_name = 'Pact of the Chain'
+            """, (new_hp, new_hp, character_id))
             conn.commit()
 
     def _grant_book_of_shadows(self, character_id: str):

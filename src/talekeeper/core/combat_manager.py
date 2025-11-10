@@ -89,6 +89,11 @@ class Combatant:
     has_remarkable_athlete: Optional[bool] = None
     race_id: Optional[str] = None
 
+    # For companions/familiars
+    companion_of: Optional[str] = None  # ID of owning character
+    companion_type: Optional[str] = None  # "familiar", "beast_companion", "steed"
+    is_companion: bool = False
+
 @dataclass 
 class CombatRound:
     """Represents one round of combat"""
@@ -170,8 +175,50 @@ class CombatManager:
         )
         
         self.combatants[character_id] = combatant
+
+        # Check for Pact of the Chain familiar
+        self._spawn_familiar_if_present(character_id, character_features)
+
         return combatant
-    
+
+    def _spawn_familiar_if_present(self, owner_id: str, character_features: Optional[Any]):
+        """Check if character has an active familiar and spawn it"""
+        if not character_features or not isinstance(character_features, dict):
+            return
+
+        # Check for Pact of the Chain feature
+        pact_feature = character_features.get('Pact of the Chain')
+        if not pact_feature:
+            return
+
+        mechanics = pact_feature.get('mechanics', {})
+        familiar_type = mechanics.get('familiar_type')
+        familiar_hp = mechanics.get('familiar_hp')
+        familiar_alive = mechanics.get('familiar_alive', False)
+
+        if not familiar_type or not familiar_alive or familiar_hp is None or familiar_hp <= 0:
+            return
+
+        # Load familiar monster data
+        monster_data = self._load_monster_from_json(familiar_type)
+        if not monster_data:
+            print(f"[Combat] Warning: Could not load familiar data for {familiar_type}")
+            return
+
+        # Override HP with stored value
+        monster_data['hit_points'] = familiar_hp
+
+        # Create familiar as a monster combatant with companion flags
+        familiar_id = f"{owner_id}_familiar"
+        familiar = self.add_monster_combatant(familiar_id, monster_data)
+
+        # Mark as companion
+        familiar.companion_of = owner_id
+        familiar.companion_type = "familiar"
+        familiar.is_companion = True
+
+        print(f"[Combat] Spawned {familiar_type} familiar for {owner_id}")
+
     def add_monster_combatant(self, monster_id: str, monster_data: Dict[str, Any]) -> Combatant:
         """Add monster to combat"""
         
@@ -197,7 +244,38 @@ class CombatManager:
         
         self.combatants[monster_id] = combatant
         return combatant
-    
+
+    def _load_monster_from_json(self, monster_name: str) -> Optional[Dict[str, Any]]:
+        """Load monster data from the JSON file by name"""
+        monsters_file = Path(__file__).parent.parent.parent / 'data' / 'monsters' / 'monsters_extracted.json'
+
+        try:
+            with open(monsters_file, 'r', encoding='utf-8') as f:
+                monsters = json.load(f)
+                for monster in monsters:
+                    if monster.get('name', '').lower() == monster_name.lower():
+                        return monster
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"[Combat] Error loading monster data: {e}")
+
+        return None
+
+    def _update_familiar_hp_if_needed(self, combatant: Combatant):
+        """Update familiar HP in database if this is a familiar"""
+        if not combatant.is_companion or combatant.companion_type != "familiar":
+            return
+
+        if not combatant.companion_of:
+            return
+
+        # Use WarlockService to update the familiar HP
+        try:
+            from talekeeper.services.warlock_service import WarlockService
+            warlock_service = WarlockService(self.db_path)
+            warlock_service.update_familiar_hp(combatant.companion_of, combatant.hit_points)
+        except ImportError as e:
+            print(f"[Combat] Warning: Could not import WarlockService to update familiar HP: {e}")
+
     def _build_initiative_context(self, combatant: Combatant) -> Dict[str, Any]:
         """Assemble context data for initiative rolls."""
         context: Dict[str, Any] = {
@@ -274,9 +352,9 @@ class CombatManager:
                     avg_hp
                 )
 
-        # Roll initiative for all combatants
+        # Roll initiative for all combatants (except companions - they share owner's initiative)
         for combatant in self.combatants.values():
-            if combatant.is_alive:
+            if combatant.is_alive and not combatant.is_companion:
                 context = self._build_initiative_context(combatant)
                 advantage_sources = advantage_system.get_common_advantage_sources(RollType.INITIATIVE, context)
                 disadvantage_sources = advantage_system.get_common_disadvantage_sources(RollType.INITIATIVE, context)
@@ -299,15 +377,28 @@ class CombatManager:
                     extras_text = '; '.join(extras)
                     description += f" ({extras_text})"
                 self.log(f"[COMBAT] {combatant.name} Initiative: {description}")
-        
+
         # Sort by initiative (highest first, with ties resolved randomly)
         initiative_order = []
         for combatant in self.combatants.values():
-            if combatant.is_alive and combatant.initiative_roll is not None:
+            if combatant.is_alive and combatant.initiative_roll is not None and not combatant.is_companion:
                 initiative_order.append(combatant)
-        
+
         # Sort by initiative, randomize ties
         initiative_order.sort(key=lambda c: (c.initiative_roll, random.random()), reverse=True)
+
+        # Insert companions right after their owners in initiative order
+        final_initiative_order = []
+        for combatant in initiative_order:
+            final_initiative_order.append(combatant)
+            # Find companions of this combatant
+            for companion in self.combatants.values():
+                if companion.is_companion and companion.companion_of == combatant.id and companion.is_alive:
+                    companion.initiative_roll = combatant.initiative_roll  # Share initiative
+                    final_initiative_order.append(companion)
+                    self.log(f"[COMBAT] {companion.name} shares initiative with {combatant.name} ({companion.initiative_roll})")
+
+        initiative_order = final_initiative_order
         
         # Create first round
         self.current_round = CombatRound(number=1, initiative_order=initiative_order)
@@ -784,7 +875,11 @@ class CombatManager:
             if target.hit_points <= 0:
                 target.hit_points = 0
                 target.is_alive = False
+                # Persist familiar death
+                self._update_familiar_hp_if_needed(target)
             else:
+                # Persist familiar HP if damaged
+                self._update_familiar_hp_if_needed(target)
                 fires_burn_result = self._trigger_fires_burn(attacker, target)
                 if fires_burn_result:
                     fire_damage = max(0, fires_burn_result.get('damage', 0))
@@ -794,6 +889,11 @@ class CombatManager:
                         if target.hit_points <= 0:
                             target.hit_points = 0
                             target.is_alive = False
+                            # Persist familiar death from fire damage
+                            self._update_familiar_hp_if_needed(target)
+                        else:
+                            # Persist familiar HP after fire damage
+                            self._update_familiar_hp_if_needed(target)
                         uses_remaining = fires_burn_result.get('uses_remaining')
                         uses_text = f" ({uses_remaining} uses remaining)" if uses_remaining is not None else ""
                         self.log(f"[COMBAT] [FIRES BURN] {attacker.name} deals +{fire_damage} fire damage to {target.name}{uses_text}")

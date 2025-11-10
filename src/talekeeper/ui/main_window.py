@@ -1610,8 +1610,13 @@ class MainWindow(QMainWindow):
         class_features = character_data.get('class_features', {}) or {}
         weapon_masteries = character_data.get('weapon_masteries', []) or []
         proficiencies = character_data.get('proficiencies', []) or []
-        spells = character_data.get('spells', []) or []
+        # Support both 'spells'/'cantrips' (old) and 'selected_spells'/'selected_cantrips' (new character creation)
+        spells = character_data.get('spells', []) or character_data.get('selected_spells', []) or []
+        cantrips = character_data.get('cantrips', []) or character_data.get('selected_cantrips', []) or []
         equipment_choices = character_data.get('equipment_choices', {}) or {}
+
+        # Debug log for spell data
+        print(f"[DEBUG] _prepare_character_for_save: cantrips={cantrips}, spells={spells}")
         
         # Build comprehensive save data - every field that might be needed
         save_data = {
@@ -1642,7 +1647,9 @@ class MainWindow(QMainWindow):
             # Spells and magic
             'spells': spells,
             'spell_slots': character_data.get('spell_slots', {}),
-            'cantrips': character_data.get('cantrips', []),
+            'cantrips': cantrips,
+            'selected_cantrips': cantrips,  # Pass through for game engine
+            'selected_spells': spells,  # Pass through for game engine
             
             # Equipment and inventory
             'equipment_choices': equipment_choices,

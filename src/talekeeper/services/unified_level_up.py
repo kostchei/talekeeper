@@ -713,6 +713,11 @@ class UnifiedLevelUpService:
                     SET action_surge_uses_max = 1, action_surge_uses_current = 1
                     WHERE character_id = ?
                 """, (character_id,))
+                cursor.execute("""
+                    UPDATE characters
+                    SET action_surge_uses_max = 1, action_surge_uses_current = 1
+                    WHERE id = ?
+                """, (character_id,))
                 print(f"[UnifiedLevelUp] Granted Action Surge to Fighter")
 
             elif level == 5:
@@ -737,6 +742,11 @@ class UnifiedLevelUpService:
                     SET indomitable_uses_max = 1, indomitable_uses_current = 1
                     WHERE character_id = ?
                 """, (character_id,))
+                cursor.execute("""
+                    UPDATE characters
+                    SET indomitable_uses_max = 1, indomitable_uses_current = 1
+                    WHERE id = ?
+                """, (character_id,))
                 print(f"[UnifiedLevelUp] Granted Indomitable to Fighter (1 use)")
 
             elif level == 13:
@@ -744,6 +754,11 @@ class UnifiedLevelUpService:
                     UPDATE fighter_features
                     SET indomitable_uses_max = 2, indomitable_uses_current = 2
                     WHERE character_id = ?
+                """, (character_id,))
+                cursor.execute("""
+                    UPDATE characters
+                    SET indomitable_uses_max = 2, indomitable_uses_current = 2
+                    WHERE id = ?
                 """, (character_id,))
                 print(f"[UnifiedLevelUp] Improved Indomitable for Fighter (2 uses)")
 
@@ -753,6 +768,12 @@ class UnifiedLevelUpService:
                     SET action_surge_uses_max = 2, action_surge_uses_current = 2,
                         indomitable_uses_max = 3, indomitable_uses_current = 3
                     WHERE character_id = ?
+                """, (character_id,))
+                cursor.execute("""
+                    UPDATE characters
+                    SET action_surge_uses_max = 2, action_surge_uses_current = 2,
+                        indomitable_uses_max = 3, indomitable_uses_current = 3
+                    WHERE id = ?
                 """, (character_id,))
                 print(f"[UnifiedLevelUp] Improved Action Surge (2 uses) and Indomitable (3 uses) for Fighter")
 

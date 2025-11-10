@@ -213,8 +213,8 @@ class SpellcastingService:
             cursor.execute("""
                 INSERT OR REPLACE INTO character_spellcasting
                 (character_id, spellcasting_class, spellcasting_ability, spell_attack_bonus, spell_save_dc,
-                 ritual_casting, spellcasting_focus, prepared_spells, known_spells, cantrips_known)
-                VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', 0)
+                 ritual_casting, spellcasting_focus, cantrips_known)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0)
             """, (
                 character_id, class_name, spellcasting_ability.value, spell_attack_bonus,
                 spell_save_dc, ritual_casting, 'component_pouch'

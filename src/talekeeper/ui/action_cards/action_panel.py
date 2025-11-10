@@ -25,6 +25,7 @@ from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
 from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
 import re
+import sqlite3
 
 from talekeeper.services.character_resources import CharacterResourceService
 from talekeeper.services.weapon_mastery_service import WeaponMasteryService
@@ -8650,6 +8651,8 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
 
+            # Check for familiar summoning (Pact of the Chain)
+            self._check_familiar_summoning()
 
         except Exception as e:
             print(f"Error during short rest: {e}")
@@ -8795,7 +8798,149 @@ class ActionPanel(QWidget):
                 parent = parent.parent()
         except Exception as e:
             print(f"Error saving character XP: {e}")
-    
+
+    def _check_familiar_summoning(self):
+        """Check if character can summon a familiar after short rest."""
+        try:
+            character_id = self._resolve_character_id()
+            if not character_id:
+                return
+
+            # Check if character has Pact of the Chain feature
+            db_path = self._get_db_path()
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT mechanics
+                    FROM character_features
+                    WHERE character_id = ? AND feature_name = 'Pact of the Chain'
+                """, (character_id,))
+                result = cursor.fetchone()
+
+            if not result or not result[0]:
+                return  # Character doesn't have Pact of the Chain
+
+            # Check if they already have an active familiar
+            from talekeeper.services.warlock_service import WarlockService
+            warlock_service = WarlockService(db_path)
+            active_familiar = warlock_service.get_active_familiar(character_id)
+
+            if active_familiar:
+                return  # Already has a familiar
+
+            # Show familiar selection dialog
+            self._show_familiar_selection_dialog(character_id, warlock_service)
+
+        except Exception as e:
+            print(f"Error checking familiar summoning: {e}")
+
+    def _show_familiar_selection_dialog(self, character_id: str, warlock_service):
+        """Show dialog to select a familiar."""
+        try:
+            from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+            from PyQt6.QtCore import Qt
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Summon Familiar")
+            dialog.setModal(True)
+            dialog.resize(500, 400)
+
+            layout = QVBoxLayout(dialog)
+
+            # Title
+            title = QLabel("Choose Your Familiar")
+            title.setStyleSheet("font-size: 16px; font-weight: bold; margin-bottom: 10px;")
+            title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(title)
+
+            # Description
+            desc = QLabel("As a Pact of the Chain warlock, you can summon one of these familiars:")
+            desc.setStyleSheet("color: #cccccc; margin-bottom: 15px;")
+            desc.setWordWrap(True)
+            layout.addWidget(desc)
+
+            # Familiar options with stats
+            familiars = {
+                'quasit': {'name': 'Quasit', 'hp': 25, 'ac': 13, 'desc': 'Demon familiar with poison attacks and shapeshifting'},
+                'imp': {'name': 'Imp', 'hp': 10, 'ac': 13, 'desc': 'Devil familiar with stinger and invisibility'},
+                'pseudodragon': {'name': 'Pseudodragon', 'hp': 7, 'ac': 13, 'desc': 'Dragon familiar with telepathy and magic resistance'},
+                'sprite': {'name': 'Sprite', 'hp': 2, 'ac': 15, 'desc': 'Fey familiar with flight and invisibility'}
+            }
+
+            # Create button for each familiar
+            button_layout = QVBoxLayout()
+            for familiar_type, info in familiars.items():
+                btn = QPushButton(f"{info['name']} (AC {info['ac']}, HP {info['hp']})")
+                btn.setToolTip(info['desc'])
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #4a5c7c;
+                        color: white;
+                        padding: 10px 16px;
+                        border-radius: 4px;
+                        font-weight: bold;
+                        text-align: left;
+                    }
+                    QPushButton:hover {
+                        background-color: #5a6c8c;
+                    }
+                """)
+                btn.clicked.connect(lambda checked, ft=familiar_type: self._summon_familiar(dialog, character_id, warlock_service, ft))
+                button_layout.addWidget(btn)
+
+                # Add description label
+                desc_label = QLabel(info['desc'])
+                desc_label.setStyleSheet("color: #aaaaaa; font-size: 11px; margin-left: 20px; margin-bottom: 10px;")
+                desc_label.setWordWrap(True)
+                button_layout.addWidget(desc_label)
+
+            layout.addLayout(button_layout)
+
+            # Cancel button
+            cancel_btn = QPushButton("Cancel")
+            cancel_btn.clicked.connect(dialog.reject)
+            cancel_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #666666;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    margin-top: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #777777;
+                }
+            """)
+            layout.addWidget(cancel_btn)
+
+            dialog.exec()
+
+        except Exception as e:
+            print(f"Error showing familiar selection dialog: {e}")
+
+    def _summon_familiar(self, dialog, character_id: str, warlock_service, familiar_type: str):
+        """Summon the selected familiar."""
+        try:
+            success = warlock_service.select_familiar(character_id, familiar_type)
+            if success:
+                dialog.accept()
+
+                # Log to combat panel
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'log_panel'):
+                        familiar_name = familiar_type.capitalize()
+                        parent.log_panel.log_combat(f"✨ You summon a {familiar_name} as your familiar!")
+                        break
+                    parent = parent.parent()
+            else:
+                print(f"Failed to summon familiar: {familiar_type}")
+                dialog.reject()
+
+        except Exception as e:
+            print(f"Error summoning familiar: {e}")
+            dialog.reject()
+
     def _restore_short_rest_abilities(self):
         """Restore abilities that recharge on short rest."""
         try:

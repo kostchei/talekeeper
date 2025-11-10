@@ -635,28 +635,29 @@ class GameEngineSQLite:
                         cursor.execute("DELETE FROM characters WHERE save_slot_id = ?", (save_slot_id,))
                     
                     cursor.execute("""
-                        UPDATE save_slots 
+                        UPDATE save_slots
                         SET is_occupied = ?, save_name = ?, character_name = ?,
-                            character_level = ?, current_location = ?, updated_at = ?
+                            character_level = ?, current_location = ?, updated_at = ?, last_played = ?
                         WHERE slot_number = ?
                     """, (
                         True, f"{character_data['name']}'s Adventure",
                         character_data['name'], character_data.get('level', 1),
-                        'Starting Town', datetime.now().isoformat(), save_slot
+                        'Starting Town', datetime.now().isoformat(), datetime.now().isoformat(), save_slot
                     ))
                 else:
                     # Slot doesn't exist - create new one
                     save_slot_id = str(uuid.uuid4())
+                    now = datetime.now().isoformat()
                     cursor.execute("""
                         INSERT INTO save_slots (
                             id, slot_number, is_occupied, save_name, character_name,
                             character_level, current_location, play_time_minutes,
-                            created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            created_at, last_played
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         save_slot_id, save_slot, True, f"{character_data['name']}'s Adventure",
                         character_data['name'], character_data.get('level', 1),
-                        'Starting Town', 0, datetime.now().isoformat()
+                        'Starting Town', 0, now, now
                     ))
                 
                 # Debug equipment before saving
@@ -800,41 +801,7 @@ class GameEngineSQLite:
                 # Initialize class-specific features table (old system)
                 self._initialize_class_features(cursor, character_id, character_data)
 
-                # Commit transaction before initializing systems that open their own connections
-                conn.commit()
-
-                # Initialize features using new feature system
-                try:
-                    from talekeeper.core.feature_integration import FeatureSystemIntegration
-                    feature_system = FeatureSystemIntegration(self.db_path)
-                    feature_system.initialize_character_features(character_id)
-                    print(f"[SQLite] Initialized new feature system for character {character_id}")
-                except Exception as e:
-                    print(f"[SQLite] Warning: Failed to initialize new feature system: {e}")
-
-                # Initialize character resources (Second Wind, Action Surge, etc.)
-                try:
-                    from talekeeper.services.character_resources import CharacterResourceService
-                    resource_service = CharacterResourceService(self.db_path)
-
-                    # Initialize resources based on class
-                    if character_data['class_id'] == 'fighter':
-                        result = resource_service.initialize_fighter_resources(character_id, character_data.get('level', 1))
-                        print(f"[SQLite] Initialized Fighter resources: {result['resources_added']}")
-                    elif character_data['class_id'] == 'barbarian':
-                        result = resource_service.initialize_barbarian_resources(character_id, character_data.get('level', 1))
-                        print(f"[SQLite] Initialized Barbarian resources: {result['resources_added']}")
-                    # Add other class resource initialization here as needed
-
-                except Exception as e:
-                    print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
-
-                # Re-open transaction for remaining operations
-                conn = sqlite3.connect(self.db_path)
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-
-                # Save selected spells and cantrips for spellcasting classes
+                # Save selected spells and cantrips for spellcasting classes BEFORE committing
                 selected_cantrips = character_data.get('selected_cantrips', [])
                 selected_spells = character_data.get('selected_spells', [])
 
@@ -861,16 +828,43 @@ class GameEngineSQLite:
                         """, (character_id, spell_id, 1, True, 'class', 1, False))
                     print(f"[SQLite] Saved {len(selected_spells)} level-1 spells for character")
 
-                # Initialize spell slots for spellcasting classes
-                class_id = character_data['class_id']
-                if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
-                    from talekeeper.services.spellcasting_service import SpellcastingService
-                    spellcasting_service = SpellcastingService(self.db_path)
-                    spellcasting_service.initialize_character_spellcasting(character_id, class_id)
-                    print(f"[SQLite] Initialized spell slots for {class_id}")
-
+                # Commit transaction before initializing systems that open their own connections
                 conn.commit()
-                print(f"[SQLite] Created new character '{character_data['name']}' in slot {save_slot}")
+                print(f"[SQLite] Committed character creation for '{character_data['name']}' in slot {save_slot}")
+
+            # Initialize features and resources using services with their own connections (after closing main connection)
+            try:
+                from talekeeper.core.feature_integration import FeatureSystemIntegration
+                feature_system = FeatureSystemIntegration(self.db_path)
+                feature_system.initialize_character_features(character_id)
+                print(f"[SQLite] Initialized new feature system for character {character_id}")
+            except Exception as e:
+                print(f"[SQLite] Warning: Failed to initialize new feature system: {e}")
+
+            # Initialize character resources (Second Wind, Action Surge, etc.)
+            try:
+                from talekeeper.services.character_resources import CharacterResourceService
+                resource_service = CharacterResourceService(self.db_path)
+
+                # Initialize resources based on class
+                if character_data['class_id'] == 'fighter':
+                    result = resource_service.initialize_fighter_resources(character_id, character_data.get('level', 1))
+                    print(f"[SQLite] Initialized Fighter resources: {result['resources_added']}")
+                elif character_data['class_id'] == 'barbarian':
+                    result = resource_service.initialize_barbarian_resources(character_id, character_data.get('level', 1))
+                    print(f"[SQLite] Initialized Barbarian resources: {result['resources_added']}")
+                # Add other class resource initialization here as needed
+
+            except Exception as e:
+                print(f"[SQLite] Warning: Failed to initialize character resources: {e}")
+
+            # Initialize spell slots for spellcasting classes (using service with its own connection)
+            class_id = character_data['class_id']
+            if class_id in ['wizard', 'cleric', 'warlock', 'paladin']:
+                from talekeeper.services.spellcasting_service import SpellcastingService
+                spellcasting_service = SpellcastingService(self.db_path)
+                spellcasting_service.initialize_character_spellcasting(character_id, class_id)
+                print(f"[SQLite] Initialized spell slots for {class_id}")
 
             # Load and return the created character (with a fresh connection after commit)
             import time
@@ -1691,9 +1685,9 @@ class GameEngineSQLite:
         cursor.execute("""
             INSERT OR REPLACE INTO character_spellcasting (
                 character_id, spellcasting_class, spellcasting_ability,
-                spell_save_dc, spell_attack_bonus, prepared_spells, known_spells,
+                spell_save_dc, spell_attack_bonus,
                 cantrips_known, ritual_casting, spellcasting_focus
-            ) VALUES (?, 'warlock', 'Charisma', ?, ?, '[]', '[]', ?, 0, 'arcane_focus')
+            ) VALUES (?, 'warlock', 'Charisma', ?, ?, ?, 0, 'arcane_focus')
         """, (
             character_id,
             8 + 2 + cha_modifier,
