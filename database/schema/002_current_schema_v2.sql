@@ -124,6 +124,10 @@ CREATE TABLE character_features (
     level_gained INTEGER NOT NULL DEFAULT 1,
     description TEXT,
     mechanics TEXT DEFAULT '{}',
+    source TEXT,
+    feature_id INTEGER,
+    feature_source TEXT,
+    feature_data TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
@@ -156,6 +160,75 @@ CREATE TABLE subclass_features (
     FOREIGN KEY (subclass_id) REFERENCES subclasses(id),
     UNIQUE(subclass_id, level, feature_name)
 );
+
+CREATE TABLE character_spellcasting (
+    character_id TEXT NOT NULL,
+    spellcasting_class TEXT NOT NULL,
+    spellcasting_ability TEXT,
+    spell_attack_bonus INTEGER DEFAULT 0,
+    spell_save_dc INTEGER DEFAULT 8,
+    ritual_casting BOOLEAN DEFAULT 0,
+    spellcasting_focus TEXT,
+    cantrips_known INTEGER DEFAULT 0,
+    spells_known INTEGER DEFAULT 0,
+    spells_prepared INTEGER DEFAULT 0,
+    known_spells TEXT,
+    prepared_spells TEXT,
+    last_preparation_reset TEXT,
+    PRIMARY KEY (character_id, spellcasting_class),
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
+CREATE TABLE character_magical_bonuses (
+    character_id TEXT PRIMARY KEY,
+    ac_bonus INTEGER DEFAULT 0,
+    save_bonus INTEGER DEFAULT 0,
+    attack_bonus INTEGER DEFAULT 0,
+    damage_bonus INTEGER DEFAULT 0,
+    str_bonus INTEGER DEFAULT 0,
+    dex_bonus INTEGER DEFAULT 0,
+    con_bonus INTEGER DEFAULT 0,
+    int_bonus INTEGER DEFAULT 0,
+    wis_bonus INTEGER DEFAULT 0,
+    cha_bonus INTEGER DEFAULT 0,
+    ability_check_bonus INTEGER DEFAULT 0,
+    skill_bonuses TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
+CREATE TABLE character_attunements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    UNIQUE(character_id, item_key)
+);
+
+CREATE TABLE class_features (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    feature_name TEXT NOT NULL,
+    description TEXT,
+    UNIQUE(class_id, level, feature_name),
+    FOREIGN KEY (class_id) REFERENCES classes(id)
+);
+
+CREATE TABLE character_subclasses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id TEXT NOT NULL,
+    class_id TEXT NOT NULL,
+    subclass_id TEXT NOT NULL,
+    class_level INTEGER NOT NULL DEFAULT 3,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(character_id, class_id),
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    FOREIGN KEY (subclass_id) REFERENCES subclasses(id)
+);
+CREATE INDEX idx_character_subclasses_character ON character_subclasses(character_id);
+CREATE INDEX idx_character_subclasses_class ON character_subclasses(class_id);
 
 -- Equipment and Proficiency Systems
 CREATE TABLE class_equipment_choices (

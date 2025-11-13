@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS warlock_features (
 CREATE TABLE IF NOT EXISTS warlock_invocations (
     character_id TEXT NOT NULL,
     invocation_id TEXT NOT NULL,
+    invocation_name TEXT,
     learned_at_level INTEGER,
     PRIMARY KEY (character_id, invocation_id),
     FOREIGN KEY (character_id) REFERENCES characters(id)

@@ -90,8 +90,67 @@ CREATE TABLE character_features (
     level_gained INTEGER NOT NULL DEFAULT 1,
     description TEXT NOT NULL DEFAULT '',
     mechanics TEXT, -- JSON string for complex mechanics
+    source TEXT, -- legacy source column
+    feature_id INTEGER,
+    feature_source TEXT,
+    feature_data TEXT,
     
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
+CREATE TABLE character_spellcasting (
+    character_id TEXT NOT NULL,
+    spellcasting_class TEXT NOT NULL,
+    spellcasting_ability TEXT,
+    spell_attack_bonus INTEGER DEFAULT 0,
+    spell_save_dc INTEGER DEFAULT 8,
+    ritual_casting BOOLEAN DEFAULT 0,
+    spellcasting_focus TEXT,
+    cantrips_known INTEGER DEFAULT 0,
+    spells_known INTEGER DEFAULT 0,
+    spells_prepared INTEGER DEFAULT 0,
+    known_spells TEXT,
+    prepared_spells TEXT,
+    last_preparation_reset TEXT,
+    PRIMARY KEY (character_id, spellcasting_class),
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
+CREATE TABLE character_magical_bonuses (
+    character_id TEXT PRIMARY KEY,
+    ac_bonus INTEGER DEFAULT 0,
+    save_bonus INTEGER DEFAULT 0,
+    attack_bonus INTEGER DEFAULT 0,
+    damage_bonus INTEGER DEFAULT 0,
+    str_bonus INTEGER DEFAULT 0,
+    dex_bonus INTEGER DEFAULT 0,
+    con_bonus INTEGER DEFAULT 0,
+    int_bonus INTEGER DEFAULT 0,
+    wis_bonus INTEGER DEFAULT 0,
+    cha_bonus INTEGER DEFAULT 0,
+    ability_check_bonus INTEGER DEFAULT 0,
+    skill_bonuses TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+);
+
+CREATE TABLE character_attunements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    UNIQUE(character_id, item_key)
+);
+
+CREATE TABLE class_features (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    class_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    feature_name TEXT NOT NULL,
+    description TEXT,
+    UNIQUE(class_id, level, feature_name),
+    FOREIGN KEY (class_id) REFERENCES classes(id)
 );
 CREATE TABLE character_weapon_masteries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,19 +387,48 @@ CREATE TABLE wizard_features (
 );
 CREATE TABLE warlock_features (
     character_id TEXT NOT NULL,
-    level INTEGER NOT NULL,
+    level INTEGER NOT NULL DEFAULT 1,
     
     -- Pact Magic Slots (All same level, recover on short rest)
-    pact_slots_current INTEGER DEFAULT 0,
-    pact_slots_max INTEGER DEFAULT 1, -- 1 at level 1, max 4 at level 17+
-    pact_slot_level INTEGER DEFAULT 1, -- Level of pact slots (1-5)
+    pact_slots_current INTEGER DEFAULT 1,
+    pact_slots_max INTEGER DEFAULT 1,
+    pact_slot_level INTEGER DEFAULT 1,
     
     -- Warlock-Specific Features
-    patron TEXT, -- 'fiend', 'archfey', 'great_old_one', etc.
-    pact_boon TEXT, -- 'chain', 'blade', 'tome', null until level 3
-    eldritch_invocations TEXT, -- JSON array of known invocations
-    
-    -- Patron Features
+    patron TEXT,
+    pact_boon TEXT,
+    eldritch_invocations TEXT DEFAULT '[]',
+
+    -- Legacy columns (for backwards compatibility)
+    invocations_known TEXT DEFAULT '[]',
+    mystic_arcanum_spells TEXT DEFAULT '[]',
+    last_pact_reset TEXT,
+    pact_slots INTEGER DEFAULT 1,
+
+    -- Magical Cunning (Level 2+)
+    magical_cunning_used BOOLEAN DEFAULT 0,
+    last_magical_cunning TEXT,
+
+    -- Contact Patron (Level 9+)
+    contact_patron_used BOOLEAN DEFAULT 0,
+    last_contact_patron TEXT,
+
+    -- Mystic Arcanum Usage (Levels 11, 13, 15, 17)
+    arcanum_6_used BOOLEAN DEFAULT 0,
+    arcanum_6_spell TEXT,
+    arcanum_7_used BOOLEAN DEFAULT 0,
+    arcanum_7_spell TEXT,
+    arcanum_8_used BOOLEAN DEFAULT 0,
+    arcanum_8_spell TEXT,
+    arcanum_9_used BOOLEAN DEFAULT 0,
+    arcanum_9_spell TEXT,
+
+    -- Fiend Patron Specific
+    dark_ones_luck_uses INTEGER DEFAULT 0,
+    fiendish_resilience_type TEXT,
+    hurl_through_hell_used BOOLEAN DEFAULT 0,
+
+    -- Patron Features (Generic)
     patron_feature_uses_current INTEGER DEFAULT 0,
     patron_feature_uses_max INTEGER DEFAULT 0,
     
@@ -669,3 +757,17 @@ CREATE TABLE subclass_features (
 );
 CREATE INDEX idx_subclass_features_lookup ON subclass_features(subclass_id, level);
 CREATE INDEX idx_subclasses_class ON subclasses(class_id);
+
+CREATE TABLE character_subclasses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id TEXT NOT NULL,
+    class_id TEXT NOT NULL,
+    subclass_id TEXT NOT NULL,
+    class_level INTEGER NOT NULL DEFAULT 3,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(character_id, class_id),
+    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+    FOREIGN KEY (subclass_id) REFERENCES subclasses(id)
+);
+CREATE INDEX idx_character_subclasses_character ON character_subclasses(character_id);
+CREATE INDEX idx_character_subclasses_class ON character_subclasses(class_id);

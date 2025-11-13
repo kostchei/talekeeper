@@ -42,6 +42,10 @@ class DatabaseInitializer:
         
         if not self.create_migrations_table():
             return False
+        if not self.apply_sql_migrations():
+            return False
+        if not self.check_schema_version():
+            return False
             
         print("Database initialization complete!")
         return True
@@ -188,7 +192,7 @@ class DatabaseInitializer:
             ''')
             
             cursor.execute('''
-                INSERT INTO schema_migrations (version, checksum, description)
+                INSERT OR IGNORE INTO schema_migrations (version, checksum, description)
                 VALUES ('001_initial_schema', 'initial', 'Initial database schema')
             ''')
             
@@ -204,9 +208,70 @@ class DatabaseInitializer:
                 conn.close()
     
     def check_and_apply_migrations(self) -> bool:
-        """Legacy migration support - now redirects to schema versioning."""
+        """Run SQL migrations and schema upgrades."""
+        print("Ensuring database migrations are applied...")
+        if not self.apply_sql_migrations():
+            return False
         print("Checking database schema version...")
         return self.check_schema_version()
+
+    def apply_sql_migrations(self) -> bool:
+        """Apply pending .sql migrations in order."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    version TEXT UNIQUE NOT NULL,
+                    checksum TEXT NOT NULL,
+                    applied_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    description TEXT
+                )
+            ''')
+
+            self._ensure_legacy_tables(cursor)
+            conn.commit()
+
+            cursor.execute("SELECT version, checksum FROM schema_migrations")
+            applied = {row[0]: row[1] for row in cursor.fetchall()}
+
+            migration_files = sorted(self.migrations_dir.glob('*.sql'))
+            acceptable_errors = ('duplicate column name', 'already exists')
+
+            for migration_file in migration_files:
+                version = migration_file.name
+                with open(migration_file, 'r', encoding='utf-8') as f:
+                    sql = f.read()
+
+                checksum = hashlib.sha256(sql.encode('utf-8')).hexdigest()
+                if applied.get(version) == checksum:
+                    continue
+
+                description = sql.splitlines()[0].strip().lstrip('- ').strip()
+                print(f"Applying migration {version}...")
+                try:
+                    cursor.executescript(sql)
+                except sqlite3.Error as e:
+                    message = str(e).lower()
+                    if any(err in message for err in acceptable_errors):
+                        print(f"  Skipping statements already applied: {e}")
+                    else:
+                        raise
+                cursor.execute('''
+                    INSERT OR REPLACE INTO schema_migrations (version, checksum, description)
+                    VALUES (?, ?, ?)
+                ''', (version, checksum, description or version))
+                conn.commit()
+
+            return True
+        except Exception as e:
+            print(f"Error applying migrations: {e}")
+            return False
+        finally:
+            if 'conn' in locals():
+                conn.close()
     
     def _ensure_inventory_columns(self, cursor: sqlite3.Cursor):
         """Ensure Bag of Holding columns exist on character_inventory."""
@@ -221,6 +286,110 @@ class DatabaseInitializer:
 
         if 'unit_value_gp' not in columns:
             cursor.execute("ALTER TABLE character_inventory ADD COLUMN unit_value_gp REAL DEFAULT NULL")
+
+    def _ensure_spellcasting_columns(self, cursor: sqlite3.Cursor):
+        """Ensure modern spellcasting columns exist."""
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='character_spellcasting'")
+        if not cursor.fetchone():
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS character_spellcasting (
+                    character_id TEXT NOT NULL,
+                    spellcasting_class TEXT NOT NULL,
+                    spellcasting_ability TEXT,
+                    spell_attack_bonus INTEGER DEFAULT 0,
+                    spell_save_dc INTEGER DEFAULT 8,
+                    ritual_casting BOOLEAN DEFAULT 0,
+                    spellcasting_focus TEXT,
+                    cantrips_known INTEGER DEFAULT 0,
+                    spells_known INTEGER DEFAULT 0,
+                    spells_prepared INTEGER DEFAULT 0,
+                    known_spells TEXT,
+                    prepared_spells TEXT,
+                    last_preparation_reset TEXT,
+                    PRIMARY KEY (character_id, spellcasting_class),
+                    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+                )
+            """)
+            return
+
+        cursor.execute("PRAGMA table_info(character_spellcasting)")
+        columns = {row[1] for row in cursor.fetchall()}
+
+        if 'spellcasting_class' not in columns:
+            cursor.execute("ALTER TABLE character_spellcasting ADD COLUMN spellcasting_class TEXT DEFAULT ''")
+        if 'cantrips_known' not in columns:
+            cursor.execute("ALTER TABLE character_spellcasting ADD COLUMN cantrips_known INTEGER DEFAULT 0")
+        if 'known_spells' not in columns:
+            cursor.execute("ALTER TABLE character_spellcasting ADD COLUMN known_spells TEXT")
+        if 'prepared_spells' not in columns:
+            cursor.execute("ALTER TABLE character_spellcasting ADD COLUMN prepared_spells TEXT")
+
+    def _ensure_legacy_tables(self, cursor: sqlite3.Cursor):
+        """Create legacy tables expected by older migrations."""
+        self._ensure_character_hp_columns(cursor)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS class_features (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                class_id TEXT NOT NULL,
+                level INTEGER NOT NULL,
+                feature_name TEXT NOT NULL,
+                description TEXT,
+                UNIQUE(class_id, level, feature_name),
+                FOREIGN KEY (class_id) REFERENCES classes(id)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS character_magical_bonuses (
+                character_id TEXT PRIMARY KEY,
+                ac_bonus INTEGER DEFAULT 0,
+                save_bonus INTEGER DEFAULT 0,
+                attack_bonus INTEGER DEFAULT 0,
+                damage_bonus INTEGER DEFAULT 0,
+                str_bonus INTEGER DEFAULT 0,
+                dex_bonus INTEGER DEFAULT 0,
+                con_bonus INTEGER DEFAULT 0,
+                int_bonus INTEGER DEFAULT 0,
+                wis_bonus INTEGER DEFAULT 0,
+                cha_bonus INTEGER DEFAULT 0,
+                ability_check_bonus INTEGER DEFAULT 0,
+                skill_bonuses TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS character_attunements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_id TEXT NOT NULL,
+                item_key TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+                UNIQUE(character_id, item_key)
+            )
+        """)
+
+        self._ensure_spellcasting_columns(cursor)
+        self._ensure_warlock_invocation_columns(cursor)
+
+    def _ensure_character_hp_columns(self, cursor: sqlite3.Cursor):
+        cursor.execute("PRAGMA table_info(characters)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if 'current_hit_points' not in columns:
+            cursor.execute("ALTER TABLE characters ADD COLUMN current_hit_points INTEGER")
+        if 'max_hit_points' not in columns:
+            cursor.execute("ALTER TABLE characters ADD COLUMN max_hit_points INTEGER")
+
+    def _ensure_warlock_invocation_columns(self, cursor: sqlite3.Cursor):
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='warlock_invocations'")
+        if not cursor.fetchone():
+            return
+
+        cursor.execute("PRAGMA table_info(warlock_invocations)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if 'invocation_name' not in columns:
+            cursor.execute("ALTER TABLE warlock_invocations ADD COLUMN invocation_name TEXT")
 
     def check_schema_version(self) -> bool:
         """Check and upgrade database schema if needed."""
@@ -237,6 +406,8 @@ class DatabaseInitializer:
                 )
             ''')
             
+            self._ensure_spellcasting_columns(cursor)
+            conn.commit()
             # Get current schema version
             cursor.execute('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1')
             result = cursor.fetchone()

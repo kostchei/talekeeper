@@ -644,6 +644,9 @@ class UnifiedLevelUpService:
                         VALUES (?, ?, ?, ?, 0, 0)
                     """, (character_id, ability_id, max_uses, max_uses))
 
+                # Record passive effects for always-on invocations
+                self._apply_invocation_effects(cursor, character_id, invocation_id, level)
+
             cursor.execute("""
                 SELECT invocations_known FROM warlock_features WHERE character_id = ?
             """, (character_id,))
@@ -662,10 +665,156 @@ class UnifiedLevelUpService:
 
             conn.commit()
 
-            return {
-                "success": True,
-                "invocations_learned": invocation_ids
-            }
+        return {
+            "success": True,
+            "invocations_learned": invocation_ids
+        }
+
+    def _apply_invocation_effects(self, cursor: sqlite3.Cursor, character_id: str,
+                                  invocation_id: str, level: int) -> None:
+        """Persist passive effects for specific invocations."""
+        try:
+            cursor.execute("""
+                SELECT name, effect_type, effect_data
+                FROM invocations
+                WHERE id = ?
+            """, (invocation_id,))
+            row = cursor.fetchone()
+            if not row:
+                return
+
+            name, effect_type, effect_data_json = row
+            effect_data = json.loads(effect_data_json) if effect_data_json else {}
+
+            if invocation_id == 'armor_of_shadows':
+                self._ensure_armor_of_shadows_feature(cursor, character_id, level, name, effect_data)
+            elif invocation_id == 'agonizing_blast':
+                self._ensure_agonizing_blast_feature(cursor, character_id, level, name, effect_data)
+            elif invocation_id == 'pact_of_the_chain':
+                self._ensure_pact_of_chain_feature(cursor, character_id, level, name, effect_data)
+            elif effect_type == 'active' and effect_data.get('cost') == 'none':
+                self._record_at_will_invocation_feature(cursor, character_id, level, name, effect_data, invocation_id)
+        except sqlite3.Error as exc:
+            print(f"[UnifiedLevelUp] Failed to record invocation effect for {invocation_id}: {exc}")
+
+    def _ensure_armor_of_shadows_feature(self, cursor: sqlite3.Cursor, character_id: str,
+                                         level: int, name: str, effect_data: Dict[str, Any]) -> None:
+        """Record Armor of Shadows as an always-on defensive feature."""
+        spell_name = (effect_data or {}).get('spell', 'mage_armor')
+        mechanics = {
+            'source': 'warlock_invocation',
+            'invocation_id': 'armor_of_shadows',
+            'spell': spell_name,
+            'always_active': True,
+            'ac_formula': '13 + Dex'
+        }
+        description = f"You can cast {spell_name.replace('_', ' ')} on yourself at will without expending a spell slot. "\
+                      "TaleKeeper treats this as always active when you are not wearing armor."
+        self._upsert_character_feature(
+            cursor, character_id, name, 'passive', 'permanent', level, description, mechanics
+        )
+
+    def _ensure_agonizing_blast_feature(self, cursor: sqlite3.Cursor, character_id: str,
+                                        level: int, name: str, effect_data: Dict[str, Any]) -> None:
+        """Record Agonizing Blast for character reference."""
+        spell_id = (effect_data or {}).get('spell', 'eldritch_blast')
+        mechanics = {
+            'source': 'warlock_invocation',
+            'invocation_id': 'agonizing_blast',
+            'spell': spell_id,
+            'damage_bonus': effect_data.get('damage_bonus', 'charisma_modifier')
+        }
+        description = "When you cast Eldritch Blast, add your Charisma modifier to the damage of each beam."
+        self._upsert_character_feature(
+            cursor, character_id, name, 'passive', 'permanent', level, description, mechanics
+        )
+
+    def _ensure_pact_of_chain_feature(self, cursor: sqlite3.Cursor, character_id: str,
+                                      level: int, name: str, effect_data: Dict[str, Any]) -> None:
+        """Give the character a default familiar entry for Pact of the Chain."""
+        default_familiar = 'quasit'
+        familiar_hp_map = {
+            'quasit': 25,
+            'imp': 10,
+            'pseudodragon': 7,
+            'sprite': 2
+        }
+
+        cursor.execute("""
+            SELECT mechanics FROM character_features
+            WHERE character_id = ? AND feature_name = ?
+        """, (character_id, name))
+        row = cursor.fetchone()
+        mechanics = {}
+        if row and row[0]:
+            try:
+                mechanics = json.loads(row[0])
+            except json.JSONDecodeError:
+                mechanics = {}
+
+        if not mechanics.get('familiar_type'):
+            mechanics['familiar_type'] = default_familiar
+            mechanics['familiar_hp'] = familiar_hp_map.get(default_familiar, 10)
+            mechanics['familiar_alive'] = True
+
+        mechanics.update({
+            'source': 'warlock_invocation',
+            'invocation_id': 'pact_of_the_chain',
+            'at_will_spell': 'find_familiar',
+            'special_familiars': effect_data.get('special_familiars', []),
+            'familiar_attack_reaction': effect_data.get('familiar_attack', False)
+        })
+
+        description = (
+            "You can cast Find Familiar as a Magic action without expending a spell slot. "
+            "By default TaleKeeper records a Quasit familiar, but you can replace it later."
+        )
+        self._upsert_character_feature(
+            cursor, character_id, name, 'passive', 'permanent', level, description, mechanics
+        )
+
+    def _record_at_will_invocation_feature(self, cursor: sqlite3.Cursor, character_id: str,
+                                           level: int, name: str, effect_data: Dict[str, Any],
+                                           invocation_id: str) -> None:
+        """Record invocations that allow at-will spellcasting so the sheet lists the effect."""
+        spell_name = effect_data.get('spell', '').replace('_', ' ')
+        description = f"You can cast {spell_name or 'this spell'} at will without expending a spell slot."
+        mechanics = {
+            'source': 'warlock_invocation',
+            'invocation_id': invocation_id,
+            'spell': effect_data.get('spell'),
+            'casting': 'at_will',
+            'cost': effect_data.get('cost', 'none'),
+            'target': effect_data.get('target')
+        }
+        self._upsert_character_feature(
+            cursor, character_id, name, 'passive', 'permanent', level, description, mechanics
+        )
+
+    def _upsert_character_feature(self, cursor: sqlite3.Cursor, character_id: str,
+                                  feature_name: str, feature_type: str, usage_type: str,
+                                  level_gained: int, description: str,
+                                  mechanics: Optional[Dict[str, Any]]) -> None:
+        """Insert or update a row in character_features for invocation tracking."""
+        mechanics_json = json.dumps(mechanics or {})
+        cursor.execute("""
+            SELECT id FROM character_features
+            WHERE character_id = ? AND feature_name = ?
+        """, (character_id, feature_name))
+        existing = cursor.fetchone()
+
+        if existing:
+            cursor.execute("""
+                UPDATE character_features
+                SET feature_type = ?, usage_type = ?, level_gained = ?, description = ?, mechanics = ?
+                WHERE character_id = ? AND feature_name = ?
+            """, (feature_type, usage_type, level_gained, description, mechanics_json, character_id, feature_name))
+        else:
+            cursor.execute("""
+                INSERT INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics_json))
 
     def _calculate_ability_max_uses(self, cursor, character_id: str, uses_formula: Optional[str], level: int) -> int:
         """Calculate max uses for an ability based on formula"""

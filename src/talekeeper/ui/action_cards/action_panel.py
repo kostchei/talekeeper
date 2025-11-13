@@ -5602,7 +5602,7 @@ class ActionPanel(QWidget):
                 rolls.append(f"{roll}+{modifier}")
 
             damage_log = f"{num_darts} darts: [{', '.join(rolls)}] = {total_damage} force damage"
-            return total_damage, damage_log
+            return self._apply_spell_damage_modifiers(spell_name, total_damage, damage_log, data)
         elif 'base_dice' in data:
             base_dice = data['base_dice']
             die_size = data['die_size']
@@ -5618,7 +5618,7 @@ class ActionPanel(QWidget):
 
             rolls_str = '+'.join(str(r) for r in rolls)
             damage_log = f"{num_dice}d{die_size} [{rolls_str}] = {total_damage} {damage_type} damage"
-            return total_damage, damage_log
+            return self._apply_spell_damage_modifiers(spell_name, total_damage, damage_log, data)
         else:
             num_dice = data['dice']
             die_size = data['die_size']
@@ -5629,7 +5629,23 @@ class ActionPanel(QWidget):
 
             rolls_str = '+'.join(str(r) for r in rolls)
             damage_log = f"{num_dice}d{die_size} [{rolls_str}] = {total_damage} {damage_type} damage"
-            return total_damage, damage_log
+            return self._apply_spell_damage_modifiers(spell_name, total_damage, damage_log, data)
+
+    def _apply_spell_damage_modifiers(self, spell_name: str, damage_total: int,
+                                      damage_log: str, spell_metadata: Optional[Dict[str, Any]] = None) -> tuple[int, str]:
+        """Apply passive invocation bonuses to spell damage rolls."""
+        if spell_name == 'Eldritch Blast':
+            dice_count = 1
+            if isinstance(spell_metadata, dict):
+                dice_count = spell_metadata.get('dice', dice_count)
+
+            bonus = self._get_agonizing_blast_bonus(dice_count)
+            if bonus:
+                damage_total += bonus
+                bonus_text = f"{bonus} (Agonizing Blast)"
+                damage_log = f"{damage_log} + {bonus_text}" if damage_log else bonus_text
+
+        return damage_total, damage_log
 
     def _get_cantrip_dice_by_level(self, char_level: int) -> int:
         """Get number of damage dice for cantrips based on character level."""
@@ -5653,6 +5669,32 @@ class ActionPanel(QWidget):
             return 'save'
         else:
             return 'auto'  # Magic Missile, healing spells, etc.
+
+    def _has_warlock_invocation(self, invocation_id: str) -> bool:
+        """Check if the current character knows a specific invocation."""
+        if not isinstance(self.character_context, dict):
+            return False
+
+        invocations = self.character_context.get('warlock_invocations')
+        if isinstance(invocations, dict):
+            return invocation_id in invocations.keys()
+        if isinstance(invocations, (list, set, tuple)):
+            return invocation_id in invocations
+        return False
+
+    def _get_agonizing_blast_bonus(self, beam_count: int) -> int:
+        """Return the Agonizing Blast damage bonus based on beam count."""
+        if not self._has_warlock_invocation('agonizing_blast'):
+            return 0
+
+        if not isinstance(self.character_context, dict):
+            return 0
+
+        charisma_score = self.character_context.get('charisma', 10)
+        charisma_mod = (charisma_score - 10) // 2
+        if beam_count < 1:
+            beam_count = 1
+        return charisma_mod * beam_count
 
     def _roll_spell_attack(self) -> tuple[int, dict]:
         """Roll a spell attack (1d20 + spell attack bonus)."""
@@ -6167,9 +6209,17 @@ class ActionPanel(QWidget):
     
     def set_character_context(self, context: Dict[str, Any]):
         """Set the character context for action availability."""
+        if not isinstance(context, dict):
+            self.character_context = {}
+            return
+
         print(f"ACTION PANEL: Setting character context with keys: {list(context.keys())}")
         print(f"ACTION PANEL: class_id = {context.get('class_id', 'NOT_FOUND')}")
-        self.character_context = context
+
+        hydrated_context = dict(context)
+        character_id = hydrated_context.get('id') or hydrated_context.get('character_id')
+        hydrated_context['warlock_invocations'] = self._load_warlock_invocations(character_id)
+        self.character_context = hydrated_context
 
         # Recreate class-specific action cards when character loads
         print(f"ACTION PANEL: Recreating class action cards for {context.get('class_id', 'unknown')}")
@@ -6180,6 +6230,34 @@ class ActionPanel(QWidget):
         self._update_potion_card()
         # Also update visible cards to show/hide potion card based on inventory
         self._update_visible_cards()
+
+    def _load_warlock_invocations(self, character_id: Optional[str]) -> List[str]:
+        """Load all known warlock invocations for the active character."""
+        if not character_id:
+            return []
+
+        invocations: List[str] = []
+        db_path = self._resolve_db_path()
+
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT name FROM sqlite_master
+                    WHERE type='table' AND name='warlock_invocations'
+                """)
+                if not cursor.fetchone():
+                    return []
+
+                cursor.execute("""
+                    SELECT invocation_id FROM warlock_invocations
+                    WHERE character_id = ?
+                """, (character_id,))
+                invocations = [row[0] for row in cursor.fetchall() if row and row[0]]
+        except sqlite3.Error as exc:
+            print(f"[ActionPanel] Failed to load warlock invocations for {character_id}: {exc}")
+
+        return invocations
     
     def _update_card_availability(self):
         """Update the availability state of all action cards."""
