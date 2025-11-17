@@ -1,27 +1,33 @@
 {
-  "name": "random",
+  "name": "Roland",
   "species": "Human",
   "class": "Fighter",
-  "background": "Soldier",
-  "feats": ["Tough"],
+  "subclass": "Champion",
+  "background": "Custom",
+  "feats": ["Tough", "Savage Attacker"],
   "fighting_style": "Defense",
   "weapon_masteries": ["longsword", "shield", "longbow"],
   "ability_scores": {
-    "strength": 15,
-    "dexterity": 14,
-    "constitution": 13,
-    "intelligence": 8,
-    "wisdom": 12,
-    "charisma": 10
+    "strength": 18,
+    "dexterity": 10,
+    "constitution": 18,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 12
   },
   "class_skills": ["Athletics", "Perception"],
-  "species_skills": [],
+  "background_skills": ["Animal Handling", "Persuasion", "Intimidation"],
+  "tool_proficiencies": ["Smith's Tools"],
+  "hp": 18,
+  "armor_class": 18,
   "equipment_choices": {
-    "martial_weapon": "Longsword",
     "armor": "Chain Mail",
     "shield": "Shield",
-    "simple_weapon": "Javelin"
+    "primary_weapon": "Longsword",
+    "ranged_weapon": "Longbow",
+    "pack": "Soldier's Pack"
   },
   "level": 1,
-  "experience_points": 0
+  "experience_points": 0,
+  "notes": "Shield wall defender - heavy armor, longsword and shield, AC 18"
 }

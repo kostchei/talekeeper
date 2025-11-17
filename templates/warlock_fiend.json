@@ -1,0 +1,41 @@
+{
+  "name": "Najtros",
+  "species": "Human",
+  "class": "Warlock",
+  "subclass": "Fiend Patron",
+  "background": "Custom",
+  "feats": ["Tough", "Magic Initiate (Wizard)"],
+  "patron": "fiend",
+  "pact_boon": "pact_of_the_chain",
+  "ability_scores": {
+    "strength": 6,
+    "dexterity": 16,
+    "constitution": 16,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 20
+  },
+  "class_skills": ["Deception", "Intimidation"],
+  "background_skills": ["Stealth", "Sleight of Hand", "Persuasion"],
+  "tool_proficiencies": ["Gaming Set"],
+  "hp": 13,
+  "armor_class": 16,
+  "spellcasting": {
+    "cantrips": ["eldritch_blast", "toll_the_dead"],
+    "spells_known": ["hex", "mage_armor"],
+    "magic_initiate_cantrips": ["thunderclap", "blade_ward"],
+    "magic_initiate_spell": "false_life"
+  },
+  "familiar": {
+    "spirit": "Quasit",
+    "form": "Giant Centipede"
+  },
+  "equipment_choices": {
+    "weapon": "Dagger",
+    "arcane_focus": "Rod",
+    "pack": "Scholar's Pack"
+  },
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Control/blaster with familiar scout - Pact of the Chain quasit, Hex + Eldritch Blast, False Life for temp HP"
+}

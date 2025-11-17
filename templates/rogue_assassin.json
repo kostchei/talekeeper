@@ -1,26 +1,32 @@
 {
-  "name": "random",
-  "species": "Halfling",
+  "name": "Theeph",
+  "species": "Human",
   "class": "Rogue",
-  "background": "Criminal",
-  "feats": ["Alert"],
+  "subclass": "Assassin",
+  "background": "Custom",
+  "feats": ["Alert", "Lucky"],
   "expertise_skills": ["Stealth", "Sleight of Hand"],
   "ability_scores": {
-    "strength": 8,
-    "dexterity": 16,
-    "constitution": 14,
-    "intelligence": 13,
-    "wisdom": 12,
-    "charisma": 10
+    "strength": 10,
+    "dexterity": 20,
+    "constitution": 16,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 12
   },
-  "class_skills": ["Stealth", "Sleight of Hand", "Acrobatics", "Deception"],
-  "species_skills": [],
+  "class_skills": ["Acrobatics", "Sleight of Hand", "Stealth", "Perception"],
+  "background_skills": ["Deception", "Persuasion", "Investigation"],
+  "tool_proficiencies": ["Thieves' Tools", "Woodcarver's Tools"],
+  "hp": 11,
+  "armor_class": 17,
   "equipment_choices": {
-    "finesse_weapon": "Rapier",
-    "simple_weapon": "Shortbow",
+    "armor": "Studded Leather",
+    "main_hand": "Shortsword",
+    "off_hand": "Scimitar",
+    "ranged_weapon": "Shortbow",
     "pack": "Burglar's Pack"
   },
   "level": 1,
   "experience_points": 0,
-  "notes": "Stealth striker - high initiative, sneak attack damage"
+  "notes": "Stealth striker and face - Alert + Lucky, high initiative, sneak attack"
 }

@@ -1,26 +1,31 @@
 {
-  "name": "random",
+  "name": "Thrud",
   "species": "Human",
   "class": "Barbarian",
-  "background": "Soldier",
-  "feats": ["Great Weapon Master"],
+  "subclass": "Berserker",
+  "background": "Custom",
+  "feats": ["Tough", "Savage Attacker"],
   "weapon_masteries": ["greataxe", "handaxe", "javelin"],
   "ability_scores": {
-    "strength": 16,
-    "dexterity": 13,
-    "constitution": 15,
-    "intelligence": 8,
-    "wisdom": 12,
-    "charisma": 10
+    "strength": 20,
+    "dexterity": 18,
+    "constitution": 19,
+    "intelligence": 6,
+    "wisdom": 6,
+    "charisma": 9
   },
   "class_skills": ["Athletics", "Survival"],
-  "species_skills": [],
+  "background_skills": ["Acrobatics", "Stealth", "Intimidation"],
+  "tool_proficiencies": ["Gaming Set"],
+  "hp": 18,
+  "armor_class": 18,
   "equipment_choices": {
-    "martial_weapon": "Greataxe",
-    "simple_weapon": "Handaxe",
+    "primary_weapon": "Greataxe",
+    "sidearm": "Handaxe",
+    "ranged_weapon": "Javelin",
     "pack": "Explorer's Pack"
   },
   "level": 1,
   "experience_points": 0,
-  "notes": "Raging greataxe barbarian build - high damage, unarmored defense"
+  "notes": "Front-line wrecking ball - unarmored defense (AC 18), greataxe, rage damage"
 }

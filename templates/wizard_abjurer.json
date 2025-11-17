@@ -1,0 +1,44 @@
+{
+  "name": "Celeste",
+  "species": "Human",
+  "class": "Wizard",
+  "subclass": "Abjurer",
+  "background": "Custom",
+  "feats": ["Magic Initiate (Wizard)", "Magic Initiate (Cleric)"],
+  "ability_scores": {
+    "strength": 6,
+    "dexterity": 16,
+    "constitution": 16,
+    "intelligence": 20,
+    "wisdom": 10,
+    "charisma": 10
+  },
+  "class_skills": ["Arcana", "Investigation"],
+  "background_skills": ["Stealth", "Medicine", "Perception"],
+  "tool_proficiencies": ["Herbalism Kit"],
+  "hp": 9,
+  "armor_class": 16,
+  "spellcasting": {
+    "cantrips": ["word_of_radiance", "guidance", "true_strike", "toll_the_dead", "chill_touch", "light", "friends"],
+    "spells_prepared": ["sleep", "false_life", "find_familiar", "thunderwave", "protection_from_evil_and_good", "shield", "healing_word"],
+    "familiar": "Celestial Owl"
+  },
+  "equipment_choices": {
+    "weapon": "Quarterstaff",
+    "arcane_focus": "Wand",
+    "pack": "Scholar's Pack"
+  },
+  "starting_inventory": [
+    {"name": "Quarterstaff", "quantity": 1},
+    {"name": "Spellbook", "quantity": 1},
+    {"name": "Herbalism Kit", "quantity": 1},
+    {"name": "Healer's Kit", "quantity": 1},
+    {"name": "Rations (1 day)", "quantity": 5},
+    {"name": "Waterskin (Wine)", "quantity": 1},
+    {"name": "Blanket", "quantity": 1},
+    {"name": "Gold Pieces", "quantity": 31}
+  ],
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Protective caster - Begins with Mage Armor, False Life, and Celestial Owl familiar. Magic Initiate (Cleric) grants Healing Word."
+}

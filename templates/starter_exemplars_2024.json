@@ -1,0 +1,555 @@
+{
+  "ruleset": "D&D 2024",
+  "source": "TaleKeeper starter exemplars",
+  "description": "Six level-1 player-ready builds that mirror the 2024 Player's Handbook defaults so new tables can drop them straight into TaleKeeper.",
+  "characters": [
+    {
+      "id": "roland_champion",
+      "name": "Roland",
+      "class": "Fighter",
+      "subclass": "Champion",
+      "species": "Human",
+      "background": "Custom",
+      "level": 1,
+      "role": "Shield wall defender",
+      "ability_scores": {
+        "strength": 18,
+        "dexterity": 10,
+        "constitution": 18,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 12
+      },
+      "feats": [
+        "Tough",
+        "Savage Attacker"
+      ],
+      "weapon_masteries": [
+        "longsword",
+        "shield",
+        "longbow"
+      ],
+      "saving_throws": [
+        "Strength",
+        "Constitution"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Athletics",
+          "Perception"
+        ],
+        "bonus": [
+          "Animal Handling",
+          "Persuasion",
+          "Intimidation"
+        ]
+      },
+      "tool_proficiencies": [
+        "Smith's Tools"
+      ],
+      "hp": {
+        "base": 18,
+        "formula": "d10 (10) + CON (+4) + Tough (+2)"
+      },
+      "armor_class": {
+        "value": 18,
+        "calculation": "Chain Mail 16 + Shield +2"
+      },
+      "equipment_choices": {
+        "armor": "Chain Mail",
+        "shield": "Shield",
+        "primary_weapon": "Longsword",
+        "ranged_weapon": "Longbow",
+        "pack": "Soldier's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Longsword",
+          "quantity": 1
+        },
+        {
+          "name": "Shield",
+          "quantity": 1
+        },
+        {
+          "name": "Chain Mail",
+          "quantity": 1
+        },
+        {
+          "name": "Longbow",
+          "quantity": 1
+        }
+      ],
+      "notes": [
+        "Heavy-armor striker with Champion crit expansion queued for level 3.",
+        "Designed to stay at AC 18 so brand-new players always feel sturdy."
+      ]
+    },
+    {
+      "id": "thrud_berserker",
+      "name": "Thrud",
+      "class": "Barbarian",
+      "subclass": "Berserker",
+      "species": "Human",
+      "background": "Custom",
+      "level": 1,
+      "role": "Front-line wrecking ball",
+      "ability_scores": {
+        "strength": 20,
+        "dexterity": 18,
+        "constitution": 19,
+        "intelligence": 6,
+        "wisdom": 6,
+        "charisma": 9
+      },
+      "feats": [
+        "Tough",
+        "Savage Attacker"
+      ],
+      "weapon_masteries": [
+        "greataxe",
+        "handaxe",
+        "javelin"
+      ],
+      "saving_throws": [
+        "Strength",
+        "Constitution"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Athletics",
+          "Survival"
+        ],
+        "bonus": [
+          "Acrobatics",
+          "Stealth",
+          "Intimidation"
+        ]
+      },
+      "tool_proficiencies": [
+        "Gaming Set"
+      ],
+      "hp": {
+        "base": 18,
+        "formula": "d12 (12) + CON (+4) + Tough (+2)"
+      },
+      "armor_class": {
+        "value": 18,
+        "calculation": "Unarmored Defense 10 + DEX (+4) + CON (+4)"
+      },
+      "equipment_choices": {
+        "primary_weapon": "Greataxe",
+        "sidearm": "Handaxe",
+        "ranged_weapon": "Javelin",
+        "pack": "Explorer's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Greataxe",
+          "quantity": 1
+        },
+        {
+          "name": "Handaxe",
+          "quantity": 2
+        },
+        {
+          "name": "Javelin",
+          "quantity": 4
+        }
+      ],
+      "notes": [
+        "Berserker Rage for reckless damage and Frenzy at level 3.",
+        "Dex 18 plus CON 19 keeps AC respectable even while raging."
+      ]
+    },
+    {
+      "id": "theeph_assassin",
+      "name": "Theeph",
+      "class": "Rogue",
+      "subclass": "Assassin",
+      "species": "Human",
+      "background": "Custom",
+      "level": 1,
+      "role": "Stealth striker and face",
+      "ability_scores": {
+        "strength": 10,
+        "dexterity": 20,
+        "constitution": 16,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 12
+      },
+      "feats": [
+        "Alert",
+        "Lucky"
+      ],
+      "saving_throws": [
+        "Dexterity",
+        "Intelligence"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Stealth",
+          "Acrobatics",
+          "Perception",
+          "Sleight of Hand"
+        ],
+        "bonus": [
+          "Deception",
+          "Persuasion",
+          "Investigation"
+        ],
+        "expertise": [
+          "Stealth",
+          "Sleight of Hand"
+        ]
+      },
+      "tool_proficiencies": [
+        "Thieves' Tools",
+        "Woodcarver's Tools"
+      ],
+      "hp": {
+        "base": 11,
+        "formula": "d8 (8) + CON (+3)"
+      },
+      "armor_class": {
+        "value": 17,
+        "calculation": "Studded Leather 12 + DEX (+5)"
+      },
+      "equipment_choices": {
+        "armor": "Studded Leather",
+        "main_hand": "Shortsword",
+        "off_hand": "Scimitar",
+        "ranged_weapon": "Shortbow",
+        "pack": "Burglar's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Studded Leather Armor",
+          "quantity": 1
+        },
+        {
+          "name": "Shortsword",
+          "quantity": 1
+        },
+        {
+          "name": "Scimitar",
+          "quantity": 1
+        },
+        {
+          "name": "Shortbow",
+          "quantity": 1
+        },
+        {
+          "name": "Arrow",
+          "quantity": 20
+        }
+      ],
+      "notes": [
+        "Alert + Lucky keep this assassin ahead in initiative and safe from crits.",
+        "Carries three finesse blades plus shortbow for ranged sneak attack."
+      ]
+    },
+    {
+      "id": "najtros_fiendlock",
+      "name": "Najtros",
+      "class": "Warlock",
+      "subclass": "Fiend Patron",
+      "species": "Human",
+      "background": "Custom",
+      "level": 1,
+      "role": "Control/blaster with familiar scout",
+      "ability_scores": {
+        "strength": 6,
+        "dexterity": 16,
+        "constitution": 16,
+        "intelligence": 10,
+        "wisdom": 10,
+        "charisma": 20
+      },
+      "feats": [
+        "Tough",
+        "Magic Initiate (Wizard)"
+      ],
+      "pact_boon": "Pact of the Chain",
+      "saving_throws": [
+        "Wisdom",
+        "Charisma"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Deception",
+          "Intimidation"
+        ],
+        "bonus": [
+          "Stealth",
+          "Sleight of Hand",
+          "Persuasion"
+        ]
+      },
+      "tool_proficiencies": [
+        "Gaming Set"
+      ],
+      "hp": {
+        "base": 13,
+        "formula": "d8 (8) + CON (+3) + Tough (+2)"
+      },
+      "armor_class": {
+        "value": 16,
+        "calculation": "Mage Armor 13 + DEX (+3)"
+      },
+      "spellcasting": {
+        "pact_magic": {
+          "cantrips": [
+            "eldritch_blast",
+            "toll_the_dead"
+          ],
+          "level_1_spells": [
+            "hex",
+            "mage_armor"
+          ],
+          "slots": 1
+        },
+        "magic_initiate": {
+          "feat": "Magic Initiate (Wizard)",
+          "cantrips": [
+            "thunderclap",
+            "blade_ward"
+          ],
+          "level_1_spell": "false_life"
+        }
+      },
+      "familiar": {
+        "spirit": "Quasit",
+        "form": "Giant Centipede"
+      },
+      "equipment_choices": {
+        "arcane_focus": "Rod",
+        "weapon": "Dagger",
+        "pack": "Scholar's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Dagger",
+          "quantity": 2
+        },
+        {
+          "name": "Component Pouch",
+          "quantity": 1
+        }
+      ],
+      "notes": [
+        "Base HP 13 plus False Life (2d4 + 4 temp HP) keeps him alive while hexing.",
+        "Pact of the Chain quasit familiar scouts in centipede form when subtlety matters."
+      ]
+    },
+    {
+      "id": "celeste_abjurer",
+      "name": "Celeste",
+      "class": "Wizard",
+      "subclass": "Abjurer",
+      "species": "Human",
+      "background": "Custom",
+      "level": 1,
+      "role": "Protective caster and battlefield controller",
+      "ability_scores": {
+        "strength": 6,
+        "dexterity": 16,
+        "constitution": 16,
+        "intelligence": 20,
+        "wisdom": 10,
+        "charisma": 10
+      },
+      "feats": [
+        "Magic Initiate (Wizard)",
+        "Magic Initiate (Cleric)"
+      ],
+      "saving_throws": [
+        "Intelligence",
+        "Wisdom"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Arcana",
+          "Investigation"
+        ],
+        "bonus": [
+          "Stealth",
+          "Medicine",
+          "Perception"
+        ]
+      },
+      "tool_proficiencies": [
+        "Herbalism Kit"
+      ],
+      "hp": {
+        "base": 9,
+        "formula": "d6 (6) + CON (+3)"
+      },
+      "armor_class": {
+        "value": 16,
+        "calculation": "Mage Armor 13 + DEX (+3)"
+      },
+      "spellcasting": {
+        "cantrips": [
+          "word_of_radiance",
+          "guidance",
+          "true_strike",
+          "toll_the_dead",
+          "chill_touch",
+          "light",
+          "friends"
+        ],
+        "prepared_spells": [
+          "sleep",
+          "false_life",
+          "find_familiar",
+          "thunderwave",
+          "protection_from_evil_and_good",
+          "shield",
+          "healing_word"
+        ],
+        "familiar": "Celestial Owl"
+      },
+      "equipment_choices": {
+        "weapon": "Quarterstaff",
+        "arcane_focus": "Wand",
+        "pack": "Scholar's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Quarterstaff",
+          "quantity": 1
+        },
+        {
+          "name": "Spellbook",
+          "quantity": 1
+        },
+        {
+          "name": "Herbalism Kit",
+          "quantity": 1
+        },
+        {
+          "name": "Healer's Kit",
+          "quantity": 1
+        },
+        {
+          "name": "Rations (1 day)",
+          "quantity": 5
+        },
+        {
+          "name": "Waterskin (Wine)",
+          "quantity": 1
+        },
+        {
+          "name": "Blanket",
+          "quantity": 1
+        },
+        {
+          "name": "Gold Pieces",
+          "quantity": 31
+        }
+      ],
+      "notes": [
+        "Begins each day with Mage Armor, False Life, and a Celestial Owl familiar already summoned.",
+        "Magic Initiate (Cleric) grants Healing Word for emergency support while staying behind the frontline."
+      ]
+    },
+    {
+      "id": "bromli_lifecleric",
+      "name": "Bromli",
+      "class": "Cleric",
+      "subclass": "Life Domain",
+      "species": "Dwarf",
+      "background": "Custom",
+      "level": 1,
+      "role": "Plate-wearing healer",
+      "ability_scores": {
+        "strength": 16,
+        "dexterity": 10,
+        "constitution": 20,
+        "intelligence": 10,
+        "wisdom": 16,
+        "charisma": 6
+      },
+      "feats": [
+        "Tough"
+      ],
+      "saving_throws": [
+        "Wisdom",
+        "Charisma"
+      ],
+      "skill_proficiencies": {
+        "class": [
+          "Religion",
+          "Insight"
+        ],
+        "bonus": [
+          "Survival"
+        ]
+      },
+      "tool_proficiencies": [
+        "Smith's Tools",
+        "Cook's Utensils"
+      ],
+      "hp": {
+        "base": 16,
+        "formula": "d8 (8) + CON (+5) + Tough (+2) rounded up for resilience"
+      },
+      "armor_class": {
+        "value": 18,
+        "calculation": "Chain Mail 16 + Shield +2"
+      },
+      "spellcasting": {
+        "domain": "Life",
+        "cantrips": [
+          "word_of_radiance",
+          "resistance",
+          "guidance"
+        ],
+        "prepared_spells": [
+          "healing_word",
+          "bless",
+          "cure_wounds"
+        ]
+      },
+      "equipment_choices": {
+        "armor": "Chain Mail",
+        "shield": "Shield",
+        "weapon": "Warhammer",
+        "holy_symbol": "Amulet",
+        "pack": "Priest's Pack"
+      },
+      "starting_inventory": [
+        {
+          "name": "Warhammer",
+          "quantity": 1
+        },
+        {
+          "name": "Chain Mail",
+          "quantity": 1
+        },
+        {
+          "name": "Shield",
+          "quantity": 1
+        },
+        {
+          "name": "Holy Symbol",
+          "quantity": 1
+        },
+        {
+          "name": "Rations (1 day)",
+          "quantity": 5
+        },
+        {
+          "name": "Blanket",
+          "quantity": 1
+        }
+      ],
+      "notes": [
+        "Life Domain Disciple of Life bumps every healing spell, making Bromli the go-to sustain bot.",
+        "Tool proficiency covers both smithing repairs for party gear and hearty camp meals."
+      ]
+    }
+  ]
+}

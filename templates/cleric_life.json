@@ -1,28 +1,44 @@
 {
-  "name": "random",
+  "name": "Bromli",
   "species": "Dwarf",
   "class": "Cleric",
-  "background": "Acolyte",
-  "feats": ["War Caster"],
-  "cantrips": ["sacred_flame", "guidance", "light"],
-  "spells_prepared": ["cure_wounds", "bless", "shield_of_faith", "healing_word"],
+  "subclass": "Life Domain",
+  "background": "Custom",
+  "feats": ["Tough"],
   "ability_scores": {
-    "strength": 14,
+    "strength": 16,
     "dexterity": 10,
-    "constitution": 15,
+    "constitution": 20,
     "intelligence": 10,
     "wisdom": 16,
-    "charisma": 12
+    "charisma": 6
   },
-  "class_skills": ["Religion", "Medicine"],
-  "species_skills": [],
+  "class_skills": ["Religion", "Insight"],
+  "background_skills": ["Survival"],
+  "tool_proficiencies": ["Smith's Tools", "Cook's Utensils"],
+  "hp": 16,
+  "armor_class": 18,
+  "spellcasting": {
+    "domain": "Life",
+    "cantrips": ["word_of_radiance", "resistance", "guidance"],
+    "spells_prepared": ["healing_word", "bless", "cure_wounds"]
+  },
   "equipment_choices": {
-    "weapon": "Warhammer",
-    "shield": "Shield",
     "armor": "Chain Mail",
-    "holy_symbol": "Amulet"
+    "shield": "Shield",
+    "weapon": "Warhammer",
+    "holy_symbol": "Amulet",
+    "pack": "Priest's Pack"
   },
+  "starting_inventory": [
+    {"name": "Warhammer", "quantity": 1},
+    {"name": "Chain Mail", "quantity": 1},
+    {"name": "Shield", "quantity": 1},
+    {"name": "Holy Symbol", "quantity": 1},
+    {"name": "Rations (1 day)", "quantity": 5},
+    {"name": "Blanket", "quantity": 1}
+  ],
   "level": 1,
   "experience_points": 0,
-  "notes": "Support healer - heavy armor, healing spells, blessed strikes"
+  "notes": "Plate-wearing healer - Life Domain Disciple of Life bumps every healing spell. Tool proficiency for smithing and cooking."
 }
