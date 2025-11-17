@@ -8804,6 +8804,8 @@ class ActionPanel(QWidget):
                     break
                 parent = parent.parent()
 
+            # Check for familiar summoning (Pact of the Chain)
+            self._check_familiar_summoning()
 
         except Exception as e:
             print(f"Error during long rest: {e}")
