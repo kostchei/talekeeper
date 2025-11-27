@@ -1,0 +1,46 @@
+{
+  "name": "Kaelin",
+  "species": "Human",
+  "class": "Ranger",
+  "subclass": "Hunter",
+  "background": "Custom",
+  "feats": ["Sharpshooter"],
+  "ability_scores": {
+    "strength": 12,
+    "dexterity": 18,
+    "constitution": 14,
+    "intelligence": 10,
+    "wisdom": 16,
+    "charisma": 8
+  },
+  "class_skills": ["Stealth", "Perception"],
+  "background_skills": ["Survival", "Investigation"],
+  "tool_proficiencies": ["Herbalism Kit"],
+  "weapon_masteries": ["longbow", "shortsword", "dagger"],
+  "spellcasting": {
+    "cantrips": [],
+    "spells_known": ["hunter's_mark", "cure_wounds"],
+    "spell_focus": "Druidic Focus"
+  },
+  "equipment_choices": {
+    "armor": "Scale Mail",
+    "primary_weapon": "Longbow",
+    "melee_weapons": ["Shortsword", "Shortsword"],
+    "pack": "Explorer's Pack"
+  },
+  "starting_inventory": [
+    {"name": "Scale Mail", "quantity": 1},
+    {"name": "Longbow", "quantity": 1},
+    {"name": "Arrow", "quantity": 20},
+    {"name": "Shortsword", "quantity": 2},
+    {"name": "Explorer's Pack", "quantity": 1},
+    {"name": "Herbalism Kit", "quantity": 1}
+  ],
+  "favored_enemy": "Monstrosities",
+  "favored_terrain": "Forest",
+  "hp": 14,
+  "armor_class": 17,
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Dex-based hunter optimized for ranged combat with Sharpshooter feat and Hunter's Mark uptime."
+}

@@ -1,0 +1,637 @@
+metadata:
+  version: "0.2"
+  sr_doc: "docs/SRD_CC_v5.2.1.md"
+  last_updated: "2025-11-19"
+  description: >
+    Narrowed scope matrix for SRD 2024 classes currently implemented end-to-end
+    in TaleKeeper (Barbarian, Fighter, Rogue, Cleric, Wizard, Warlock, Paladin).
+
+classes:
+  barbarian:
+    sr_section: "docs/SRD_CC_v5.2.1.md:48-50"
+    default_subclass: "Path of the Berserker"
+    template:
+      path: "templates/barbarian_berserker.json"
+      notes: "Uses Thrud berserker exemplar"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.barbarian_abilities.BarbarianAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py (generalized)"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: rage
+        name: "Rage"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:48"
+        tk_service: "BarbarianAbilitiesService.update_barbarian_resources_for_level"
+        db_tables: ["barbarian_features"]
+        ui_targets: ["ActionPanel:RageToggle"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: reckless_attack
+        name: "Reckless Attack"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:49"
+        tk_service: "BarbarianAbilitiesService.update_barbarian_resources_for_level"
+        db_tables: ["barbarian_features"]
+        ui_targets: ["ActionPanel:RecklessAttackToggle"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: frenzy
+        name: "Berserker Frenzy"
+        level: 3
+        sr_ref: "docs/SRD_CC_v5.2.1.md:50"
+        tk_service: "BarbarianAbilitiesService.update_barbarian_resources_for_level"
+        db_tables: ["barbarian_features"]
+        ui_targets: ["ActionPanel:FrenzyButton"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: relentless_rage
+        name: "Relentless Rage"
+        level: 11
+        sr_ref: "docs/SRD_CC_v5.2.1.md:50"
+        tk_service: "BarbarianAbilitiesService.update_barbarian_resources_for_level"
+        db_tables: ["barbarian_features"]
+        ui_targets: ["ActionPanel:RelentlessRage"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+
+  cleric:
+    sr_section: "docs/SRD_CC_v5.2.1.md:55-57"
+    default_subclass: "Life Domain"
+    template:
+      path: "templates/cleric_life.json"
+      notes: "Bromli life cleric"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.cleric_abilities.ClericAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py (generalized)"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: channel_divinity
+        name: "Channel Divinity"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:56"
+        tk_service: "ClericAbilitiesService.update_channel_divinity"
+        db_tables: ["cleric_features"]
+        ui_targets: ["ActionPanel:ChannelDivinity"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: divine_domain
+        name: "Domain Features (Life)"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:55"
+        tk_service: "ClericAbilitiesService.apply_domain_features"
+        db_tables: ["cleric_features"]
+        ui_targets: ["ActionPanel:LifeDomainCard"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: spellcasting
+        name: "Cleric Spellcasting"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:55"
+        tk_service: "SpellcastingService.sync_spell_slots"
+        db_tables: ["spell_slots", "prepared_spells"]
+        ui_targets: ["SpellPreparationView"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: divine_intervention
+        name: "Divine Intervention"
+        level: 10
+        sr_ref: "docs/SRD_CC_v5.2.1.md:57"
+        tk_service: "ClericAbilitiesService.divine_intervention"
+        db_tables: ["cleric_features"]
+        ui_targets: ["ActionPanel:DivineIntervention"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+
+  fighter:
+    sr_section: "docs/SRD_CC_v5.2.1.md:62-64"
+    default_subclass: "Champion"
+    template:
+      path: "templates/fighter_soldier.json"
+      notes: "Roland shield fighter"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.fighter_abilities.FighterAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py"
+      ui_suite: "tests/ui/test_action_panel_integration.py"
+    feature_groups:
+      - id: second_wind
+        name: "Second Wind"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:62"
+        tk_service: "FighterAbilitiesService.update_second_wind"
+        db_tables: ["fighter_features"]
+        ui_targets: ["ActionPanel:SecondWindButton"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/test_fighter_progression_complete.py::TestFighterProgression::test_01_create_character"]
+          ui:
+            status: "ready"
+            tests: ["tests/ui/test_action_panel_integration.py::TestFighterResourceManagement::test_second_wind_activation_and_recovery"]
+      - id: action_surge
+        name: "Action Surge"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:62"
+        tk_service: "FighterAbilitiesService.update_action_surge"
+        db_tables: ["fighter_features"]
+        ui_targets: ["ActionPanel:ActionSurgeButton"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/test_fighter_progression_complete.py::TestFighterProgression::test_05_level_5_extra_attack"]
+          ui:
+            status: "ready"
+            tests: ["tests/ui/test_action_panel_integration.py::TestFighterResourceManagement::test_action_surge_activation_and_cooldown"]
+      - id: extra_attack
+        name: "Extra Attack"
+        level: 5
+        sr_ref: "docs/SRD_CC_v5.2.1.md:63"
+        tk_service: "FighterAbilitiesService.update_extra_attacks"
+        db_tables: ["fighter_features"]
+        ui_targets: ["ActionPanel:AttackSummary"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/test_fighter_progression_complete.py::TestFighterProgression::test_05_level_5_extra_attack"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: indomitable
+        name: "Indomitable"
+        level: 9
+        sr_ref: "docs/SRD_CC_v5.2.1.md:63"
+        tk_service: "FighterAbilitiesService.update_indomitable"
+        db_tables: ["fighter_features"]
+        ui_targets: ["ActionPanel:IndomitableButton"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/test_fighter_progression_complete.py::TestFighterProgression::test_09_level_9_indomitable"]
+          ui:
+            status: "ready"
+            tests: ["tests/ui/test_action_panel_integration.py::TestFighterResourceManagement::test_indomitable_save_reroll"]
+
+  paladin:
+    sr_section: "docs/SRD_CC_v5.2.1.md:66-69"
+    default_subclass: "Oath of Devotion"
+    template:
+      path: "templates/paladin_devotion.json"
+      notes: "Devotion paladin"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.paladin_abilities.PaladinAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py (generalized)"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: lay_on_hands
+        name: "Lay on Hands"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:66"
+        tk_service: "PaladinAbilitiesService.update_lay_on_hands"
+        db_tables: ["paladin_features"]
+        ui_targets: ["ActionPanel:LayOnHands"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_paladin_lay_on_hands.py::TestLayOnHands::test_heal_damage"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: divine_smite
+        name: "Divine Smite"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:66-67"
+        tk_service: "PaladinAbilitiesService.divine_smite"
+        db_tables: ["paladin_features"]
+        ui_targets: ["ActionPanel:DivineSmiteDialog"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_paladin_divine_smite.py::TestDivineSmiteFunctionality::test_divine_smite_damage_scaling"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: aura_of_protection
+        name: "Aura of Protection"
+        level: 6
+        sr_ref: "docs/SRD_CC_v5.2.1.md:68"
+        tk_service: "PaladinAbilitiesService.update_auras"
+        db_tables: ["paladin_features"]
+        ui_targets: ["ActionPanel:Auras"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_paladin_auras.py::TestPaladinAuras::test_aura_of_protection_radius"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: holy_nimbus
+        name: "Holy Nimbus"
+        level: 20
+        sr_ref: "docs/SRD_CC_v5.2.1.md:69"
+        tk_service: "PaladinAbilitiesService.update_capstone"
+        db_tables: ["paladin_features"]
+        ui_targets: ["ActionPanel:HolyNimbus"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+
+  rogue:
+    sr_section: "docs/SRD_CC_v5.2.1.md:72-74"
+    default_subclass: "Thief"
+    template:
+      path: "templates/rogue_assassin.json"
+      notes: "Theeph assassin baseline (subclass swapped to Thief in tests)"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.rogue_abilities.RogueAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py (generalized)"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: sneak_attack
+        name: "Sneak Attack"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:72"
+        tk_service: "RogueAbilitiesService.update_sneak_attack"
+        db_tables: ["rogue_features"]
+        ui_targets: ["ActionPanel:SneakAttack"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: cunning_action
+        name: "Cunning Action"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:73"
+        tk_service: "RogueAbilitiesService.update_cunning_action"
+        db_tables: ["rogue_features"]
+        ui_targets: ["ActionPanel:CunningAction"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: uncanny_dodge
+        name: "Uncanny Dodge"
+        level: 5
+        sr_ref: "docs/SRD_CC_v5.2.1.md:73"
+        tk_service: "RogueAbilitiesService.update_uncanny_dodge"
+        db_tables: ["rogue_features"]
+        ui_targets: ["ActionPanel:UncannyDodge"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: thief_reflexes
+        name: "Thief Reflexes"
+        level: 17
+        sr_ref: "docs/SRD_CC_v5.2.1.md:74"
+        tk_service: "RogueAbilitiesService.update_capstone"
+        db_tables: ["rogue_features"]
+        ui_targets: ["FeaturePanel"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+
+  warlock:
+    sr_section: "docs/SRD_CC_v5.2.1.md:6188-6371"
+    default_subclass: "Fiend Patron"
+    template:
+      path: "templates/warlock_fiend.json"
+      notes: "Najtros fiendlock"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.warlock_service.WarlockService"
+    automation:
+      backend_suite: "tests/test_warlock_comprehensive.py"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: pact_magic
+        name: "Pact Magic"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:78"
+        tk_service: "WarlockService.update_pact_magic"
+        db_tables: ["warlock_features", "character_spell_slots"]
+        ui_targets: ["SpellBookView:PactSlots"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_warlock_pact_magic.py::TestPactMagicSlots::test_pact_magic_slot_progression"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: eldritch_invocations
+        name: "Eldritch Invocations"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:78-79"
+        tk_service: "WarlockService.update_invocations"
+        db_tables: ["warlock_invocations"]
+        ui_targets: ["InvocationsDialog"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_warlock_invocations.py::TestEldritchInvocationBasics::test_invocation_choices"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: magical_cunning
+        name: "Magical Cunning"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6323"
+        tk_service: "WarlockService.update_magical_cunning"
+        db_tables: ["warlock_features"]
+        ui_targets: ["ActionPanel:MagicalCunning"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_pact_magic.py::TestMagicalCunning::test_magical_cunning_recovery_amount"
+              - "tests/features/test_warlock_pact_magic.py::TestMagicalCunning::test_magical_cunning_once_per_long_rest"
+              - "tests/features/test_warlock_pact_magic.py::TestMagicalCunning::test_magical_cunning_high_level"
+          ui:
+            status: "planned"
+            tests: []
+      - id: pact_boon
+        name: "Pact Boon (Blade/Chain/Tome)"
+        level: 3
+        sr_ref: "docs/SRD_CC_v5.2.1.md:79"
+        tk_service: "WarlockService.update_pact_boons"
+        db_tables: ["warlock_features"]
+        ui_targets: ["ActionPanel:PactBoon"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_warlock_pact_boons.py::TestPactOfTheBlade::test_blade_weapon_bond"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: fiend_features
+        name: "Fiend Patron Features"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:80"
+        tk_service: "WarlockService.update_fiend_features"
+        db_tables: ["warlock_features"]
+        ui_targets: ["ActionPanel:PatronFeatures"]
+        verification:
+          backend:
+            status: "ready"
+            tests: ["tests/features/test_warlock_fiend_patron.py::TestDarkOnesBlessing::test_temp_hp_gain"]
+          ui:
+            status: "planned"
+            tests: []
+      - id: contact_patron
+        name: "Contact Patron"
+        level: 9
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6342"
+        tk_service: "WarlockService.update_contact_patron"
+        db_tables: ["warlock_features", "character_spellcasting"]
+        ui_targets: ["ActionPanel:ContactPatron"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_mystic_arcanum.py::TestContactPatron::test_contact_other_plane_always_prepared"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestContactPatron::test_contact_patron_no_spell_slot"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestContactPatron::test_contact_patron_once_per_long_rest"
+          ui:
+            status: "planned"
+            tests: []
+      - id: mystic_arcanum_6
+        name: "Mystic Arcanum (Level 6 Spell)"
+        level: 11
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6352"
+        tk_service: "WarlockService.update_mystic_arcanum"
+        db_tables: ["mystic_arcanum"]
+        ui_targets: ["SpellBookView:MysticArcanum"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_mystic_arcanum.py::TestMysticArcanumBasics::test_level_11_gains_level_6_spell"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestArcanumUsage::test_arcanum_cast_once_per_long_rest"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestArcanumUsage::test_arcanum_recovers_on_long_rest"
+          ui:
+            status: "planned"
+            tests: []
+      - id: mystic_arcanum_7
+        name: "Mystic Arcanum (Level 7 Spell)"
+        level: 13
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6352"
+        tk_service: "WarlockService.update_mystic_arcanum"
+        db_tables: ["mystic_arcanum"]
+        ui_targets: ["SpellBookView:MysticArcanum"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_mystic_arcanum.py::TestMysticArcanumBasics::test_level_13_gains_level_7_spell"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestArcanumSpellSelection::test_arcanum_replacement_on_level_up"
+          ui:
+            status: "planned"
+            tests: []
+      - id: mystic_arcanum_8
+        name: "Mystic Arcanum (Level 8 Spell)"
+        level: 15
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6352"
+        tk_service: "WarlockService.update_mystic_arcanum"
+        db_tables: ["mystic_arcanum"]
+        ui_targets: ["SpellBookView:MysticArcanum"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_mystic_arcanum.py::TestMysticArcanumBasics::test_level_15_gains_level_8_spell"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestArcanumSpellSelection::test_one_arcanum_per_spell_level"
+          ui:
+            status: "planned"
+            tests: []
+      - id: mystic_arcanum_9
+        name: "Mystic Arcanum (Level 9 Spell)"
+        level: 17
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6352"
+        tk_service: "WarlockService.update_mystic_arcanum"
+        db_tables: ["mystic_arcanum"]
+        ui_targets: ["SpellBookView:MysticArcanum"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_mystic_arcanum.py::TestMysticArcanumBasics::test_level_17_gains_level_9_spell"
+              - "tests/features/test_warlock_mystic_arcanum.py::TestArcanumUsage::test_multiple_arcanum_independent"
+          ui:
+            status: "planned"
+            tests: []
+      - id: epic_boon
+        name: "Epic Boon"
+        level: 19
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6367"
+        tk_service: "UnifiedLevelUpService.apply_epic_boon"
+        db_tables: ["character_feats", "class_features"]
+        ui_targets: ["LevelUpDialog:EpicBoon"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/core_regression.py::TestEpicBoon::test_level_19_triggers_epic_boon_choice"
+              - "tests/core_regression.py::TestEpicBoon::test_apply_epic_boon_to_character"
+              - "tests/core_regression.py::TestEpicBoon::test_cannot_get_multiple_epic_boons"
+          ui:
+            status: "planned"
+            tests: []
+      - id: eldritch_master
+        name: "Eldritch Master"
+        level: 20
+        sr_ref: "docs/SRD_CC_v5.2.1.md:6371"
+        tk_service: "WarlockService.update_eldritch_master"
+        db_tables: ["warlock_features"]
+        ui_targets: ["ActionPanel:EldritchMaster"]
+        verification:
+          backend:
+            status: "ready"
+            tests:
+              - "tests/features/test_warlock_pact_magic.py::TestEldritchMaster::test_eldritch_master_full_recovery"
+              - "tests/features/test_warlock_pact_magic.py::TestEldritchMaster::test_eldritch_master_replaces_magical_cunning"
+          ui:
+            status: "planned"
+            tests: []
+
+  wizard:
+    sr_section: "docs/SRD_CC_v5.2.1.md:82-84"
+    default_subclass: "Evoker"
+    template:
+      path: "templates/wizard_abjurer.json"
+      notes: "Celeste abjurer (swap to Evoker as assets mature)"
+    services:
+      - "scripts.character_tools.programmatic_character_creator.ProgrammaticCharacterCreator"
+      - "talekeeper.services.unified_level_up.UnifiedLevelUpService"
+      - "services.wizard_abilities.WizardAbilitiesService"
+    automation:
+      backend_suite: "tests/test_fighter_progression_complete.py (generalized)"
+      ui_suite: "tests/testing_framework_ui_automation.py"
+    feature_groups:
+      - id: spellbook
+        name: "Spellbook / Spell Preparation"
+        level: 1
+        sr_ref: "docs/SRD_CC_v5.2.1.md:82"
+        tk_service: "WizardAbilitiesService.sync_spellbook"
+        db_tables: ["known_spells", "spellbook_pages"]
+        ui_targets: ["SpellBookView"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: arcane_recovery
+        name: "Arcane Recovery"
+        level: 2
+        sr_ref: "docs/SRD_CC_v5.2.1.md:83"
+        tk_service: "WizardAbilitiesService.update_arcane_recovery"
+        db_tables: ["wizard_features"]
+        ui_targets: ["ActionPanel:ArcaneRecovery"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: evocation_savant
+        name: "Arcane Tradition Features"
+        level: 3
+        sr_ref: "docs/SRD_CC_v5.2.1.md:83"
+        tk_service: "WizardAbilitiesService.apply_tradition_features"
+        db_tables: ["wizard_features"]
+        ui_targets: ["FeaturePanel"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []
+      - id: spell_mastery
+        name: "Spell Mastery / Signature Spells"
+        level: 18
+        sr_ref: "docs/SRD_CC_v5.2.1.md:84"
+        tk_service: "WizardAbilitiesService.update_capstone"
+        db_tables: ["wizard_features"]
+        ui_targets: ["SpellBookView"]
+        verification:
+          backend:
+            status: "planned"
+            tests: []
+          ui:
+            status: "planned"
+            tests: []

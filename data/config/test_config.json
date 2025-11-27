@@ -59,9 +59,9 @@
   },
   "narrative": {
     "enable_audio_narration": false,
-    "enable_combat_narratives": false,
-    "enable_round_summaries": false,
-    "enable_victory_narratives": false,
+    "enable_combat_narratives": true,
+    "enable_round_summaries": true,
+    "enable_victory_narratives": true,
     "show_only_narratives": false,
     "narrative_display_delay": 0.5,
     "max_narrative_cache": 50,
@@ -72,7 +72,7 @@
     "enable_music": true,
     "enable_narration": true,
     "master_volume": 1.0,
-    "music_volume": 0.4,
+    "music_volume": 0.8,
     "narration_volume": 0.7
   }
 }

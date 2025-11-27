@@ -19,7 +19,7 @@
   "background_skills": ["Animal Handling", "Persuasion", "Intimidation"],
   "tool_proficiencies": ["Smith's Tools"],
   "hp": 18,
-  "armor_class": 18,
+  "armor_class": 19,
   "equipment_choices": {
     "armor": "Chain Mail",
     "shield": "Shield",

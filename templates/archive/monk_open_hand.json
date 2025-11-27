@@ -1,0 +1,41 @@
+{
+  "name": "Jinsai",
+  "species": "Human",
+  "class": "Monk",
+  "subclass": "Warrior of the Open Hand",
+  "background": "Custom",
+  "feats": ["Alert"],
+  "ability_scores": {
+    "strength": 12,
+    "dexterity": 18,
+    "constitution": 14,
+    "intelligence": 10,
+    "wisdom": 16,
+    "charisma": 8
+  },
+  "class_skills": ["Acrobatics", "Stealth"],
+  "background_skills": ["Insight", "Perception"],
+  "tool_proficiencies": ["Calligrapher's Supplies"],
+  "equipment_choices": {
+    "primary_weapon": "Quarterstaff",
+    "sidearm": "Shortsword",
+    "pack": "Explorer's Pack",
+    "focus": "Prayer Beads"
+  },
+  "starting_inventory": [
+    {"name": "Quarterstaff", "quantity": 1},
+    {"name": "Shortsword", "quantity": 1},
+    {"name": "Dart", "quantity": 10},
+    {"name": "Explorer's Pack", "quantity": 1},
+    {"name": "Prayer Beads", "quantity": 1}
+  ],
+  "martial_arts": {
+    "die": 4,
+    "use_dex_for_attacks": true
+  },
+  "hp": 11,
+  "armor_class": 17,
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Mobile striker leveraging Unarmored Defense (DEX + WIS) and Open Hand techniques."
+}

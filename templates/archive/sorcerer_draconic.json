@@ -1,0 +1,41 @@
+{
+  "name": "Seraphine",
+  "species": "Dragonborn",
+  "class": "Sorcerer",
+  "subclass": "Draconic Sorcery",
+  "draconic_ancestry": "Red",
+  "background": "Custom",
+  "feats": ["Tough"],
+  "ability_scores": {
+    "strength": 8,
+    "dexterity": 14,
+    "constitution": 16,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 18
+  },
+  "class_skills": ["Arcana", "Persuasion"],
+  "background_skills": ["Deception", "Intimidation"],
+  "tool_proficiencies": ["Calligrapher's Supplies"],
+  "spellcasting": {
+    "cantrips": ["fire_bolt", "mage_hand", "light"],
+    "spells_known": ["shield", "chromatic_orb"],
+    "metamagic": ["Careful Spell", "Empowered Spell"]
+  },
+  "equipment_choices": {
+    "arcane_focus": "Wand",
+    "weapon": "Dagger",
+    "pack": "Explorer's Pack"
+  },
+  "starting_inventory": [
+    {"name": "Dagger", "quantity": 2},
+    {"name": "Component Pouch", "quantity": 1},
+    {"name": "Explorer's Pack", "quantity": 1},
+    {"name": "Wand", "quantity": 1}
+  ],
+  "hp": 11,
+  "armor_class": 15,
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Fire-focused draconic sorcerer leveraging high Charisma, Tough feat for survivability, and early metamagic."
+}

@@ -143,10 +143,47 @@ class HexShopInterface(ShopInterface):
             conn.close()
 
             self.character_inventory = []
+            
+            # Create lookup dictionaries for smarter matching
+            normalized_lookup = {name.lower(): item for name, item in equipment_lookup.items()}
+            
             for item_name, item_type, quantity in inventory_items:
+                matched_item = None
+                
+                # Strategy 1: Exact match
                 if item_name in equipment_lookup:
-                    item_data = equipment_lookup[item_name].copy()
+                    matched_item = equipment_lookup[item_name]
+                
+                # Strategy 2: Case-insensitive match
+                elif item_name.lower() in normalized_lookup:
+                    matched_item = normalized_lookup[item_name.lower()]
+                
+                # Strategy 3: Singularized match (e.g. "Daggers" -> "Dagger")
+                elif item_name.lower().endswith('s') and item_name[:-1].lower() in normalized_lookup:
+                    matched_item = normalized_lookup[item_name[:-1].lower()]
+                    
+                # Strategy 4: Prefix match (e.g. "Rations" -> "Rations (1 day)")
+                if not matched_item:
+                    # Look for items that start with this name (e.g. "Rations" matches "Rations (1 day)")
+                    # We pick the shortest match to avoid matching "Short" to "Shortsword" if "Shortbow" exists? 
+                    # Actually, usually we want the base item. 
+                    # For "Rations", we want "Rations (1 day)".
+                    candidates = [
+                        item for name, item in normalized_lookup.items() 
+                        if name.startswith(item_name.lower())
+                    ]
+                    if candidates:
+                        # Sort by name length to get the closest match (shortest usually implies base item)
+                        candidates.sort(key=lambda x: len(x['name']))
+                        matched_item = candidates[0]
+
+                if matched_item:
+                    item_data = matched_item.copy()
+                    # Preserve the name from inventory if it's just a case/plural difference, 
+                    # but maybe use the official name for clarity? 
+                    # Let's use the official name from DB but keep the quantity.
                     item_data['quantity'] = quantity
+                    
                     sell_price_gp, sell_price_display, charisma_roll = shop_service.calculate_sell_price_with_character(
                         item_data.get('cost_gp', 0), self.character_data
                     )

@@ -160,9 +160,26 @@ class SpellcastingProgressionService:
     def __init__(self, db_path: str = 'talekeeper.db'):
         self.db_path = db_path
 
-    def update_spellcasting_on_level_up(self, character_id: str, new_level: int, class_id: str) -> Dict[str, Any]:
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
+    def update_spellcasting_on_level_up(self, character_id: str, new_level: int, class_id: str, cursor: sqlite3.Cursor = None) -> Dict[str, Any]:
+        """
+        Update spell slots and cantrips for a character on level up.
+        
+        Args:
+            character_id: The character's ID
+            new_level: The new level reached
+            class_id: The class ID (wizard, cleric, etc.)
+            cursor: Optional existing database cursor. If provided, operations will use this cursor
+                   and NOT commit (caller responsibility). If None, a new connection is created
+                   and committed.
+        """
+        should_close = False
+        conn = None
+        
+        try:
+            if cursor is None:
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                should_close = True
 
             cursor.execute("""
                 SELECT charisma, wisdom, intelligence
@@ -196,6 +213,20 @@ class SpellcastingProgressionService:
                         SET pact_slots_max = ?, pact_slots_current = ?, pact_slot_level = ?
                         WHERE character_id = ?
                     """, (pact_prog.pact_slots, pact_prog.pact_slots, pact_prog.pact_slot_level, character_id))
+
+                    # Also update character_spell_slots for unified access
+                    # First, clear existing pact slots
+                    cursor.execute("""
+                        DELETE FROM character_spell_slots 
+                        WHERE character_id = ? AND slot_type = 'pact'
+                    """, (character_id,))
+
+                    # Insert new pact slots
+                    cursor.execute("""
+                        INSERT INTO character_spell_slots
+                        (character_id, spell_level, max_slots, used_slots, slot_type)
+                        VALUES (?, ?, ?, 0, 'pact')
+                    """, (character_id, pact_prog.pact_slot_level, pact_prog.pact_slots))
 
                     cursor.execute("""
                         UPDATE character_spellcasting
@@ -238,8 +269,19 @@ class SpellcastingProgressionService:
                 prepared_count = self.PREPARED_SPELLS_BY_LEVEL[class_id].get(new_level, 0)
                 result['prepared_spell_count'] = prepared_count
 
-            conn.commit()
+            if should_close and conn:
+                conn.commit()
+                
             return result
+            
+        except Exception as e:
+            print(f"Error updating spellcasting: {e}")
+            if should_close and conn:
+                conn.rollback()
+            return {'success': False, 'error': str(e)}
+        finally:
+            if should_close and conn:
+                conn.close()
 
     def _update_spell_slots(self, cursor, character_id: str, class_id: str, prog: SpellSlotProgression):
         cursor.execute("""

@@ -2,27 +2,35 @@
   "name": "random",
   "species": "Human",
   "class": "Paladin",
+  "subclass": "Oath of Devotion",
   "background": "Acolyte",
-  "feats": ["Heavy Armor Master"],
+  "feats": ["Tough", "Magic Initiate (Cleric)"],
   "fighting_style": "Defense",
-  "weapon_masteries": ["longsword", "shield", "warhammer"],
+  "weapon_masteries": ["longsword", "shield"],
   "ability_scores": {
     "strength": 16,
     "dexterity": 10,
-    "constitution": 14,
-    "intelligence": 8,
+    "constitution": 16,
+    "intelligence": 10,
     "wisdom": 12,
-    "charisma": 15
+    "charisma": 14
   },
-  "class_skills": ["Religion", "Persuasion"],
+  "class_skills": ["Religion", "Persuasion", "Perception", "Insight", "Athletics"],
   "species_skills": [],
+  "tools": ["Smith's Tools"],
   "equipment_choices": {
     "martial_weapon": "Longsword",
     "shield": "Shield",
     "armor": "Chain Mail",
     "holy_symbol": "Amulet"
   },
+  "magic_initiate_spells": {
+    "cantrips": ["Word of Radiance", "Guidance"],
+    "level_1": "Shield of Faith"
+  },
   "level": 1,
   "experience_points": 0,
-  "notes": "Sword and board paladin - high AC, Divine Smite, healing"
+  "hp": 15,
+  "ac": 18,
+  "notes": "Oath of Devotion paladin with Tough and Magic Initiate feats. Heavy armor (AC 18), longsword and shield. Divine Smite and Heroism available. Magic Initiate provides Shield of Faith, Word of Radiance, and Guidance."
 }

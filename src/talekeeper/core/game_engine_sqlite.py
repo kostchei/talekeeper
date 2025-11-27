@@ -1310,6 +1310,7 @@ class GameEngineSQLite:
 
             return character_dict
 
+
         except Exception as e:
             print(f"[SQLite] Error applying feat effects: {e}")
             return character_dict
@@ -1317,6 +1318,7 @@ class GameEngineSQLite:
     def _add_starting_equipment(self, cursor, character_id: str, character_data: Dict):
         """Add starting equipment based on class and background."""
         import uuid
+        from talekeeper.services.equipment import equipment_service
 
         # Check if character already has equipment
         cursor.execute("SELECT COUNT(*) FROM character_inventory WHERE character_id = ?", (character_id,))
@@ -1336,12 +1338,53 @@ class GameEngineSQLite:
         else:
             print(f"[SQLite] Adding starting equipment for class '{class_id}' background '{background_id}'")
         
+        # Helper to add item from DB
+        def add_item_from_db(item_name, quantity=1, equipped=0, fallback_type='gear', fallback_desc=''):
+            # Name mappings for inconsistencies
+            name_map = {
+                'Rations': 'Rations (1 day)',
+                'rations': 'Rations (1 day)',
+                'Waterskin': 'Waterskin',
+                'Pouch': 'Pouch',
+                'Backpack': 'Backpack',
+                'Potion of Healing': 'Potion of Healing',
+                "Explorer's Pack": "Explorer's Pack",
+                'Javelin': 'Javelin',
+                'Greataxe': 'Greataxe',
+                'Scimitar': 'Scimitar'
+            }
+            
+            db_name = name_map.get(item_name, item_name)
+            
+            # Normalize plural names if needed (e.g. "daggers" -> "Dagger")
+            if db_name not in name_map:  # Don't normalize if we have a direct map
+                db_name = self._normalize_item_name(db_name)
+
+            equipment_data = equipment_service.get_item(db_name)
+            
+            if equipment_data:
+                item_type = equipment_data['item_type']
+                weight_lb = equipment_data['weight_lb']
+                description = equipment_data['description'] or ''
+                value_gp = equipment_data['cost_gp']
+                
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), character_id, equipment_data['name'], item_type, quantity, weight_lb, description, value_gp, equipped))
+                print(f"[SQLite] Added {equipment_data['name']} (qty: {quantity})")
+                return True
+            else:
+                print(f"[SQLite] Warning: Item '{item_name}' (mapped: '{db_name}') not found in DB. Using fallback.")
+                cursor.execute("""
+                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), character_id, item_name, fallback_type, quantity, 1.0, fallback_desc or f'{item_name} (fallback)', 0, equipped))
+                return False
+
         # First, add equipment from character creation choices
         if equipment_choices:
             print(f"[SQLite] Adding equipment from character creation choices: {equipment_choices}")
-            
-            # Use equipment service instead of hardcoded data
-            from talekeeper.services.equipment import equipment_service
             
             # Process each equipment choice using compound choice parsing
             for choice_key, item_name in equipment_choices.items():
@@ -1354,36 +1397,10 @@ class GameEngineSQLite:
                     item_name_clean = item_entry['name']
                     quantity = item_entry.get('quantity', 1)
 
-                    print(f"[SQLite] Processing individual item: {item_name_clean} (qty: {quantity})")
-
-                    equipment_data = equipment_service.get_item(item_name_clean)
-                    if equipment_data:
-                        # Get item properties from database
-                        item_type = equipment_data['item_type']
-                        weight_lb = equipment_data['weight_lb']
-                        description = equipment_data['description'] or ''
-                        value_gp = equipment_data['cost_gp']
-
-                        # Determine if equipped based on choice type
-                        equipped = 1 if any(key in choice_key.lower() for key in ['weapon', 'armor', 'shield']) else 0
-
-                        cursor.execute("""
-                            INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (str(uuid.uuid4()), character_id, item_name_clean, item_type, quantity, weight_lb, description, value_gp, equipped))
-                        print(f"[SQLite] Added {item_name_clean} (qty: {quantity}) to inventory (from {choice_key}) - equipped: {equipped}")
-
-                        # Handle shield separately if it's part of a weapon choice
-                        if 'Shield' in item_name_clean and item_type != 'shield':
-                            shield_data = equipment_service.get_item('Shield')
-                            if shield_data:
-                                cursor.execute("""
-                                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                """, (str(uuid.uuid4()), character_id, 'Shield', 'shield', 1, shield_data['weight_lb'], shield_data['description'], shield_data['cost_gp'], 1))
-                                print(f"[SQLite] Also added Shield from {item_name_clean}")
-                    else:
-                        print(f"[SQLite] Warning: Equipment '{item_name_clean}' not found in database")
+                    # Determine if equipped based on choice type
+                    equipped = 1 if any(key in choice_key.lower() for key in ['weapon', 'armor', 'shield']) else 0
+                    
+                    add_item_from_db(item_name_clean, quantity, equipped)
 
         # Skip automatic class and background equipment if flag is set
         if skip_automatic:
@@ -1392,54 +1409,28 @@ class GameEngineSQLite:
 
         # Fighter Class Starting Equipment
         if class_id in ['fighter']:
-            equipment_items = [
-                ('Potion of Healing', 'consumable', 1, 0.5, 'This potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points.', 50),
-                ('Backpack', 'gear', 1, 5.0, 'A leather backpack that can hold up to 30 pounds of gear.', 2),
-            ]
-            
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+            add_item_from_db('Potion of Healing', 1, 0, 'consumable')
+            add_item_from_db('Backpack', 1, 0, 'gear')
         
         # Barbarian Class Starting Equipment
         elif class_id in ['barbarian']:
-            equipment_items = [
-                # Adventuring gear
-                ('Explorer\'s Pack', 'gear', 1, 59.0, 'Includes backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days rations, waterskin, 50 ft hemp rope', 10),
-                # Javelins stack since they're thrown weapons
-                ('Javelin', 'weapon', 4, 2.0, 'Simple thrown weapon (range 30/120)', 5),
-            ]
+            add_item_from_db("Explorer's Pack", 1, 0, 'gear')
+            add_item_from_db('Javelin', 4, 0, 'weapon')
             
             # Add 2 scimitars separately for dual-wielding (not stacked)
             for i in range(2):
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, equipped)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, 'Scimitar', 'weapon', 1, 3.0, 'Finesse, light martial weapon (1d6 slashing)', 25, 1 if i == 0 else 0))
-                
-            print(f"[SQLite] Added 2 individual scimitars for dual-wielding (first equipped)")
+                add_item_from_db('Scimitar', 1, 1 if i == 0 else 0, 'weapon')
             
             # Check equipment choices for greataxe vs scale mail choice
-            # The choice has already been added from equipment_choices above, so we only add if no choice was made
             barbarian_choice = equipment_choices.get('barbarian_choice', '')
             if not barbarian_choice:
                 # No choice made, default to greataxe
-                equipment_items.append(('Greataxe', 'weapon', 1, 7.0, 'Heavy, two-handed martial weapon (1d12 slashing)', 30))
+                add_item_from_db('Greataxe', 1, 0, 'weapon')
                 print(f"[SQLite] Barbarian defaulted to Greataxe (no choice made)")
             elif 'scale' in barbarian_choice.lower() or 'mail' in barbarian_choice.lower():
-                # Choice was scale mail, already added above
                 print(f"[SQLite] Barbarian chose Scale Mail")
             else:
-                # Choice was greataxe, already added above
                 print(f"[SQLite] Barbarian chose Greataxe")
-            
-            for item_name, item_type, quantity, weight_lb, description, value_gp in equipment_items:
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
         
         # Background Equipment (direct database query)
         print(f"[SQLite] Loading background equipment for '{background_id}'")
@@ -1456,40 +1447,14 @@ class GameEngineSQLite:
             
             print(f"[SQLite] Adding {len(background_equipment)} items from {background_id} background")
             
-            # Use equipment service to get proper item data
-            from talekeeper.services.equipment import equipment_service
-            
             for equipment_name in background_equipment:
-                # Try to get item data from equipment database
-                equipment_data = equipment_service.get_item(equipment_name)
+                quantity = 1
+                # Handle special quantity items (like arrows_20, rations_5)
+                if '_' in equipment_name and equipment_name.split('_')[-1].isdigit():
+                    quantity = int(equipment_name.split('_')[-1])
+                    equipment_name = equipment_name.rsplit('_', 1)[0]  # Remove quantity suffix
                 
-                if equipment_data:
-                    # Use database equipment data
-                    item_type = equipment_data['item_type']
-                    weight_lb = equipment_data['weight_lb'] 
-                    description = equipment_data['description'] or ''
-                    value_gp = equipment_data['cost_gp']
-                    quantity = 1
-                    
-                    # Handle special quantity items (like arrows_20, rations_5)
-                    if '_' in equipment_name and equipment_name.split('_')[-1].isdigit():
-                        quantity = int(equipment_name.split('_')[-1])
-                        equipment_name = equipment_name.rsplit('_', 1)[0]  # Remove quantity suffix
-                    
-                else:
-                    # Fallback for items not in equipment database
-                    item_type = 'gear'
-                    weight_lb = 1.0
-                    description = f'{equipment_name} (background equipment)'
-                    value_gp = 1
-                    quantity = 1
-                    print(f"[SQLite] Warning: '{equipment_name}' not found in equipment database, using fallback")
-                
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), character_id, equipment_name, item_type, quantity, weight_lb, description, value_gp))
-                print(f"[SQLite] Added background item: {equipment_name} (x{quantity})")
+                add_item_from_db(equipment_name, quantity)
             
             # Add starting gold from background
             if background_gold > 0:
@@ -1502,19 +1467,11 @@ class GameEngineSQLite:
             print(f"[SQLite] Warning: Background '{background_id}' not found in database")
         
         # Universal starting equipment (everyone gets these)
-        universal_equipment = [
-            ('Rations', 'gear', 10, 2.0, 'One day worth of travel rations', 0.5),
-            ('Waterskin', 'gear', 1, 5.0, 'Holds 4 pints of liquid', 0.2),
-        ]
-        
-        for item_name, item_type, quantity, weight_lb, description, value_gp in universal_equipment:
-            cursor.execute("""
-                INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(uuid.uuid4()), character_id, item_name, item_type, quantity, weight_lb, description, value_gp))
+        add_item_from_db('Rations', 10, 0, 'gear')
+        add_item_from_db('Waterskin', 1, 0, 'gear')
         
         print(f"[SQLite] Added starting equipment for {class_id} {background_id}")
-    
+
     def _initialize_class_features(self, cursor, character_id: str, character_data: Dict):
         """Initialize class-specific features table based on character's class."""
         class_id = character_data.get('class_id', '').lower()
@@ -2895,3 +2852,131 @@ class GameEngineSQLite:
             print(f"[SQLite] Shifted {coins_to_move} gold pieces into Bag of Holding for character {character_id}")
         except Exception as balance_error:
             print(f"[SQLite] Error rebalancing gold storage: {balance_error}")
+
+    def update_character_inventory(self, character_id: str, inventory_items: List[Dict[str, Any]]) -> bool:
+        """
+        Update character's inventory by replacing all items.
+        
+        Args:
+            character_id: The UUID of the character
+            inventory_items: List of item dictionaries
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            import uuid
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Clear existing inventory items for this character
+                cursor.execute("DELETE FROM character_inventory WHERE character_id = ?", (character_id,))
+                
+                # Insert current inventory items
+                for item in inventory_items:
+                    item_id = str(uuid.uuid4())
+                    cursor.execute("""
+                        INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp, stored_in_bag, treasure_type, unit_value_gp, equipped)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        item_id,
+                        character_id,
+                        item.get('name', 'Unknown Item'),
+                        item['item_type'],
+                        item.get('quantity', 1),
+                        item.get('weight_lb', 0.0),
+                        item.get('description', ''),
+                        item.get('value_gp', 0),
+                        item.get('stored_in_bag', 0),
+                        item.get('treasure_type', 'standard'),
+                        item.get('unit_value_gp'),
+                        1 if item.get('equipped') else 0
+                    ))
+                
+                conn.commit()
+                print(f"[GameEngine] Saved {len(inventory_items)} inventory items for character {character_id}")
+                return True
+                
+        except Exception as e:
+            print(f"[GameEngine] Error saving character inventory: {e}")
+            return False
+
+    def update_character_equipment(self, character_id: str, equipped_items: Dict[str, Any]) -> bool:
+        """
+        Update character's equipped items slots.
+        
+        Args:
+            character_id: The UUID of the character
+            equipped_items: Dictionary mapping slots to item data
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Map equipment slots to character fields
+            main_hand_item = equipped_items.get('main_hand')
+            off_hand_item = equipped_items.get('off_hand')
+            armor_item = equipped_items.get('armor')
+            helmet_item = equipped_items.get('helmet')
+            gloves_item = equipped_items.get('gloves')
+            boots_item = equipped_items.get('boots')
+            cloak_item = equipped_items.get('cloak')
+            ring1_item = equipped_items.get('ring_1')
+            ring2_item = equipped_items.get('ring_2')
+            amulet_item = equipped_items.get('amulet')
+            belt_item = equipped_items.get('belt')
+
+            main_hand_name = main_hand_item.get('name') if main_hand_item else None
+            off_hand_name = off_hand_item.get('name') if off_hand_item else None
+            armor_name = armor_item.get('name') if armor_item else None
+            helmet_name = helmet_item.get('name') if helmet_item else None
+            gloves_name = gloves_item.get('name') if gloves_item else None
+            boots_name = boots_item.get('name') if boots_item else None
+            cloak_name = cloak_item.get('name') if cloak_item else None
+            ring1_name = ring1_item.get('name') if ring1_item else None
+            ring2_name = ring2_item.get('name') if ring2_item else None
+            amulet_name = amulet_item.get('name') if amulet_item else None
+            belt_name = belt_item.get('name') if belt_item else None
+
+            shield_name = None
+            if off_hand_item and off_hand_item.get('item_type') == 'shield':
+                shield_name = off_hand_name
+
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE characters
+                    SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?,
+                        equipment_helmet = ?, equipment_gloves = ?, equipment_boots = ?,
+                        equipment_cloak = ?, equipment_ring_1 = ?, equipment_ring_2 = ?,
+                        equipment_amulet = ?, equipment_belt = ?, equipment_shield = ?
+                    WHERE id = ?
+                """, (
+                    main_hand_name, off_hand_name, armor_name,
+                    helmet_name, gloves_name, boots_name,
+                    cloak_name, ring1_name, ring2_name,
+                    amulet_name, belt_name, shield_name,
+                    character_id
+                ))
+                conn.commit()
+            
+            # Update current character in memory if it matches
+            if self.current_character and self.current_character['id'] == character_id:
+                self.current_character['equipment_main_hand'] = main_hand_name
+                self.current_character['equipment_off_hand'] = off_hand_name
+                self.current_character['equipment_armor'] = armor_name
+                self.current_character['equipment_helmet'] = helmet_name
+                self.current_character['equipment_gloves'] = gloves_name
+                self.current_character['equipment_boots'] = boots_name
+                self.current_character['equipment_cloak'] = cloak_name
+                self.current_character['equipment_ring_1'] = ring1_name
+                self.current_character['equipment_ring_2'] = ring2_name
+                self.current_character['equipment_amulet'] = amulet_name
+                self.current_character['equipment_belt'] = belt_name
+                self.current_character['equipment_shield'] = shield_name
+                
+            return True
+            
+        except Exception as e:
+            print(f"[GameEngine] Error updating character equipment slots: {e}")
+            return False

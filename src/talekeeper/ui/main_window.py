@@ -272,6 +272,14 @@ class MainWindow(QMainWindow):
         self.log_panel.narration_enabled_changed.connect(self.narration_player.set_enabled)
         self.log_panel.narration_volume_changed.connect(self.narration_player.set_volume)
 
+        # Initialize from config
+        from talekeeper.core.config import get_config
+        config = get_config()
+        if hasattr(config, 'audio'):
+            is_enabled = config.audio.enable_master_audio and config.audio.enable_narration
+            self.narration_player.set_enabled(is_enabled)
+            self.narration_player.set_volume(config.audio.narration_volume)
+
         self.log_narration_pipeline = LogNarrationPipeline(
             self.log_panel,
             registry,
@@ -537,110 +545,13 @@ class MainWindow(QMainWindow):
         if not current_character:
             return
             
-        # Map equipment slots to character fields
-        main_hand_item = equipped_items.get('main_hand')
-        off_hand_item = equipped_items.get('off_hand')
-        armor_item = equipped_items.get('armor')
-        helmet_item = equipped_items.get('helmet')
-        gloves_item = equipped_items.get('gloves')
-        boots_item = equipped_items.get('boots')
-        cloak_item = equipped_items.get('cloak')
-        ring1_item = equipped_items.get('ring_1')
-        ring2_item = equipped_items.get('ring_2')
-        amulet_item = equipped_items.get('amulet')
-        belt_item = equipped_items.get('belt')
-
-        main_hand_name = main_hand_item.get('name') if main_hand_item else None
-        off_hand_name = off_hand_item.get('name') if off_hand_item else None
-        armor_name = armor_item.get('name') if armor_item else None
-        helmet_name = helmet_item.get('name') if helmet_item else None
-        gloves_name = gloves_item.get('name') if gloves_item else None
-        boots_name = boots_item.get('name') if boots_item else None
-        cloak_name = cloak_item.get('name') if cloak_item else None
-        ring1_name = ring1_item.get('name') if ring1_item else None
-        ring2_name = ring2_item.get('name') if ring2_item else None
-        amulet_name = amulet_item.get('name') if amulet_item else None
-        belt_name = belt_item.get('name') if belt_item else None
-
-        shield_name = None
-        if off_hand_item and off_hand_item.get('item_type') == 'shield':
-            shield_name = off_hand_name
-
-        # Update database
-        import sqlite3
-        try:
-            conn = sqlite3.connect(self.game_engine.db_path)
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                UPDATE characters
-                SET equipment_main_hand = ?, equipment_off_hand = ?, equipment_armor = ?,
-                    equipment_helmet = ?, equipment_gloves = ?, equipment_boots = ?,
-                    equipment_cloak = ?, equipment_ring_1 = ?, equipment_ring_2 = ?,
-                    equipment_amulet = ?, equipment_belt = ?, equipment_shield = ?
-                WHERE id = ?
-            """, (
-                main_hand_name, off_hand_name, armor_name,
-                helmet_name, gloves_name, boots_name,
-                cloak_name, ring1_name, ring2_name,
-                amulet_name, belt_name, shield_name,
-                current_character['id']
-            ))
-            
-            conn.commit()
-            conn.close()
-            
-            # Update the current character DTO as well
-            current_character['equipment_main_hand'] = main_hand_name
-            current_character['equipment_off_hand'] = off_hand_name
-            current_character['equipment_armor'] = armor_name
-            current_character['equipment_helmet'] = helmet_name
-            current_character['equipment_gloves'] = gloves_name
-            current_character['equipment_boots'] = boots_name
-            current_character['equipment_cloak'] = cloak_name
-            current_character['equipment_ring_1'] = ring1_name
-            current_character['equipment_ring_2'] = ring2_name
-            current_character['equipment_amulet'] = amulet_name
-            current_character['equipment_belt'] = belt_name
-            current_character['equipment_shield'] = shield_name
-            
-        except Exception as e:
-            print(f"Error updating character equipment slots: {e}")
+        # Delegate to game engine
+        self.game_engine.update_character_equipment(current_character['id'], equipped_items)
     
     def _save_character_inventory(self, character_id: str, inventory_items: list):
         """Save character's inventory to the database, replacing all existing items."""
-        try:
-            import sqlite3
-            conn = sqlite3.connect('talekeeper.db')
-            cursor = conn.cursor()
-            
-            # Clear existing inventory items for this character
-            cursor.execute("DELETE FROM character_inventory WHERE character_id = ?", (character_id,))
-            
-            # Insert current inventory items
-            for item in inventory_items:
-                import uuid
-                item_id = str(uuid.uuid4())
-                cursor.execute("""
-                    INSERT INTO character_inventory (id, character_id, item_name, item_type, quantity, weight_lb, description, value_gp)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    item_id,
-                    character_id,
-                    item.get('name', 'Unknown Item'),
-                    item['item_type'],
-                    item.get('quantity', 1),
-                    item.get('weight_lb', 0.0),
-                    item.get('description', ''),
-                    item.get('value_gp', 0)
-                ))
-            
-            conn.commit()
-            conn.close()
-            print(f"[MainWindow] Saved {len(inventory_items)} inventory items for character {character_id}")
-            
-        except Exception as e:
-            print(f"Error saving character inventory: {e}")
+        # Delegate to game engine
+        self.game_engine.update_character_inventory(character_id, inventory_items)
     
     def load_test_data(self):
         """Load demo data into all widgets - only used when no saved characters exist"""
@@ -1351,8 +1262,29 @@ class MainWindow(QMainWindow):
     def _on_settings_changed(self):
         """Handle settings changes."""
         try:
-            from core.config import get_config
+            from talekeeper.core.config import get_config
             config = get_config()
+
+            # Update Audio Settings
+            if hasattr(config, 'audio'):
+                # Master audio switch overrides individual switches
+                master_enabled = config.audio.enable_master_audio
+                
+                # Update MIDI Player
+                if self.midi_player:
+                    music_enabled = master_enabled and config.audio.enable_music
+                    self.midi_player.set_enabled(music_enabled)
+                    self.midi_player.set_volume(config.audio.music_volume)
+                    
+                    # If re-enabled and queue is empty but should have ambient music, queue it
+                    if music_enabled and not self.midi_player.queue:
+                        self._queue_ambient_music()
+
+                # Update Narration Player
+                if self.narration_player:
+                    narration_enabled = master_enabled and config.audio.enable_narration
+                    self.narration_player.set_enabled(narration_enabled)
+                    self.narration_player.set_volume(config.audio.narration_volume)
 
             self.log_panel.log_system("Settings reloaded")
         except Exception as e:
@@ -1837,7 +1769,17 @@ class MainWindow(QMainWindow):
             self.midi_player = MidiPlayer(parent=self)
             
             # Set initial volume (lighter background music)
-            self.midi_player.set_volume(0.4)
+            # Use config volume if available, otherwise default to 0.4
+            from talekeeper.core.config import get_config
+            config = get_config()
+            
+            initial_volume = config.audio.music_volume if hasattr(config, 'audio') else 0.4
+            self.midi_player.set_volume(initial_volume)
+            
+            # Set enabled state
+            if hasattr(config, 'audio'):
+                is_enabled = config.audio.enable_master_audio and config.audio.enable_music
+                self.midi_player.set_enabled(is_enabled)
             
             # Connect narration signals for volume ducking
             if self.narration_player:

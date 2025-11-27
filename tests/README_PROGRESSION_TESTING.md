@@ -237,4 +237,4 @@ For issues or questions:
 **Last Test Run:** November 7, 2025
 **Test Success Rate:** 100% (21/21 passing)
 **Classes Tested:** Fighter (Champion)
-**Classes Planned:** Rogue, Wizard, Cleric, Barbarian, Paladin, Ranger, Bard, Druid, Monk, Sorcerer, Warlock
+**Classes Planned (current scope):** Barbarian, Cleric, Paladin, Rogue, Warlock, Wizard

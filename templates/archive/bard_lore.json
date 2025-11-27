@@ -1,0 +1,43 @@
+{
+  "name": "Lyriana",
+  "species": "Elf",
+  "class": "Bard",
+  "subclass": "College of Lore",
+  "background": "Custom",
+  "feats": ["Skilled"],
+  "ability_scores": {
+    "strength": 8,
+    "dexterity": 17,
+    "constitution": 14,
+    "intelligence": 10,
+    "wisdom": 12,
+    "charisma": 18
+  },
+  "class_skills": ["Performance", "Persuasion", "Acrobatics"],
+  "background_skills": ["Insight", "History"],
+  "tool_proficiencies": ["Lute", "Flute"],
+  "spellcasting": {
+    "cantrips": ["vicious_mockery", "friends", "light"],
+    "spells_known": ["dissonant_whispers", "faerie_fire", "healing_word"],
+    "bardic_inspiration_die": 6
+  },
+  "equipment_choices": {
+    "armor": "Leather Armor",
+    "weapon": "Rapier",
+    "sidearm": "Dagger",
+    "instrument": "Lute",
+    "pack": "Entertainer's Pack"
+  },
+  "starting_inventory": [
+    {"name": "Leather Armor", "quantity": 1},
+    {"name": "Rapier", "quantity": 1},
+    {"name": "Dagger", "quantity": 2},
+    {"name": "Lute", "quantity": 1},
+    {"name": "Entertainer's Pack", "quantity": 1}
+  ],
+  "hp": 12,
+  "armor_class": 15,
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Support caster with Bardic Inspiration (d6), College of Lore expertise, and cha-focused spell list."
+}

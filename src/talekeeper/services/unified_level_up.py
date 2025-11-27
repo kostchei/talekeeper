@@ -191,7 +191,7 @@ class UnifiedLevelUpService:
                 try:
                     from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
                     progression_service = SpellcastingProgressionService(self.db_path)
-                    progression_service.update_spellcasting_on_level_up(character_id, new_level, class_id)
+                    progression_service.update_spellcasting_on_level_up(character_id, new_level, class_id, cursor=cursor)
                     print(f"[UnifiedLevelUp] Updated {class_id} spell slots for level {new_level}")
                 except Exception as e:
                     print(f"[UnifiedLevelUp] Error updating {class_id} spell slots: {e}")
@@ -258,82 +258,6 @@ class UnifiedLevelUpService:
             }
         return None
 
-    def _grant_class_feature(self, cursor, character_id: str, feature: Dict[str, Any],
-                           level: int, results: Dict[str, Any]):
-        """Grant a class feature to the character"""
-        mechanics = feature['mechanics']
-        max_uses = 0
-        recharge_type = 'permanent'
-
-        if 'uses_per_short_rest' in mechanics:
-            max_uses = mechanics['uses_per_short_rest']
-            recharge_type = 'short_rest'
-        elif 'uses_per_long_rest' in mechanics:
-            max_uses = mechanics['uses_per_long_rest']
-            recharge_type = 'long_rest'
-
-        feature_instance_id = self.feature_registry.grant_feature_to_character(
-            character_id=character_id,
-            feature_source='class',
-            feature_id=feature['id'],
-            feature_name=feature['feature_name'],
-            level_gained=level,
-            max_uses=max_uses,
-            recharge_type=recharge_type
-        )
-
-        results["features_gained"].append({
-            "name": feature['feature_name'],
-            "type": feature['feature_type'],
-            "description": feature['description'],
-            "source": "class"
-        })
-
-        if 'choice' in mechanics:
-            results["choices_required"].append({
-                "type": "feature_choice",
-                "feature_name": feature['feature_name'],
-                "feature_instance_id": feature_instance_id,
-                "options": mechanics['choice']
-            })
-
-        if 'asi_or_feat' in mechanics and mechanics['asi_or_feat']:
-            results["choices_required"].append({
-                "type": "asi_or_feat",
-                "level": level
-            })
-
-    def _grant_subclass_feature(self, cursor, character_id: str, feature: Dict[str, Any],
-                              level: int, results: Dict[str, Any]):
-        """Grant a subclass feature to the character"""
-        mechanics = feature['mechanics']
-        max_uses = 0
-        recharge_type = 'permanent'
-
-        if 'uses_per_short_rest' in mechanics:
-            max_uses = mechanics['uses_per_short_rest']
-            recharge_type = 'short_rest'
-        elif 'uses_per_long_rest' in mechanics:
-            max_uses = mechanics['uses_per_long_rest']
-            recharge_type = 'long_rest'
-
-        feature_instance_id = self.feature_registry.grant_feature_to_character(
-            character_id=character_id,
-            feature_source='subclass',
-            feature_id=feature['id'],
-            feature_name=feature['feature_name'],
-            level_gained=level,
-            max_uses=max_uses,
-            recharge_type=recharge_type
-        )
-
-        results["features_gained"].append({
-            "name": feature['feature_name'],
-            "type": feature['feature_type'],
-            "description": feature['description'],
-            "source": "subclass"
-        })
-
     def _calculate_total_hp_for_level(self, cursor, character_id: str, class_id: str, level: int, constitution: int) -> int:
         """Calculate expected total HP for a given level"""
         hit_dice = {
@@ -377,151 +301,6 @@ class UnifiedLevelUpService:
         else:
             return max(level, hp_at_level_1 + (level - 1) * hp_per_additional_level + total_bonus_hp)
 
-    def _calculate_hp_gain(self, class_id: str, constitution: int) -> int:
-        """Calculate HP gain for level up"""
-        hit_dice = {
-            'barbarian': 12,
-            'fighter': 10,
-            'paladin': 10,
-            'ranger': 10,
-            'bard': 8,
-            'cleric': 8,
-            'druid': 8,
-            'rogue': 8,
-            'warlock': 8,
-            'sorcerer': 6,
-            'wizard': 6
-        }
-
-        base_hp = hit_dice.get(class_id, 8)
-        con_modifier = (constitution - 10) // 2
-
-        return max(1, base_hp // 2 + 1 + con_modifier)
-
-    def apply_subclass_choice(self, character_id: str, subclass_id: str) -> Dict[str, Any]:
-        """Apply a subclass choice to a character"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute("UPDATE characters SET subclass_id = ? WHERE id = ?",
-                         (subclass_id, character_id))
-
-            character = self._get_character_data(cursor, character_id)
-            current_level = character['level']
-            conn.commit()
-
-        subclass_features_gained = []
-        for level in range(1, current_level + 1):
-            subclass_features = self.feature_registry.get_subclass_features_for_level(subclass_id, level)
-            for feature in subclass_features:
-                mechanics = feature['mechanics']
-                max_uses = 0
-                recharge_type = 'permanent'
-
-                if 'uses_per_short_rest' in mechanics:
-                    max_uses = mechanics['uses_per_short_rest']
-                    recharge_type = 'short_rest'
-                elif 'uses_per_long_rest' in mechanics:
-                    max_uses = mechanics['uses_per_long_rest']
-                    recharge_type = 'long_rest'
-
-                self.feature_registry.grant_feature_to_character(
-                    character_id=character_id,
-                    feature_source='subclass',
-                    feature_id=feature['id'],
-                    feature_name=feature['feature_name'],
-                    level_gained=level,
-                    max_uses=max_uses,
-                    recharge_type=recharge_type
-                )
-
-                subclass_features_gained.append(feature['feature_name'])
-
-        return {
-            "success": True,
-            "subclass_id": subclass_id,
-            "features_gained": subclass_features_gained
-        }
-
-    def apply_feature_choice(self, character_id: str, feature_instance_id: int,
-                           choice: str) -> Dict[str, Any]:
-        """Apply a choice for a feature (like fighting style, expertise skills)"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT configuration FROM character_feature_instances
-                WHERE id = ? AND character_id = ?
-            """, (feature_instance_id, character_id))
-
-            row = cursor.fetchone()
-            if not row:
-                return {"success": False, "error": "Feature instance not found"}
-
-            current_config = json.loads(row[0]) if row[0] else {}
-            current_config['choice'] = choice
-
-            cursor.execute("""
-                UPDATE character_feature_instances
-                SET configuration = ?
-                WHERE id = ? AND character_id = ?
-            """, (json.dumps(current_config), feature_instance_id, character_id))
-
-            conn.commit()
-
-            return {
-                "success": True,
-                "choice_applied": choice
-            }
-
-    def _has_epic_boon(self, cursor, character_id: str) -> bool:
-        """Check if character already has an Epic Boon feat"""
-        cursor.execute("""
-            SELECT COUNT(*) FROM character_feats
-            WHERE character_id = ? AND feat_name LIKE 'Boon of%'
-        """, (character_id,))
-        return cursor.fetchone()[0] > 0
-
-    def get_available_epic_boons(self) -> List[Dict[str, Any]]:
-        """Get all available Epic Boon feats"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT name, description, prerequisites
-                FROM feats
-                WHERE name LIKE 'Boon of%'
-                ORDER BY name
-            """)
-
-            boons = []
-            for row in cursor.fetchall():
-                boons.append({
-                    "name": row[0],
-                    "description": row[1],
-                    "prerequisites": row[2]
-                })
-            return boons
-
-    def apply_epic_boon(self, character_id: str, boon_name: str) -> Dict[str, Any]:
-        """Apply an Epic Boon feat to the character"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-
-            if self._has_epic_boon(cursor, character_id):
-                return {"success": False, "error": "Character already has an Epic Boon"}
-
-            cursor.execute("""
-                INSERT INTO character_feats (character_id, feat_name, feat_source, level_acquired)
-                VALUES (?, ?, 'level_19_epic_boon', 19)
-            """, (character_id, boon_name))
-
-            conn.commit()
-
-            return {
-                "success": True,
-                "boon_granted": boon_name
-            }
-
     def _handle_warlock_level_up(self, cursor, character_id: str, new_level: int) -> List[Dict[str, Any]]:
         """Handle Warlock-specific level-up choices (invocations, pact boon, and spells)"""
         choices = []
@@ -530,7 +309,7 @@ class UnifiedLevelUpService:
         try:
             from talekeeper.services.spellcasting_progression import SpellcastingProgressionService
             progression_service = SpellcastingProgressionService(self.db_path)
-            progression_service.update_spellcasting_on_level_up(character_id, new_level, 'warlock')
+            progression_service.update_spellcasting_on_level_up(character_id, new_level, 'warlock', cursor=cursor)
             print(f"[UnifiedLevelUp] Updated Warlock pact magic slots for level {new_level}")
         except Exception as e:
             print(f"[UnifiedLevelUp] Error updating Warlock pact slots: {e}")
@@ -590,25 +369,43 @@ class UnifiedLevelUpService:
         row = cursor.fetchone()
         if row:
             invocations_formula = json.loads(row[0])
-            old_invocations = invocations_formula.get(str(new_level - 1), 0)
-            new_invocations = invocations_formula.get(str(new_level), 0)
+            # Check total invocations they SHOULD have at this new level
+            total_should_have = invocations_formula.get(str(new_level), 0)
+            
+            # Check how many they CURRENTLY have
+            cursor.execute("SELECT COUNT(*) FROM warlock_invocations WHERE character_id = ?", (character_id,))
+            current_invocations_count = cursor.fetchone()[0]
 
-            if new_invocations > old_invocations:
-                invocations_to_learn = new_invocations - old_invocations
-                choices.append({
-                    "type": "eldritch_invocations",
-                    "count": invocations_to_learn,
-                    "total_known": new_invocations,
-                    "level": new_level
-                })
-
-        if new_level == 3:
-            choices.append({
-                "type": "pact_boon",
-                "options": ["blade", "chain", "tome"],
-                "level": 3
-            })
-
+            if total_should_have > current_invocations_count:
+                invocations_to_learn = total_should_have - current_invocations_count
+                
+                # Auto-select defaults if possible
+                defaults = ['agonizing_blast', 'devil_s_sight', 'armor_of_shadows', 'fiendish_vigor']
+                
+                # Get current invocations set for checking duplicates
+                cursor.execute("SELECT invocation_id FROM warlock_invocations WHERE character_id = ?", (character_id,))
+                existing = {row[0] for row in cursor.fetchall()}
+                
+                auto_selected = []
+                for inv in defaults:
+                    if len(auto_selected) >= invocations_to_learn:
+                        break
+                    if inv not in existing:
+                        auto_selected.append(inv)
+                
+                if auto_selected:
+                    print(f"[UnifiedLevelUp] Auto-selecting invocations: {auto_selected}")
+                    self._apply_warlock_invocations_internal(cursor, character_id, auto_selected, new_level)
+                    invocations_to_learn -= len(auto_selected)
+                
+                if invocations_to_learn > 0:
+                    choices.append({
+                        "type": "eldritch_invocations",
+                        "count": invocations_to_learn,
+                        "total_known": total_should_have,
+                        "level": new_level
+                    })
+                
         return choices
 
     def apply_warlock_invocations(self, character_id: str, invocation_ids: List[str]) -> Dict[str, Any]:
@@ -622,53 +419,56 @@ class UnifiedLevelUpService:
                 return {"success": False, "error": "Character not found"}
 
             level = level_row[0]
-
-            for invocation_id in invocation_ids:
-                cursor.execute("""
-                    INSERT OR IGNORE INTO warlock_invocations (character_id, invocation_id, learned_at_level)
-                    VALUES (?, ?, ?)
-                """, (character_id, invocation_id, level))
-
-                ability_id = f"invocation_{invocation_id}"
-                cursor.execute("""
-                    SELECT ability_id, uses_formula FROM class_abilities
-                    WHERE ability_id = ? AND class_name = 'Warlock'
-                """, (ability_id,))
-                ability = cursor.fetchone()
-
-                if ability:
-                    max_uses = self._calculate_ability_max_uses(cursor, character_id, ability[1], level)
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO character_ability_usage
-                        (character_id, ability_id, current_uses, max_uses, is_active, turns_remaining)
-                        VALUES (?, ?, ?, ?, 0, 0)
-                    """, (character_id, ability_id, max_uses, max_uses))
-
-                # Record passive effects for always-on invocations
-                self._apply_invocation_effects(cursor, character_id, invocation_id, level)
-
-            cursor.execute("""
-                SELECT invocations_known FROM warlock_features WHERE character_id = ?
-            """, (character_id,))
-            current_row = cursor.fetchone()
-            current = json.loads(current_row[0]) if current_row and current_row[0] else []
-
-            for invocation_id in invocation_ids:
-                if invocation_id not in current:
-                    current.append(invocation_id)
-
-            cursor.execute("""
-                UPDATE warlock_features
-                SET invocations_known = ?
-                WHERE character_id = ?
-            """, (json.dumps(current), character_id))
-
+            self._apply_warlock_invocations_internal(cursor, character_id, invocation_ids, level)
             conn.commit()
 
         return {
             "success": True,
             "invocations_learned": invocation_ids
         }
+
+    def _apply_warlock_invocations_internal(self, cursor: sqlite3.Cursor, character_id: str, 
+                                          invocation_ids: List[str], level: int) -> None:
+        """Internal method to apply invocations using an existing cursor."""
+        for invocation_id in invocation_ids:
+            cursor.execute("""
+                INSERT OR IGNORE INTO warlock_invocations (character_id, invocation_id, learned_at_level)
+                VALUES (?, ?, ?)
+            """, (character_id, invocation_id, level))
+
+            ability_id = f"invocation_{invocation_id}"
+            cursor.execute("""
+                SELECT ability_id, uses_formula FROM class_abilities
+                WHERE ability_id = ? AND class_name = 'Warlock'
+            """, (ability_id,))
+            ability = cursor.fetchone()
+
+            if ability:
+                max_uses = self._calculate_ability_max_uses(cursor, character_id, ability[1], level)
+                cursor.execute("""
+                    INSERT OR REPLACE INTO character_ability_usage
+                    (character_id, ability_id, current_uses, max_uses, is_active, turns_remaining)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (character_id, ability_id, max_uses, max_uses))
+
+            # Record passive effects for always-on invocations
+            self._apply_invocation_effects(cursor, character_id, invocation_id, level)
+
+        cursor.execute("""
+            SELECT invocations_known FROM warlock_features WHERE character_id = ?
+        """, (character_id,))
+        current_row = cursor.fetchone()
+        current = json.loads(current_row[0]) if current_row and current_row[0] else []
+
+        for invocation_id in invocation_ids:
+            if invocation_id not in current:
+                current.append(invocation_id)
+
+        cursor.execute("""
+            UPDATE warlock_features
+            SET invocations_known = ?
+            WHERE character_id = ?
+        """, (json.dumps(current), character_id))
 
     def _apply_invocation_effects(self, cursor: sqlite3.Cursor, character_id: str,
                                   invocation_id: str, level: int) -> None:

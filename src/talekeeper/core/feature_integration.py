@@ -170,6 +170,41 @@ class FeatureSystemIntegration:
                     class_name.lower() if class_name else None,
                     feature.level_acquired
                 ))
+
+        # SYNC TO LEGACY TABLE (character_features)
+        # This ensures features are visible to the UI and Game Engine which rely on the old table
+        try:
+            # Determine usage type for legacy table
+            usage_type = "passive"
+            if feature.usage:
+                usage_type = feature.usage
+            elif feature.feature_type == "resource":
+                usage_type = "action" # Default for resources if not specified
+            
+            # Create mechanics JSON for legacy table
+            legacy_mechanics = feature.mechanics.copy()
+            if uses_max is not None:
+                legacy_mechanics["uses"] = uses_max
+                legacy_mechanics["max_uses"] = uses_max
+            
+            if feature.recharge:
+                legacy_mechanics["recharge"] = feature.recharge
+
+            cursor.execute("""
+                INSERT OR REPLACE INTO character_features
+                (character_id, feature_name, feature_type, usage_type, level_gained, description, mechanics)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                character_id, 
+                feature.name, 
+                feature.feature_type, 
+                usage_type, 
+                feature.level_acquired, 
+                feature.description, 
+                json.dumps(legacy_mechanics)
+            ))
+        except Exception as e:
+            print(f"Warning: Failed to sync feature {feature.name} to legacy table: {e}")
     
     def _initialize_class_features(self, cursor: sqlite3.Cursor, character_id: str, 
                                    class_name: str, level: int):

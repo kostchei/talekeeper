@@ -65,7 +65,8 @@
       "Bash(sed -n '387,450p' \"D:\\Code\\TaleKeeper\\src\\talekeeper\\ui\\main_window.py\")",
       "Bash(\"tests\\docs\\SAMPLE_REPORT.md\")",
       "Bash(d:CodeTaleKeepertemp_familiar_stats.json)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(pytest:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,48 @@
+{
+  "name": "Thalara",
+  "species": "Gnome",
+  "class": "Druid",
+  "subclass": "Circle of the Land",
+  "background": "Custom",
+  "feats": ["Observant"],
+  "ability_scores": {
+    "strength": 10,
+    "dexterity": 12,
+    "constitution": 16,
+    "intelligence": 12,
+    "wisdom": 18,
+    "charisma": 8
+  },
+  "class_skills": ["Nature", "Medicine"],
+  "background_skills": ["Survival", "Perception"],
+  "tool_proficiencies": ["Herbalism Kit"],
+  "spellcasting": {
+    "circle": "Land",
+    "circle_terrain": "Forest",
+    "cantrips": ["produce_flame", "thorn_whip", "guidance"],
+    "spells_prepared": ["entangle", "cure_wounds", "faerie_fire", "longstrider"]
+  },
+  "equipment_choices": {
+    "armor": "Scale Mail",
+    "shield": "Shield",
+    "weapon": "Scimitar",
+    "druidic_focus": "Totem",
+    "pack": "Explorer's Pack"
+  },
+  "starting_inventory": [
+    {"name": "Scale Mail", "quantity": 1},
+    {"name": "Shield", "quantity": 1},
+    {"name": "Scimitar", "quantity": 1},
+    {"name": "Druidic Focus", "quantity": 1},
+    {"name": "Explorer's Pack", "quantity": 1}
+  ],
+  "wild_shape": {
+    "uses": 2,
+    "max_cr": 0.25
+  },
+  "hp": 14,
+  "armor_class": 17,
+  "level": 1,
+  "experience_points": 0,
+  "notes": "Circle of the Land (Forest) preparatory caster with balanced healing/control spells and Herbalism Kit utility."
+}

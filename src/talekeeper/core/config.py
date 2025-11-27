@@ -89,6 +89,17 @@ class NarrativeConfig:
     fallback_to_mechanical: bool = True
 
 
+@dataclass
+class AudioConfig:
+    """Audio settings"""
+    enable_master_audio: bool = True
+    enable_music: bool = True
+    enable_narration: bool = True
+    master_volume: float = 1.0
+    music_volume: float = 0.4
+    narration_volume: float = 0.7
+
+
 class ConfigManager:
     """Manages application configuration"""
 
@@ -99,6 +110,7 @@ class ConfigManager:
         self.features = FeatureConfig()
         self.ui = UIConfig()
         self.narrative = NarrativeConfig()
+        self.audio = AudioConfig()
 
         # Load from file if it exists
         self.load_config()
@@ -121,6 +133,13 @@ class ConfigManager:
                     self.ui = UIConfig(**config_data['ui'])
                 if 'narrative' in config_data:
                     self.narrative = NarrativeConfig(**config_data['narrative'])
+                if 'audio' in config_data:
+                    self.audio = AudioConfig(**config_data['audio'])
+                
+                # Migration: Sync legacy narrative audio setting to new audio config if not present
+                if 'audio' not in config_data and 'narrative' in config_data:
+                    if 'enable_audio_narration' in config_data['narrative']:
+                        self.audio.enable_narration = config_data['narrative']['enable_audio_narration']
 
                 print(f"[CONFIG] Loaded configuration from {self.config_file}")
             except Exception as e:
@@ -134,7 +153,8 @@ class ConfigManager:
                 'debug': asdict(self.debug),
                 'features': asdict(self.features),
                 'ui': asdict(self.ui),
-                'narrative': asdict(self.narrative)
+                'narrative': asdict(self.narrative),
+                'audio': asdict(self.audio)
             }
 
             with open(self.config_file, 'w') as f:
@@ -202,6 +222,7 @@ class ConfigManager:
         self.features = FeatureConfig()
         self.ui = UIConfig()
         self.narrative = NarrativeConfig()
+        self.audio = AudioConfig()
         self.save_config()
 
     def enable_developer_mode(self):

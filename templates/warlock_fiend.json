@@ -4,27 +4,25 @@
   "class": "Warlock",
   "subclass": "Fiend Patron",
   "background": "Custom",
-  "feats": ["Tough", "Magic Initiate (Wizard)"],
+  "feats": ["Tough"],
   "patron": "fiend",
   "pact_boon": "pact_of_the_chain",
   "ability_scores": {
-    "strength": 6,
-    "dexterity": 16,
-    "constitution": 16,
-    "intelligence": 10,
+    "strength": 8,
+    "dexterity": 14,
+    "constitution": 13,
+    "intelligence": 12,
     "wisdom": 10,
-    "charisma": 20
+    "charisma": 15
   },
-  "class_skills": ["Deception", "Intimidation"],
+  "class_skills": ["Arcana", "Deception"],
   "background_skills": ["Stealth", "Sleight of Hand", "Persuasion"],
   "tool_proficiencies": ["Gaming Set"],
   "hp": 13,
   "armor_class": 16,
   "spellcasting": {
-    "cantrips": ["eldritch_blast", "toll_the_dead"],
-    "spells_known": ["hex", "mage_armor"],
-    "magic_initiate_cantrips": ["thunderclap", "blade_ward"],
-    "magic_initiate_spell": "false_life"
+    "cantrips": ["eldritch_blast", "prestidigitation"],
+    "spells_known": ["hex", "charm_person"]
   },
   "familiar": {
     "spirit": "Quasit",
@@ -36,6 +34,12 @@
     "pack": "Scholar's Pack"
   },
   "level": 1,
-  "experience_points": 0,
-  "notes": "Control/blaster with familiar scout - Pact of the Chain quasit, Hex + Eldritch Blast, False Life for temp HP"
+  "experience_points": 355000,
+  "wealth_ledger": {
+    "starting_equipment_gp": 100,
+    "progression_fund_gp": 20000,
+    "swing_fund_gp": 2500,
+    "total_gp": 22500
+  },
+  "notes": "Standard-array fiend pact build with Pact of the Chain quasit; stocked with XP/gold reserves for level 1-20 progression tests"
 }
